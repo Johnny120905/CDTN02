@@ -86,9 +86,16 @@ git push
 Dự án CDTN02 là nền tảng kết nối việc làm bán thời gian, tích hợp hệ thống quản lý hồ sơ, tuyển dụng và tương tác trực tiếp (Chat Real-time & WebRTC). Hệ thống được chia thành 3 phân hệ giao diện độc lập sử dụng chung một cơ sở dữ liệu tập trung, đảm bảo mã nguồn modular và ngăn chặn xung đột (conflict) khi làm việc nhóm.
 
 ## 🛠 Ngôn Ngữ & Công Nghệ (Tech Stack)
-*   **Backend:** Python (Flask/FastAPI)
-*   **Frontend:** JavaScript (ReactJS)
-*   **Database:** MongoDB (Dùng chung cho cả 3 phân hệ)
+
+*   **Frontend (Giao diện web):** React JS (Sử dụng đuôi file `.jsx`) - Xây dựng giao diện hiện đại bằng cách lắp ghép các Component. Bộ khung (HTML) và logic (JS) được viết gộp chung một cách tự nhiên trong các file `.jsx` giúp tái sử dụng code linh hoạt cho cả 3 role.
+*   **Backend (Máy chủ & API):** Python, Flask - Đóng vai trò là bộ não của hệ thống, xử lý logic nghiệp vụ, kiểm tra xác thực phân quyền (Admin, Student, Employer) và cung cấp dữ liệu qua API.
+*   **Môi trường khởi chạy:** Flask Development Server, Python 3.11 - Khởi chạy máy chủ web cục bộ để chạy liên tục mã lệnh Backend. *(Lưu ý: cổng mạng mặc định của Flask thường là `127.0.0.1:5000` thay vì `8000`)*.
+*   **Cơ sở dữ liệu (Database):** MongoDB Atlas, MongoDB Compass - Atlas lưu trữ toàn bộ dữ liệu dự án trên đám mây; Compass giúp nhóm xem, thêm/sửa/xóa dữ liệu trực quan bằng giao diện trên máy tính.
+*   **Môi trường lập trình (IDE):** Visual Studio Code (VS Code) - Trình soạn thảo mã nguồn chính cho cả Frontend (React) và Backend (Flask), tích hợp sẵn Terminal để chạy lệnh cài đặt thư viện.
+*   **Kiểm thử API (Testing):** Postman - Công cụ chuyên dụng để nhóm gửi thử các yêu cầu xem Flask Backend có trả về đúng dữ liệu từ MongoDB hay không trước khi gắn vào giao diện React.
+*   **Thiết kế trải nghiệm (UI/UX):** Figma, Stitch - Thiết kế, vẽ bản thảo giao diện (mockup) và luồng di chuyển giữa các trang trước khi bắt tay vào code Frontend.
+*   **Quản lý mã nguồn (Source):** Git, GitHub - Lưu trữ an toàn các phiên bản code, giúp các thành viên cùng làm việc, ghép code lại với nhau mà không bị đè hay mất file.
+*   **Quản lý công việc (Task):** Jira, Trello - Phân chia nhiệm vụ cụ thể cho từng thành viên, theo dõi tiến độ hoàn thành các tính năng của đồ án theo từng tuần.
 *   **Kiến trúc:** Modular Monolith Backend & Micro-frontend (3 giao diện độc lập)
 
 ## 📂 Tổng Quan Kiến Trúc Thư Mục
