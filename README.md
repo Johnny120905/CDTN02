@@ -77,7 +77,7 @@ touch Frontend/Admin/src/pages/UserManager.jsx Frontend/Admin/src/pages/JobManag
 # Tạo thư mục chứa WBS, Excel tiến độ và hình ảnh Logo chung
 mkdir -p Shared/Documents Shared/Assets
 git add .
-git commit -m "Khoi tao toan bo cau truc chuan Tieng Anh cho Backend(Python) va Frontend(React)"
+git commit -m "Khoi tao cau truc thu muc cho 3 role: Student, Employer, Admin"
 git push
 
 
