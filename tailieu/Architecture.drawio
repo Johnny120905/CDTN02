@@ -1,0 +1,310 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Architecture" id="zRX7HXn9QETwk7o4niZq">
+    <mxGraphModel grid="1" page="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <UserObject label="" plantUmlData="{&#xa;  &quot;data&quot;: &quot;@startuml\nskinparam monochrome true\nskinparam backgroundColor #FFFFFF\nskinparam shadowing false\nskinparam defaultFontSize 11\nskinparam rectangle {\n  RoundCorner 0\n  BackgroundColor #FFFFFF\n  BorderColor #000000\n}\nskinparam note {\n  BackgroundColor #FFFFFF\n  BorderColor #000000\n}\nskinparam ArrowColor #000000\n\n&#39; ===================== TẦNG 1 =====================\nrectangle \&quot;&lt;b&gt;Tầng 1 – Trình bày (Presentation)&lt;/b&gt;\\nReactJS (Web Responsive), gọi API bằng Axios, real-time bằng Socket.IO Client\&quot; as L1 {\n  rectangle \&quot;Cổng Sinh viên\\nFR 1.1 đến 1.10\&quot; as P1\n  rectangle \&quot;Cổng Nhà tuyển dụng\\nFR 2.1 đến 2.9\&quot; as P2\n  rectangle \&quot;Trang Quản trị viên\\nFR 3.1 đến 3.9\&quot; as P3\n}\n\n&#39; ===================== TẦNG 2 =====================\nrectangle \&quot;&lt;b&gt;Tầng 2 – Nghiệp vụ (Business)&lt;/b&gt;\\nPython + Flask, Flask-SocketIO\&quot; as L2 {\n  rectangle \&quot;Router\\n(các endpoint /api/...)\&quot; as B1\n  rectangle \&quot;Socket.IO\\n(online, gửi tin, đang gõ,\\nđã xem, gọi WebRTC)\&quot; as B2\n  rectangle \&quot;Middleware: xác thực JWT NFR-04,\\nphân quyền theo vai trò NFR-05\&quot; as B3\n  rectangle \&quot;Middleware: kiểm tra dữ liệu đầu vào\\nNFR-07, kiểm tra tệp ≤ 10MB NFR-08\&quot; as B4\n\n  rectangle \&quot;AuthService: đăng ký, OTP,\\nđăng nhập, đổi mật khẩu,\\nhủy tài khoản\\n(1.1, 1.2, 2.1, 2.2, 3.1, 3.2)\&quot; as S1\n  rectangle \&quot;StudentProfileService:\\nhồ sơ, thư giới thiệu,\\nCV mặc định (1.3, 1.4)\&quot; as S2\n  rectangle \&quot;CompanyService: hồ sơ\\ndoanh nghiệp, tải lại GPKD,\\nlogo / ảnh bìa (2.3)\&quot; as S3\n  rectangle \&quot;JobService: tìm, lọc,\\nlưu việc làm, đăng tin,\\nchuyển trạng thái tin (1.5, 2.4)\&quot; as S4\n  rectangle \&quot;ApplicationService: nộp đơn,\\nchặn nộp trùng, hủy đơn,\\nduyệt / từ chối (1.5.6, 1.6, 2.5)\&quot; as S5\n  rectangle \&quot;ReviewService: chỉ đánh giá\\nkhi tin Hoàn thành, tính điểm\\ntrung bình (1.7, 2.6, 3.6)\&quot; as S6\n\n  rectangle \&quot;ChatService: phòng chat theo cặp\\nSinh viên – Nhà tuyển dụng,\\nchế độ chỉ đọc, lọc từ cấm\\n(1.8, 1.10, 2.7, 2.9, 3.9)\&quot; as S7\n  rectangle \&quot;NotificationService:\\nphát và quản lý thông báo\\n(1.9, 2.8)\&quot; as S8\n  rectangle \&quot;ReportService: báo cáo vi phạm,\\nmỗi tin chỉ báo 1 lần, xử lý\\n(1.5.7, 1.8.5, 2.5.6, 2.7.5, 3.8)\&quot; as S9\n  rectangle \&quot;UserAdminService:\\nkhóa / mở khóa tài khoản,\\nduyệt GPKD (3.4)\&quot; as S10\n  rectangle \&quot;JobModerationService:\\nẩn / bỏ ẩn, xóa tin\\nvi phạm (3.5)\&quot; as S11\n  rectangle \&quot;CategoryService,\\nStatisticsService: danh mục\\n(3.7), thống kê (3.3)\&quot; as S12\n}\n\n&#39; ===================== TẦNG 3 =====================\nrectangle \&quot;&lt;b&gt;Tầng 3 – Truy cập dữ liệu (Data access)&lt;/b&gt;\\nPython + PyMongo, mẫu Repository\&quot; as L3 {\n  rectangle \&quot;UserRepository\\n(users, student_profiles,\\nemployers)\&quot; as R1\n  rectangle \&quot;ProfileRepository\\n(cover_letters, resumes)\&quot; as R2\n  rectangle \&quot;CompanyRepository\\n(company_profiles)\&quot; as R3\n  rectangle \&quot;JobRepository\\n(jobs, bookmarks)\&quot; as R4\n  rectangle \&quot;CategoryRepository\\n(categories)\&quot; as R5\n  rectangle \&quot;ApplicationRepository\\n(applications)\&quot; as R6\n  rectangle \&quot;ReviewRepository\\n(reviews)\&quot; as R7\n  rectangle \&quot;ChatRepository\\n(chat_rooms, messages,\\nbanned_keywords)\&quot; as R8\n  rectangle \&quot;NotificationRepository\\n(notifications)\&quot; as R9\n  rectangle \&quot;ReportRepository\\n(reports)\&quot; as R10\n}\n\n&#39; ===================== TẦNG 4 =====================\nrectangle \&quot;&lt;b&gt;Tầng 4 – Lưu trữ (Storage)&lt;/b&gt;\\nMongoDB Atlas – 16 collection theo ERD; tệp lưu ở Cloud Storage, CSDL chỉ lưu URL\&quot; as L4 {\n  rectangle \&quot;users\&quot; as C1\n  rectangle \&quot;student_profiles\&quot; as C2\n  rectangle \&quot;employers\&quot; as C3\n  rectangle \&quot;company_profiles\&quot; as C4\n  rectangle \&quot;cover_letters\&quot; as C5\n  rectangle \&quot;resumes\&quot; as C6\n  rectangle \&quot;jobs\&quot; as C7\n  rectangle \&quot;categories\&quot; as C8\n  rectangle \&quot;bookmarks\&quot; as C9\n  rectangle \&quot;applications\&quot; as C10\n  rectangle \&quot;reviews\&quot; as C11\n  rectangle \&quot;chat_rooms\&quot; as C12\n  rectangle \&quot;messages\&quot; as C13\n  rectangle \&quot;notifications\&quot; as C14\n  rectangle \&quot;reports\&quot; as C15\n  rectangle \&quot;banned_keywords\&quot; as C16\n  rectangle \&quot;Cloud Storage: CV, GPKD (PDF),\\nlogo / ảnh bìa (PNG, JPG), tệp chat\&quot; as X1\n  rectangle \&quot;Dịch vụ Email (SMTP):\\ngửi mã OTP\&quot; as X2\n}\n\n&#39; ===== Xếp hàng: -right- giữ cùng hàng, -down- đẩy xuống hàng dưới (đường ẩn, chỉ để bố cục) =====\nP1 -[hidden]right- P2\nP2 -[hidden]right- P3\nB1 -[hidden]right- B2\nB2 -[hidden]right- B3\nB3 -[hidden]right- B4\nS1 -[hidden]right- S2\nS2 -[hidden]right- S3\nS3 -[hidden]right- S4\nS4 -[hidden]right- S5\nS5 -[hidden]right- S6\nS7 -[hidden]right- S8\nS8 -[hidden]right- S9\nS9 -[hidden]right- S10\nS10 -[hidden]right- S11\nS11 -[hidden]right- S12\nR1 -[hidden]right- R2\nR2 -[hidden]right- R3\nR3 -[hidden]right- R4\nR4 -[hidden]right- R5\nR6 -[hidden]right- R7\nR7 -[hidden]right- R8\nR8 -[hidden]right- R9\nR9 -[hidden]right- R10\nC1 -[hidden]right- C2\nC2 -[hidden]right- C3\nC3 -[hidden]right- C4\nC4 -[hidden]right- C5\nC5 -[hidden]right- C6\nC6 -[hidden]right- C7\nC7 -[hidden]right- C8\nC9 -[hidden]right- C10\nC10 -[hidden]right- C11\nC11 -[hidden]right- C12\nC12 -[hidden]right- C13\nC13 -[hidden]right- C14\nC14 -[hidden]right- C15\nC15 -[hidden]right- C16\nX1 -[hidden]right- X2\nB1 -[hidden]down- S1\nB2 -[hidden]down- S2\nB3 -[hidden]down- S3\nB4 -[hidden]down- S4\nS1 -[hidden]down- S7\nS2 -[hidden]down- S8\nS3 -[hidden]down- S9\nS4 -[hidden]down- S10\nS5 -[hidden]down- S11\nS6 -[hidden]down- S12\nR1 -[hidden]down- R6\nR2 -[hidden]down- R7\nR3 -[hidden]down- R8\nR4 -[hidden]down- R9\nR5 -[hidden]down- R10\nC1 -[hidden]down- C9\nC2 -[hidden]down- C10\nC3 -[hidden]down- C11\nC4 -[hidden]down- C12\nC5 -[hidden]down- C13\nC6 -[hidden]down- C14\nC7 -[hidden]down- C15\nC8 -[hidden]down- C16\nC9 -[hidden]down- X1\nC13 -[hidden]down- X2\n\n&#39; ===================== Gọi giữa các tầng =====================\nL1 -down-&gt; L2 : HTTP + JSON (REST) và WebSocket (Socket.IO)\nL2 -down-&gt; L3 : gọi hàm Repository\nL3 -down-&gt; L4 : PyMongo\n\n&#39; ===================== Chú thích =====================\nlegend bottom left\n  &lt;b&gt;Chú thích:&lt;/b&gt; mũi tên = tầng trên gọi tầng dưới (phụ thuộc một chiều, không gọi ngược, không bỏ qua tầng).\n  Số trong ngoặc là mã chức năng trong sheet Functional Requirement.\n  &lt;b&gt;Ngoài phạm vi:&lt;/b&gt; cổng thanh toán, giao dịch tiền thật, ứng dụng di động native.\nendlegend\n\n@enduml\n&quot;,&#xa;  &quot;config&quot;: null&#xa;}" id="Lmtvks4RY7wiR-Wkk34V-1">
+          <mxCell connectable="0" parent="1" style="group;transparentBounds=1;editIcon=1;lockedGroup=0;groupPadding=10 42 10 10;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="&lt;b&gt;Tầng 1 – Trình bày (Presentation)&lt;/b&gt;&lt;br&gt;ReactJS (Web Responsive), gọi API bằng Axios, real-time bằng Socket.IO Client" plantUmlId="c_0" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=5;fillColor=#FFFFFF;strokeColor=#000000;verticalAlign=top;align=center;spacingTop=-4;fontSize=11;fontStyle=1;whiteSpace=wrap;shadow=0;html=1;" plantUmlBaseValue="&lt;b&gt;Tầng 1 – Trình bày (Presentation)&lt;/b&gt;&lt;br&gt;ReactJS (Web Responsive), gọi API bằng Axios, real-time bằng Socket.IO Client" id="Lmtvks4RY7wiR-Wkk34V-2">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-1" style="rounded=0;absoluteArcSize=1;arcSize=5;fillColor=#FFFFFF;strokeColor=#000000;verticalAlign=top;align=center;spacingTop=-4;fontSize=11;fontStyle=1;whiteSpace=wrap;shadow=0;html=1;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="110" width="583" x="432.3299999999999" y="50" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="Cổng Sinh viên&#xa;FR 1.1 đến 1.10" plantUmlId="n_1" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="Cổng Sinh viên&#xa;FR 1.1 đến 1.10" id="Lmtvks4RY7wiR-Wkk34V-3">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-2" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="139" x="15" y="49" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="Cổng Nhà tuyển dụng&#xa;FR 2.1 đến 2.9" plantUmlId="n_2" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="Cổng Nhà tuyển dụng&#xa;FR 2.1 đến 2.9" id="Lmtvks4RY7wiR-Wkk34V-4">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-2" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="174" x="189" y="49" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="Trang Quản trị viên&#xa;FR 3.1 đến 3.9" plantUmlId="n_3" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="Trang Quản trị viên&#xa;FR 3.1 đến 3.9" id="Lmtvks4RY7wiR-Wkk34V-5">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-2" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="170" x="398" y="49" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="&lt;b&gt;Tầng 2 – Nghiệp vụ (Business)&lt;/b&gt;&lt;br&gt;Python + Flask, Flask-SocketIO" plantUmlId="c_4" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=5;fillColor=#FFFFFF;strokeColor=#000000;verticalAlign=top;align=center;spacingTop=-4;fontSize=11;fontStyle=1;whiteSpace=wrap;shadow=0;html=1;" plantUmlBaseValue="&lt;b&gt;Tầng 2 – Nghiệp vụ (Business)&lt;/b&gt;&lt;br&gt;Python + Flask, Flask-SocketIO" id="Lmtvks4RY7wiR-Wkk34V-6">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-1" style="rounded=0;absoluteArcSize=1;arcSize=5;fillColor=#FFFFFF;strokeColor=#000000;verticalAlign=top;align=center;spacingTop=-4;fontSize=11;fontStyle=1;whiteSpace=wrap;shadow=0;html=1;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="360" width="1347.67" x="50" y="245" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="Router&#xa;(các endpoint /api/...)" plantUmlId="n_5" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="Router&#xa;(các endpoint /api/...)" id="Lmtvks4RY7wiR-Wkk34V-7">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-6" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="43.99002493765586" width="153.46873278068253" x="22.906510708119562" y="69.90002493765586" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="Socket.IO&#xa;(online, gửi tin, đang gõ,&#xa;đã xem, gọi WebRTC)" plantUmlId="n_6" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="Socket.IO&#xa;(online, gửi tin, đang gõ,&#xa;đã xem, gọi WebRTC)" id="Lmtvks4RY7wiR-Wkk34V-8">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-6" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="55.66084788029926" width="161.71973991942895" x="236.52623575005816" y="64.06002493765585" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="Middleware: xác thực JWT NFR-04,&#xa;phân quyền theo vai trò NFR-05" plantUmlId="n_7" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="Middleware: xác thực JWT NFR-04,&#xa;phân quyền theo vai trò NFR-05" id="Lmtvks4RY7wiR-Wkk34V-9">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-6" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="43.99002493765586" width="174.09625062754847" x="460.52698280823347" y="69.90002493765586" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="Middleware: kiểm tra dữ liệu đầu vào&#xa;NFR-07, kiểm tra tệp ≤ 10MB NFR-08" plantUmlId="n_8" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="Middleware: kiểm tra dữ liệu đầu vào&#xa;NFR-07, kiểm tra tệp ≤ 10MB NFR-08" id="Lmtvks4RY7wiR-Wkk34V-10">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-6" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="43.99002493765586" width="194.72561151568775" x="690.5328244742395" y="69.90002493765586" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="ApplicationService: nộp đơn,&#xa;chặn nộp trùng, hủy đơn,&#xa;duyệt / từ chối (1.5.6, 1.6, 2.5)" plantUmlId="n_13" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="ApplicationService: nộp đơn,&#xa;chặn nộp trùng, hủy đơn,&#xa;duyệt / từ chối (1.5.6, 1.6, 2.5)" id="Lmtvks4RY7wiR-Wkk34V-11">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-6" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="55.66084788029926" width="161.71973991942895" x="933.2941169015638" y="69.90002493765587" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="ReviewService: chỉ đánh giá&#xa;khi tin Hoàn thành, tính điểm&#xa;trung bình (1.7, 2.6, 3.6)" plantUmlId="n_14" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="ReviewService: chỉ đánh giá&#xa;khi tin Hoàn thành, tính điểm&#xa;trung bình (1.7, 2.6, 3.6)" id="Lmtvks4RY7wiR-Wkk34V-12">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-6" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="55.66084788029926" width="183.1723584801695" x="1141.5852668152374" y="69.90002493765587" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="CategoryService,&#xa;StatisticsService: danh mục&#xa;(3.7), thống kê (3.3)" plantUmlId="n_20" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="CategoryService,&#xa;StatisticsService: danh mục&#xa;(3.7), thống kê (3.3)" id="Lmtvks4RY7wiR-Wkk34V-13">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-6" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="55.66" width="183.17" x="1140.53" y="142.62" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="JobModerationService:&#xa;ẩn / bỏ ẩn, xóa tin&#xa;vi phạm (3.5)" plantUmlId="n_19" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="JobModerationService:&#xa;ẩn / bỏ ẩn, xóa tin&#xa;vi phạm (3.5)" id="Lmtvks4RY7wiR-Wkk34V-14">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-6" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="55.66" width="158" x="933.29" y="142.61999999999998" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="JobService: tìm, lọc,&#xa;lưu việc làm, đăng tin,&#xa;chuyển trạng thái tin (1.5, 2.4)" plantUmlId="n_12" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="JobService: tìm, lọc,&#xa;lưu việc làm, đăng tin,&#xa;chuyển trạng thái tin (1.5, 2.4)" id="Lmtvks4RY7wiR-Wkk34V-15">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-6" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="55.66084788029926" width="194.72376847441444" x="690.5389384329043" y="142.6182294264339" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="CompanyService: hồ sơ&#xa;doanh nghiệp, tải lại GPKD,&#xa;logo / ảnh bìa (2.3)" plantUmlId="n_11" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="CompanyService: hồ sơ&#xa;doanh nghiệp, tải lại GPKD,&#xa;logo / ảnh bìa (2.3)" id="Lmtvks4RY7wiR-Wkk34V-16">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-6" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="55.66084788029926" width="174.09625062754847" x="460.5267813804842" y="142.6182294264339" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="StudentProfileService:&#xa;hồ sơ, thư giới thiệu,&#xa;CV mặc định (1.3, 1.4)" plantUmlId="n_10" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="StudentProfileService:&#xa;hồ sơ, thư giới thiệu,&#xa;CV mặc định (1.3, 1.4)" id="Lmtvks4RY7wiR-Wkk34V-17">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-6" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="55.66084788029926" width="159.24443777780502" x="239.0062357500582" y="142.6182294264339" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="AuthService: đăng ký, OTP,&#xa;đăng nhập, đổi mật khẩu,&#xa;hủy tài khoản&#xa;(1.1, 1.2, 2.1, 2.2, 3.1, 3.2)" plantUmlId="n_9" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="AuthService: đăng ký, OTP,&#xa;đăng nhập, đổi mật khẩu,&#xa;hủy tài khoản&#xa;(1.1, 1.2, 2.1, 2.2, 3.1, 3.2)" id="Lmtvks4RY7wiR-Wkk34V-18">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-6" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="70.02493765586036" width="153.46873278068253" x="22.906510708119562" y="142.6182294264339" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="ChatService: phòng chat theo cặp&#xa;Sinh viên – Nhà tuyển dụng,&#xa;chế độ chỉ đọc, lọc từ cấm&#xa;(1.8, 1.10, 2.7, 2.9, 3.9)" plantUmlId="n_15" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="ChatService: phòng chat theo cặp&#xa;Sinh viên – Nhà tuyển dụng,&#xa;chế độ chỉ đọc, lọc từ cấm&#xa;(1.8, 1.10, 2.7, 2.9, 3.9)" id="Lmtvks4RY7wiR-Wkk34V-19">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-6" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="70.02" width="159.24" x="240.66" y="225.91" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="NotificationService:&#xa;phát và quản lý thông báo&#xa;(1.9, 2.8)" plantUmlId="n_16" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="NotificationService:&#xa;phát và quản lý thông báo&#xa;(1.9, 2.8)" id="Lmtvks4RY7wiR-Wkk34V-20">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-6" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="55.66" width="170" x="460.53" y="226.91" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="ReportService: báo cáo vi phạm,&#xa;mỗi tin chỉ báo 1 lần, xử lý&#xa;(1.5.7, 1.8.5, 2.5.6, 2.7.5, 3.8)" plantUmlId="n_17" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="ReportService: báo cáo vi phạm,&#xa;mỗi tin chỉ báo 1 lần, xử lý&#xa;(1.5.7, 1.8.5, 2.5.6, 2.7.5, 3.8)" id="Lmtvks4RY7wiR-Wkk34V-21">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-6" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="55.66" width="194.72" x="690.53" y="225.91000000000003" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="UserAdminService:&#xa;khóa / mở khóa tài khoản,&#xa;duyệt GPKD (3.4)" plantUmlId="n_18" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="UserAdminService:&#xa;khóa / mở khóa tài khoản,&#xa;duyệt GPKD (3.4)" id="Lmtvks4RY7wiR-Wkk34V-22">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-6" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="55.66" width="153.47" x="937.8199999999999" y="225.91" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="&lt;b&gt;Tầng 3 – Truy cập dữ liệu (Data access)&lt;/b&gt;&lt;br&gt;Python + PyMongo, mẫu Repository" plantUmlId="c_21" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=5;fillColor=#FFFFFF;strokeColor=#000000;verticalAlign=top;align=center;spacingTop=-4;fontSize=11;fontStyle=1;whiteSpace=wrap;shadow=0;html=1;" plantUmlBaseValue="&lt;b&gt;Tầng 3 – Truy cập dữ liệu (Data access)&lt;/b&gt;&lt;br&gt;Python + PyMongo, mẫu Repository" id="Lmtvks4RY7wiR-Wkk34V-23">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-1" style="rounded=0;absoluteArcSize=1;arcSize=5;fillColor=#FFFFFF;strokeColor=#000000;verticalAlign=top;align=center;spacingTop=-4;fontSize=11;fontStyle=1;whiteSpace=wrap;shadow=0;html=1;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="246" width="1082.54" x="182.55999999999983" y="690" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="ProfileRepository&#xa;(cover_letters, resumes)" plantUmlId="n_23" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="ProfileRepository&#xa;(cover_letters, resumes)" id="Lmtvks4RY7wiR-Wkk34V-24">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-23" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="206" x="253" y="62" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="CompanyRepository&#xa;(company_profiles)" plantUmlId="n_24" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="CompanyRepository&#xa;(company_profiles)" id="Lmtvks4RY7wiR-Wkk34V-25">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-23" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="169" x="494" y="62" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="JobRepository&#xa;(jobs, bookmarks)" plantUmlId="n_25" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="JobRepository&#xa;(jobs, bookmarks)" id="Lmtvks4RY7wiR-Wkk34V-26">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-23" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="158" x="701.28" y="62" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="CategoryRepository&#xa;(categories)" plantUmlId="n_26" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="CategoryRepository&#xa;(categories)" id="Lmtvks4RY7wiR-Wkk34V-27">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-23" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="170" x="897.54" y="62" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="ApplicationRepository&#xa;(applications)" plantUmlId="n_27" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="ApplicationRepository&#xa;(applications)" id="Lmtvks4RY7wiR-Wkk34V-28">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-23" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="182" x="39.38" y="172" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="ReviewRepository&#xa;(reviews)" plantUmlId="n_28" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="ReviewRepository&#xa;(reviews)" id="Lmtvks4RY7wiR-Wkk34V-29">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-23" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="158" x="265.27" y="172" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="ChatRepository&#xa;(chat_rooms, messages,&#xa;banned_keywords)" plantUmlId="n_29" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="ChatRepository&#xa;(chat_rooms, messages,&#xa;banned_keywords)" id="Lmtvks4RY7wiR-Wkk34V-30">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-23" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="62" width="201" x="458.27" y="172" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="NotificationRepository&#xa;(notifications)" plantUmlId="n_30" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="NotificationRepository&#xa;(notifications)" id="Lmtvks4RY7wiR-Wkk34V-31">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-23" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="183" x="694.27" y="172" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="ReportRepository&#xa;(reports)" plantUmlId="n_31" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="ReportRepository&#xa;(reports)" id="Lmtvks4RY7wiR-Wkk34V-32">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-23" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="154" x="912.27" y="172" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="&lt;b&gt;Tầng 4 – Lưu trữ (Storage)&lt;/b&gt;&lt;br&gt;MongoDB Atlas – 16 collection theo ERD; tệp lưu ở Cloud Storage, CSDL chỉ lưu URL" plantUmlId="c_32" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=5;fillColor=#FFFFFF;strokeColor=#000000;verticalAlign=top;align=center;spacingTop=-4;fontSize=11;fontStyle=1;whiteSpace=wrap;shadow=0;html=1;" plantUmlBaseValue="&lt;b&gt;Tầng 4 – Lưu trữ (Storage)&lt;/b&gt;&lt;br&gt;MongoDB Atlas – 16 collection theo ERD; tệp lưu ở Cloud Storage, CSDL chỉ lưu URL" id="Lmtvks4RY7wiR-Wkk34V-33">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-1" style="rounded=0;absoluteArcSize=1;arcSize=5;fillColor=#FFFFFF;strokeColor=#000000;verticalAlign=top;align=center;spacingTop=-4;fontSize=11;fontStyle=1;whiteSpace=wrap;shadow=0;html=1;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="329" width="1280.8" x="83.43000000000006" y="1010" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="users" plantUmlId="n_33" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="users" id="Lmtvks4RY7wiR-Wkk34V-34">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-33" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="79" x="58.92" y="49" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="student_profiles" plantUmlId="n_34" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="student_profiles" id="Lmtvks4RY7wiR-Wkk34V-35">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-33" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="147" x="172.92" y="49" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="employers" plantUmlId="n_35" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="employers" id="Lmtvks4RY7wiR-Wkk34V-36">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-33" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="110" x="354.92" y="49" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="company_profiles" plantUmlId="n_36" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="company_profiles" id="Lmtvks4RY7wiR-Wkk34V-37">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-33" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="158" x="499.92" y="49" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="cover_letters" plantUmlId="n_37" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="cover_letters" id="Lmtvks4RY7wiR-Wkk34V-38">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-33" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="131" x="692.92" y="49" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="resumes" plantUmlId="n_38" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="resumes" id="Lmtvks4RY7wiR-Wkk34V-39">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-33" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="98" x="858.92" y="49" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="jobs" plantUmlId="n_39" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="jobs" id="Lmtvks4RY7wiR-Wkk34V-40">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-33" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="68" x="991.92" y="49" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="categories" plantUmlId="n_40" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="categories" id="Lmtvks4RY7wiR-Wkk34V-41">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-33" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="111" x="1122.22" y="49" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="bookmarks" plantUmlId="n_41" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="bookmarks" id="Lmtvks4RY7wiR-Wkk34V-42">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-33" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="114" x="63.79" y="159" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="applications" plantUmlId="n_42" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="applications" id="Lmtvks4RY7wiR-Wkk34V-43">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-33" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="119" x="212.79" y="159" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="reviews" plantUmlId="n_43" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="reviews" id="Lmtvks4RY7wiR-Wkk34V-44">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-33" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="95" x="368.7" y="159" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="chat_rooms" plantUmlId="n_44" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="chat_rooms" id="Lmtvks4RY7wiR-Wkk34V-45">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-33" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="118" x="515.3" y="159" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="messages" plantUmlId="n_45" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="messages" id="Lmtvks4RY7wiR-Wkk34V-46">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-33" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="106" x="668.3" y="159" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="notifications" plantUmlId="n_46" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="notifications" id="Lmtvks4RY7wiR-Wkk34V-47">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-33" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="120" x="823.8" y="159" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="reports" plantUmlId="n_47" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="reports" id="Lmtvks4RY7wiR-Wkk34V-48">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-33" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="91" x="978.8" y="159" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="banned_keywords" plantUmlId="n_48" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="banned_keywords" id="Lmtvks4RY7wiR-Wkk34V-49">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-33" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="161" x="1104.8" y="159" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="Cloud Storage: CV, GPKD (PDF),&#xa;logo / ảnh bìa (PNG, JPG), tệp chat" plantUmlId="n_49" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="Cloud Storage: CV, GPKD (PDF),&#xa;logo / ảnh bìa (PNG, JPG), tệp chat" id="Lmtvks4RY7wiR-Wkk34V-50">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-33" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="263" x="15" y="268" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="Dịch vụ Email (SMTP):&#xa;gửi mã OTP" plantUmlId="n_50" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="Dịch vụ Email (SMTP):&#xa;gửi mã OTP" id="Lmtvks4RY7wiR-Wkk34V-51">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-33" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="49" width="183" x="609.3" y="268" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="HTTP + JSON (REST) và WebSocket (Socket.IO)" plantUmlId="e_51" plantUmlBaseStyle="strokeColor=#000000;fontColor=#000000;fontSize=11;html=1;labelBackgroundColor=#FFFFFF;labelPosition=right;align=left;endArrow=classicThin;endFill=1;curved=1;rounded=0;endSize=6;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" plantUmlBaseValue="HTTP + JSON (REST) và WebSocket (Socket.IO)" id="Lmtvks4RY7wiR-Wkk34V-52">
+          <mxCell edge="1" parent="Lmtvks4RY7wiR-Wkk34V-1" source="Lmtvks4RY7wiR-Wkk34V-2" style="strokeColor=#000000;fontColor=#000000;fontSize=11;html=1;labelBackgroundColor=#FFFFFF;labelPosition=right;align=left;endArrow=classicThin;endFill=1;rounded=0;endSize=6;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;edgeStyle=orthogonalEdgeStyle;fontFamily=Tahoma;" target="Lmtvks4RY7wiR-Wkk34V-6">
+            <mxGeometry relative="1" x="-0.1121" y="-114" as="geometry">
+              <mxPoint as="offset" />
+              <Array as="points">
+                <mxPoint x="730" y="205" />
+                <mxPoint x="730" y="205" />
+              </Array>
+              <mxPoint x="874.3" y="157.76" as="sourcePoint" />
+              <mxPoint x="876.6700000000001" y="216.90999999999997" as="targetPoint" />
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="gọi hàm Repository" plantUmlId="e_52" plantUmlBaseStyle="strokeColor=#000000;fontColor=#000000;fontSize=11;html=1;labelBackgroundColor=#FFFFFF;labelPosition=right;align=left;endArrow=classicThin;endFill=1;curved=1;rounded=0;endSize=6;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" plantUmlBaseValue="gọi hàm Repository" id="Lmtvks4RY7wiR-Wkk34V-53">
+          <mxCell edge="1" parent="Lmtvks4RY7wiR-Wkk34V-1" source="Lmtvks4RY7wiR-Wkk34V-6" style="strokeColor=#000000;fontColor=#000000;fontSize=11;html=1;labelBackgroundColor=#FFFFFF;labelPosition=right;align=left;endArrow=classicThin;endFill=1;rounded=0;endSize=6;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;edgeStyle=orthogonalEdgeStyle;fontFamily=Tahoma;" target="Lmtvks4RY7wiR-Wkk34V-23">
+            <mxGeometry relative="1" y="-50" as="geometry">
+              <mxPoint as="offset" />
+              <Array as="points">
+                <mxPoint x="730" y="650" />
+                <mxPoint x="730" y="650" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="PyMongo" plantUmlId="e_53" plantUmlBaseStyle="strokeColor=#000000;fontColor=#000000;fontSize=11;html=1;labelBackgroundColor=#FFFFFF;labelPosition=right;align=left;endArrow=classicThin;endFill=1;curved=0;rounded=0;endSize=6;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;" plantUmlBaseValue="PyMongo" id="Lmtvks4RY7wiR-Wkk34V-54">
+          <mxCell edge="1" parent="Lmtvks4RY7wiR-Wkk34V-1" source="Lmtvks4RY7wiR-Wkk34V-23" style="strokeColor=#000000;fontColor=#000000;fontSize=11;html=1;labelBackgroundColor=#FFFFFF;labelPosition=right;align=left;endArrow=classicThin;endFill=1;rounded=0;endSize=6;sourcePerimeterSpacing=0;targetPerimeterSpacing=0;edgeStyle=orthogonalEdgeStyle;fontFamily=Tahoma;" target="Lmtvks4RY7wiR-Wkk34V-33">
+            <mxGeometry relative="1" x="-0.0811" y="-20" as="geometry">
+              <mxPoint as="offset" />
+              <Array as="points">
+                <mxPoint x="730" y="960" />
+                <mxPoint x="730" y="960" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </UserObject>
+        <UserObject label="&lt;b&gt;Chú thích:&lt;/b&gt; mũi tên = tầng trên gọi tầng dưới (phụ thuộc một chiều, không gọi ngược, không bỏ qua tầng).&lt;br&gt;Số trong ngoặc là mã chức năng trong sheet Functional Requirement.&lt;br&gt;&lt;b&gt;Ngoài phạm vi:&lt;/b&gt; cổng thanh toán, giao dịch tiền thật, ứng dụng di động native." plantUmlId="legend_0" plantUmlBaseStyle="rounded=1;absoluteArcSize=1;arcSize=15;fillColor=none;strokeColor=#000000;strokeWidth=1;fontColor=#000000;fontSize=14;align=left;verticalAlign=top;spacing=0;spacingLeft=5;spacingTop=1;whiteSpace=wrap;html=1;" plantUmlBaseValue="&lt;b&gt;Chú thích:&lt;/b&gt; mũi tên = tầng trên gọi tầng dưới (phụ thuộc một chiều, không gọi ngược, không bỏ qua tầng).&lt;br&gt;Số trong ngoặc là mã chức năng trong sheet Functional Requirement.&lt;br&gt;&lt;b&gt;Ngoài phạm vi:&lt;/b&gt; cổng thanh toán, giao dịch tiền thật, ứng dụng di động native." id="Lmtvks4RY7wiR-Wkk34V-55">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-1" style="rounded=1;absoluteArcSize=1;arcSize=15;fillColor=none;strokeColor=#000000;strokeWidth=1;fontColor=#000000;fontSize=14;align=left;verticalAlign=top;spacing=0;spacingLeft=5;spacingTop=1;whiteSpace=wrap;html=1;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="59.46" width="731.81" x="83.42999999999995" y="1400" as="geometry" />
+          </mxCell>
+        </UserObject>
+        <UserObject label="UserRepository&#xa;(users, student_profiles,&#xa;employers)" plantUmlId="n_22" plantUmlBaseStyle="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;" plantUmlBaseValue="UserRepository&#xa;(users, student_profiles,&#xa;employers)" id="Lmtvks4RY7wiR-Wkk34V-56">
+          <mxCell parent="Lmtvks4RY7wiR-Wkk34V-1" style="rounded=0;absoluteArcSize=1;arcSize=3;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;whiteSpace=wrap;fontSize=11;shadow=0;fontFamily=Tahoma;" vertex="1">
+            <mxGeometry height="62" width="203" x="197.9999999999999" y="745.5" as="geometry" />
+          </mxCell>
+        </UserObject>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
