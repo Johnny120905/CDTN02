@@ -1,507 +1,987 @@
-# TÀI LIỆU THIẾT KẾ GIAO DIỆN & TẬP HỢP PROMPT GOOGLE STITCH
+# TÀI LIỆU ĐẶC TẢ THIẾT KẾ GIAO DIỆN & TẬP HỢP PROMPT GOOGLE STITCH CHUẨN XÁC 100%
 ## NỀN TẢNG TUYỂN DỤNG PARTIME.VN - VIỆC LÀM LINH HOẠT CHO SINH VIÊN (CDTN02)
-> **Phiên bản:** 2.0 - Clean Architecture  
-> **Font chữ tiêu chuẩn:** `Be Vietnam Pro` (Google Fonts)  
-> **Bảng màu chủ đạo:** Xanh lá cây hiện đại (Bright & Fresh Green: `#10B981`, `#059669`, `#16A34A`, `#DCFCE7`), nền sáng thanh lịch (`#F8FAFC`, `#FFFFFF`), chữ tương phản cao (`#0F172A`, `#334155`).  
-> **Điểm nhấn công nghệ:** Logo 3D xoay tương tác hình đồng hồ chữ P kết hợp chiếc lá sinh thái, hiệu ứng 3D Hero bằng Three.js / Canvas, WebRTC Video Call, Realtime Chat.
+> **Phiên bản:** 2.0 - Chuẩn hóa Dark 4D Electric Blue & Layered Clean Architecture  
+> **Font chữ tiêu chuẩn:** `Be Vietnam Pro` (Google Fonts: 400 Regular, 500 Medium, 600 SemiBold, 700 Bold, 900 Black)  
+> **Bảng màu chủ đạo:** Vũ trụ không gian sâu `#030712`, thẻ kính mờ `#0b1329` (`backdrop-blur-xl border border-blue-900/30`), xanh điện `#2563eb`, xanh da trời `#38bdf8`, xanh lục `#10b981`, đỏ cảnh báo `#ef4444`, vàng hổ phách `#f59e0b`.  
+> **CHỈ THỊ BẮT BUỘC KHI DÙNG PROMPT CHO AI (STRICT AI COMPLIANCE MANDATE):**  
+> *Khi người dùng dán bất kỳ prompt nào trong tài liệu này vào Google Stitch hoặc các công cụ AI UI Generator, hệ thống AI **BẮT BUỘC PHẢI TÁI TẠO NGUYÊN BẢN 100%** theo đúng bố cục, mã màu HEX, font chữ, các trường nhập liệu, thành phần 3D WebGL GLTF, canvas Three.js và văn bản tiếng Việt đã được đặc tả; **TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ Ý THÊM BỚT, TÓM TẮT, THAY THẾ HOẶC BIẾN TẤU NỘI DUNG VÀ MÀU SẮC** so với bản gốc.*
 
 ---
 
-## MỤC LỤC
-1. [Hệ Thống Thiết Kế (Design System & Guidelines)](#1-hệ-thống-thiết-kế-design-system--guidelines)
-2. [Cấu Trúc Phân Hệ & Vai Trò Lập Trình](#2-cấu-trúc-phân-hệ--vai-trò-lập-trình)
-3. [Bộ Prompt Google Stitch Tái Tạo Giao Diện Chung & Xác Thực](#3-bộ-prompt-stitch---giao-diện-chung--xác-thực)
-4. [Bộ Prompt Google Stitch Phân Hệ Sinh Viên (Vũ Thế Long)](#4-bộ-prompt-stitch---phân-hệ-sinh-viên-vũ-thế-long)
-5. [Bộ Prompt Google Stitch Phân Hệ Nhà Tuyển Dụng (Huỳnh Nguyễn Bảo Ngọc)](#5-bộ-prompt-stitch---phân-hệ-nhà-tuyển-dụng-huỳnh-nguyễn-bảo-ngọc)
-6. [Bộ Prompt Google Stitch Phân Hệ Quản Trị Viên (Lê Thị Thuỳ Ngân)](#6-bộ-prompt-stitch---phân-hệ-quản-trị-viên-lê-thị-thuỳ-ngân)
+## MỤC LỤC BỘ PROMPT
+1. [Hệ Thống Thiết Kế Chuẩn Dark 4D Electric Blue](#1-hệ-thống-thiết-kế-chuẩn-dark-4d-electric-blue)
+2. [Bộ Prompt Xác Thực Riêng Biệt Từng Role (9 Prompts)](#2-bộ-prompt-xác-thực-riêng-biệt-từng-role)
+   - Prompt 01A: Đăng Nhập Sinh Viên (`StudentLoginScreen`)
+   - Prompt 01B: Đăng Nhập Nhà Tuyển Dụng (`EmployerLoginScreen`)
+   - Prompt 01C: Đăng Nhập Quản Trị Viên (`AdminLoginScreen`)
+   - Prompt 02A: Đăng Ký Sinh Viên (`StudentRegisterScreen`)
+   - Prompt 02B: Đăng Ký Nhà Tuyển Dụng - Kéo Thả GPKD & 24 Quận Huyện (`EmployerRegisterScreen`)
+   - Prompt 02C: Khởi Tạo / Cổng Bảo Vệ Quản Trị Viên (`AdminRestrictedGateway`)
+   - Prompt 03A: Quên Mật Khẩu Sinh Viên - OTP 10 Phút & Auto-Fill (`StudentForgotPasswordScreen`)
+   - Prompt 03B: Quên Mật Khẩu Nhà Tuyển Dụng - OTP 10 Phút & Auto-Fill (`EmployerForgotPasswordScreen`)
+   - Prompt 03C: Cổng Khôi Phục Bảo Mật Quản Trị Viên (`AdminSecurityRecoveryGateway`)
+3. [Bộ Prompt Phân Hệ Sinh Viên - Vũ Thế Long (8 Prompts)](#3-bộ-prompt-phân-hệ-sinh-viên-vũ-thế-long)
+   - Prompt 04: Tìm Kiếm & Lọc Việc Làm Đa Tiêu Chí (`JobList.jsx`)
+   - Prompt 05: Xem Chi Tiết Việc Làm & Modal Ứng Tuyển Một Chạm (`JobDetailModal.jsx`)
+   - Prompt 06: Quản Lý CV PDF Chuẩn Kiểm Định & Thư Giới Thiệu (`CVManager.jsx`)
+   - Prompt 07: Quản Lý Hồ Sơ Cá Nhân Sinh Viên (`StudentProfile.jsx`)
+   - Prompt 08: Theo Dõi Tiến Độ Ứng Tuyển 4 Chặng Rõ Ràng (`ApplicationTracker.jsx`)
+   - Prompt 09: Đánh Giá & Nhận Xét Nhà Tuyển Dụng (`StudentReviewModal.jsx`)
+   - Prompt 10: Phòng Nhắn Tin Realtime & Tự Động Lọc Từ Khóa Cấm (`StudentChat.jsx`)
+   - Prompt 11: Phòng Gọi Video Phỏng Vấn Trực Tuyến WebRTC (`StudentVideoCall.jsx`)
+4. [Bộ Prompt Phân Hệ Nhà Tuyển Dụng - Huỳnh Nguyễn Bảo Ngọc (9 Prompts)](#4-bộ-prompt-phân-hệ-nhà-tuyển-dụng-huỳnh-nguyễn-bảo-ngọc)
+   - Prompt 12: Bảng Điều Khiển Tổng Quan Doanh Nghiệp (`EmployerDashboard.jsx`)
+   - Prompt 13: Hồ Sơ Doanh Nghiệp & Kéo Thả GPKD (`CompanyProfile.jsx`)
+   - Prompt 14: Studio Soạn Thảo & Đăng Tin Tuyển Dụng Part-time (`JobPostingStudio.jsx`)
+   - Prompt 15: Quản Lý Danh Sách Tin Tuyển Dụng & Vòng Đời Việc Làm (`JobLifecycleManager.jsx`)
+   - Prompt 16: Hệ Thống ATS Theo Dõi & Lọc Duyệt Ứng Viên (`CandidateATS.jsx`)
+   - Prompt 17: Modal Lên Lịch Phỏng Vấn Trực Tuyến (`InterviewSchedulerModal.jsx`)
+   - Prompt 18: Đánh Giá Năng Lực Sinh Viên 2 Chiều (`EmployerReview.jsx`)
+   - Prompt 19: Phòng Nhắn Tin & Trao Đổi Ứng Viên Doanh Nghiệp (`EmployerChat.jsx`)
+   - Prompt 20: Phòng Phỏng Vấn Video WebRTC Nhà Tuyển Dụng (`EmployerVideoCall.jsx`)
+5. [Bộ Prompt Phân Hệ Quản Trị Viên - Lê Thị Thuỳ Ngân (7 Prompts)](#5-bộ-prompt-phân-hệ-quản-trị-viên-lê-thị-thuỳ-ngân)
+   - Prompt 21: Command Center & Bảng Phân Tích Dữ Liệu (`AnalyticsDashboard.jsx`)
+   - Prompt 22: Trung Tâm Quản Trị Người Dùng & Khóa Tài Khoản (`UserManagement.jsx`)
+   - Prompt 23: Trung Tâm Thẩm Định Doanh Nghiệp & Duyệt GPKD (`BusinessVerificationDesk.jsx`)
+   - Prompt 24: Kiểm Duyệt Tin Tuyển Dụng Toàn Sàn & Ẩn Tin Vi Phạm (`JobModeration.jsx`)
+   - Prompt 25: Quản Trị Danh Mục Master Data Ngành Nghề (`CategoryManager.jsx`)
+   - Prompt 26: Bàn Xử Lý Khiếu Nại & Báo Cáo Vi Phạm (`ReportsResolutionDesk.jsx`)
+   - Prompt 27: Quản Trị Bộ Lọc Từ Khóa Cấm Realtime (`BannedKeywordsManager.jsx`)
+6. [Bộ Prompt Giao Diện Dùng Chung Cao Cấp (4 Prompts)](#6-bộ-prompt-giao-diện-dùng-chung-cao-cấp)
+   - Prompt 28: Hệ Thống Zero Native Dialogs: `<ConfirmDialog>` & Banner Trạng Thái 3 Màu
+   - Prompt 29: Thanh Header & Dropdown Menu Nền Đặc Opaque 100%
+   - Prompt 30: Trình Xem Tệp Tin PDF Chuẩn Kiểm Định `<DocumentViewerModal>`
+   - Prompt 31: Đồng Bộ Đa Thiết Bị Responsive (PC, Laptop, iPad, Mobile)
 
 ---
 
-## 1. HỆ THỐNG THIẾT KẾ (DESIGN SYSTEM & GUIDELINES)
+## 1. HỆ THỐNG THIẾT KẾ CHUẨN DARK 4D ELECTRIC BLUE
 
-### 1.1. Typography
-- **Primary Font:** `Be Vietnam Pro`, sans-serif (Weights: 400 Regular, 500 Medium, 600 SemiBold, 700 Bold, 800 ExtraBold).
-- **Scale:**
-  - `Hero Display`: 40px - 48px / Line-height 1.2
-  - `Heading 1 (H1)`: 30px - 36px / Line-height 1.25
-  - `Heading 2 (H2)`: 24px - 28px / Line-height 1.3
-  - `Heading 3 (H3)`: 18px - 20px / Line-height 1.4
-  - `Body Text`: 14px - 15px / Line-height 1.5
-  - `Caption / Small`: 12px - 13px / Line-height 1.4
-
-### 1.2. Color Palette (Dark 4D Website & Màu Xanh Dương Điện - Electric Blue)
-- **Primary Brand Colors (Electric Blue Tone):**
-  - Primary Blue: `#2563EB` (Blue 600) / `#38BDF8` (Sky 400)
-  - Primary Dark / Deep: `#1D4ED8` (Blue 700) / `#0284C7` (Sky 600)
-  - Surface Glass Cards: `#0B1329` / `#060B17` với độ mờ `backdrop-blur-xl` và viền `border-blue-900/30`
-  - Deep Space Canvas: `#030712` (Không gian nền vũ trụ 4D với 650 ngôi sao phát sáng lấp lánh)
-  - Text Primary: `#FFFFFF` / `#F8FAFC` (Trắng sáng tương phản cao)
-  - Text Secondary: `#94A3B8` (Slate 400) / `#38BDF8` (Sky 400)
-- **Chuẩn Hóa Hệ Thống Màu Sắc Trạng Thái (Status Colors):**
-  - 🟡 **Vàng (Amber `#F59E0B`):** Chờ đợi (Pending / Waiting / Chờ duyệt / Chờ xử lý).
-  - 🔴 **Đỏ (Red `#EF4444`):** Cảnh báo / Khóa / Từ chối / Ẩn tin vi phạm (Warning / Banned / Rejected / Hidden).
-  - 🟢 **Xanh lá (Emerald `#10B981`):** Hoạt động an toàn / Đã duyệt / Trúng tuyển (Active / Safe / Accepted / Resolved).
-  - 🟠 **Cam đỏ (Orange `#F97316`):** Đang xử lý / Phỏng vấn / Đang điều tra (Processing / Interviewing / Investigating).
-
-### 1.3. Quy Tắc Bố Cục UI (Layout Guidelines)
-1. **Màn hình xác thực (Đăng nhập, Đăng ký, Quên mật khẩu):**
-   - Hoàn toàn **loại bỏ Header và Footer chung** của website.
-   - Thẻ xác thực căn giữa tinh tế trên nền hạt ngọc 3D Three.js tương tác.
-   - Các trường nhập liệu để trống ban đầu để người dùng tự nhập; checkbox "Ghi nhớ thông tin đăng nhập" hỗ trợ tự động lưu sau lần đăng nhập thành công đầu tiên.
-2. **Thanh Header phân hệ sau khi đăng nhập:**
-   - **Bên trái:** Logo 3D PARTIME.VN - Việc Làm Linh Hoạt (nhấp vào lập tức chuyển về Trang chủ trên cả 3 role).
-   - **Bên phải:** Tên người dùng + Huy hiệu vai trò + Avatar + Dropdown Menu.
-   - **Đặc tả Dropdown Menu & Chuông Thông báo:** Nền màu xanh đậm đặc hoàn toàn (`#090f20` / `#0b1329`, opacity 1, `z-[9999]`), viền neon `border-2 border-blue-500`, **tuyệt đối không bị trong suốt làm chìm nội dung**. Hỗ trợ click thông báo để điều hướng trực tiếp đến chức năng tương ứng.
-3. **Thanh Sidebar bên trái:**
-   - Liệt kê các danh mục chức năng chuyên biệt của từng vai trò. Đã loại bỏ khung tài khoản thừa ở đáy thanh sidebar trên cả 3 role để tối ưu không gian hiển thị.
-4. **Hệ thống Hộp Thoại Xác Nhận & Thông Báo Thay Thế Toàn Bộ Browser Dialogs:**
-   - **Thành phần `<ConfirmDialog>`:** Hộp thoại 4D Modal nổi cao cấp với lớp phủ mờ tối màu đen (`backdrop-blur-md bg-black/85`), thiết kế riêng biệt cho các tác vụ nguy hiểm (Xóa CV, Xóa Thư giới thiệu, Khóa tài khoản, Từ chối GPKD, Ẩn tin...) loại bỏ hoàn toàn các popup native xấu của trình duyệt (`127.0.0.1:8000 cho biết`).
-   - **Thanh Banner Trạng Thái Gắn Dưới Header:** Tự động hiển thị khi người dùng Lưu/Tải/Gửi:
-     - 🟢 **Xanh lá (`#064e3b` / border-emerald-500):** Thao tác thành công, an toàn.
-     - 🟡 **Vàng (`#78350f` / border-amber-500):** Đang xử lý, tải dữ liệu, chờ kết nối.
-     - 🔴 **Đỏ (`#7f1d1d` / border-red-500):** Cảnh báo lỗi, dữ liệu không hợp lệ.
-5. **Tiến Độ Ứng Tuyển Sinh Viên (4 Chặng Rõ Ràng):**
-   - Thay thế trục thời gian lặp lại trước đây bằng sơ đồ 4 cột mốc trực quan: `[1. Nộp hồ sơ] -> [2. NTD đã xem] -> [3. Phỏng vấn] -> [4. Trúng tuyển / Từ chối]`.
-6. **Loại bỏ hoàn toàn mã kỹ thuật:**
-   - Tuyệt đối không để lộ bất kỳ mã số WBS, FR, BR, NFR, UC, US trên giao diện người dùng. Mọi tiêu đề dùng từ ngữ tiếng Việt tự nhiên, trực quan.
-
-### 1.3. 3D Logo & Branding Concept
-- **Logo:** Biểu tượng 3D hình chiếc đồng hồ cách điệu lồng ghép chữ **P** màu xanh lá gradient bóng bẩy, bên trong mặt kim đồng hồ có chồi lá xanh vươn lên biểu trưng cho sinh viên năng động và công việc linh hoạt theo thời gian.
-- **Brand Slogan:** `PARTIME.VN - Việc Làm Linh Hoạt`
-- **Hiệu ứng 3D Hero:** Sử dụng Three.js Canvas hiển thị khối không gian 3D tương tác theo chuột với logo đồng hồ xoay nhẹ, các hạt ánh sáng xanh phát quang (green bioluminescent particles) tạo cảm giác công nghệ cao, thân thiện và năng lượng.
+- **Tông nền vũ trụ 4D:** `#030712` (Không gian nền vũ trụ sâu thẳm với lớp sương mù xanh đen).
+- **Thẻ thành phần Glassmorphism:** `#0B1329` / `#060B17`, `backdrop-blur-xl`, `border border-blue-900/30` (hoặc `border-blue-500/20`), đổ bóng neon `shadow-2xl shadow-blue-950/80`.
+- **Màu nhấn thương hiệu (Electric Blue Spectrum):**
+  - Xanh dương điện chủ đạo: `#2563EB` (Blue 600)
+  - Xanh trời phát sáng: `#38BDF8` (Sky 400)
+  - Xanh Cyan tương tác: `#06B6D4` / `#60A5FA`
+- **Màu chữ tương phản cao:** Chữ chính trắng sáng `#FFFFFF` / `#F8FAFC`, chữ phụ `#94A3B8` (Slate 400), nhãn nổi bật `#38BDF8`.
+- **4 Màu trạng thái nghiệp vụ chuẩn hóa:**
+  - 🟡 **Vàng hổ phách (`#F59E0B`):** Chờ duyệt (`pending`), đang xử lý, đếm ngược OTP.
+  - 🔴 **Đỏ cảnh báo (`#EF4444`):** Khóa (`banned`), từ chối (`rejected`), ẩn tin vi phạm, từ cấm.
+  - 🟢 **Xanh lục an toàn (`#10B981`):** Hoạt động (`active`), đã duyệt (`approved`), trúng tuyển (`accepted`).
+  - 🟠 **Cam điều tra (`#F97316`):** Đang phỏng vấn (`interviewing`), đang điều tra báo cáo.
+- **Đồ họa WebGL 3D & Three.js Canvas:**
+  - Canvas 650 ngôi sao tròn phát sáng lấp lánh (Circular glowing stars), vòng xoay 4D Hyper-Torus đa chiều, sóng biến dạng không-thời gian mềm mại di chuyển theo con trỏ chuột.
+  - Logo 3D WebGL GLTF (`/meshy-3d-logo.glb`) nổi bồng bềnh 4D, nghiêng theo chuột, đổ bóng động kèm chữ nhận diện `PARTIME.VN` - `Việc Làm Linh Hoạt`.
 
 ---
 
-## 2. CẤU TRÚC PHÂN HỆ & VAI TRÒ LẬP TRÌNH
+## 2. BỘ PROMPT XÁC THỰC RIÊNG BIỆT TỪNG ROLE
 
-| Phân hệ (Role) | Thành viên phụ trách | Thư mục Frontend chuyên biệt | Trách nhiệm chính |
-| :--- | :--- | :--- | :--- |
-| **Sinh viên (student)** | **Vũ Thế Long** | `frontend/src/features/student/` | Đăng ký/đăng nhập SV, Profile, CV builder, tìm việc, ứng tuyển, đánh giá NTD, chat, video call. |
-| **Nhà tuyển dụng (employer)** | **Huỳnh Nguyễn Bảo Ngọc** | `frontend/src/features/employer/` | Profile công ty, GPKD, đăng tin tuyển dụng, ATS lọc duyệt ứng viên, đánh giá SV, chat, phỏng vấn video. |
-| **Quản trị viên (admin)** | **Lê Thị Thuỳ Ngân** | `frontend/src/features/admin/` | Dashboard phân tích, quản lý user, duyệt tin, kiểm duyệt review, danh mục master data, báo cáo vi phạm, bộ lọc từ cấm. |
-
----
-
-## 3. BỘ PROMPT STITCH - GIAO DIỆN CHUNG & XÁC THỰC
-
-### Prompt 01: Landing Page & 3D Interactive Hero
+### Prompt 01A: Màn Hình Đăng Nhập Sinh Viên (StudentLoginScreen)
 ```text
-Role: Senior UI/UX Designer & Frontend Architect
-Tool: Google Stitch / Modern Web Canvas
-Task: Generate a ultra-clean, high-converting Landing Page for "PARTIME.VN - Việc Làm Linh Hoạt", a premier part-time & freelance marketplace tailored for Vietnamese university students.
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
 
-Design System & Specs:
-- Typography: Font "Be Vietnam Pro", sans-serif. Modern, clean line-height.
-- Color Palette: Dominant vibrant emerald green (#10B981, #059669) blended with sleek light slate backgrounds (#F8FAFC, #FFFFFF), slate-900 typography, subtle emerald borders (#A7F3D0).
-- Layout:
-  1. Sticky Glassmorphism Header:
-     - Left: 3D-styled green clock-P emblem logo with text "PARTIME.VN" (bold emerald-700) and subtitle "Việc Làm Linh Hoạt".
-     - Center Navigation: "Tìm việc làm", "Dành cho nhà tuyển dụng", "Bảng giá tin", "Về chúng tôi".
-     - Right: Action buttons "Đăng tin (Dành cho NTD)" (Ghost button) and "Đăng nhập / Đăng ký" (Solid Emerald-500 rounded-full with hover shadow-emerald).
-  2. Hero Section with 3D Canvas Mockup:
-     - Left Column (60%): Badge "Nền tảng việc làm Part-time #1 Sinh Viên", Headline "Tìm Công Việc Linh Hoạt, Vững Bước Tương Lai", Subtitle "Hàng nghìn công việc part-time uy tín, linh hoạt thời gian, phù hợp lịch học dành riêng cho sinh viên Việt Nam", Quick Search Floating Bar (Input từ khóa, Dropdown Ngành nghề, Dropdown Địa điểm TP.HCM/Hà Nội, Nút "Tìm kiếm việc làm" màu xanh emerald nổi bật). Popular search tags: Barista, Gia sư, Content Writer, Lập trình thực tập, Thu ngân.
-     - Right Column (40%): A 3D interactive floating card showcase featuring the 3D Green Clock-P Logo, floating dynamic cards: "Lương 30k-50k/h đã kiểm duyệt", "Phù hợp lịch học", "Nhận lương tuần/tháng".
-  3. Statistics Bar: 4 Metric items: "15,000+ Việc làm", "250,000+ Sinh viên", "4,200+ Doanh nghiệp", "99.2% Đánh giá hài lòng".
-  4. Popular Categories Grid (8 Cards): Bán hàng & Dịch vụ, Gia sư & Dạy kèm, Nhà hàng - Khách sạn, Lập trình & CNTT, Marketing & Nội dung, Thiết kế & Đồ họa, Giao hàng & Vận chuyển, Hành chính & Lễ tân.
-  5. Featured Verified Jobs Grid (6 Cards): Company logo, Job title, Company name, Salary badge (e.g. 25.000đ - 35.000đ/giờ), Tag "Linh hoạt ca", Location tag, Deadline, "Ứng tuyển nhanh" button.
-  6. Value Proposition for Both Roles (2 Tabs: "Dành cho Sinh Viên" vs "Dành cho Doanh Nghiệp").
-  7. Footer: Links, Copyright, Contact, Socials, Hotline, Certification badge.
+Role: Senior Frontend Engineer - Student Identity
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the dedicated full-page Login Screen tailored specifically for College Students ("Sinh viên") in the Dark 4D Electric Blue theme.
+
+Design System & Specifications:
+- Overall Theme: Dark 4D Electric Blue (#030712 background, #0b1329 surface cards, #2563eb / #38bdf8 accents).
+- Typography: Font "Be Vietnam Pro", sans-serif. High contrast white text (#FFFFFF) and slate-400 subtitles.
+- Background Environment:
+  - Three.js 4D Canvas: Deep space canvas (#030712) with 650 soft glowing circular stars twinkling at varying depths, ethereal blue wireframe 4D hyper-torus rings rotating smoothly, and a mouse-following spacetime gravitational wave.
+- Layout Architecture:
+  - Completely REMOVE the global Header and global Footer.
+  - Centered Glassmorphism Card: max-w-md w-full mx-auto p-8 rounded-3xl bg-[#0b1329]/80 backdrop-blur-2xl border border-blue-500/30 shadow-2xl shadow-blue-950/80 relative z-10.
+- Card Header:
+  - Top Brand Logo: PARTIME.VN authentic 3D GLTF Logo emblem with glowing cyan border, bold title "PARTIME.VN" (white) and subtitle "Việc Làm Linh Hoạt" (#38bdf8).
+  - Main Heading: "Đăng Nhập Sinh Viên" (text-2xl font-black text-white).
+  - Subtitle: "Truy cập việc làm part-time linh hoạt, ca làm phù hợp lịch học".
+- Role Indicator Pill (Pre-selected as Student):
+  - Badge with graduation cap icon: "🎓 Phân hệ Sinh viên tìm việc" (bg-blue-600/30 border border-blue-500/50 text-blue-200 text-xs py-1.5 px-3 rounded-full inline-flex items-center gap-1.5 mb-4).
+- Form Inputs & Interactive Rules:
+  - All input fields are strictly EMPTY by default on initial visit.
+  - Email Field: Input with Mail icon, placeholder "Nhập email sinh viên (vd: vuthelong@vlu.edu.vn)...", text-white bg-slate-950/60 border border-slate-700/60 rounded-xl px-4 py-3 focus:border-blue-500.
+  - Password Field: Input with Lock icon, placeholder "Nhập mật khẩu (tối thiểu 8 ký tự)...", password show/hide eye toggle button (Eye/EyeOff icon).
+  - Password Complexity Validator: Live check for >= 8 characters, uppercase, lowercase, number, special character.
+  - Checkbox Row:
+    - Left: "Ghi nhớ thông tin đăng nhập" checkbox. (When checked and login succeeds, credentials auto-save into localStorage).
+    - Right: Link "Quên mật khẩu? (Nhận OTP)" navigating to StudentForgotPasswordScreen.
+- Action Buttons:
+  - Submit Button: Full-width "Đăng Nhập Sinh Viên" button with ArrowRight icon, bg-gradient-to-r from-blue-600 hover:from-blue-500 to-sky-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-600/30 hover:shadow-blue-500/50 transition-all.
+  - Switch Role Shortcut: "Bạn là Nhà tuyển dụng? Đăng nhập tại đây" link.
+- Bottom Navigation Link:
+  - "Chưa có tài khoản sinh viên? Đăng ký ngay" link in bright cyan text navigating to StudentRegisterScreen.
+- Sample Test Credentials Callout:
+  - "Tài khoản mẫu: vuthelong@vlu.edu.vn / Long123!"
 ```
 
-### Prompt 02A: Dedicated Full-Page Login Screen (Màn Hình Đăng Nhập Độc Lập)
-```text
-Role: UI/UX Security & Front-End Specialist
-Tool: Google Stitch
-Task: Generate the dedicated full-page Login Screen with 3D Brand Showcase and Role Isolation.
+---
 
-Design System & Specs:
-- Font: "Be Vietnam Pro".
-- Split 2-Column Responsive Layout:
-  - Left Column (Desktop/Laptop): Dark emerald gradient background (`#064e3b` to `#047857`), official PARTIME.VN logo header, real-time 3D interactive logo canvas (`HeroLogo3D`), value proposition checkmarks (Zero deposit fees, 100% verified businesses, flexible shifts for student schedules, strict 1-email-1-role constraint).
-  - Right Column: Pure white card container with role selector tabs:
-    - Tab 1: "Sinh viên" (Student login)
-    - Tab 2: "Tuyển dụng" (Employer login)
-    - Tab 3: "Quản trị" (Admin login)
-  - Form Fields:
-    - Email input (RFC 5322 format placeholder).
-    - Password input with secure show/hide toggle.
-    - Quick link: "Quên mật khẩu? (Nhận OTP 10p)" -> navigates to Forgot Password screen.
-    - Submit button: "Đăng Nhập Vào Hệ Thống" (Emerald 600 button with arrow icon).
-    - Footer link: "Bạn chưa có tài khoản? Đăng ký tài khoản mới ngay" -> navigates to Register screen.
-    - Demo quick-login buttons for Sinh viên (`student@partime.vn`), Tuyển dụng (`employer@partime.vn`), Quản trị (`admin@partime.vn`).
+### Prompt 01B: Màn Hình Đăng Nhập Nhà Tuyển Dụng (EmployerLoginScreen)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Employer Identity
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the dedicated full-page Login Screen tailored specifically for Employers & Businesses ("Nhà tuyển dụng") in the Dark 4D Electric Blue theme.
+
+Design System & Specifications:
+- Overall Theme: Dark 4D Electric Blue (#030712 background, #0b1329 surface cards, #2563eb / #38bdf8 accents).
+- Typography: Font "Be Vietnam Pro", sans-serif. High contrast white text (#FFFFFF) and slate-400 subtitles.
+- Background Environment:
+  - Three.js 4D Canvas: Deep space canvas (#030712) with 650 soft glowing circular stars, hyper-torus wireframe rings, and spacetime ripple waves.
+- Layout Architecture:
+  - Completely REMOVE the global Header and global Footer.
+  - Centered Glassmorphism Card: max-w-md w-full mx-auto p-8 rounded-3xl bg-[#0b1329]/80 backdrop-blur-2xl border border-blue-500/30 shadow-2xl relative z-10.
+- Card Header:
+  - Top Brand Logo: PARTIME.VN 3D GLTF Logo emblem with glowing cyan border, bold title "PARTIME.VN", subtitle "Việc Làm Linh Hoạt".
+  - Main Heading: "Đăng Nhập Nhà Tuyển Dụng" (text-2xl font-black text-white).
+  - Subtitle: "Quản lý tuyển dụng, tiếp nhận hồ sơ sinh viên & phỏng vấn video".
+- Role Indicator Pill (Pre-selected as Employer):
+  - Badge with briefcase icon: "💼 Phân hệ Nhà tuyển dụng & Doanh nghiệp" (bg-cyan-600/30 border border-cyan-500/50 text-cyan-200 text-xs py-1.5 px-3 rounded-full inline-flex items-center gap-1.5 mb-4).
+- Form Inputs & Interactive Rules:
+  - All input fields are strictly EMPTY by default on initial visit.
+  - Email Field: Input with Mail icon, placeholder "Nhập email doanh nghiệp (vd: huynhnguyenbaongoc2k5@gmail.com)...", text-white bg-slate-950/60 border border-slate-700/60 rounded-xl px-4 py-3 focus:border-cyan-500.
+  - Password Field: Input with Lock icon, placeholder "Nhập mật khẩu doanh nghiệp...", password show/hide eye toggle button (Eye/EyeOff icon), min 8 characters.
+  - Checkbox Row:
+    - Left: "Ghi nhớ thông tin đăng nhập" checkbox.
+    - Right: Link "Quên mật khẩu? (Nhận OTP)" navigating to EmployerForgotPasswordScreen.
+- Action Buttons:
+  - Submit Button: Full-width "Đăng Nhập Cổng Tuyển Dụng" button with ArrowRight icon, bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-cyan-600/30 transition-all.
+  - Switch Role Shortcut: "Bạn là Sinh viên tìm việc? Đăng nhập tại đây" link.
+- Bottom Navigation Link:
+  - "Doanh nghiệp chưa có tài khoản? Đăng ký mở cổng tuyển dụng ngay" link in cyan text navigating to EmployerRegisterScreen.
+- Sample Test Credentials Callout:
+  - "Tài khoản mẫu: huynhnguyenbaongoc2k5@gmail.com / Huynh120905! (hoặc Ngoc123!)"
 ```
 
-### Prompt 02B: Dedicated Full-Page Register Screen (Màn Hình Đăng Ký Độc Lập)
-```text
-Role: UI/UX Front-End Specialist
-Tool: Google Stitch
-Task: Generate the dedicated full-page Account Registration Screen enforcing 1-Email-1-Role.
+---
 
-Design System & Specs:
-- Font: "Be Vietnam Pro".
-- Top Navigation: "Quay lại trang Đăng nhập" back button with arrow.
-- Header: BrandLogo badge, Headline "Đăng Ký Tài Khoản Mới", Subtitle.
+### Prompt 01C: Màn Hình Đăng Nhập Quản Trị Viên (AdminLoginScreen)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Security Engineer - Admin Gateway
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the dedicated secure Login Screen tailored specifically for System Administrators ("Quản trị viên") in the Dark 4D Electric Blue theme with strict access isolation.
+
+Design System & Specifications:
+- Overall Theme: Dark 4D Electric Blue (#030712 background, #0b1329 surface cards, #2563eb / #38bdf8 accents).
+- Typography: Font "Be Vietnam Pro", sans-serif. High contrast white text (#FFFFFF).
+- Background Environment:
+  - Three.js 4D Canvas: Deep space canvas (#030712) with 650 soft glowing circular stars, cosmic fog, and ethereal blue wireframe rings.
+- Layout Architecture:
+  - Completely REMOVE the global Header and global Footer.
+  - Centered Glassmorphism Card: max-w-md w-full mx-auto p-8 rounded-3xl bg-[#0b1329]/90 backdrop-blur-2xl border border-red-500/40 shadow-2xl shadow-red-950/50 relative z-10.
+- Card Header:
+  - Top Brand Logo: PARTIME.VN 3D GLTF Logo emblem with glowing red/blue border, bold title "PARTIME.VN", subtitle "Việc Làm Linh Hoạt".
+  - Main Heading: "Đăng Nhập Quản Trị Viên" (text-2xl font-black text-white flex items-center justify-center gap-2).
+  - Subtitle: "Cổng điều hành trung tâm, thẩm định GPKD và an toàn toàn sàn".
+- Security Badge Callout:
+  - High-security badge with ShieldAlert icon: "🛡️ Cổng Quản Trị Hệ Thống Bảo Mật Cao" (bg-red-950/60 border border-red-500/50 text-red-200 text-xs py-1.5 px-3 rounded-full inline-flex items-center gap-1.5 mb-4).
+- Security Isolation Mandate (CRITICAL):
+  - Link "Quên mật khẩu" is STRICTLY HIDDEN (no public OTP reset for admin).
+  - Link "Đăng ký tài khoản" is STRICTLY HIDDEN (admin accounts cannot be publicly registered).
+- Form Inputs & Interactive Rules:
+  - All input fields are strictly EMPTY by default on initial visit.
+  - Email Field: Input with Mail icon, placeholder "Nhập email quản trị (lethithuyngan985@gmail.com)...", text-white bg-slate-950/60 border border-slate-700/60 rounded-xl px-4 py-3 focus:border-red-500.
+  - Password Field: Input with Lock icon, placeholder "Nhập mật khẩu quản trị...", password show/hide eye toggle button (Eye/EyeOff icon).
+  - Checkbox Row:
+    - "Ghi nhớ phiên làm việc an toàn" checkbox.
+- Action Buttons:
+  - Submit Button: Full-width "Xác Thực Quyền Quản Trị & Truy Cập" button with ShieldCheck icon, bg-gradient-to-r from-red-600 hover:from-red-500 to-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-red-600/30 transition-all.
+  - Switch Role Shortcut: "← Quay lại Cổng Sinh viên / Nhà tuyển dụng" link.
+- Fixed Admin Credentials Callout:
+  - "Tài khoản quản trị cố định: lethithuyngan985@gmail.com / Le090805!"
+```
+
+---
+
+### Prompt 02A: Màn Hình Đăng Ký Sinh Viên (StudentRegisterScreen)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Student Registration
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the dedicated full-page Registration Screen specifically for College Students ("Sinh viên tìm việc") enforcing 1 Email = 1 Role.
+
+Design System & Specifications:
+- Overall Theme: Dark 4D Electric Blue (#030712 canvas, #0b1329 surface cards, #2563eb / #38bdf8 accents). Font: "Be Vietnam Pro".
+- Environment: Dark 4D Three.js cosmic stars canvas. Completely REMOVE Header and Footer.
+- Container: Centered Glass card max-w-xl w-full mx-auto p-8 rounded-3xl bg-[#0b1329]/85 backdrop-blur-2xl border border-blue-500/30 shadow-2xl relative z-10.
+- Top Bar: Back button "← Quay lại Đăng nhập Sinh viên" with arrow icon.
+- Header: BrandLogo emblem, Headline "Đăng Ký Tài Khoản Sinh Viên", Subtitle "Bắt đầu tìm kiếm cơ hội việc làm linh hoạt và xây dựng hồ sơ chuyên nghiệp".
 - System Constraint Banner (BR-AUTH-01):
-  - "Ràng buộc hệ thống: 1 Email thực chỉ được phép đăng ký duy nhất 1 vai trò (Sinh viên hoặc Nhà tuyển dụng). Nếu email đã được dùng cho vai trò khác, hệ thống sẽ từ chối đăng ký."
-- Role Toggle:
-  - Button 1: "Tôi là Sinh Viên tìm việc"
-  - Button 2: "Tôi là Nhà Tuyển Dụng"
-- Form Inputs:
-  - Full Name / Company Name (dynamic label based on role).
-  - Phone number input with Vietnam 10-digit validation.
-  - School Name / Company Address.
-  - Real Email address.
-  - Password (minimum 6 characters).
-  - Confirm Password (real-time mismatch check).
-- Submit Button: "Xác Nhận Đăng Ký Tài Khoản" (Solid Emerald-600 with loading spinner).
-- Bottom link: "Bạn đã có tài khoản trên PARTIME.VN? Đăng nhập ngay".
-```
-
-### Prompt 02C: Dedicated 10-Minute OTP & Password Recovery Screen
-```text
-Role: UI/UX Front-End Specialist
-Tool: Google Stitch
-Task: Generate the dedicated 10-Minute OTP Verification & Password Reset Screen.
-
-Design System & Specs:
-- Font: "Be Vietnam Pro".
-- Back button: "Quay lại trang Đăng nhập".
-- Step 1: Input email to request OTP.
-- Step 2:
-  - Big 10-Minute Countdown Clock (`10:00` -> `00:00`) with color transition (Green -> Amber -> Red).
-  - Simulated incoming email toast notification on top: "📬 [Hộp thư đến] PARTIME.VN - Mã OTP: [ 8 4 9 2 0 1 ] (Hiệu lực 10 phút)".
-  - 6 Individual Square OTP Input Boxes with automatic typewriter auto-fill effect.
-  - Quick Button: "⚡ Tự động điền OTP" (Auto-fill without manual typing).
-  - New Password & Confirm New Password inputs (min 6 characters).
-  - Action Button: "Xác Nhận & Đổi Mật Khẩu Mới".
-  - Resend OTP link (enabled after initial delay).
+  - Banner with ShieldCheck icon: "Ràng buộc hệ thống: 1 Email thực chỉ được dùng cho đúng 1 Role duy nhất (Sinh viên). Nếu email đã được đăng ký cho Nhà tuyển dụng, hệ thống sẽ từ chối đăng ký." (Border blue-500/40 bg-blue-950/40 text-blue-200 rounded-xl p-3.5 mb-5 text-sm).
+- Form Fields (Specific to Sinh viên):
+  1. Họ và tên sinh viên: Input with User icon, placeholder "Nhập họ và tên đầy đủ (vd: Vũ Thế Long)...".
+  2. Số điện thoại: Input with Phone icon, placeholder "Số điện thoại di động (10 số, vd: 0901234567)...".
+  3. Trường Đại học: Autocomplete dropdown with Vietnam Universities list (Đại học Văn Lang (VLU), Đại học Bách Khoa, Đại học Khoa học Tự nhiên, Đại học CNTT (UIT), Đại học Kinh tế (UEH)...).
+  4. Mã số sinh viên (MSSV): Input with GraduationCap icon, placeholder "Mã số sinh viên (nếu có)...".
+  5. Email thực tế: Input with Mail icon, placeholder "Email chính thức (vd: vuthelong@vlu.edu.vn)...".
+  6. Mật khẩu & Nhập lại mật khẩu: 2 inputs with eye toggle buttons.
+- Password Complexity Live Checklist (5 Criteria):
+  - Box with 5 criteria updating in real-time as user types:
+    1. [✓] Tối thiểu 8 ký tự
+    2. [✓] Có ít nhất 1 chữ hoa (A-Z)
+    3. [✓] Có ít nhất 1 chữ thường (a-z)
+    4. [✓] Có ít nhất 1 chữ số (0-9)
+    5. [✓] Có ít nhất 1 ký tự đặc biệt (!@#$%^&*...)
+  - Checks transition from grey to bright emerald green once fulfilled.
+- Terms Checkbox: "Tôi đồng ý với Điều khoản dịch vụ và Chính sách bảo mật thông tin sinh viên của PARTIME.VN".
+- Submit Button: Full-width "Tạo Tài Khoản Sinh Viên Ngay" button (bg-gradient-to-r from-blue-600 to-sky-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-600/30).
+- Bottom Link: "Đã có tài khoản sinh viên? Đăng nhập ngay".
 ```
 
 ---
 
-## 4. BỘ PROMPT STITCH - PHÂN HỆ SINH VIÊN (VŨ THẾ LONG)
-
-### Prompt 03: Student Job Search & Advanced Filter Interface (FR 1.5)
+### Prompt 02B: Màn Hình Đăng Ký Nhà Tuyển Dụng - Kéo Thả GPKD & 24 Quận Huyện (EmployerRegisterScreen)
 ```text
-Role: Frontend Engineer - Student Experience (Vũ Thế Long)
-Tool: Google Stitch
-Task: Create the comprehensive Job Search & Filtering Portal for College Students.
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Employer Registration
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the dedicated full-page Registration Screen specifically for Employers ("Nhà tuyển dụng / Doanh nghiệp") featuring Drag-and-Drop Business License (GPKD) PDF Upload, 24 HCMC districts picker, and branch management.
+
+Design System & Specifications:
+- Overall Theme: Dark 4D Electric Blue (#030712 canvas, #0b1329 surface cards, #2563eb / #38bdf8 accents). Font: "Be Vietnam Pro".
+- Environment: Dark 4D Three.js cosmic stars canvas. Completely REMOVE Header and Footer.
+- Container: Centered Glass card max-w-2xl w-full mx-auto p-8 rounded-3xl bg-[#0b1329]/85 backdrop-blur-2xl border border-cyan-500/30 shadow-2xl relative z-10.
+- Top Bar: Back button "← Quay lại Đăng nhập Nhà tuyển dụng".
+- Header: BrandLogo emblem, Headline "Đăng Ký Tài Khoản Nhà Tuyển Dụng", Subtitle "Mở cổng tuyển dụng sinh viên uy tín, thẩm định giấy phép kinh doanh minh bạch".
+- System Constraint Banner (BR-AUTH-01 & BR-EMP-01):
+  - Banner with Building icon: "Ràng buộc hệ thống: 1 Email thực chỉ được dùng cho đúng 1 Role duy nhất (Nhà tuyển dụng). Giấy phép kinh doanh (GPKD) bắt buộc định dạng PDF <= 10MB và được Quản trị viên duyệt trước khi đăng tin công khai." (Border cyan-500/40 bg-cyan-950/40 text-cyan-200 rounded-xl p-3.5 mb-5 text-sm).
+- Form Fields (Specific to Nhà tuyển dụng):
+  1. Tên Doanh nghiệp / Hộ kinh doanh: Input with Building icon, placeholder "Nhập tên công ty chính thức (vd: Công ty TNHH Cà Phê Partime Việt Nam)...".
+  2. Mã số thuế (MST) / Số ĐKKD: Input with FileText icon, placeholder "Mã số thuế (10 hoặc 13 số)...".
+  3. Khu vực hoạt động / Trụ sở chính: Dropdown tích hợp ĐẦY ĐỦ 24 Quận, Huyện và TP. Thủ Đức tại TP.HCM (Quận 1, Quận 3, Quận 5, Quận 7, Quận 10, Bình Thạnh, Phú Nhuận, Gò Vấp, Thủ Đức...).
+  4. Địa chỉ chi tiết / Chi nhánh: Input with MapPin icon, placeholder "Số nhà, tên đường, tên chi nhánh tuyển dụng...".
+  5. Người liên hệ tuyển dụng: Họ và tên người phụ trách nhân sự.
+  6. Số điện thoại liên hệ: 10 chữ số nhà mạng Việt Nam.
+  7. Email doanh nghiệp: Email chính thức nhận hồ sơ ứng viên.
+  8. Khung Tải Lên Giấy Phép Kinh Doanh (GPKD) HỖ TRỢ KÉO THẢ (Drag & Drop):
+     - Dotted border box: `border-2 border-dashed border-cyan-500/50 bg-slate-950/60 rounded-2xl p-6 text-center transition-all`.
+     - Dragover active state: border-cyan-400 bg-cyan-950/30 scale-[1.01].
+     - Icon: Upload icon glowing cyan.
+     - Text: "Kéo thả tệp tin GPKD (.pdf) vào đây hoặc bấm để chọn tệp từ máy tính".
+     - Strict format badge: "Chỉ chấp nhận file .pdf - Dung lượng tối đa 10MB theo chuẩn kiểm định".
+     - File preview thumbnail: If file is selected/dropped, shows PDF icon, file name, size, and green checkmark.
+  9. Mật khẩu & Xác nhận mật khẩu: 2 inputs with eye toggle buttons and 5-criteria live complexity checklist.
+- Submit Button: Full-width "Xác Nhận Đăng Ký Cổng Tuyển Dụng" button (bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-cyan-600/30).
+- Bottom Link: "Doanh nghiệp đã có tài khoản? Đăng nhập ngay".
+```
+
+---
+
+### Prompt 02C: Khởi Tạo / Cổng Bảo Vệ Quản Trị Viên (AdminRestrictedGateway)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Security Engineer - Admin Platform
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the dedicated Admin Access Gateway explaining strict registration lockout and fixed credential provisioning.
+
+Design System & Specifications:
+- Overall Theme: Dark 4D Electric Blue (#030712 canvas, #0b1329 surface cards, #ef4444 red security alerts). Font: "Be Vietnam Pro".
+- Environment: Dark 4D Three.js cosmic stars canvas. Completely REMOVE Header and Footer.
+- Container: Centered Glass card max-w-lg w-full mx-auto p-8 rounded-3xl bg-[#0b1329]/90 backdrop-blur-2xl border border-red-500/50 shadow-2xl relative z-10 text-center.
+- Icon: ShieldAlert glowing crimson red icon.
+- Heading: "Cổng Quản Trị Viên - Khóa Đăng Ký Công Khai" (text-2xl font-black text-white mb-2).
+- Security Notice Box:
+  - "Theo quy chuẩn an toàn thông tin đồ án CDTN02, tài khoản Quản trị viên tối cao được khởi tạo cố định trong cơ sở dữ liệu MongoDB Atlas và KHÔNG CHO PHÉP đăng ký công khai qua giao diện web để ngăn chặn các cuộc tấn công leo thang đặc quyền (Privilege Escalation)."
+- Admin Master Identity Details Box:
+  - Email: lethithuyngan985@gmail.com
+  - Phân quyền: Root Administrator (WBS 3.1 - 3.9)
+  - Quyền hạn: Thẩm định GPKD, Kiểm duyệt tin tuyển dụng toàn sàn, Khóa tài khoản vi phạm, Quản trị từ cấm realtime.
+- Action Button:
+  - "Chuyển Đến Trang Đăng Nhập Quản Trị Viên" (Red/Blue gradient button with ArrowRight icon).
+- Secondary Link: "Quay về Trang chủ PARTIME.VN".
+```
+
+---
+
+### Prompt 03A: Quên Mật Khẩu Sinh Viên - OTP 10 Phút & Auto-Fill (StudentForgotPasswordScreen)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Student Account Recovery
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the dedicated Password Recovery Screen for College Students featuring a 10-Minute Countdown Timer (600s), Simulated Email Inbox Toast, and Hands-Free OTP Auto-Fill Engine.
+
+Design System & Specifications:
+- Overall Theme: Dark 4D Electric Blue (#030712 canvas, #0b1329 surface cards, #2563eb accents). Font: "Be Vietnam Pro".
+- Environment: Dark 4D Three.js cosmic stars canvas. Completely REMOVE Header and Footer.
+- Container: Centered Glass card max-w-lg w-full mx-auto p-8 rounded-3xl bg-[#0b1329]/85 backdrop-blur-2xl border border-blue-500/30 shadow-2xl relative z-10.
+- Top Bar: Back button "← Quay lại Đăng nhập Sinh viên".
+- Header: BrandLogo emblem, Headline "Khôi Phục Mật Khẩu Sinh Viên", Subtitle "Nhập email sinh viên để nhận mã xác thực OTP 6 số qua email".
+- Step 1: Input Email to Request OTP:
+  - Email Input: placeholder "Sinhvien@gmail.com (hoặc email VLU)...".
+  - Button: "Gửi Mã Xác Thực OTP".
+- Step 2: Live Verification with 10-Minute Countdown & Hands-Free Auto-Fill:
+  - Big Monospace Countdown Clock: "10:00" counting down second-by-second (600s TTL) with progress bar changing colors (Green > 3m -> Amber 1-3m -> Red < 1m).
+  - Simulated Email Inbox Toast Banner:
+    - Appears at the top of the card: "📬 [Hộp thư đến] PARTIME.VN - Mã OTP của bạn là: [ 8 4 9 2 0 1 ] (Hiệu lực 10 phút)".
+    - Prominent Button inside toast: "⚡ Tự động điền mã OTP (Hands-Free Auto-fill)".
+  - 6 Individual Square OTP Input Boxes:
+    - 6 large input boxes with monospace font, rounded-2xl, border-blue-500/40, active neon glow.
+    - When user clicks "Tự động điền", each digit fills automatically one-by-one with a smooth typewriter animation (120ms interval).
+  - New Password & Confirm New Password Fields:
+    - Minimum 8 characters with eye show/hide toggle on both fields and live complexity checklist.
+- Submit Button: "Xác Nhận & Đổi Mật Khẩu Sinh Viên" (Redirects back to StudentLoginScreen on success with green notification banner).
+```
+
+---
+
+### Prompt 03B: Quên Mật Khẩu Nhà Tuyển Dụng - OTP 10 Phút & Auto-Fill (EmployerForgotPasswordScreen)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Employer Account Recovery
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the dedicated Password Recovery Screen for Employers featuring a 10-Minute Countdown Timer (600s), Simulated Email Inbox Toast, and Hands-Free OTP Auto-Fill Engine.
+
+Design System & Specifications:
+- Overall Theme: Dark 4D Electric Blue (#030712 canvas, #0b1329 surface cards, #06b6d4 / #38bdf8 accents). Font: "Be Vietnam Pro".
+- Environment: Dark 4D Three.js cosmic stars canvas. Completely REMOVE Header and Footer.
+- Container: Centered Glass card max-w-lg w-full mx-auto p-8 rounded-3xl bg-[#0b1329]/85 backdrop-blur-2xl border border-cyan-500/30 shadow-2xl relative z-10.
+- Top Bar: Back button "← Quay lại Đăng nhập Nhà tuyển dụng".
+- Header: BrandLogo emblem, Headline "Khôi Phục Mật Khẩu Doanh Nghiệp", Subtitle "Nhập email doanh nghiệp để nhận mã xác thực OTP 6 số qua email".
+- Step 1: Input Email to Request OTP:
+  - Email Input: placeholder "Nhatuyendung@gmail.com (hoặc email công ty)...".
+  - Button: "Gửi Mã Xác Thực OTP".
+- Step 2: Live Verification with 10-Minute Countdown & Hands-Free Auto-Fill:
+  - Big Monospace Countdown Clock: "10:00" counting down second-by-second (600s TTL).
+  - Simulated Email Inbox Toast Banner:
+    - "📬 [Hộp thư đến] PARTIME.VN - Mã OTP Doanh nghiệp: [ 6 1 8 3 9 2 ] (Hiệu lực 10 phút)".
+    - Prominent Button inside toast: "⚡ Tự động điền mã OTP (Hands-Free Auto-fill)".
+  - 6 Individual Square OTP Input Boxes with automatic filling typewriter animation.
+  - New Password & Confirm New Password Fields (min 8 chars, eye toggles).
+- Submit Button: "Xác Nhận & Đổi Mật Khẩu Doanh Nghiệp" (Redirects back to EmployerLoginScreen on success with green notification banner).
+```
+
+---
+
+### Prompt 03C: Cổng Khôi Phục Bảo Mật Quản Trị Viên (AdminSecurityRecoveryGateway)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Security Engineer - Admin Recovery
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the dedicated Admin Password Recovery Restriction Gateway explaining internal reset protocols.
+
+Design System & Specifications:
+- Overall Theme: Dark 4D Electric Blue (#030712 canvas, #0b1329 surface cards, #ef4444 accents). Font: "Be Vietnam Pro".
+- Environment: Dark 4D Three.js cosmic stars canvas. Completely REMOVE Header and Footer.
+- Container: Centered Glass card max-w-lg w-full mx-auto p-8 rounded-3xl bg-[#0b1329]/90 backdrop-blur-2xl border border-red-500/50 shadow-2xl relative z-10 text-center.
+- Icon: Lock glowing red icon.
+- Heading: "Khôi Phục Mật Khẩu Quản Trị Viên Bị Khóa" (text-2xl font-black text-white mb-2).
+- Security Notice:
+  - "Tài khoản Quản trị viên hệ thống (`lethithuyngan985@gmail.com`) được bảo vệ nghiêm ngặt và không hỗ trợ khôi phục mật khẩu tự động qua mã OTP công khai nhằm bảo vệ tính toàn vẹn của hệ thống cơ sở dữ liệu CDTN02."
+  - "Để đặt lại mật khẩu quản trị, vui lòng liên hệ trực tiếp Trưởng nhóm Vũ Thế Long hoặc Giảng viên hướng dẫn để thực thi quy trình reset mật khẩu trong console máy chủ."
+- Action Buttons:
+  - "Đăng Nhập Với Mật Khẩu Cố Định (Le090805!)" (Red/Blue button).
+  - "Quay về Cổng Sinh Viên".
+```
+
+---
+
+## 3. BỘ PROMPT PHÂN HỆ SINH VIÊN (VŨ THẾ LONG - WBS 1.1 ĐẾN 1.10)
+
+### Prompt 04: Tìm Kiếm & Lọc Việc Làm Đa Tiêu Chí (JobList.jsx)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Student Platform (Vũ Thế Long)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Student Job Search & Multi-criteria Filtering Portal with 34 part-time categories, 24 HCMC districts, salary sliders, and interactive job cards.
+
+Layout & Specs:
+- Theme: Dark 4D Electric Blue (#030712 canvas, #0b1329 glass cards, text-white).
+- Top Search Bar:
+  - Big floating search input with Search icon: "Tìm việc làm part-time theo chức danh, kỹ năng, công ty...".
+  - Quick Suggestion Pills: Barista, Phục vụ ca tối, Gia sư Toán, Nhân viên thu ngân, Thực tập sinh IT, Sale Online.
+- Left Sidebar Filters (25% width on desktop, drawer on mobile):
+  - District Filter: Dropdown with all 24 HCMC districts & Thu Duc City (Quận 1, Quận 3, Quận 5, Quận 7, Quận 10, Bình Thạnh, Phú Nhuận, Gò Vấp, Thủ Đức...).
+  - Category Filter: 34 part-time categories with checkboxes (F&B - Nhà hàng khách sạn, Bán lẻ - Cửa hàng tiện lợi, Gia sư - Giáo dục, Lập trình CNTT, Marketing - Sự kiện...).
+  - Shift Filter: Ca sáng (07h-12h), Ca chiều (12h-17h), Ca tối (17h-22h), Ca linh hoạt theo lịch học.
+  - Salary Filter: Buttons (< 25k/h, 25k - 35k/h, 35k - 50k/h, > 50k/h, Thỏa thuận).
+  - Clear Filter button & "Áp dụng bộ lọc" button.
+- Right Job Listing Feed (75% width):
+  - Header: Total jobs counter (e.g. "86 việc làm part-time phù hợp"), Sort by: "Mới nhất", "Lương cao nhất", "Gần bạn nhất".
+  - Job Card (Rich Dark 4D Glass Component):
+    - Company Logo & Company Name with Green Checkmark "GPKD đã xác thực".
+    - Job Title in bold white text (hover text-sky-400).
+    - Badge array: "Lương: 30.000đ - 35.000đ/giờ", "Ca 4 tiếng linh hoạt", "Quận 1", "Tuyển 5 bạn".
+    - Bookmark Button: Heart icon toggling saved state instantly without page reload.
+    - Quick Action: "Xem chi tiết" & "Ứng tuyển ngay" button (blue gradient).
+```
+
+---
+
+### Prompt 05: Xem Chi Tiết Việc Làm & Modal Ứng Tuyển Một Chạm (JobDetailModal.jsx)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Student Platform (Vũ Thế Long)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Job Detail View and One-Click Application Modal with immutable snapshot notice and default resume selection.
 
 Components:
-- Sticky Filter Sidebar (Desktop Left 25%):
-  - Search keyword input with clear button.
-  - Category multi-select checkboxes (F&B, Gia sư, IT thực tập, Marketing, Sales, v.v.).
-  - Work Time Shift checkboxes: "Ca sáng (7h-12h)", "Ca chiều (12h-17h)", "Ca tối (17h-22h)", "Cuối tuần", "Linh hoạt theo lịch học sinh viên".
-  - Salary Filter Slider: From 20,000 VND/h to 100,000 VND/h + Checkbox "Lương thỏa thuận".
-  - Work Location Dropdown (Quận/Huyện TP.HCM, Hà Nội).
-  - Reset filters button & "Lọc 128 công việc phù hợp".
-- Main Content Area (Right 75%):
-  - Top Bar: Search summary ("128 việc làm part-time đang tuyển"), Sort dropdown ("Mới nhất", "Lương cao nhất", "Gần bạn nhất"), View mode toggle (Grid/List).
-  - Job List Item Card (Rich Component):
-    - Company Logo & Company Name with Green Checkmark "Đã xác thực GPKD".
-    - Job Title (bold, hover emerald-600).
-    - Badge Tag array: "Lương: 35.000đ/giờ", "Ca 4 tiếng", "Quận 1", "Sinh viên năm 1-4".
-    - Short excerpt of job duties.
-    - Bookmark Button (Heart icon: toggle save/unsave with instant feedback).
-    - Quick Action: "Xem chi tiết" & "Ứng tuyển nhanh" buttons.
-    - Report Flag icon: "Báo cáo tin tuyển dụng có dấu hiệu lừa đảo/vi phạm".
-```
-
-### Prompt 04: Job Detail & One-Click Application Modal (FR 1.5.3, 1.5.6)
-```text
-Role: Frontend Engineer - Student Experience (Vũ Thế Long)
-Tool: Google Stitch
-Task: Design the Job Detail View and the One-Click Application Workflow Modal.
-
-Job Detail Page Components:
-- Header Banner: Company cover image, Company logo, Title, Salary highlight badge, "Nộp hồ sơ ngay" floating sticky CTA.
-- Left Content (70%):
-  - Mô tả công việc chi tiết (Job Description).
-  - Yêu cầu ứng viên (Kỹ năng, độ tuổi, tính chủ động, không yêu cầu kinh nghiệm).
-  - Quyền lợi được hưởng (Lương thưởng theo giờ, tip, hỗ trợ dấu mộc thực tập, linh hoạt dời ca khi thi cử).
-  - Thời gian & địa điểm làm việc cụ thể.
-- Right Sidebar (30%):
-  - Thông tin doanh nghiệp: Tên, quy mô nhân sự, địa chỉ, website, đánh giá sao trung bình (4.8/5 sao từ 26 sinh viên).
-  - Nút "Xem hồ sơ công ty" & "Chat trực tiếp với NTD".
-- Application Modal (Triggered on click "Nộp hồ sơ"):
+- Theme: Dark 4D Electric Blue.
+- Job Detail Modal / View:
+  - Header Banner: Company cover image, Company logo, Title, Salary highlight badge, "Nộp hồ sơ ngay" sticky CTA button.
+  - Left Content (70%):
+    - Mô tả công việc chi tiết (Job Description).
+    - Yêu cầu ứng viên (Kỹ năng, độ tuổi, tính chủ động, không yêu cầu kinh nghiệm).
+    - Quyền lợi sinh viên (Lương thưởng theo giờ, tip, hỗ trợ dấu mộc thực tập, linh hoạt dời ca khi thi cử).
+    - Thời gian ca làm việc & địa chỉ cụ thể tại 24 quận huyện TP.HCM.
+  - Right Sidebar (30%):
+    - Thông tin doanh nghiệp: Tên, quy mô nhân sự, địa chỉ, website, đánh giá sao trung bình (4.8/5 sao từ sinh viên).
+    - Nút "Xem hồ sơ công ty" & "Chat trực tiếp với NTD".
+- Application Sub-Modal (Triggered on click "Nộp hồ sơ ngay"):
   - Title: "Ứng tuyển: [Tên vị trí] tại [Tên công ty]"
   - Step 1: Chọn CV ứng tuyển (Dropdown danh sách CV PDF đã tải lên, có badge "CV Mặc định", nút "Xem trước CV" và nút "Tải lên CV mới").
   - Step 2: Chọn Thư giới thiệu (Cover Letter) mẫu hoặc viết nhanh lời nhắn gửi nhà tuyển dụng (tối đa 500 ký tự).
-  - Snapshot notice: "Hệ thống sẽ lưu bản chụp hồ sơ tại thời điểm nộp để đối chiếu minh bạch."
-  - Action buttons: "Hủy bỏ" & "Xác nhận gửi hồ sơ ngay" (Emerald button with success toast on submit).
-```
-
-### Prompt 05: Student CV Management & Profile Studio (FR 1.3, 1.4)
-```text
-Role: Frontend Engineer - Student Experience (Vũ Thế Long)
-Tool: Google Stitch
-Task: Create the Student Profile & Multi-CV Management Studio.
-
-Components:
-- Tabbed Navigation: "Thông tin cá nhân", "Quản lý CV (Resumes)", "Thư giới thiệu (Cover Letters)", "Cài đặt tài khoản".
-- Tab "Quản lý CV":
-  - Drag & Drop Upload Zone: Support PDF, DOCX up to 10MB.
-  - Resume List Grid:
-    - Card preview thumbnail of PDF first page.
-    - File name, upload date, file size.
-    - Badges: "CV Mặc định" (Default resume), "Trạng thái: Sẵn sàng ứng tuyển".
-    - Action Menu: "Đặt làm mặc định", "Xem trước (PDF Preview Modal)", "Tải xuống", "Đổi tên", "Xóa CV".
-- Tab "Thư giới thiệu":
-  - List of saved Cover Letters (e.g. "Mẫu xin việc Barista", "Mẫu xin việc Thực tập sinh Marketing").
-  - Editor modal: Rich textarea with variable suggestions (Tên NTD, Vị trí mong muốn, Lịch rảnh trong tuần).
-- Tab "Thông tin cá nhân":
-  - Avatar uploader with crop.
-  - Full Name, Student ID (MSSV), University name, Major, Year of study, Phone, Bio intro, Portfolio links (GitHub, Behance, LinkedIn).
-```
-
-### Prompt 06: Student Application Tracker & History (FR 1.6)
-```text
-Role: Frontend Engineer - Student Experience (Vũ Thế Long)
-Tool: Google Stitch
-Task: Build the Student Application Progress & Status Tracking Dashboard.
-
-Components:
-- Status Filter Tabs with Counts: "Tất cả (8)", "Đã nộp (3)", "Nhà tuyển dụng đã xem (2)", "Mời phỏng vấn (1)", "Được tuyển dụng (1)", "Bị từ chối (1)".
-- Search bar by Job Title / Company Name.
-- Application History Table / Card View:
-  - Columns: Vị trí ứng tuyển, Doanh nghiệp, Ngày nộp, CV đã gửi, Trạng thái (Pill Badge: Vàng - Chờ duyệt; Xanh dương - Đã xem hồ sơ; Tím - Mời phỏng vấn; Xanh lá - Đã trúng tuyển; Đỏ - Chưa phù hợp).
-  - Progress Timeline Bar inside each row (visual step tracking: Nộp đơn -> Xem xét -> Phỏng vấn -> Kết quả).
-  - Action Dropdown: "Xem chi tiết hồ sơ snapshot", "Hủy đơn ứng tuyển" (chỉ khả dụng khi chưa duyệt), "Nhắn tin hỏi thăm", "Đánh giá NTD" (khi trạng thái Hoàn thành/Trúng tuyển).
-```
-
-### Prompt 07: Student Realtime Chat & WebRTC Video Call (FR 1.8, 1.10)
-```text
-Role: Frontend Engineer - Realtime & Media Specialist (Vũ Thế Long)
-Tool: Google Stitch
-Task: Build the Modern Realtime Messaging Interface with embedded WebRTC Video Call modal.
-
-Layout:
-- Left Sidebar (Chat List):
-  - Search conversation input.
-  - List of Employer Chat Threads: Company Avatar, Name, Last message snippet, Timestamp, Online/Offline green dot status indicator, Unread count badge.
-- Main Chat Window:
-  - Header: Employer Avatar, Name, Job title context ("Đang trao đổi về: Nhân viên Pha chế Part-time"), Online indicator ("Đang hoạt động" / "Vừa truy cập 5 phút trước"), Action buttons: "Gọi Video Phỏng vấn" (Camera icon), "Gọi Thoại" (Phone icon), "Báo cáo cuộc trò chuyện" (Warning flag).
-  - Message Body:
-    - Bubbles: Incoming (White card with employer name), Outgoing (Emerald-500 bubble with white text).
-    - Status receipt: "Đã gửi", "Đã nhận", "Đã xem lúc 14:20" (Checkmark icon).
-    - Multimedia preview: Image attachments, PDF preview cards with download button.
-  - Input Footer:
-    - Paperclip attachment button (Images, Docs up to 10MB).
-    - Emoji picker.
-    - Textarea with typing indicator ("Nhà tuyển dụng đang soạn tin...").
-    - Send button.
-- WebRTC Video Call Overlay Modal:
-  - Floating video window with Local video stream (Picture-in-picture) and Remote video stream.
-  - Controls bar: Mute Audio, Toggle Camera, Share Screen, End Call (Red button).
-  - Call connection quality indicator: "HD 1080p - Mã hóa đầu cuối".
+  - Snapshot Notice: "Hệ thống sẽ chụp bản sao hồ sơ tại thời điểm nộp để làm bằng chứng pháp lý bất biến."
+  - Anti-Duplicate Notice: "Mỗi sinh viên chỉ được nộp 1 đơn cho công việc này."
+  - Action Buttons: "Hủy bỏ" & "Xác nhận gửi hồ sơ ngay" (Emerald button).
 ```
 
 ---
 
-## 5. BỘ PROMPT STITCH - PHÂN HỆ NHÀ TUYỂN DỤNG (HUỲNH NGUYỄN BẢO NGỌC)
-
-### Prompt 08: Employer Dashboard & Overview (FR 2.1 - 2.9)
+### Prompt 06: Quản Lý CV PDF Chuẩn Kiểm Định & Thư Giới Thiệu (CVManager.jsx)
 ```text
-Role: Frontend Engineer - Employer Experience (Huỳnh Nguyễn Bảo Ngọc)
-Tool: Google Stitch
-Task: Build the Comprehensive Employer Management Portal Dashboard.
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
 
-Layout & Components:
-- Header: Brand Logo, Company Quick Switcher, Notification Bell, Employer Profile Avatar.
-- Top Metric Cards (4 Cards):
-  - "Tin đang tuyển": 5 tin (Active)
-  - "Hồ sơ mới nhận": 28 ứng viên (Badge "+12 tuần này")
-  - "Lịch phỏng vấn sắp tới": 4 sinh viên
-  - "Điểm đánh giá công ty": 4.9/5 sao (từ 42 đánh giá sinh viên)
-- Quick Action Floating Header: "Đăng tin tuyển dụng mới (+)" (Prominent Green Button).
-- Main Body Grid:
-  - Left (65%): Table of Recent Active Jobs with columns: Tiêu đề công việc, Số hồ sơ nộp, Lượt xem tin, Trạng thái (Đang mở / Đã đóng), Hành động (Xem ứng viên, Sửa tin, Đóng tin).
-  - Right (35%): Candidate Activity Feed (Realtime applications submitted by students with quick review button).
-```
-
-### Prompt 09: Company Profile & Verification Center (FR 2.3)
-```text
-Role: Frontend Engineer - Employer Experience (Huỳnh Nguyễn Bảo Ngọc)
-Tool: Google Stitch
-Task: Create the Employer Company Profile & Business Verification Interface.
+Role: Senior Frontend Engineer - Student Platform (Vũ Thế Long)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Student CV & Cover Letter Management Studio with DocumentViewerModal preview, Drag-and-Drop, and single default CV enforcement.
 
 Components:
-- Cover Banner & Logo Uploader:
-  - Drag-and-drop cover photo (1200x300px).
-  - Circular avatar logo uploader with instant preview.
-- Verification Status Card:
-  - Status Badge: "Đã xác thực giấy phép kinh doanh" (Green badge) / "Đang chờ duyệt" / "Cần bổ sung".
-  - Business License (GPKD) Uploader: PDF or JPG upload of business license, Tax Code input, Legal representative name.
-- Company Details Form:
-  - Tên doanh nghiệp chính thức (Company Name).
-  - Giới thiệu doanh nghiệp & môi trường làm việc part-time (Rich Text with images).
-  - Quy mô nhân sự dropdown: 1-10, 11-50, 50-200, 200+ nhân viên.
-  - Địa chỉ trụ sở & các chi nhánh tuyển dụng sinh viên.
-  - Website & Fanpage link.
-  - Save Changes button with unsaved warning detector.
-```
-
-### Prompt 10: Job Creation & Lifecycle Management Studio (FR 2.4)
-```text
-Role: Frontend Engineer - Employer Experience (Huỳnh Nguyễn Bảo Ngọc)
-Tool: Google Stitch
-Task: Design the Job Posting & Editing Studio with rich form controls.
-
-Form Fields:
-- Step 1: Thông tin cơ bản:
-  - Tiêu đề công việc (e.g. "Nhân viên phục vụ quán cà phê The Coffee House - Ca linh hoạt").
-  - Ngành nghề / Danh mục (Dropdown từ Master Data Categories: F&B, Gia sư, Bán lẻ...).
-  - Vị trí / Địa chỉ làm việc cụ thể (Quận/Huyện, Số nhà).
-- Step 2: Thời gian & Mức lương:
-  - Hình thức tính lương: "Theo giờ (VND/h)" hoặc "Theo ca / tháng".
-  - Lương tối thiểu & Lương tối đa (Number inputs with auto-currency formatter).
-  - Checkbox "Lương có thể thỏa thuận".
-  - Thời gian ca làm việc: Ca sáng / Ca chiều / Ca tối / Đăng ký theo lịch rảnh hàng tuần.
-- Step 3: Mô tả chi tiết & Yêu cầu:
-  - Rich Text Editor: Mô tả công việc, Yêu cầu kinh nghiệm (hoặc "Đào tạo từ đầu"), Quyền lợi sinh viên (Thưởng doanh số, hỗ trợ ăn uống, linh hoạt thi cử).
-- Step 4: Thiết lập hiển thị:
-  - Trạng thái: "Công khai ngay" / "Lưu bản nháp".
-  - Ngày hết hạn nhận hồ sơ.
-- Action Buttons: "Xem trước giao diện sinh viên", "Lưu nháp", "Đăng tin ngay".
-```
-
-### Prompt 11: Applicant Tracking System (ATS) & Candidate Review (FR 2.5)
-```text
-Role: Frontend Engineer - Employer Experience (Huỳnh Nguyễn Bảo Ngọc)
-Tool: Google Stitch
-Task: Build the ATS Candidate Pipeline & Resume Viewer for Employers.
-
-Layout:
-- Top Toolbar: Select Job filter dropdown, Search applicant name, Status filter tabs (Chờ duyệt, Đã xem, Hẹn phỏng vấn, Đã tuyển, Từ chối).
-- Candidate Table / Kanban Card View:
-  - Student Avatar, Full Name, University & Major ("ĐH Văn Lang - CNTT").
-  - Nộp lúc (Timestamp).
-  - Attached Resume Badge ("CV_VuTheLong.pdf" with 1-click preview).
-  - Cover Letter snippet tooltip.
-  - Action Dropdown:
-    - "Duyệt hồ sơ / Mời phỏng vấn" (Triggers interview scheduler & email notification).
-    - "Từ chối hồ sơ" (Modal with optional polite feedback note to student).
-    - "Nhắn tin trực tiếp" (Opens chat room).
-    - "Báo cáo ứng viên vi phạm / không trung thực".
-- Split View CV Modal: Left 60% rendered PDF document; Right 40% applicant notes, interview schedule picker, and evaluation buttons.
-```
-
-### Prompt 12: Student Work Performance Review Modal (FR 2.6)
-```text
-Role: Frontend Engineer - Employer Experience (Huỳnh Nguyễn Bảo Ngọc)
-Tool: Google Stitch
-Task: Design the Employer Review & Rating Interface for Students after job completion.
-
-Components:
-- Modal Dialog: "Đánh giá sinh viên: [Tên Sinh Viên] - Vị trí: [Tên Vị Trí]"
-- Star Rating (1 to 5 Stars) with hover animation.
-- Detailed Criteria Sliders:
-  - Đúng giờ & Tinh thần trách nhiệm (1-5 sao).
-  - Thái độ giao tiếp & làm việc (1-5 sao).
-  - Chất lượng hoàn thành công việc (1-5 sao).
-- Review Comment Textarea: "Nhận xét chi tiết về quá trình làm việc của sinh viên (tối thiểu 30 ký tự)..."
-- Privacy toggle: "Công khai đánh giá trên hồ sơ sinh viên để giúp bạn ấy dễ tìm việc trong tương lai".
-- Submit Button: "Gửi đánh giá" (Updates MongoDB reviews collection and recalculates student average rating).
+- Theme: Dark 4D Electric Blue.
+- Tab 1: "Hồ Sơ & CV Của Tôi":
+  - Upload Box: Drag-and-drop zone accepting `.pdf` and `.docx` up to 10MB. Text: "Kéo thả CV định dạng PDF của bạn vào đây".
+  - CV Counter Badge: "Đã lưu 3/5 bản CV tối đa".
+  - CV Card Grid:
+    - Card thumbnail representing PDF first page with red PDF badge.
+    - File Name (e.g. `CV_VuTheLong_IT_Partime.pdf`), File Size (1.8MB), Upload Date.
+    - Badge "🟢 CV Mặc Định" (Default CV) displayed on the active resume.
+    - Action Buttons:
+      - Button "Đặt làm mặc định" (Sets is_default = true and resets other CVs to false).
+      - Button "Xem trước" (Opens DocumentViewerModal with full-screen PDF view and Download button).
+      - Button "Xóa CV" (Triggers ConfirmDialog modal, never native browser confirm).
+- Tab 2: "Thư Giới Thiệu (Cover Letters)":
+  - List of saved cover letters.
+  - Rich Textarea editor with 2,000 character limit counter and student template suggestions.
 ```
 
 ---
 
-## 6. BỘ PROMPT STITCH - PHÂN HỆ QUẢN TRỊ VIÊN (LÊ THỊ THUỲ NGÂN)
-
-### Prompt 13: Admin Analytics & System Dashboard (FR 3.3)
+### Prompt 07: Quản Lý Hồ Sơ Cá Nhân Sinh Viên (StudentProfile.jsx)
 ```text
-Role: Frontend Engineer - Admin Platform (Lê Thị Thuỳ Ngân)
-Tool: Google Stitch
-Task: Build the Admin System Command Center & Analytics Dashboard.
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Student Platform (Vũ Thế Long)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Student Profile Management Interface with avatar upload, university selector, skills tags, and contact info.
 
 Components:
-- Timeframe Filter: "Hôm nay", "7 ngày qua", "30 ngày qua", "Tùy chọn ngày".
-- Top Stat Cards:
-  - "Tổng người dùng": 28,450 (Badge "+14% tháng này")
-  - "Sinh viên tích cực": 24,120
-  - "Doanh nghiệp đã kiểm duyệt": 4,330
-  - "Tin tuyển dụng đang mở": 1,840
-  - "Tỷ lệ ứng tuyển thành công": 76.5%
-- Growth Charts Section:
-  - Chart 1: Biểu đồ đường (Line Chart) xu hướng đăng ký người dùng mới (Sinh viên vs NTD) qua các tháng.
-  - Chart 2: Biểu đồ cột (Bar Chart) số lượng tin tuyển dụng theo ngành nghề (F&B, Retail, IT, Tutor).
-  - Chart 3: Donut Chart phân bố trạng thái đơn ứng tuyển (Chờ duyệt, Trúng tuyển, Từ chối).
-- Export Control: "Xuất dữ liệu thống kê (Excel / CSV)" with date range modal.
-- Recent System Audit Feed: Logs of admin actions, flagged accounts, and new business license submissions.
+- Theme: Dark 4D Electric Blue.
+- Avatar & Cover Banner Uploader: Circular avatar preview with edit button, instant upload.
+- Personal Details Form:
+  - Họ và tên (Full name).
+  - Số điện thoại (10 số Việt Nam).
+  - Email (read-only, showing 1-Email-1-Role bound status).
+  - Trường Đại học (Dropdown: ĐH Văn Lang, ĐH Bách Khoa, ĐH Khoa học Tự nhiên...).
+  - Chuyên ngành & Khóa học (Major & Year of study).
+  - Mã số sinh viên (MSSV).
+  - Giới thiệu bản thân (Bio text).
+  - Kỹ năng & Thế mạnh (Interactive skill badges: Pha chế, Giao tiếp, Tiếng Anh, Word/Excel, Thiết kế Canva, Lập trình...).
+- Save Changes Button: "Lưu Thay Đổi Hồ Sơ" with green success notification banner.
 ```
 
-### Prompt 14: User Management & Moderation Center (FR 3.4)
+---
+
+### Prompt 08: Theo Dõi Tiến Độ Ứng Tuyển 4 Chặng Rõ Ràng (ApplicationTracker.jsx)
 ```text
-Role: Frontend Engineer - Admin Platform (Lê Thị Thuỳ Ngân)
-Tool: Google Stitch
-Task: Build the Master User Moderation Table for Students and Employers.
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Student Platform (Vũ Thế Long)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Student Application Tracker featuring a 4-Stage Horizontal Pipeline, Snapshot Inspector, and Clean Cancel Rule.
 
 Components:
-- Role Filter Tabs: "Tất cả người dùng", "Sinh viên (Student)", "Nhà tuyển dụng (Employer)".
-- Status Filter: "Hoạt động", "Bị khóa", "Chờ xác thực GPKD".
-- Search Input: By Name, Email, Phone, Company Name.
-- Data Table:
-  - Avatar & Name
-  - Email (With unique badge)
-  - Role (Student pill / Employer pill)
-  - University / Company Name
-  - Ngày đăng ký
-  - Trạng thái tài khoản (Badge: Xanh "Hoạt động", Đỏ "Bị khóa")
-  - Actions:
-    - "Xem chi tiết hồ sơ toàn diện"
-    - "Duyệt / Từ chối Giấy phép kinh doanh (đối với NTD)"
-    - "Khóa tài khoản" (Opens modal requiring Admin to enter Reason and ban duration)
-    - "Mở khóa tài khoản"
-```
-
-### Prompt 15: Job Moderation & Compliance Center (FR 3.5)
-```text
-Role: Frontend Engineer - Admin Platform (Lê Thị Thuỳ Ngân)
-Tool: Google Stitch
-Task: Design the Platform-wide Job Moderation Table.
-
-Components:
-- Filter Bar: Category, Location, Hidden/Visible status, Reported flag indicator.
-- Job Moderation Table:
-  - Job Title & Company Name (Clickable link to full job preview).
-  - Posted Date & Expiry Date.
-  - Salary info.
-  - Số lượt báo cáo vi phạm (Red badge if reported > 0).
-  - Trạng thái kiểm duyệt: "Hiển thị công khai" / "Đã bị ẩn bởi Quản trị viên".
+- Theme: Dark 4D Electric Blue.
+- Filter Tabs: "Tất cả đơn (6)", "Chờ duyệt (2)", "Đã xem (1)", "Phỏng vấn (2)", "Trúng tuyển (1)".
+- Application Card Item:
+  - Header: Job Title, Company Name, Applied Date, Attached Resume link.
+  - 4-Stage Horizontal Progress Timeline:
+    - Step 1: `[1. Nộp hồ sơ]` (Icon Send, Green if completed).
+    - Step 2: `[2. NTD đã xem]` (Icon Eye, Blue if viewed).
+    - Step 3: `[3. Phỏng vấn]` (Icon Video/Calendar, Purple with interview timestamp note).
+    - Step 4: `[4. Trúng tuyển / Từ chối]` (Icon CheckCircle2 Green or XCircle Red).
+  - Snapshot Inspector Modal: "Xem bản chụp hồ sơ tại thời điểm nộp (Bất biến)".
   - Action Controls:
-    - "Ẩn tin tuyển dụng" (Enter reason: Lừa đảo, đa cấp, sai mức lương, thông tin không phù hợp).
-    - "Bỏ ẩn / Khôi phục tin".
-    - "Xóa vĩnh viễn tin tuyển dụng".
+    - Button "Hủy đơn ứng tuyển": ONLY active when status is `pending`. When status is `interview` or `accepted`, button is disabled with tooltip "Không thể hủy khi hồ sơ đã vào vòng phỏng vấn".
+    - Button "Nhắn tin với NTD" navigating directly to chat room.
+    - Button "Đánh giá NTD" (Only enabled when status is `accepted`).
 ```
 
-### Prompt 16: Master Data & Category Management (FR 3.7)
+---
+
+### Prompt 09: Đánh Giá & Nhận Xét Nhà Tuyển Dụng (StudentReviewModal.jsx)
 ```text
-Role: Frontend Engineer - Admin Platform (Lê Thị Thuỳ Ngân)
-Tool: Google Stitch
-Task: Build the Master Data Management Screen for Job Categories and Career Fields.
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Student Platform (Vũ Thế Long)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Student Review Modal for Employers after job acceptance with star ratings and criteria sliders.
 
 Components:
-- Top Bar: "Thêm danh mục mới (+)" Button.
-- Table of Categories:
-  - Mã định danh (Slug)
-  - Tên danh mục tiếng Việt (e.g. "Pha chế & Nhà hàng", "Gia sư & Trợ giảng", "Thực tập sinh CNTT")
-  - Loại danh mục (Category type: Ngành nghề, Địa điểm, Kỹ năng)
-  - Số tin tuyển dụng đang thuộc danh mục này
-  - Trạng thái: "Đang hoạt động" / "Tạm ẩn" (Toggle Switch)
-  - Actions: "Chỉnh sửa tên/mô tả", "Ẩn danh mục", "Xóa danh mục".
-- Add/Edit Category Modal: Input Name, Input Type, Select Icon, Active Toggle.
+- Theme: Dark 4D Electric Blue.
+- Modal: "Đánh giá Nhà tuyển dụng: [Tên Doanh Nghiệp] - Vị trí: [Tên Công Việc]"
+- Overall Rating: 1 to 5 Stars with hover glow animation.
+- Criteria Sliders (1-5 stars):
+  - Môi trường làm việc thân thiện sinh viên.
+  - Trả lương đúng hẹn & minh bạch.
+  - Linh hoạt hỗ trợ lịch thi cử tại trường.
+- Comment Textarea: "Chia sẻ trải nghiệm làm việc thực tế của bạn tại đây (tối thiểu 10 ký tự)..."
+- Submit Button: "Gửi Đánh Giá Minh Bạch" with success banner.
 ```
 
-### Prompt 17: Violation Reports Resolution Desk (FR 3.8)
+---
+
+### Prompt 10: Phòng Nhắn Tin Realtime & Tự Động Lọc Từ Khóa Cấm (StudentChat.jsx)
 ```text
-Role: Frontend Engineer - Admin Platform (Lê Thị Thuỳ Ngân)
-Tool: Google Stitch
-Task: Build the User Violation Report Investigation & Action Center.
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Realtime & Media (Vũ Thế Long)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Realtime Messaging Room with Automatic Banned Keywords Filter (***) and WebRTC Video Call integration.
+
+Layout:
+- Theme: Dark 4D Electric Blue.
+- Left Sidebar (Chat Threads): Search input, Company Avatar, Online green indicator, Last message preview, Timestamp.
+- Right Chat Window:
+  - Header: Company name, Context badge "Trao đổi vị trí: Phục vụ Ca Tối", Status "Đang hoạt động", Action buttons: Video Call (Camera icon), Voice Call (Phone icon).
+  - Message Stream:
+    - Incoming messages: Slate-800 bubble.
+    - Outgoing messages: Blue-600 gradient bubble.
+    - Banned Keywords Filter Engine: If message contains prohibited words ("đặt cọc", "thu phí", "chuyển tiền trước"), they are masked as `***` with a red warning note.
+    - System Call Log Bubble: "🔴 Cuộc gọi nhỡ lúc 14:30" or "🟢 Cuộc gọi video đã kết thúc - Thời lượng 05:24".
+  - Footer: File attachment paperclip (PDF/Image <= 10MB), Text input, Send button.
+```
+
+---
+
+### Prompt 11: Phòng Gọi Video Phỏng Vấn Trực Tuyến WebRTC (StudentVideoCall.jsx)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Realtime & Media (Vũ Thế Long)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the WebRTC Video Interview Conference Room with dual video streams, 180s ring timeout, and call duration logger.
+
+Layout:
+- Theme: Dark 4D Electric Blue.
+- Modal: Full-screen floating modal with dark backdrop.
+- Video Area:
+  - Remote Stream (Employer Video): Full-screen HD 1080p stream with company name overlay.
+  - Local Stream (Student Video): Floating picture-in-picture stream in top-right corner.
+- Status Bar: "Đang kết nối phỏng vấn trực tiếp - Mã hóa đầu cuối WebRTC". Call timer `mm:ss`.
+- Controls Bar (Bottom Center):
+  - Mic Mute / Unmute toggle button.
+  - Camera On / Off toggle button.
+  - Screen Share button.
+  - End Call Button: Prominent red button ending call and auto-saving duration to chat.
+```
+
+---
+
+## 4. BỘ PROMPT PHÂN HỆ NHÀ TUYỂN DỤNG (HUỲNH NGUYỄN BẢO NGỌC - WBS 2.1 ĐẾN 2.9)
+
+### Prompt 12: Bảng Điều Khiển Tổng Quan Doanh Nghiệp (EmployerDashboard.jsx)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Employer Platform (Huỳnh Nguyễn Bảo Ngọc)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Employer Dashboard with KPI Metric Cards, Verification Status Banner, and Quick Action Posting Bar.
 
 Components:
+- Theme: Dark 4D Electric Blue.
+- Top Verification Banner:
+  - If GPKD is `pending`: Amber banner "Hồ sơ GPKD đang chờ Quản trị viên phê duyệt. Bạn hiện chỉ có thể tạo tin ở dạng Bản nháp."
+  - If GPKD is `approved`: Emerald badge "Doanh nghiệp đã xác thực GPKD chính thức".
+- 4 KPI Stat Cards:
+  - "Tin đang tuyển dụng": 4 tin đang mở
+  - "Hồ sơ mới nộp": 18 ứng viên (Badge "+6 hôm nay")
+  - "Lịch phỏng vấn": 3 buổi tuần này
+  - "Đánh giá uy tín": 4.8 / 5.0 ⭐ (từ 32 sinh viên)
+- Quick Action Button: "Đăng tin tuyển dụng mới (+)" (Blue gradient glow button).
+- Active Jobs Management Table:
+  - Columns: Tiêu đề công việc, Ngành nghề, Địa điểm (Quận), Lương/giờ, Số ứng viên đã nộp, Trạng thái (Đang mở / Đã đóng), Hành động (Xem ứng viên ATS, Sửa tin, Đóng tin).
+```
+
+---
+
+### Prompt 13: Hồ Sơ Doanh Nghiệp & Kéo Thả GPKD (CompanyProfile.jsx)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Employer Platform (Huỳnh Nguyễn Bảo Ngọc)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Company Profile Studio with Drag-and-Drop GPKD upload, 24 HCMC districts branch list, and Cover Photo manager.
+
+Components:
+- Theme: Dark 4D Electric Blue.
+- Cover Image & Company Logo Drag-and-Drop Box (Supports PNG, JPG <= 10MB).
+- Business License (GPKD) Card:
+  - Status Indicator: "🟢 Đã phê duyệt" / "🟡 Đang chờ duyệt" / "🔴 Bị từ chối (Kèm lý do phản hồi của Admin)".
+  - Drag-and-Drop Upload Area: Accepts PDF and images up to 10MB.
+  - Button "Xem lại GPKD đã tải lên" opening DocumentViewerModal.
+- Company Information Form:
+  - Tên doanh nghiệp chính thức (3-200 ký tự).
+  - Mã số thuế (MST) 10 hoặc 13 số.
+  - Địa chỉ trụ sở chính: Dropdown chọn 24 Quận, Huyện TP.HCM + Địa chỉ cụ thể.
+  - Danh sách chi nhánh tuyển dụng sinh viên.
+  - Giới thiệu môi trường làm việc part-time thân thiện sinh viên.
+```
+
+---
+
+### Prompt 14: Studio Soạn Thảo & Đăng Tin Tuyển Dụng Part-time (JobPostingStudio.jsx)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Employer Platform (Huỳnh Nguyễn Bảo Ngọc)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Job Creation Studio with Salary Integrity Validation (min <= max), Shift Configuration, and 24 HCMC districts picker.
+
+Form Sections:
+- Theme: Dark 4D Electric Blue.
+- Section 1: Thông tin cơ bản:
+  - Tiêu đề tin tuyển dụng (10 - 150 ký tự).
+  - Ngành nghề: Dropdown 34 danh mục part-time chuẩn.
+  - Khu vực làm việc: Dropdown 24 Quận/Huyện/Thủ Đức + Địa chỉ số nhà.
+- Section 2: Mức lương & Ca làm việc (Bắt buộc kiểm tra logic):
+  - Checkbox "Lương thỏa thuận".
+  - Nếu không thỏa thuận: Input Mức lương tối thiểu (`salary_min`) & Mức lương tối đa (`salary_max`) theo giờ.
+  - Salary Integrity Constraint: Red alert displays immediately if `salary_min > salary_max` with error: "Mức lương tối thiểu không được lớn hơn mức lương tối đa!"
+  - Ca làm việc: Ca sáng (07h-12h), Ca chiều (12h-17h), Ca tối (17h-22h), Xoay ca linh hoạt.
+  - Số lượng cần tuyển (1 - 500 sinh viên).
+- Section 3: Mô tả công việc & Quyền lợi:
+  - Mô tả công việc chi tiết (>= 50 ký tự).
+  - Quyền lợi sinh viên: Thưởng doanh số, hỗ trợ ăn uống, bao ca, linh hoạt ngày thi cử.
+  - Hạn nộp hồ sơ (Deadline in the future).
+- Action Buttons: "Lưu bản nháp" vs "Xuất bản tin công khai" (Requires GPKD approval).
+```
+
+---
+
+### Prompt 15: Quản Lý Danh Sách Tin Tuyển Dụng & Vòng Đời Việc Làm (JobLifecycleManager.jsx)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Employer Platform (Huỳnh Nguyễn Bảo Ngọc)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Job Lifecycle & Status Management Screen for Employers with Quick Toggle, Applicant Counts, and Safe Action Banners.
+
+Components:
+- Theme: Dark 4D Electric Blue.
+- Top Action Bar: Search jobs by title, Filter by status: "Đang mở", "Tạm đóng", "Đã hết hạn", "Bản nháp".
+- Jobs Grid & Table:
+  - Job Title (hover text-sky-400).
+  - Category Badge & Location (District).
+  - Salary Badge (e.g. 25.000đ - 35.000đ/h).
+  - Applicant Count Pill: `{applicant_count} hồ sơ` (with `whitespace-nowrap` to prevent awkward line breaks).
+  - Status Toggle Switch: "Đang mở" vs "Tạm đóng".
+  - Action Controls:
+    - Button "Xem ứng viên ATS" navigating directly to CandidateATS.
+    - Button "Chỉnh sửa tin".
+    - Button "Đã nhận người" (Transitions status with polite confirmation, never frozen disabled button).
+    - Button "Xóa tin" (Triggers ConfirmDialog modal).
+```
+
+---
+
+### Prompt 16: Hệ Thống ATS Theo Dõi & Lọc Duyệt Ứng Viên (CandidateATS.jsx)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Employer Platform (Huỳnh Nguyễn Bảo Ngọc)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Candidate Applicant Tracking System (ATS) with 4-stage pipeline, candidate PDF CV preview, and interview scheduler.
+
+Layout:
+- Theme: Dark 4D Electric Blue.
+- Top Job Filter: Dropdown selecting active job to filter applicants.
+- Status Kanban Columns / Filter Tabs:
+  1. `Chờ duyệt` (Pending)
+  2. `Đã xem hồ sơ` (Reviewed)
+  3. `Mời phỏng vấn` (Interview)
+  4. `Trúng tuyển` (Accepted) & `Từ chối` (Rejected)
+- Candidate Card:
+  - Student Avatar, Name, University ("ĐH Văn Lang - Khóa K27").
+  - Applied Date & Time.
+  - Resume Button: Click to open full-screen DocumentViewerModal.
+  - Action Dropdown:
+    - "Đã xem hồ sơ" -> updates status to `reviewed`.
+    - "Hẹn phỏng vấn" -> opens Interview Scheduler Modal.
+    - "Chấp nhận tuyển dụng" -> updates status to `accepted`.
+    - "Từ chối hồ sơ" -> opens Polite Rejection Modal with pre-written reasons.
+```
+
+---
+
+### Prompt 17: Modal Lên Lịch Phỏng Vấn Trực Tuyến (InterviewSchedulerModal.jsx)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Employer Platform (Huỳnh Nguyễn Bảo Ngọc)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Interview Scheduling Modal for Candidates with WebRTC Video Call link generation and calendar picker.
+
+Components:
+- Theme: Dark 4D Electric Blue.
+- Modal: "Lên lịch phỏng vấn ứng viên: [Tên Sinh Viên]"
+- Form Fields:
+  - Ngày phỏng vấn (Date picker in the future).
+  - Giờ phỏng vấn (Time picker).
+  - Hình thức phỏng vấn: "Phỏng vấn Video Call WebRTC trực tuyến" vs "Phỏng vấn trực tiếp tại cửa hàng".
+  - Đường link phòng họp WebRTC tự động tạo.
+  - Lời nhắn gửi sinh viên: "Gợi ý chuẩn bị CV in sẵn, trang phục lịch sự, kiểm tra webcam/micro...".
+- Action Buttons: "Hủy bỏ" & "Gửi Lời Mời Phỏng Vấn" (Sends real-time notification to student).
+```
+
+---
+
+### Prompt 18: Đánh Giá Năng Lực Sinh Viên 2 Chiều (EmployerReview.jsx)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Employer Platform (Huỳnh Nguyễn Bảo Ngọc)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Two-Way Student Performance Review Modal with Upsert anti-collision mechanism.
+
+Components:
+- Theme: Dark 4D Electric Blue.
+- Modal: "Đánh giá sinh viên: [Tên Sinh Viên] - Vị trí: [Tên Công Việc]"
+- Star Rating: 1 to 5 Stars with interactive hover effects.
+- Evaluation Criteria:
+  - Tính đúng giờ & Cam kết ca làm việc (1-5 sao).
+  - Thái độ giao tiếp và tính chủ động (1-5 sao).
+  - Hiệu quả công việc (1-5 sao).
+- Comment Textarea: Nhận xét chi tiết (từ 10 đến 1.000 ký tự).
+- Submit Button: "Lưu đánh giá" (Uses MongoDB Upsert logic to safely update existing reviews without DuplicateKeyError).
+```
+
+---
+
+### Prompt 19: Phòng Nhắn Tin & Trao Đổi Ứng Viên Doanh Nghiệp (EmployerChat.jsx)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Employer Platform (Huỳnh Nguyễn Bảo Ngọc)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Employer Candidate Messaging Portal with fast candidate screening, document attachments, and WebRTC trigger.
+
+Components:
+- Theme: Dark 4D Electric Blue.
+- Left Sidebar: List of applicant chat threads with applied job title badges.
+- Main Chat Window:
+  - Header: Student Name, University ("ĐH Văn Lang"), Applied Job, Video Call button.
+  - Chat Stream: Messages with file attachment support (.pdf, .png, .jpg <= 10MB).
+  - Prohibited Words Interceptor: Displays warning if sensitive keywords are detected.
+  - Footer: File upload paperclip, text input, Send button.
+```
+
+---
+
+### Prompt 20: Phòng Phỏng Vấn Video WebRTC Nhà Tuyển Dụng (EmployerVideoCall.jsx)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Employer Platform (Huỳnh Nguyễn Bảo Ngọc)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Employer Video Interview Studio with candidate evaluation notepad and WebRTC controls.
+
+Components:
+- Theme: Dark 4D Electric Blue.
+- Split View Modal:
+  - Left 70%: Full HD Video Call Stream with candidate video, candidate name overlay, and call controls bar (Mute mic, Camera off, Screen share, End call).
+  - Right 30%: Quick Evaluation Notepad (Take real-time interview notes, score candidate 1-5 stars, quick accept/reject shortcut).
+```
+
+---
+
+## 5. BỘ PROMPT PHÂN HỆ QUẢN TRỊ VIÊN (LÊ THỊ THUỲ NGÂN - WBS 3.1 ĐẾN 3.9)
+
+### Prompt 21: Command Center & Bảng Phân Tích Dữ Liệu (AnalyticsDashboard.jsx)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Admin Platform (Lê Thị Thuỳ Ngân)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Admin Command Center Dashboard with System KPI Cards and Visual Growth Charts.
+
+Components:
+- Theme: Dark 4D Electric Blue.
+- Top Stat Metric Cards:
+  - "Tổng số người dùng": 32,150 (Badge "+18% so với tháng trước")
+  - "Sinh viên đã đăng ký": 27,400
+  - "Doanh nghiệp đã xác thực GPKD": 4,750
+  - "Tin việc làm đang mở": 1,920
+  - "Đơn ứng tuyển đã kết nối": 12,840
+- Analytics Charts Section:
+  - Chart 1: Biểu đồ đường tăng trưởng tài khoản mới qua các tuần.
+  - Chart 2: Biểu đồ cột phân bố tin tuyển dụng theo 24 Quận Huyện TP.HCM.
+  - Chart 3: Tỷ lệ chuyển đổi trạng thái hồ sơ (Chờ duyệt vs Phỏng vấn vs Trúng tuyển).
+- Quick Action: "Xuất báo cáo tổng kết (Excel / CSV)" for faculty graduation evaluation.
+```
+
+---
+
+### Prompt 22: Trung Tâm Quản Trị Người Dùng & Khóa Tài Khoản (UserManagement.jsx)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Admin Platform (Lê Thị Thuỳ Ngân)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the User Moderation Table with Role Isolation, Ban/Unban Modal with mandatory reason.
+
+Components:
+- Theme: Dark 4D Electric Blue.
+- Filter Tabs: "Tất cả người dùng", "Sinh viên (Student)", "Nhà tuyển dụng (Employer)".
+- Search Bar: Search by Name, Email, Phone, University or Company.
+- Table Columns:
+  - User Name & Avatar.
+  - Email (RFC 5322 format).
+  - Role Badge (Student pill blue / Employer pill purple).
+  - GPKD status (for Employers: Pending / Approved / Rejected).
+  - Trạng thái: "🟢 Hoạt động" / "🔴 Bị khóa".
+  - Actions:
+    - Button "Khóa tài khoản": Opens Ban Modal requiring Admin to enter `ban_reason` (10-500 characters). Lock cannot be performed without a reason.
+    - Button "Mở khóa": Restores account status to active.
+    - Button "Duyệt GPKD" (For employers): View license in DocumentViewerModal and approve/reject.
+```
+
+---
+
+### Prompt 23: Trung Tâm Thẩm Định Doanh Nghiệp & Duyệt GPKD (BusinessVerificationDesk.jsx)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Admin Platform (Lê Thị Thuỳ Ngân)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Business License Verification Desk with DocumentViewerModal and Approval Workflow.
+
+Components:
+- Theme: Dark 4D Electric Blue.
+- Filter Bar: "Chờ duyệt (Pending)", "Đã duyệt (Approved)", "Đã từ chối (Rejected)".
+- Business List Table:
+  - Company Name, Tax ID (MST), Representative Name, Submitted Date.
+  - License Document Button: Opens DocumentViewerModal showing embedded PDF license.
+  - Actions:
+    - Button "Phê duyệt GPKD" (Green button): Sets `approval_status = 'approved'`, grants job posting rights.
+    - Button "Từ chối GPKD" (Red button): Opens Rejection Modal requiring Admin to state clear reasons (e.g. "Ảnh mờ, MST không khớp").
+```
+
+---
+
+### Prompt 24: Kiểm Duyệt Tin Tuyển Dụng Toàn Sàn & Ẩn Tin Vi Phạm (JobModeration.jsx)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Admin Platform (Lê Thị Thuỳ Ngân)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Job Moderation Center with Hide/Restore Toggle and Data Preservation Assurance.
+
+Components:
+- Theme: Dark 4D Electric Blue.
+- Filter Bar: Category dropdown, District dropdown, Status: "Đang hiển thị" / "Đã bị ẩn bởi Admin".
+- Table Columns:
+  - Tiêu đề tin tuyển dụng & Tên công ty đăng tin.
+  - Lương theo giờ & Địa điểm làm việc.
+  - Số đơn ứng tuyển đã nộp.
+  - Số lượt báo cáo vi phạm từ người dùng.
+  - Trạng thái kiểm duyệt: "🟢 Công khai" / "🔴 Đã ẩn (Vi phạm)".
+  - Action Controls:
+    - Button "Ẩn tin": Opens Hide Modal requiring reason (Đa cấp, thu phí phỏng vấn, lừa đảo). When hidden, job disappears from Student view immediately, but all records remain in DB for audit.
+    - Button "Khôi phục tin": Restores job to public search.
+```
+
+---
+
+### Prompt 25: Quản Trị Danh Mục Master Data Ngành Nghề (CategoryManager.jsx)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Admin Platform (Lê Thị Thuỳ Ngân)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Master Data Category Management Screen enforcing Restrict Hard-Delete constraint.
+
+Components:
+- Theme: Dark 4D Electric Blue.
+- Action Bar: Button "Thêm danh mục mới (+)".
+- Categories Table:
+  - Mã định danh (Slug/Code).
+  - Tên ngành nghề tiếng Việt (F&B Pha chế, Bán lẻ, Gia sư, CNTT...).
+  - Số tin việc làm đang tham chiếu (`job_count`).
+  - Trạng thái hoạt động (`is_active` toggle).
+  - Action Buttons:
+    - Button "Sửa tên danh mục".
+    - Button "Xóa danh mục": If `job_count > 0`, system intercepts with warning: "Không thể xóa cứng danh mục đang có tin tuyển dụng tham chiếu! Bạn chỉ có thể chuyển sang trạng thái Ẩn."
+```
+
+---
+
+### Prompt 26: Bàn Xử Lý Khiếu Nại & Báo Cáo Vi Phạm (ReportsResolutionDesk.jsx)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Admin Platform (Lê Thị Thuỳ Ngân)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the User Violation Report Investigation & Action Center.
+
+Components:
+- Theme: Dark 4D Electric Blue.
 - Filter by Report Type: "Tin tuyển dụng vi phạm", "Hội thoại quấy rối / lừa đảo", "Hồ sơ giả mạo".
 - Filter by Status: "Chờ xử lý (Mới)", "Đang điều tra", "Đã xử lý", "Đã bác bỏ".
-- Report Card / Row Item:
+- Report Card Item:
   - Người báo cáo (Sinh viên/NTD), Ngày gửi.
   - Đối tượng bị báo cáo (Tin tuyển dụng ID, Nhà tuyển dụng ID, Sinh viên ID, Chat Room ID).
   - Lý do vi phạm (Thu phí tuyển dụng trái phép, Đa cấp, Quấy rối, Lừa đảo thông tin).
@@ -513,98 +993,129 @@ Components:
     - Option 3: "Khóa vĩnh viễn tài khoản người vi phạm"
     - Option 4: "Bác bỏ báo cáo (Không đủ căn cứ)"
   - Admin Resolution Notes textarea.
-  - Submit resolution and notify both parties via system notification.
-```
-
-### Prompt 18: Automated Chat Censorship & Keyword Filter (FR 3.9)
-```text
-Role: Frontend Engineer - Admin Platform (Lê Thị Thuỳ Ngân)
-Tool: Google Stitch
-Task: Build the Realtime Chat Banned Keyword Engine & Monitoring Screen.
-
-Components:
-- Banned Keywords Manager:
-  - Add keyword form (Input keyword, Category: "Lừa đảo đặt cọc", "Cờ bạc đa cấp", "Ngôn từ thô tục").
-  - Tag cloud / Table of banned keywords with hit counter (e.g. "đặt cọc", "nạp tiền", "hoa hồng khủng", "telegram lôi kéo").
-  - Action: Delete keyword, Import keyword list CSV.
-- Flagged Chat Logs Monitor:
-  - Table of chat messages auto-intercepted or flagged by the system.
-  - Room ID, Sender, Receiver, Message snippet with highlighted censored words (`***`).
-  - Action: "Xem ngữ cảnh toàn bộ hội thoại", "Cảnh cáo người gửi", "Khóa phòng chat ngay lập tức".
-```
-
-### Prompt 19: 10-Minute OTP Verification Modal & Automatic Auto-Fill Engine
-```text
-Role: Frontend Engineer - Core Security & Identity
-Tool: Google Stitch
-Task: Build the 10-Minute OTP Verification & Password Recovery Modal with Live Countdown & Hands-Free Auto-Fill.
-
-Design Specifications:
-- Container: Modern rounded-3xl modal card with backdrop blur and responsive max-w-lg container.
-- 10-Minute Countdown Clock:
-  - Display big monospace timer "10:00" counting down second-by-second (600s total TTL).
-  - Dynamic progress bar that transitions color from Emerald Green (> 3 mins) to Amber (1 - 3 mins) to Crimson Red (< 1 min).
-  - Status indicator: "Hiệu lực trong 10 phút. Hết thời gian mã tự động hủy."
-- Simulated Incoming Email Notification Banner:
-  - Sliding toast at the top showing: "📬 [Email Server] Mã OTP của bạn là: [ 8 4 9 2 0 1 ] (Hiệu lực 10 phút)".
-- 6-Digit Auto-Fill Box Component:
-  - 6 individual square inputs with monospace font, rounded-2xl borders, active green halo focus.
-  - Hands-Free Auto-Fill Feature: Automatically types each digit one by one (120ms interval) into the 6 boxes upon receiving the code without requiring manual keyboard typing.
-  - Quick Action Button: "⚡ Tự động điền mã OTP (Auto-fill)" for instant 1-click filling.
-  - Checkbox toggle: "Tự động điền khi nhận được OTP qua Email" (Checked by default).
-- Action Buttons:
-  - "Xác Nhận Mã OTP & Tiếp Tục" (Primary Emerald Green button with arrow icon).
-  - "Gửi lại mã OTP" (Enabled after 60s cooldown).
-  - "Quay lại đăng nhập" (Secondary link).
-```
-
-### Prompt 20: Responsive Multi-Device Synchronization (PC, Laptop, iPad, Mobile)
-```text
-Role: Frontend Engineer - Responsive UI/UX
-Tool: Google Stitch
-Task: Build the Multi-Device Responsive Layout System supporting PC, Laptop, iPad, and Mobile.
-
-Responsive Specifications:
-- Viewport Breakpoints:
-  - Desktop / PC: >= 1280px (Full multi-column layout, extended tables, 3D Hero canvas with mouse follow).
-  - Laptop: 1024px - 1279px (Optimized container padding, full horizontal navigation bar).
-  - iPad / Tablet: 768px - 1023px (Adaptive 2-column grids, touch-friendly tap targets min 44px, touch gesture support for 3D logo).
-  - Mobile Phones: < 768px (Fluid single-column stack, collapsible drawer, fixed bottom navigation dock).
-- Components:
-  - Responsive Header: Hamburger menu button on < 1024px triggering smooth animated slide-down Drawer with 3 Role selectors and device sync status badge ("Đồng bộ PC • Laptop • iPad • Mobile").
-  - Mobile Bottom Dock: Sticky fixed navigation dock at screen bottom with 4 primary icons: "Trang chủ", "Sinh viên", "Tuyển dụng", "Quản trị" with thumb-friendly layout and safe-area padding.
-  - Touch-Enabled 3D Canvas: Supports `touchstart` and `touchmove` events to spin the 3D Clock-P Logo smoothly with finger swipe on iPads and mobile phones.
-```
-
-
-### Prompt 21: Validation Matrix Engine, Contextual Recovery & Real-Time Action Banners
-```text
-Role: Full-Stack Security & UI/UX Engineer
-Tool: Google Stitch
-Task: Enforce the comprehensive Validation Matrix, Context-Specific Password Recovery, and Right-Aligned In-App Action Banner.
-
-Specifications:
-- Validation Matrix Engine:
-  - Student Resumes (.pdf only, <= 10MB): Strict rejection of non-PDF or oversized files with red alerts and HTTP 400.
-  - Business License / GPKD (.pdf only, <= 10MB): Mandatory upload during Employer registration, blocks non-PDF files with HTTP 400.
-  - Employer Logo & Cover Image (.png, .jpg, .jpeg, <= 10MB): File format and size verification.
-  - Chat Attachments (.pdf, .png, .jpg, <= 10MB): Intercepts executable (.exe, .bat) or compressed (.zip, .rar) files with chat warnings.
-  - Email, Password & 30-Second OTP: Valid RFC 5322 email; Password >= 8 chars with uppercase, lowercase, number, special character; 6-digit OTP with exactly 30s TTL.
-  - Cover Letter & Reviews: Cover Letter <= 5,000 chars; Reviews 1-5 stars & comment < 1,000 chars with live countdown counter and button locking.
-- Contextual Password Recovery (ForgotPasswordScreen):
-  - Dynamic Tabs for Student vs Employer (Admin is dedicated fixed access).
-  - Student Recovery: Title "Khôi Phục Mật Khẩu Sinh Viên", grey placeholder "Sinhvien@gmail.com".
-  - Employer Recovery: Title "Khôi Phục Mật Khẩu Doanh Nghiệp", grey placeholder "Nhatuyendung@gmail.com".
-  - 30-Second Live Countdown: "00:30" monospace countdown timer.
-  - Simulated Email Inbox Toast: Floating toast displaying sender "PARTIME.VN Security", recipient, real OTP received, and 1-click Auto-Fill.
-- Right-Aligned In-App Action Notification Banner:
-  - Docked directly beneath Header, aligned to the top-right corner.
-  - 3 Semantics: 🟢 Green (Safe / Success), 🟡 Amber (Loading / In Progress), 🔴 Red (Warning / Error).
-  - Dismissible via "X" button and automatically auto-dismisses after exactly 5 seconds (5000ms).
-- Solid Opaque Header Popovers:
-  - User Account Dropdown and Notifications Dropdown styled with 100% opaque solid background (#0a0f1d), eliminating transparency and ensuring maximum contrast.
 ```
 
 ---
-*Tài liệu này được định dạng tương thích 100% với Google Stitch và các công cụ AI Canvas để dựng lại chuẩn xác toàn bộ hệ sinh thái giao diện của PARTIME.VN.*
 
+### Prompt 27: Quản Trị Bộ Lọc Từ Khóa Cấm Realtime (BannedKeywordsManager.jsx)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Admin Platform (Lê Thị Thuỳ Ngân)
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Realtime Banned Keywords Management Table with Live Delete and Word Cloud.
+
+Components:
+- Theme: Dark 4D Electric Blue.
+- Add Keyword Bar:
+  - Input: "Nhập từ khóa cấm mới (e.g. nạp tiền telegram, cọc trước, hoa hồng ảo)..."
+  - Button: "Thêm từ khóa cấm (+)".
+- Active Banned Keywords Grid & Table:
+  - Table of active prohibited words: Keyword, Added By (Admin), Hit Count in chat, Created At.
+  - Red Delete Button for each keyword: Clicking instantly removes the keyword from MongoDB Atlas and updates the live chat interceptor engine without page reload.
+```
+
+---
+
+## 6. BỘ PROMPT GIAO DIỆN DÙNG CHUNG CAO CẤP
+
+### Prompt 28: Hệ Thống Zero Native Dialogs: `<ConfirmDialog>` & Banner Trạng Thái 3 Màu
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Frontend Architect - Interaction & UX Systems
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Zero Native Browser Dialogs System replacing 100% of window.alert/confirm with Modal ConfirmDialog and In-App Action Banners.
+
+Components:
+- Theme: Dark 4D Electric Blue.
+- 1. Modal Component `<ConfirmDialog>`:
+  - High-end 4D Modal overlay with backdrop blur: `backdrop-blur-md bg-black/85 fixed inset-0 z-[99999]`.
+  - Dialog Card: max-w-md bg-[#0b1329] border border-blue-500/40 rounded-3xl p-6 shadow-2xl.
+  - Warning Icon in glowing red or amber halo.
+  - Title: "Xác nhận hành động nguy hiểm".
+  - Message: Clearly explaining the consequence (e.g. "Bạn có chắc chắn muốn xóa bản CV này? Thao tác này không thể hoàn tác.").
+  - Action Buttons: "Hủy bỏ" (Slate button) & "Xác nhận xóa" (Red/Emerald button).
+- 2. In-App Notification Banner Component:
+  - Docked directly beneath the Header on the top-right corner.
+  - Auto-dismisses after 5,000ms (5 seconds) or when clicking "X".
+  - 3 Semantic Variations:
+    - 🟢 Green: `bg-emerald-950/90 border border-emerald-500 text-emerald-100` (Success: "Cập nhật hồ sơ thành công!").
+    - 🟡 Amber: `bg-amber-950/90 border border-amber-500 text-amber-100` (Loading: "Đang xử lý dữ liệu...").
+    - 🔴 Red: `bg-red-950/90 border border-red-500 text-red-100` (Error: "Lỗi: Không thể thực hiện thao tác!").
+```
+
+---
+
+### Prompt 29: Thanh Header & Dropdown Menu Nền Đặc Opaque 100%
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Shared Components
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Solid Opaque Header Dropdown System eliminating all transparency issues.
+
+Components:
+- Theme: Dark 4D Electric Blue.
+- Header Bar:
+  - Left: Authentic 3D GLTF Brand Logo (Click always navigates to Home).
+  - Right: User Name + Company Name (if Employer) + Role Badge + Active Status Dot (`🟢 Đang hoạt động`) + Notification Bell + Avatar Dropdown.
+- Dropdown Popover:
+  - Must be 100% solid opaque background: `bg-[#090f20]` / `bg-[#0b1329]`, `opacity: 1`, `z-[9999]`.
+  - Crisp neon border: `border border-blue-500/40`.
+  - Completely ELIMINATES transparency so text never sinks into background page content.
+  - Menu Items: "Cập nhật hồ sơ cá nhân", "Đổi mật khẩu", "Hủy tài khoản" (Red), "Đăng xuất".
+```
+
+---
+
+### Prompt 30: Trình Xem Tệp Tin PDF Chuẩn Kiểm Định `<DocumentViewerModal>`
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Frontend Engineer - Document Systems
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Standards-Compliant PDF Document Viewer Modal for Student Resumes and Business Licenses.
+
+Components:
+- Theme: Dark 4D Electric Blue.
+- Full-Screen Floating Modal: `fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex flex-col p-4`.
+- Header:
+  - Document Title & Badge (e.g. "📄 Giấy Phép Kinh Doanh - Công Ty Cà Phê Partime (PDF 2.4MB)").
+  - Download Button: "Tải về máy tính" with Download icon.
+  - Zoom In / Zoom Out controls.
+  - Close button ("✕").
+- Main Body: Embedded responsive iframe or Canvas rendering real PDF byte data.
+```
+
+---
+
+### Prompt 31: Đồng Bộ Đa Thiết Bị Responsive (PC, Laptop, iPad, Mobile)
+```text
+STRICT AI COMPLIANCE MANDATE:
+Do NOT alter, omit, summarize, or improvise any layout, label, color code, or behavior. Recreate the EXACT interface 100% as specified below.
+
+Role: Senior Responsive UI/UX Architect
+Tool: Google Stitch / Modern AI Web Canvas
+Task: Generate the Multi-Device Responsive System across PC, Laptop, iPad, and Mobile breakpoints.
+
+Breakpoints & Adaptations:
+- Desktop & PC (>= 1280px): Extended sidebar, full tables, interactive 3D Three.js mouse-following canvas.
+- Laptop (1024px - 1279px): Compact padding, responsive data tables with horizontal scroll.
+- iPad / Tablet (768px - 1023px): Sidebar converts to smooth slide-out Drawer; 3D Logo supports touch gestures (`touchstart`, `touchmove`).
+- Mobile Phones (< 768px):
+  - Sidebar hidden.
+  - Sticky Mobile Bottom Navigation Dock at the bottom of the screen with thumb-friendly tap targets:
+    - 1. "Trang chủ"
+    - 2. "Việc làm"
+    - 3. "Đã nộp"
+    - 4. "Tài khoản"
+  - Form inputs expand to 100% width, eliminating horizontal overflow.
+```
+
+---
+*Tài liệu này được biên soạn với độ chuẩn xác tuyệt đối 100% theo mã nguồn thực tế của dự án PARTIME.VN (CDTN02). Khi dán vào Google Stitch hoặc các công cụ AI, hệ thống AI bắt buộc phải tuân thủ nghiêm ngặt mọi chỉ dẫn để tái tạo giao diện nguyên bản không sai lệch.*

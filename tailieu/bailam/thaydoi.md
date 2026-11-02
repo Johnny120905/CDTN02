@@ -777,3 +777,57 @@ un.py.
   - `python -m unittest discover -s test -p "test_*.py"`: **9/9 PASSED (100% OK)**.
   - `npm --prefix frontend run build`: **Vite build thành công không lỗi (6.42s)**.
   - Máy chủ Flask tại cổng 8002 kết nối MongoDB Atlas `CDTN02_DB` phản hồi `HTTP 200 OK`.
+
+---
+
+### Giai Đoạn 24: Chuẩn Hóa Toàn Diện 3 Tầng Data - Backend - Frontend, Tối Ưu Runner Localhost Port 8002 & Hoàn Thiện Hồ Sơ Nghiệm Thu Báo Cáo Chuyên Đề Tốt Nghiệp 2
+*Thời gian: 02/11/2026*  
+*Thành phần:* `data` (MongoDB Atlas `CDTN02_DB`), `backend/`, `frontend/`, `test/`, `tailieu/bailam/`  
+*Người thực hiện: Vũ Thế Long, Huỳnh Nguyễn Bảo Ngọc, Lê Thị Thuỳ Ngân*
+
+- **Công việc đã hoàn thành chi tiết:**
+  1. **Thay Đổi & Tối Ưu Tầng Dữ Liệu (Data Layer - MongoDB Atlas `CDTN02_DB`):**
+     - Rà soát toàn bộ 16 Collections theo chuẩn ERD: `users`, `student_profiles`, `employers`, `company_profiles`, `cover_letters`, `resumes`, `jobs`, `categories`, `bookmarks`, `applications`, `reviews`, `chat_rooms`, `messages`, `notifications`, `reports`, `banned_keywords`.
+     - Kiểm tra và đảm bảo tính toàn vẹn của các chỉ mục độc nhất (Unique Indexes):
+       - `users.email`: Ép buộc 100% nguyên tắc BR-AUTH-01 (1 Email = 1 Role duy nhất).
+       - `applications`: Compound Index `{ student_id: 1, job_id: 1 }` chặn sinh viên nộp trùng đơn vào cùng một công việc.
+       - `bookmarks`: Compound Index `{ student_id: 1, job_id: 1 }` chặn trùng lặp danh sách việc làm đã lưu.
+       - `categories`: Unique Index trên trường `code` và `name`.
+     - Cơ chế Bất biến dữ liệu ứng tuyển: Trường `application_snapshot` trong collection `applications` lưu giữ trọn vẹn thông tin ứng viên, link CV và thư giới thiệu tại thời điểm nộp đơn, không bị biến động khi sinh viên thay đổi profile sau này.
+     - Cơ chế Upsert chống lỗi CSDL: Áp dụng `upsert=True` trên collection `reviews` để xử lý cập nhật nhận xét hai chiều minh bạch, loại bỏ hoàn toàn nguy cơ phát sinh ngoại lệ `DuplicateKeyError`.
+     - Củng cố cơ chế Local Document Store resilient fallback trong `backend/src/core/database.py` giúp máy trạm chạy offline hoặc khi DNS mạng nhà trường bị nghẽn vẫn hoạt động trơn tru 16 collections.
+
+  2. **Thay Đổi & Nâng Cấp Tầng Backend (Backend Layer - Flask Clean Architecture):**
+     - Khởi tạo file cấu hình biến môi trường chính thức `Backend/.env` đồng bộ với `src/core/config.py`:
+       - Cổng dịch vụ mặc định: `PORT=8002` (Dành riêng cho CDTN02, hoàn toàn tách biệt không xung đột với CDTN01 cổng 8000).
+       - Chế độ gỡ lỗi: `DEBUG=True`.
+       - Khóa bảo mật: `JWT_SECRET_KEY=CDTN02_SUPER_SECURE_JWT_SECRET_KEY_2026`.
+       - Chuỗi kết nối ReplicaSet MongoDB Atlas Cloud chính thống: `CDTN02_DB`.
+       - Cấu hình SMTP Brevo Mail Relay (`a729f6001@smtp-brevo.com`).
+     - Tối ưu hóa file khởi chạy tự động `run.py` (Unified Localhost Runner):
+       - Bổ sung logic tự động kiểm tra `frontend/node_modules`. Nếu phát hiện chưa cài đặt, script tự động thực thi `npm install` trước khi gọi `npm run build`.
+       - Tự động kiểm tra file `frontend/dist/index.html`; nếu chưa có bản build, script tự động biên dịch và tạo bundle trước khi kích hoạt máy chủ Flask.
+       - Tự động kích hoạt luồng ngầm mở trình duyệt web tại `http://localhost:8002` sau 1.2 giây khi máy chủ đã sẵn sàng.
+     - Củng cố cơ chế CORS Fallback trong `backend/server.py`: Tích hợp bộ middleware thủ công bổ sung header CORS (`Access-Control-Allow-Origin: *`, Methods, Headers) khi thư viện `flask-cors` chưa có trong môi trường Python toàn cục, đảm bảo API luôn tiếp nhận request từ Frontend.
+     - Tinh chỉnh file kịch bản `run.bat` trên Windows: Thiết lập mã hóa UTF-8 (`chcp 65001`), hiển thị tiêu đề trực quan và mở một chạm cổng 8002.
+
+  3. **Thay Đổi & Hoàn Thiện Tầng Frontend (Frontend Layer - React + Vite + Three.js):**
+     - Cài đặt đầy đủ 141 gói npm dependencies trong `frontend/` (`lucide-react`, `three`, `react`, `react-dom`, `@vitejs/plugin-react`, `tailwindcss`, `postcss`, `autoprefixer`).
+     - Thực thi thành công quy trình biên dịch sản xuất (`npm run build`) tạo gói tĩnh `frontend/dist/` dung lượng tối ưu, sẵn sàng phục vụ trực tiếp qua máy chủ Flask tại cổng 8002.
+     - Chuẩn hóa nhận diện Dark 4D Electric Blue toàn hệ thống: Tông nền vũ trụ sâu `#030712`, thẻ kính mờ `backdrop-blur-xl border-blue-900/30`, điểm nhấn xanh điện `#2563eb` và `#38bdf8`, logo 3D WebGL GLTF (`/meshy-3d-logo.glb`) xoay bồng bềnh 4D.
+     - Hoàn thiện hệ thống Zero Native Dialogs: Thay thế 100% `window.alert` và `window.confirm` bằng component `<ConfirmDialog>` với nền mờ `bg-black/85` và thanh Banner trạng thái 3 màu (Xanh lá / Vàng / Đỏ) gắn dưới Header.
+     - Triệt tiêu hiện tượng trong suốt ở Dropdown Menu tài khoản và Chuông thông báo: Thiết lập nền màu đặc `bg-[#090f20]` với độ ưu tiên lớp `z-[9999]`.
+     - Tích hợp Kéo thả tệp tin trực tiếp (Drag & Drop) cho khung tải CV PDF và Giấy phép kinh doanh GPKD PDF.
+     - Màn hình Quên mật khẩu: Bổ sung đồng hồ đếm ngược 10 phút (600s), banner mô phỏng hộp thư đến và nút "Tự động điền" (Hands-Free Auto-fill) điền mã OTP 6 số không cần gõ tay.
+     - Đồng bộ Responsive 4 chuẩn kích thước: Desktop, Laptop, iPad (Menu Drawer) và Mobile (Bottom Navigation Dock một chạm).
+
+  4. **Nâng Cấp Toàn Diện Bộ Hồ Sơ Tài Liệu & Kiểm Thử (`tailieu/bailam/`):**
+     - `tailieu/bailam/dieukienrangbuoc.md`: Biên soạn toàn bộ các điều kiện ràng buộc chi tiết cho cả 3 Role (Sinh viên - Vũ Thế Long, Nhà tuyển dụng - Huỳnh Nguyễn Bảo Ngọc, Quản trị viên - Lê Thị Thuỳ Ngân) kèm sơ đồ luồng Mermaid và ma trận CSDL 16 collections.
+     - `tailieu/bailam/test.md`: Xây dựng mới hoàn chỉnh bộ 40 kịch bản kiểm thử bắt buộc từ Data Layer (8 DTC), Backend API Layer (18 BTC) đến Frontend UI/UX & E2E (14 FTC).
+     - `tailieu/bailam/thietke.md`: Nâng cấp bộ 20 Prompt Google Stitch chuẩn xác 100% theo mã nguồn thực tế của website, hỗ trợ dán trực tiếp vào Stitch để tái tạo giao diện nguyên bản.
+     - `tailieu/bailam/noidung.md`: Hoàn thiện báo cáo chuyên đề tốt nghiệp chi tiết từ Lời cảm ơn, Tóm tắt, Cơ sở lý thuyết, WBS02, Hiện thực kiến trúc Clean Architecture đến Đánh giá kiểm thử và Hướng phát triển.
+
+- **Kết quả nghiệm thu:**
+  - Build Frontend: `npm run build` đạt `✓ built in 5.05s`, tạo đầy đủ bundle `dist/index.html`.
+  - Kiểm thử Backend: `server.py` khởi chạy thành công, kết nối an toàn với MongoDB Atlas `CDTN02_DB` và hỗ trợ fallback lưu trữ linh hoạt.
+  - Kiểm thử Hợp nhất: Lệnh `python run.py` và click `run.bat` tự động phục vụ trọn vẹn cả giao diện Web 3D lẫn API trên cùng một địa chỉ `http://localhost:8002`.

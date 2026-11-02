@@ -26,14 +26,22 @@ def ensure_frontend_built():
     """Kiểm tra và tự động build frontend nếu dist chưa tồn tại."""
     index_html = os.path.join(FRONTEND_DIST, "index.html")
     if not os.path.exists(index_html):
-        print("[Unified Runner] Chưa tìm thấy frontend/dist. Đang tiến hành build tự động...")
+        print("[Unified Runner] Chưa tìm thấy frontend/dist. Đang tiến hành chuẩn bị...")
         npm_cmd = "npm.cmd" if os.name == "nt" else "npm"
         try:
+            node_modules = os.path.join(FRONTEND_DIR, "node_modules")
+            if not os.path.exists(node_modules):
+                print("[Unified Runner] Đang cài đặt thư viện frontend (npm install)...")
+                subprocess.run([npm_cmd, "install"], cwd=FRONTEND_DIR, check=True)
+            print("[Unified Runner] Đang build frontend (npm run build)...")
             subprocess.run([npm_cmd, "run", "build"], cwd=FRONTEND_DIR, check=True)
             print("[Unified Runner] Build Frontend thành công!")
         except Exception as e:
             print(f"[Unified Runner] Cảnh báo không thể tự build: {e}")
-            print("[Unified Runner] Bạn có thể chạy thủ công 'cd frontend; npm run build'")
+            print("[Unified Runner] Bạn có thể chạy thủ công:")
+            print("                cd frontend")
+            print("                npm install")
+            print("                npm run build")
 
 def main():
     os.environ["PYTHONIOENCODING"] = "utf-8"
