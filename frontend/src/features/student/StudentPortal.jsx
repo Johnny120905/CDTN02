@@ -42,22 +42,49 @@ export default function StudentPortal({
   // Confetti Animation Trigger State
   const [showConfetti, setShowConfetti] = useState(false);
 
-  // REAL Contacts List for Student (No mock data - Real Employer: Phúc Long Coffee & Tea / Huỳnh Nguyễn Bảo Ngọc)
-  const [contacts, setContacts] = useState([
-    {
-      id: 'emp_user_employer_ngoc',
-      name: 'Phúc Long Coffee & Tea',
-      subtitle: 'Người đại diện: Huỳnh Nguyễn Bảo Ngọc',
-      role: 'employer',
-      email: 'huynhnguyenbaongoc2k5@gmail.com',
-      online: true,
-      lastMsg: 'Chào Long! Phúc Long đã tiếp nhận hồ sơ của bạn cho ca làm việc linh hoạt.',
-      time: '10:15',
-      unread: 1
+  // REAL Contacts List for Student: Long demo giữ Phúc Long; SV mới khởi tạo rỗng []
+  const isLongDemo = currentUser?.email === 'vuthelong@vlu.edu.vn';
+  const [contacts, setContacts] = useState(() => {
+    if (isLongDemo) {
+      return [
+        {
+          id: 'emp_user_employer_ngoc',
+          employer_id: 'emp_user_employer_ngoc',
+          name: 'Phúc Long Coffee & Tea',
+          subtitle: 'Người đại diện: Huỳnh Nguyễn Bảo Ngọc',
+          role: 'employer',
+          email: 'huynhnguyenbaongoc2k5@gmail.com',
+          online: true,
+          lastMsg: 'Chào Long! Phúc Long đã tiếp nhận hồ sơ của bạn cho ca làm việc linh hoạt.',
+          time: '10:15',
+          unread: 1
+        }
+      ];
     }
-  ]);
-  const [selectedContact, setSelectedContact] = useState(contacts[0]);
+    return [];
+  });
+  const [selectedContact, setSelectedContact] = useState(() => isLongDemo ? {
+    id: 'emp_user_employer_ngoc',
+    employer_id: 'emp_user_employer_ngoc',
+    name: 'Phúc Long Coffee & Tea',
+    subtitle: 'Người đại diện: Huỳnh Nguyễn Bảo Ngọc',
+    role: 'employer',
+    email: 'huynhnguyenbaongoc2k5@gmail.com',
+    online: true,
+    lastMsg: 'Chào Long! Phúc Long đã tiếp nhận hồ sơ của bạn cho ca làm việc linh hoạt.',
+    time: '10:15',
+    unread: 1
+  } : null);
   const [chatSearchQuery, setChatSearchQuery] = useState('');
+
+  const getRoomId = (targetContact = selectedContact) => {
+    if (!targetContact || targetContact.id === 'emp_user_employer_ngoc' || targetContact.employer_id === 'emp_user_employer_ngoc') {
+      return 'room_main';
+    }
+    const empId = targetContact.employer_id || targetContact.id;
+    const stuId = currentUser?._id || currentUser?.id || 'user_student_long';
+    return `room_emp_${empId}_stu_${stuId}`;
+  };
 
   // Data States
   const [jobs, setJobs] = useState([]);
@@ -148,27 +175,32 @@ export default function StudentPortal({
   const localVideoRef = useRef(null);
   const localStreamRef = useRef(null);
 
-  // Chat State
-  const [chatMessages, setChatMessages] = useState([
-    {
-      _id: 'msg_init_1',
-      sender_id: 'user_employer_ngoc',
-      sender_role: 'employer',
-      sender_email: 'huynhnguyenbaongoc2k5@gmail.com',
-      sender_name: 'Huỳnh Nguyễn Bảo Ngọc (Phúc Long)',
-      content: 'Chào Long! Quán nhận được hồ sơ của bạn cho vị trí Pha chế Barista ca linh hoạt. Thứ Hai tuần tới bạn có thể phỏng vấn trực tuyến qua WebRTC không?',
-      created_at: '10:00'
-    },
-    {
-      _id: 'msg_init_2',
-      sender_id: currentUser?._id || 'user_student_long',
-      sender_role: 'student',
-      sender_email: currentUser?.email || 'vuthelong@vlu.edu.vn',
-      sender_name: 'Vũ Thế Long',
-      content: 'Dạ em chào chị Bảo Ngọc ạ! Dạ thứ Hai em rảnh cả buổi chiều, em sẵn sàng tham gia phỏng vấn qua cuộc gọi video trên website ạ.',
-      created_at: '10:05'
+  // Chat State: Long demo giữ tin nhắn mẫu; SV mới khởi tạo tin nhắn rỗng []
+  const [chatMessages, setChatMessages] = useState(() => {
+    if (isLongDemo) {
+      return [
+        {
+          _id: 'msg_init_1',
+          sender_id: 'user_employer_ngoc',
+          sender_role: 'employer',
+          sender_email: 'huynhnguyenbaongoc2k5@gmail.com',
+          sender_name: 'Huỳnh Nguyễn Bảo Ngọc (Phúc Long)',
+          content: 'Chào Long! Quán nhận được hồ sơ của bạn cho vị trí Pha chế Barista ca linh hoạt. Thứ Hai tuần tới bạn có thể phỏng vấn trực tuyến qua WebRTC không?',
+          created_at: '10:00'
+        },
+        {
+          _id: 'msg_init_2',
+          sender_id: currentUser?._id || 'user_student_long',
+          sender_role: 'student',
+          sender_email: currentUser?.email || 'vuthelong@vlu.edu.vn',
+          sender_name: 'Vũ Thế Long',
+          content: 'Dạ em chào chị Bảo Ngọc ạ! Dạ thứ Hai em rảnh cả buổi chiều, em sẵn sàng tham gia phỏng vấn qua cuộc gọi video trên website ạ.',
+          created_at: '10:05'
+        }
+      ];
     }
-  ]);
+    return [];
+  });
   const [newMsgText, setNewMsgText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [chatAttachment, setChatAttachment] = useState(null); // { file, name, size, type, base64, sizeStr }
@@ -247,7 +279,7 @@ export default function StudentPortal({
     if (!token) return;
     const pollInterval = setInterval(async () => {
       try {
-        const res = await fetch('/api/chat/call/status?room_id=room_main', { headers });
+        const res = await fetch(`/api/chat/call/status?room_id=${getRoomId()}`, { headers });
         const data = await res.json();
         if (data.success && data.call) {
           const call = data.call;
@@ -264,17 +296,17 @@ export default function StudentPortal({
       } catch (e) { }
     }, 2500);
     return () => clearInterval(pollInterval);
-  }, [token, isVideoCalling, callStatus, incomingCall]);
+  }, [token, isVideoCalling, callStatus, incomingCall, selectedContact]);
 
   // Periodic poll for chat messages when activeMenu === 'chat'
   useEffect(() => {
     if (!token || activeMenu !== 'chat') return;
-    fetchChatMessages();
+    fetchChatMessages(selectedContact);
     const chatPoll = setInterval(() => {
-      fetchChatMessages();
+      fetchChatMessages(selectedContact);
     }, 2000);
     return () => clearInterval(chatPoll);
-  }, [token, activeMenu]);
+  }, [token, activeMenu, selectedContact]);
 
   const handleStartCall = async (type = 'video') => {
     setCallType(type);
@@ -284,7 +316,7 @@ export default function StudentPortal({
       await fetch('/api/chat/call/initiate', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ room_id: 'room_main', call_type: type })
+        body: JSON.stringify({ room_id: getRoomId(), call_type: type })
       });
       if (onShowBanner) onShowBanner(`Đang đổ chuông cuộc gọi ${type === 'video' ? 'Video' : 'Thoại'} tới Doanh nghiệp...`, 'loading');
     } catch (e) {
@@ -298,7 +330,7 @@ export default function StudentPortal({
       await fetch('/api/chat/call/respond', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ room_id: 'room_main', action: 'accept' })
+        body: JSON.stringify({ room_id: getRoomId(), action: 'accept' })
       });
       setCallType(incomingCall.call_type || 'video');
       setIncomingCall(null);
@@ -316,7 +348,7 @@ export default function StudentPortal({
       await fetch('/api/chat/call/respond', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ room_id: 'room_main', action: 'decline' })
+        body: JSON.stringify({ room_id: getRoomId(), action: 'decline' })
       });
       setIncomingCall(null);
       if (onShowBanner) onShowBanner('Đã từ chối cuộc gọi.', 'error');
@@ -331,7 +363,7 @@ export default function StudentPortal({
         await fetch('/api/chat/call/end', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ room_id: 'room_main' })
+          body: JSON.stringify({ room_id: getRoomId() })
         });
       } catch (e) { }
     }
@@ -426,6 +458,58 @@ export default function StudentPortal({
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
         setMyApplications(data.data);
+
+        // Đồng bộ danh bạ hội thoại với các Nhà tuyển dụng mà sinh viên đã nộp hồ sơ ứng tuyển
+        const contactList = [];
+        const seenEmp = new Set();
+
+        if (isLongDemo) {
+          seenEmp.add('emp_user_employer_ngoc');
+          contactList.push({
+            id: 'emp_user_employer_ngoc',
+            employer_id: 'emp_user_employer_ngoc',
+            name: 'Phúc Long Coffee & Tea',
+            subtitle: 'Người đại diện: Huỳnh Nguyễn Bảo Ngọc',
+            role: 'employer',
+            email: 'huynhnguyenbaongoc2k5@gmail.com',
+            online: true,
+            lastMsg: 'Chào Long! Phúc Long đã tiếp nhận hồ sơ của bạn cho ca làm việc linh hoạt.',
+            time: '10:15',
+            unread: 1
+          });
+        }
+
+        data.data.forEach(app => {
+          const empId = app.employer_id;
+          if (empId && !seenEmp.has(empId)) {
+            seenEmp.add(empId);
+            contactList.push({
+              id: empId,
+              employer_id: empId,
+              name: app.company_name || 'Nhà tuyển dụng',
+              subtitle: `Ứng tuyển: ${app.job_title}`,
+              role: 'employer',
+              email: '',
+              online: true,
+              lastMsg: `Đơn ứng tuyển: ${app.job_title}`,
+              time: 'Mới ứng tuyển',
+              unread: 0,
+              application_status: app.application_status
+            });
+          }
+        });
+
+        if (contactList.length > 0) {
+          setContacts(contactList);
+          setSelectedContact(prev => {
+            if (prev && contactList.some(c => c.id === prev.id)) return prev;
+            return contactList[0];
+          });
+        } else if (!isLongDemo) {
+          setContacts([]);
+          setSelectedContact(null);
+          setChatMessages([]);
+        }
       }
     } catch (err) {
       console.warn('Could not fetch applications:', err);
@@ -489,17 +573,35 @@ export default function StudentPortal({
     }
   };
 
-  const fetchChatMessages = async () => {
+  const fetchChatMessages = async (targetContact = selectedContact) => {
+    const contactToFetch = targetContact || selectedContact;
+    if (!contactToFetch) {
+      if (!isLongDemo) setChatMessages([]);
+      return;
+    }
+    const roomId = getRoomId(contactToFetch);
     try {
-      const res = await fetch('/api/chat/messages?room_id=room_main', { headers });
+      const res = await fetch(`/api/chat/messages?room_id=${roomId}`, { headers });
       const data = await res.json();
-      if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-        setChatMessages(data.data);
+      if (data.success && Array.isArray(data.data)) {
+        if (data.data.length > 0 || !isLongDemo) {
+          setChatMessages(data.data);
+        }
       }
     } catch (err) {
       console.warn('Chat message fetch fallback:', err);
+      if (!isLongDemo) setChatMessages([]);
     }
   };
+
+  // Tự động tải lại tin nhắn khi sinh viên chọn nhà tuyển dụng khác
+  useEffect(() => {
+    if (selectedContact) {
+      fetchChatMessages(selectedContact);
+    } else if (!isLongDemo) {
+      setChatMessages([]);
+    }
+  }, [selectedContact]);
 
   // Toggle Bookmark with pulsating heart (FR 1.5.4, 1.5.5)
   const handleToggleBookmark = async (jobId) => {
@@ -1045,11 +1147,12 @@ export default function StudentPortal({
         method: 'POST',
         headers,
         body: JSON.stringify({
-          room_id: 'room_main',
+          room_id: getRoomId(),
           content: textContent,
           media_url: attachmentToSend?.base64 || '',
           file_name: attachmentToSend?.name || '',
-          file_size: attachmentToSend?.size || 0
+          file_size: attachmentToSend?.size || 0,
+          employer_id: selectedContact?.employer_id || selectedContact?.id
         })
       });
       const data = await res.json();
@@ -1228,38 +1331,48 @@ export default function StudentPortal({
 
             {/* Danh sách Room Chat với NTD (FR 1.8.2 & Chấm xanh/xám 1.10.1) */}
             <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60 p-2 space-y-1">
-              {contacts
-                .filter(c => !chatSearchQuery || c.name.toLowerCase().includes(chatSearchQuery.toLowerCase()))
-                .map((contact) => (
-                  <button
-                    key={contact.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedContact(contact);
-                      handleMenuSwitch('chat');
-                      if (onCloseChatDrawer) onCloseChatDrawer();
-                    }}
-                    className="w-full p-3 rounded-xl bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800/60 transition-all text-left flex items-start gap-3 cursor-pointer group"
-                  >
-                    <div className="relative shrink-0">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-500 text-white font-bold flex items-center justify-center text-sm shadow-md">
-                        {contact.name.charAt(0)}
+              {contacts.length === 0 ? (
+                <div className="p-6 text-center text-slate-500 text-xs">
+                  <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
+                  <p className="font-semibold text-slate-400">Chưa có cuộc trò chuyện nào</p>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Danh bạ sẽ tự động xuất hiện khi bạn nộp hồ sơ ứng tuyển vào một công việc.
+                  </p>
+                </div>
+              ) : (
+                contacts
+                  .filter(c => !chatSearchQuery || c.name.toLowerCase().includes(chatSearchQuery.toLowerCase()))
+                  .map((contact) => (
+                    <button
+                      key={contact.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedContact(contact);
+                        handleMenuSwitch('chat');
+                        if (onCloseChatDrawer) onCloseChatDrawer();
+                      }}
+                      className="w-full p-3 rounded-xl bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800/60 transition-all text-left flex items-start gap-3 cursor-pointer group"
+                    >
+                      <div className="relative shrink-0">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-500 text-white font-bold flex items-center justify-center text-sm shadow-md">
+                          {contact.name.charAt(0)}
+                        </div>
+                        {/* Chấm tròn xanh lá Online / xám Offline (FR 1.10.1) */}
+                        <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-slate-900 ${contact.online ? 'bg-emerald-500 ring-2 ring-emerald-500/30' : 'bg-slate-500'
+                          }`}></span>
                       </div>
-                      {/* Chấm tròn xanh lá Online / xám Offline (FR 1.10.1) */}
-                      <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-slate-900 ${contact.online ? 'bg-emerald-500 ring-2 ring-emerald-500/30' : 'bg-slate-500'
-                        }`}></span>
-                    </div>
 
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs font-bold text-white truncate group-hover:text-sky-300">{contact.name}</p>
-                        <span className="text-[10px] text-slate-500 font-mono">{contact.time}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-bold text-white truncate group-hover:text-sky-300">{contact.name}</p>
+                          <span className="text-[10px] text-slate-500 font-mono">{contact.time}</span>
+                        </div>
+                        <p className="text-[11px] text-sky-400 font-medium truncate mt-0.5">{contact.subtitle}</p>
+                        <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{contact.lastMsg}</p>
                       </div>
-                      <p className="text-[11px] text-sky-400 font-medium truncate mt-0.5">{contact.subtitle}</p>
-                      <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{contact.lastMsg}</p>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  ))
+              )}
             </div>
 
             <div className="p-3 border-t border-slate-800 text-center">
@@ -2620,7 +2733,28 @@ export default function StudentPortal({
         {/* 7. MÀN HÌNH CHAT CHI TIẾT & GỌI VIDEO WEBRTC (UI-SV-CHAT-02, UI-SV-CALL-01 - 1.8 & 1.10) */}
         {activeMenu === 'chat' && (
           <div className="max-w-6xl mx-auto h-[calc(100vh-140px)] flex flex-col rounded-3xl bg-slate-900 border border-blue-900/40 shadow-2xl overflow-hidden">
-
+            {!selectedContact ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-950/80">
+                <div className="w-20 h-20 rounded-3xl bg-blue-950/40 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-5 shadow-xl">
+                  <MessageSquare className="w-10 h-10" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">
+                  Chưa Có Cuộc Trò Chuyện Nào
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto mb-6 leading-relaxed">
+                  Bạn chưa ứng tuyển vào công việc nào. Khi bạn nộp hồ sơ ứng tuyển, bạn có thể trò chuyện và trao đổi trực tiếp với nhà tuyển dụng tại đây.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setActiveMenu('jobs')}
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-lg shadow-blue-900/40 flex items-center gap-2 cursor-pointer"
+                >
+                  <Briefcase className="w-4 h-4" />
+                  <span>Tìm Việc Ngay ({jobs.length} việc làm)</span>
+                </button>
+              </div>
+            ) : (
+              <>
             {/* Khung Header Chat: Tên NTD, Online/Offline, Icon Camera WebRTC, Icon 3 chấm -> Báo cáo */}
             <div className="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -2988,6 +3122,8 @@ export default function StudentPortal({
                     <Send className="w-4 h-4" />
                   </button>
                 </form>
+              </>
+            )}
               </>
             )}
 

@@ -173,6 +173,26 @@ def filter_content_banned_words(text: str):
             
     return censored_text, flagged, flagged_words
 
+def get_user_display_name(user):
+    if not user:
+        return "Người dùng"
+    if user.get("role") == "student":
+        stu_profile = db_manager.get_collection("student_profiles").find_one({"user_id": user["_id"]})
+        if stu_profile and stu_profile.get("full_name"):
+            return stu_profile.get("full_name")
+        return user.get("full_name") or user.get("email") or "Sinh viên"
+    else:
+        emp = db_manager.get_collection("employers").find_one({"user_id": user["_id"]})
+        if emp:
+            comp = db_manager.get_collection("company_profiles").find_one({"employer_id": emp["_id"]})
+            if comp:
+                rep = comp.get("representative_name")
+                cname = comp.get("company_name")
+                if rep and cname:
+                    return f"{rep} ({cname})"
+                return cname or rep or "Doanh nghiệp"
+        return user.get("company_name") or user.get("representative_name") or "Nhà tuyển dụng"
+
 @common_bp.route("/chat/messages", methods=["GET"])
 @token_required
 def get_messages():
@@ -262,7 +282,7 @@ def send_message():
     # Lọc từ cấm tự động: vẫn giữ nội dung gốc để người dùng đọc được nhằm mục đích báo cáo
     clean_content, was_flagged, flagged_words = filter_content_banned_words(content)
 
-    sender_name = "Vũ Thế Long" if user.get("role") == "student" else "Huỳnh Nguyễn Bảo Ngọc (Phúc Long)"
+    sender_name = get_user_display_name(user)
     new_msg = {
         "_id": f"msg_{uuid.uuid4().hex[:8]}",
         "room_id": room_id,
@@ -289,12 +309,12 @@ def send_message():
         target_role = "employer" if user.get("role") == "student" else "student"
         target_user = users_col.find_one({"role": target_role})
         if target_user:
-            sender_name = "Vũ Thế Long" if user.get("role") == "student" else "Phúc Long Coffee & Tea"
+            notif_sender_name = sender_name
             db_manager.get_collection("notifications").insert_one({
                 "_id": f"notif_{uuid.uuid4().hex[:8]}",
                 "user_id": target_user.get("_id"),
                 "type": "chat_message",
-                "title": f"Tin nhắn mới từ {sender_name}",
+                "title": f"Tin nhắn mới từ {notif_sender_name}",
                 "message": clean_content[:90] + ("..." if len(clean_content) > 90 else ""),
                 "is_read": False,
                 "is_deleted": False,
@@ -323,7 +343,7 @@ def initiate_call():
     
     caller_role = user.get("role", "student")
     target_role = "employer" if caller_role == "student" else "student"
-    caller_name = "Vũ Thế Long" if caller_role == "student" else "Phúc Long Coffee & Tea"
+    caller_name = get_user_display_name(user)
     
     # Nếu đối phương cũng đang đổ chuông tới mình thì lập tức kết nối thông suốt hai chiều
     existing_call = ACTIVE_CALL_SESSIONS.get(room_id)

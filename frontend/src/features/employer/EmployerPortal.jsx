@@ -98,21 +98,39 @@ export default function EmployerPortal({
   // Slide-over JD Pane
   const [selectedJobDetail, setSelectedJobDetail] = useState(null);
 
-  // REAL Contacts for Employer Chat (Real Student: Vũ Thế Long - No mock random users)
-  const [contacts, setContacts] = useState([
-    { 
-      id: 'user_student_long', 
-      name: 'Vũ Thế Long', 
-      subtitle: 'Ứng tuyển: Pha chế Barista & Thu ngân', 
-      role: 'student', 
-      email: 'vuthelong@vlu.edu.vn', 
-      online: true, 
-      lastMsg: 'Dạ em chào chị Bảo Ngọc ạ! Em sẵn sàng tham gia phỏng vấn trực tuyến.', 
-      time: '10:05', 
-      unread: 1 
+  // Phân biệt: Tài khoản mẫu demo của nhóm (Bảo Ngọc - Phúc Long) vs Tài khoản Nhà tuyển dụng mới tạo
+  const isPhucLongDemo = currentUser?.email === 'huynhnguyenbaongoc2k5@gmail.com' || currentUser?.email === 'huỳnhnguyenbaongoc2k5@gmail.com';
+
+  // REAL Contacts for Employer Chat: Phúc Long giữ liên hệ demo; Nhà tuyển dụng mới khởi tạo danh bạ RỖNG []
+  const [contacts, setContacts] = useState(() => {
+    if (isPhucLongDemo) {
+      return [
+        { 
+          id: 'user_student_long', 
+          name: 'Vũ Thế Long', 
+          subtitle: 'Ứng tuyển: Pha chế Barista & Thu ngân', 
+          role: 'student', 
+          email: 'vuthelong@vlu.edu.vn', 
+          online: true, 
+          lastMsg: 'Dạ em chào chị Bảo Ngọc ạ! Em sẵn sàng tham gia phỏng vấn trực tuyến.', 
+          time: '10:05', 
+          unread: 1 
+        }
+      ];
     }
-  ]);
-  const [selectedContact, setSelectedContact] = useState(contacts[0]);
+    return [];
+  });
+  const [selectedContact, setSelectedContact] = useState(() => isPhucLongDemo ? { 
+    id: 'user_student_long', 
+    name: 'Vũ Thế Long', 
+    subtitle: 'Ứng tuyển: Pha chế Barista & Thu ngân', 
+    role: 'student', 
+    email: 'vuthelong@vlu.edu.vn', 
+    online: true, 
+    lastMsg: 'Dạ em chào chị Bảo Ngọc ạ! Em sẵn sàng tham gia phỏng vấn trực tuyến.', 
+    time: '10:05', 
+    unread: 1 
+  } : null);
   const [chatSearchQuery, setChatSearchQuery] = useState('');
 
   // Data States
@@ -209,27 +227,40 @@ export default function EmployerPortal({
   const [candidateViewMode, setCandidateViewMode] = useState('kanban'); // 'kanban' | 'table' (FR 2.5.1)
   const gpkdFileInputRef = useRef(null);
 
-  // Chat State
-  const [chatMessages, setChatMessages] = useState([
-    {
-      _id: 'msg_emp_1',
-      sender_id: currentUser?._id || 'user_employer_ngoc',
-      sender_role: 'employer',
-      sender_email: currentUser?.email || 'huynhnguyenbaongoc2k5@gmail.com',
-      sender_name: 'Huỳnh Nguyễn Bảo Ngọc (Phúc Long)',
-      content: 'Chào Long! Quán nhận được hồ sơ của bạn cho vị trí Pha chế Barista ca linh hoạt. Thứ Hai tuần tới bạn có thể phỏng vấn trực tuyến qua WebRTC không?',
-      created_at: '10:00'
-    },
-    {
-      _id: 'msg_emp_2',
-      sender_id: 'user_student_long',
-      sender_role: 'student',
-      sender_email: 'vuthelong@vlu.edu.vn',
-      sender_name: 'Vũ Thế Long',
-      content: 'Dạ em chào chị Bảo Ngọc ạ! Dạ thứ Hai em rảnh cả buổi chiều, em sẵn sàng tham gia phỏng vấn qua cuộc gọi video trên website ạ.',
-      created_at: '10:05'
+  // Chat State: Phúc Long demo giữ tin nhắn mẫu; Nhà tuyển dụng mới khởi tạo tin nhắn RỖNG []
+  const [chatMessages, setChatMessages] = useState(() => {
+    if (isPhucLongDemo) {
+      return [
+        {
+          _id: 'msg_emp_1',
+          sender_id: currentUser?._id || 'user_employer_ngoc',
+          sender_role: 'employer',
+          sender_email: currentUser?.email || 'huynhnguyenbaongoc2k5@gmail.com',
+          sender_name: 'Huỳnh Nguyễn Bảo Ngọc (Phúc Long)',
+          content: 'Chào Long! Quán nhận được hồ sơ của bạn cho vị trí Pha chế Barista ca linh hoạt. Thứ Hai tuần tới bạn có thể phỏng vấn trực tuyến qua WebRTC không?',
+          created_at: '10:00'
+        },
+        {
+          _id: 'msg_emp_2',
+          sender_id: 'user_student_long',
+          sender_role: 'student',
+          sender_email: 'vuthelong@vlu.edu.vn',
+          sender_name: 'Vũ Thế Long',
+          content: 'Dạ em chào chị Bảo Ngọc ạ! Dạ thứ Hai em rảnh cả buổi chiều, em sẵn sàng tham gia phỏng vấn qua cuộc gọi video trên website ạ.',
+          created_at: '10:05'
+        }
+      ];
     }
-  ]);
+    return [];
+  });
+
+  const empId = currentUser?._id || currentUser?.id || 'emp_default';
+  const getRoomId = (targetContact = selectedContact) => {
+    if (isPhucLongDemo) return 'room_main';
+    const cId = targetContact?.id || (targetContact?.student_user_id || targetContact?.student_id);
+    if (!cId) return `room_emp_${empId}_empty`;
+    return `room_emp_${empId}_stu_${cId}`;
+  };
   const [newMsgText, setNewMsgText] = useState('');
   const [chatAttachment, setChatAttachment] = useState(null); // { file, name, size, type, base64, sizeStr }
   const [chatPreviewDoc, setChatPreviewDoc] = useState(null);
@@ -349,6 +380,44 @@ export default function EmployerPortal({
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
         setApplicants(data.data);
+
+        // Với nhà tuyển dụng mới: CHỈ sinh viên nào THỰC SỰ nộp hồ sơ vào công việc của NTD này mới xuất hiện trong contacts!
+        if (!isPhucLongDemo) {
+          const uniqueStudents = [];
+          const seen = new Set();
+          data.data.forEach(app => {
+            const sId = app.student_user_id || app.student_id;
+            if (sId && !seen.has(sId)) {
+              seen.add(sId);
+              uniqueStudents.push({
+                id: sId,
+                name: app.application_snapshot?.student_name || app.student_name || 'Ứng viên sinh viên',
+                subtitle: `Ứng tuyển: ${app.job_title}`,
+                role: 'student',
+                email: app.student_email || '',
+                online: true,
+                lastMsg: `Đơn ứng tuyển: ${app.job_title}`,
+                time: 'Mới ứng tuyển',
+                unread: 0,
+                application_status: app.application_status,
+                is_cancelled: app.is_cancelled,
+                application_id: app._id,
+                job_title: app.job_title
+              });
+            }
+          });
+
+          setContacts(uniqueStudents);
+          if (uniqueStudents.length > 0) {
+            setSelectedContact(prev => {
+              if (prev && uniqueStudents.some(u => u.id === prev.id)) return prev;
+              return uniqueStudents[0];
+            });
+          } else {
+            setSelectedContact(null);
+            setChatMessages([]);
+          }
+        }
       }
     } catch (err) {
       console.warn('Could not fetch applicants:', err);
@@ -395,17 +464,35 @@ export default function EmployerPortal({
     }
   };
 
-  const fetchChatMessages = async () => {
+  const fetchChatMessages = async (targetContact = selectedContact) => {
+    const contactToFetch = targetContact || selectedContact;
+    if (!contactToFetch) {
+      if (!isPhucLongDemo) setChatMessages([]);
+      return;
+    }
+    const roomId = getRoomId(contactToFetch);
     try {
-      const res = await fetch('/api/chat/messages?room_id=room_main', { headers });
+      const res = await fetch(`/api/chat/messages?room_id=${roomId}`, { headers });
       const data = await res.json();
-      if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-        setChatMessages(data.data);
+      if (data.success && Array.isArray(data.data)) {
+        if (data.data.length > 0 || !isPhucLongDemo) {
+          setChatMessages(data.data);
+        }
       }
     } catch (err) {
       console.warn('Chat fetch fallback:', err);
+      if (!isPhucLongDemo) setChatMessages([]);
     }
   };
+
+  // Tự động tải lại tin nhắn khi người dùng chọn một ứng viên khác
+  useEffect(() => {
+    if (selectedContact) {
+      fetchChatMessages(selectedContact);
+    } else if (!isPhucLongDemo) {
+      setChatMessages([]);
+    }
+  }, [selectedContact]);
 
   // Tải lên tệp GPKD mới từ máy tính (FR 2.3.2)
   const handleGpkdFileSelect = (e) => {
@@ -824,10 +911,11 @@ export default function EmployerPortal({
 
     const meetUrl = `https://meet.partime.vn/interview-${Date.now().toString().slice(-6)}`;
     const studentName = app.application_snapshot?.student_name || 'bạn';
+    const companyDisplayName = companyInfo?.company_name || 'Doanh nghiệp';
     const content = newChatMessageText.trim() || (
       newChatType === 'interview'
-        ? `Kính gửi ${studentName}, Phúc Long trân trọng mời bạn tham gia buổi phỏng vấn trực tuyến cho vị trí "${app.job_title}" tại liên kết: ${meetUrl}. Vui lòng tham gia đúng giờ.`
-        : `Chào ${studentName}, Phúc Long đã tiếp nhận hồ sơ ứng tuyển của bạn cho vị trí "${app.job_title}". Bạn có thể phản hồi tin nhắn này để trao đổi thêm ca làm.`
+        ? `Kính gửi ${studentName}, ${companyDisplayName} trân trọng mời bạn tham gia buổi phỏng vấn trực tuyến cho vị trí "${app.job_title}" tại liên kết: ${meetUrl}. Vui lòng tham gia đúng giờ.`
+        : `Chào ${studentName}, ${companyDisplayName} đã tiếp nhận hồ sơ ứng tuyển của bạn cho vị trí "${app.job_title}". Bạn có thể phản hồi tin nhắn này để trao đổi thêm ca làm.`
     );
 
     handleStartChatWithApplicant(app);
@@ -839,7 +927,7 @@ export default function EmployerPortal({
         method: 'POST',
         headers,
         body: JSON.stringify({
-          room_id: 'room_main',
+          room_id: getRoomId(app),
           content,
           student_id: app.student_user_id || app.student_id,
           application_id: app._id
@@ -882,7 +970,7 @@ export default function EmployerPortal({
       sender_id: currentUser?._id || 'user_employer_ngoc',
       sender_role: 'employer',
       sender_email: currentUser?.email || 'huynhnguyenbaongoc2k5@gmail.com',
-      sender_name: 'Huỳnh Nguyễn Bảo Ngọc (Phúc Long)',
+      sender_name: isPhucLongDemo ? 'Huỳnh Nguyễn Bảo Ngọc (Phúc Long)' : (companyInfo?.representative_name || currentUser?.name || 'Nhà tuyển dụng'),
       content: textContent,
       media_url: attachmentToSend?.base64 || '',
       file_name: attachmentToSend?.name || '',
@@ -897,7 +985,7 @@ export default function EmployerPortal({
         method: 'POST',
         headers,
         body: JSON.stringify({
-          room_id: 'room_main',
+          room_id: getRoomId(),
           content: textContent,
           media_url: attachmentToSend?.base64 || '',
           file_name: attachmentToSend?.name || '',
@@ -922,7 +1010,7 @@ export default function EmployerPortal({
     if (!token) return;
     const pollInterval = setInterval(async () => {
       try {
-        const res = await fetch('/api/chat/call/status?room_id=room_main', { headers });
+        const res = await fetch(`/api/chat/call/status?room_id=${getRoomId()}`, { headers });
         const data = await res.json();
         if (data.success && data.call) {
           const call = data.call;
@@ -941,7 +1029,7 @@ export default function EmployerPortal({
       } catch (e) {}
     }, 2500);
     return () => clearInterval(pollInterval);
-  }, [token, isVideoCalling, callStatus, incomingCall]);
+  }, [token, isVideoCalling, callStatus, incomingCall, selectedContact]);
 
   const handleStartCall = async (type = 'video') => {
     setCallType(type);
@@ -951,9 +1039,9 @@ export default function EmployerPortal({
       await fetch('/api/chat/call/initiate', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ room_id: 'room_main', call_type: type })
+        body: JSON.stringify({ room_id: getRoomId(), call_type: type })
       });
-      notify(`Đang đổ chuông cuộc gọi ${type === 'video' ? 'Video' : 'Thoại'} tới Ứng viên Vũ Thế Long...`, 'loading');
+      notify(`Đang đổ chuông cuộc gọi ${type === 'video' ? 'Video' : 'Thoại'} tới Ứng viên ${selectedContact?.name || 'Vũ Thế Long'}...`, 'loading');
     } catch (e) {
       console.warn(e);
     }
@@ -965,7 +1053,7 @@ export default function EmployerPortal({
       await fetch('/api/chat/call/respond', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ room_id: 'room_main', action: 'accept' })
+        body: JSON.stringify({ room_id: getRoomId(), action: 'accept' })
       });
       setCallType(incomingCall.call_type || 'video');
       setIncomingCall(null);
@@ -983,7 +1071,7 @@ export default function EmployerPortal({
       await fetch('/api/chat/call/respond', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ room_id: 'room_main', action: 'decline' })
+        body: JSON.stringify({ room_id: getRoomId(), action: 'decline' })
       });
       setIncomingCall(null);
       if (onShowBanner) onShowBanner(null);
@@ -999,7 +1087,7 @@ export default function EmployerPortal({
         await fetch('/api/chat/call/end', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ room_id: 'room_main' })
+          body: JSON.stringify({ room_id: getRoomId() })
         });
       } catch (e) {}
     }
@@ -1262,38 +1350,48 @@ export default function EmployerPortal({
 
             {/* Danh sách các cuộc hội thoại với SV thật đã ứng tuyển (FR 2.7.2 & 2.9.1) */}
             <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60 p-2 space-y-1">
-              {contacts
-                .filter(c => !chatSearchQuery || c.name.toLowerCase().includes(chatSearchQuery.toLowerCase()))
-                .map((contact) => (
-                  <button
-                    key={contact.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedContact(contact);
-                      handleMenuSwitch('chat');
-                      if (onCloseChatDrawer) onCloseChatDrawer();
-                    }}
-                    className="w-full p-3 rounded-xl bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800/60 transition-all text-left flex items-start gap-3 cursor-pointer group"
-                  >
-                    <div className="relative shrink-0">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-sky-500 text-white font-bold flex items-center justify-center text-sm shadow-md">
-                        {contact.name.charAt(0)}
+              {contacts.length === 0 ? (
+                <div className="p-6 text-center text-slate-500 text-xs">
+                  <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
+                  <p className="font-semibold text-slate-400">Chưa có cuộc trò chuyện nào</p>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Danh bạ sẽ tự động xuất hiện khi có sinh viên ứng tuyển vào công việc của bạn.
+                  </p>
+                </div>
+              ) : (
+                contacts
+                  .filter(c => !chatSearchQuery || c.name.toLowerCase().includes(chatSearchQuery.toLowerCase()))
+                  .map((contact) => (
+                    <button
+                      key={contact.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedContact(contact);
+                        handleMenuSwitch('chat');
+                        if (onCloseChatDrawer) onCloseChatDrawer();
+                      }}
+                      className="w-full p-3 rounded-xl bg-slate-950/60 hover:bg-slate-800/80 border border-slate-800/60 transition-all text-left flex items-start gap-3 cursor-pointer group"
+                    >
+                      <div className="relative shrink-0">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-sky-500 text-white font-bold flex items-center justify-center text-sm shadow-md">
+                          {contact.name.charAt(0)}
+                        </div>
+                        <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-slate-900 ${
+                          contact.online ? 'bg-emerald-500' : 'bg-slate-500'
+                        }`}></span>
                       </div>
-                      <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-slate-900 ${
-                        contact.online ? 'bg-emerald-500' : 'bg-slate-500'
-                      }`}></span>
-                    </div>
 
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs font-bold text-white truncate group-hover:text-sky-300">{contact.name}</p>
-                        <span className="text-[10px] text-slate-500 font-mono">{contact.time}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-bold text-white truncate group-hover:text-sky-300">{contact.name}</p>
+                          <span className="text-[10px] text-slate-500 font-mono">{contact.time}</span>
+                        </div>
+                        <p className="text-[11px] text-sky-400 font-medium truncate mt-0.5">{contact.subtitle}</p>
+                        <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{contact.lastMsg}</p>
                       </div>
-                      <p className="text-[11px] text-sky-400 font-medium truncate mt-0.5">{contact.subtitle}</p>
-                      <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{contact.lastMsg}</p>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  ))
+              )}
             </div>
 
             <div className="p-3 border-t border-slate-800 text-center">
@@ -2769,7 +2867,38 @@ export default function EmployerPortal({
         {/* 6. MÀN HÌNH CHAT & GỌI VIDEO PHỎNG VẤN (UI-NTD-CHAT-02, 03, UI-NTD-CALL-01 - 2.7 & 2.9) */}
         {activeMenu === 'chat' && (
           <div className="max-w-6xl mx-auto h-[calc(100vh-140px)] flex flex-col rounded-3xl bg-slate-900 border border-blue-900/40 shadow-2xl overflow-hidden">
-            
+            {!selectedContact ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-950/80">
+                <div className="w-20 h-20 rounded-3xl bg-blue-950/40 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-5 shadow-xl">
+                  <MessageSquare className="w-10 h-10" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">
+                  Chưa Có Cuộc Trò Chuyện Nào
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto mb-6 leading-relaxed">
+                  Tài khoản của bạn hiện chưa có sinh viên nào nộp hồ sơ ứng tuyển. Khi có sinh viên ứng tuyển vào công việc bạn đăng, danh bạ và tin nhắn sẽ tự động xuất hiện tại đây.
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setActiveMenu('applicants')}
+                    className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all border border-slate-700 flex items-center gap-2 cursor-pointer"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span>Xem Danh Sách Ứng Viên ({applicants.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveMenu('jobs_create')}
+                    className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-lg shadow-blue-900/40 flex items-center gap-2 cursor-pointer"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    <span>Đăng Tin Tuyển Dụng Mới</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
             {/* Header chat: Tên sinh viên, Trạng thái, Nút Tạo tin nhắn mới, Camera WebRTC, Cờ báo cáo */}
             <div className="p-4 bg-slate-950 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -2873,17 +3002,17 @@ export default function EmployerPortal({
                         </div>
                       </div>
                       <div>
-                        <h3 className="text-base font-black text-white">Đang đổ chuông tới Ứng viên (Vũ Thế Long)...</h3>
+                        <h3 className="text-base font-black text-white">Đang đổ chuông tới Ứng viên ({selectedContact?.name || 'Vũ Thế Long'})...</h3>
                         <p className="text-xs text-slate-400 mt-1">Vui lòng chờ ứng viên kết nối vào phòng phỏng vấn</p>
                       </div>
                     </div>
                   ) : (
                     <div className="text-center space-y-3">
                       <div className="w-24 h-24 rounded-full bg-blue-600/30 border border-blue-500/50 text-sky-300 font-black text-3xl flex items-center justify-center mx-auto animate-pulse">
-                        VL
+                        {selectedContact?.name ? selectedContact.name.split(' ').map(n=>n[0]).slice(-2).join('').toUpperCase() : 'VL'}
                       </div>
                       <p className="text-sm font-bold text-white">
-                        {callType === 'video' ? 'Đang phỏng vấn Video trực tuyến: Vũ Thế Long' : 'Đang thực hiện cuộc gọi Thoại phỏng vấn: Vũ Thế Long'}
+                        {callType === 'video' ? `Đang phỏng vấn Video trực tuyến: ${selectedContact?.name || 'Vũ Thế Long'}` : `Đang thực hiện cuộc gọi Thoại phỏng vấn: ${selectedContact?.name || 'Vũ Thế Long'}`}
                       </p>
                       <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -2903,7 +3032,7 @@ export default function EmployerPortal({
                         className="w-full h-full object-cover"
                       />
                       <span className="absolute bottom-1 left-2 text-[9px] font-bold text-white bg-black/60 px-1 rounded">
-                        Bạn (Huỳnh Nguyễn Bảo Ngọc)
+                        {isPhucLongDemo ? 'Bạn (Huỳnh Nguyễn Bảo Ngọc)' : `Bạn (${companyInfo?.representative_name || 'Nhà tuyển dụng'})`}
                       </span>
                     </div>
                   )}
@@ -3189,6 +3318,8 @@ export default function EmployerPortal({
                     </button>
                   </form>
                 )}
+              </>
+            )}
               </>
             )}
 
