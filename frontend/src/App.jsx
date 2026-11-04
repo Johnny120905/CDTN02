@@ -6,18 +6,81 @@ import AccountModal from './shared/AccountModal';
 import LoginScreen from './features/auth/LoginScreen';
 import RegisterScreen from './features/auth/RegisterScreen';
 import ForgotPasswordScreen from './features/auth/ForgotPasswordScreen';
+import AdminLoginScreen from './features/auth/AdminLoginScreen';
 import StudentPortal from './features/student/StudentPortal';
 import EmployerPortal from './features/employer/EmployerPortal';
 import AdminPortal from './features/admin/AdminPortal';
-import PublicLandingPage from './shared/PublicLandingPage';
+
+// React Error Boundary để bảo vệ ứng dụng không bị trắng màn hình khi có ngoại lệ
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('App ErrorBoundary caught exception:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-[#faf8ff] flex flex-col items-center justify-center p-6 text-slate-800 font-sans">
+          <div className="max-w-md w-full bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-200 text-center space-y-4">
+            <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center">
+              <AlertTriangle className="w-7 h-7" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900">Đã xảy ra sự cố hiển thị</h2>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Hệ thống đã tự động bảo vệ giao diện. Bạn có thể bấm nút bên dưới để tải lại trang hoặc quay lại trang chủ.
+            </p>
+            <div className="pt-2 flex flex-col sm:flex-row gap-2 justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  this.setState({ hasError: false });
+                  window.location.reload();
+                }}
+                className="px-4 py-2.5 rounded-xl btn-primary-dimension text-xs font-bold cursor-pointer"
+              >
+                Tải lại trang
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  this.setState({ hasError: false });
+                  window.location.href = '/';
+                }}
+                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 cursor-pointer"
+              >
+                Về Trang Chủ
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
-  const [authView, setAuthView] = useState('landing');
-  const [authRole, setAuthRole] = useState('student'); // 'login' | 'register' | 'forgot_password'
-  const [forgotPasswordRole, setForgotPasswordRole] = useState('student'); // 'student' | 'employer'
   
-  // Navigation & Interactive States between Header and Portals
+  // URL & Routing State (Nhận diện theo path /student, /employer, /admin HOẶC theo port riêng 3001, 3002, 3003)
+  const [currentPath, setCurrentPath] = useState(() => {
+    const path = window.location.pathname || '/';
+    const port = window.location.port;
+    if (path === '/' || path === '') {
+      if (port === '3002') return '/employer';
+      if (port === '3003') return '/admin';
+      return '/student';
+    }
+    return path;
+  });
+
+  // Navigation & Interactive States
   const [portalActiveMenu, setPortalActiveMenu] = useState(null);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [chatDrawerOpen, setChatDrawerOpen] = useState(false);
@@ -25,8 +88,7 @@ export default function App() {
   const [headerSearchKeyword, setHeaderSearchKeyword] = useState('');
   const [activeSectionTitle, setActiveSectionTitle] = useState('Trang Chủ');
 
-  // In-App Action Notification Banner (docked right beneath Header, right-aligned, 5s auto-dismiss)
-  // type: 'success' (xanh lá cây) | 'loading' (vàng) | 'error' (đỏ)
+  // Action Notification Banner
   const [bannerInfo, setBannerInfo] = useState(null);
 
   const handleShowBanner = (message, type = 'success', duration = 5000) => {
@@ -41,28 +103,101 @@ export default function App() {
         setBannerInfo((curr) => (curr && curr.id === id ? null : curr));
       }, duration);
     } else if (type === 'loading') {
-      // Auto-clear loading banner after 15s safety limit to prevent permanently stuck yellow banner
       setTimeout(() => {
         setBannerInfo((curr) => (curr && curr.id === id && curr.type === 'loading' ? null : curr));
       }, 15000);
     }
   };
 
-  const handleNavigateAuth = (view, targetRole = null) => {
-    setAuthView(view);
-    if (targetRole && (targetRole === 'student' || targetRole === 'employer' || targetRole === 'admin')) {
-      setAuthRole(targetRole);
-      setForgotPasswordRole(targetRole);
+  // Safe navigation helper that updates URL & internal state
+  const navigateTo = (path) => {
+    if (window.history && window.history.pushState) {
+      window.history.pushState({}, '', path);
     }
+    setCurrentPath(path);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Load existing session on initial load
+  // Listen to browser popstate, pushState, and anchor clicks seamlessly
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const path = window.location.pathname || '/';
+      const port = window.location.port;
+      if (path === '/' || path === '') {
+        if (port === '3002') setCurrentPath('/employer');
+        else if (port === '3003') setCurrentPath('/admin');
+        else setCurrentPath('/student');
+      } else {
+        setCurrentPath(path);
+      }
+    };
+
+    window.addEventListener('popstate', handleUrlChange);
+
+    // Intercept pushState and replaceState so that any call anywhere immediately updates currentPath!
+    const origPushState = window.history.pushState;
+    window.history.pushState = function(...args) {
+      const ret = origPushState.apply(this, args);
+      handleUrlChange();
+      return ret;
+    };
+
+    const origReplaceState = window.history.replaceState;
+    window.history.replaceState = function(...args) {
+      const ret = origReplaceState.apply(this, args);
+      handleUrlChange();
+      return ret;
+    };
+
+    // Also intercept all click events on <a> links to internal routes (like /admin, /student, /employer)
+    const handleGlobalLinkClick = (e) => {
+      const a = e.target.closest('a');
+      if (a && a.getAttribute('href')) {
+        const href = a.getAttribute('href');
+        if (href.startsWith('/') && !href.startsWith('/api') && !href.startsWith('/uploads')) {
+          e.preventDefault();
+          navigateTo(href);
+        }
+      }
+    };
+    document.addEventListener('click', handleGlobalLinkClick);
+
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+      document.removeEventListener('click', handleGlobalLinkClick);
+      window.history.pushState = origPushState;
+      window.history.replaceState = origReplaceState;
+    };
+  }, []);
+
+  // Auth navigation helper
+  const handleNavigateAuth = (view, role = 'student') => {
+    if (role === 'admin') {
+      navigateTo('/admin');
+      return;
+    }
+    if (role === 'employer') {
+      if (view === 'login') navigateTo('/employer/login');
+      else if (view === 'register') navigateTo('/employer/register');
+      else if (view === 'forgot_password') navigateTo('/employer/forgot-password');
+      else navigateTo('/employer');
+      return;
+    }
+    // Student
+    if (view === 'login') navigateTo('/student/login');
+    else if (view === 'register') navigateTo('/student/register');
+    else if (view === 'forgot_password') navigateTo('/student/forgot-password');
+    else navigateTo('/student');
+  };
+
+  // Load existing user session from localStorage
   useEffect(() => {
     const savedUser = localStorage.getItem('partime_user');
     const token = localStorage.getItem('partime_token');
     if (savedUser && token) {
       try {
-        setCurrentUser(JSON.parse(savedUser));
+        const parsed = JSON.parse(savedUser);
+        setCurrentUser(parsed);
       } catch (e) {
         localStorage.removeItem('partime_user');
         localStorage.removeItem('partime_token');
@@ -71,7 +206,6 @@ export default function App() {
   }, []);
 
   const handleAuthSuccess = (user) => {
-    // Tự động chuyển trạng thái tài khoản sang "Đang hoạt động" khi đăng nhập
     const updatedUser = {
       ...user,
       status: 'active',
@@ -83,7 +217,16 @@ export default function App() {
     setChatDrawerOpen(false);
     setHeaderSearchKeyword('');
 
-    // Đồng bộ trạng thái active về backend API
+    // Update URL according to logged in role
+    if (updatedUser.role === 'admin') {
+      navigateTo('/admin');
+    } else if (updatedUser.role === 'employer') {
+      navigateTo('/employer');
+    } else {
+      navigateTo('/student');
+    }
+
+    // Sync online status with backend
     const token = localStorage.getItem('partime_token');
     if (token) {
       const endpoint = user.role === 'student' 
@@ -100,8 +243,9 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    // Tự động chuyển trạng thái sang "Tạm dừng" khi người dùng đăng xuất / thoát ra
     const token = localStorage.getItem('partime_token');
+    const roleBeforeLogout = currentUser?.role;
+
     if (token && currentUser) {
       try {
         const endpoint = currentUser.role === 'student' 
@@ -118,14 +262,22 @@ export default function App() {
         // ignore offline
       }
     }
+
     localStorage.removeItem('partime_token');
     localStorage.removeItem('partime_user');
     setCurrentUser(null);
-    setAuthView('landing');
-    setAuthRole('student');
     setPortalActiveMenu(null);
     setIsAccountModalOpen(false);
     setChatDrawerOpen(false);
+
+    // Redirect to respective initial landing page after logout
+    if (roleBeforeLogout === 'admin') {
+      navigateTo('/admin');
+    } else if (roleBeforeLogout === 'employer') {
+      navigateTo('/employer');
+    } else {
+      navigateTo('/student');
+    }
   };
 
   const handleOpenAccountModal = () => {
@@ -135,6 +287,13 @@ export default function App() {
   const handleGoHome = () => {
     setPortalActiveMenu({ id: 'home', key: Date.now() });
     setActiveSectionTitle('Trang Chủ');
+    if (currentPath.startsWith('/employer') || window.location.port === '3002') {
+      navigateTo('/employer');
+    } else if (currentPath.startsWith('/admin') || window.location.port === '3003') {
+      navigateTo('/admin');
+    } else {
+      navigateTo('/student');
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -147,98 +306,358 @@ export default function App() {
   };
 
   const handleCreateJobFromHeader = () => {
-    setPortalActiveMenu('jobs_create');
+    setPortalActiveMenu('post_job');
   };
 
-  // 1. KHI CHƯA ĐĂNG NHẬP: CHỈ HIỂN THỊ MÀN HÌNH XÁC THỰC (LOẠI BỎ TOÀN BỘ HEADER VÀ FOOTER)
-  if (!currentUser) {
+  // Render notification banner
+  const renderBanner = () => {
+    if (!bannerInfo) return null;
     return (
-      <div className="min-h-screen bg-[#030712] text-slate-100 font-sans selection:bg-blue-500 selection:text-white">
-        {authView === 'landing' && (
-          <PublicLandingPage
-            onNavigate={handleNavigateAuth}
-            onShowNotice={handleShowBanner}
-          />
-        )}
-
-        {authView === 'login' && (
-          <LoginScreen
-            onAuthSuccess={handleAuthSuccess}
-            onNavigate={handleNavigateAuth}
-            initialRole={authRole}
-          />
-        )}
-
-        {authView === 'register' && (
-          <RegisterScreen
-            onAuthSuccess={handleAuthSuccess}
-            onNavigate={handleNavigateAuth}
-            initialRole={authRole}
-          />
-        )}
-
-        {authView === 'forgot_password' && (
-          <ForgotPasswordScreen
-            onNavigate={handleNavigateAuth}
-            initialRole={forgotPasswordRole}
-            lockRole={true}
-          />
-        )}
+      <div className="fixed top-[88px] right-4 sm:right-6 z-50 pointer-events-auto max-w-md w-full animate-in slide-in-from-top-3 duration-300">
+        <div className={`p-4 rounded-2xl shadow-xl border flex items-center justify-between gap-3 ${
+          bannerInfo.type === 'success'
+            ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-emerald-900/10'
+            : bannerInfo.type === 'loading'
+            ? 'bg-amber-50 border-amber-300 text-amber-900 shadow-amber-900/10'
+            : 'bg-red-50 border-red-300 text-red-900 shadow-red-900/10'
+        }`}>
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            {bannerInfo.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />}
+            {bannerInfo.type === 'loading' && <RefreshCw className="w-5 h-5 text-amber-600 shrink-0 animate-spin" />}
+            {bannerInfo.type === 'error' && <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />}
+            <span className="text-xs sm:text-sm font-bold truncate leading-snug">{bannerInfo.message}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setBannerInfo(null)}
+            className="p-1 rounded-lg hover:bg-black/5 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer shrink-0"
+            title="Đóng thông báo"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
+    );
+  };
+
+  // =========================================================================
+  // VIEW RESOLUTION BASED ON ROUTE & USER ROLE
+  // =========================================================================
+  const isAdminPath = currentPath.startsWith('/admin');
+  const isEmployerPath = currentPath.startsWith('/employer') || currentPath.startsWith('/recruiter');
+
+  // 1. ADMIN ROUTE (/admin): Vô thẳng Giao diện trang Đăng nhập Quản trị viên nếu chưa đăng nhập
+  if (isAdminPath) {
+    if (!currentUser || currentUser.role !== 'admin') {
+      return (
+        <ErrorBoundary>
+          <AdminLoginScreen
+            onAuthSuccess={handleAuthSuccess}
+            onNavigate={handleNavigateAuth}
+          />
+        </ErrorBoundary>
+      );
+    }
+    // Admin is logged in -> render Admin Portal
+    return (
+      <ErrorBoundary>
+        <div className="flex flex-col min-h-screen bg-[#faf8ff] text-[#131b2e] font-sans selection:bg-blue-600 selection:text-white">
+          <Header
+            currentUser={currentUser}
+            onLogout={handleLogout}
+            onOpenAccountModal={handleOpenAccountModal}
+            onGoHome={handleGoHome}
+            onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })}
+            onToggleSidebar={handleToggleSidebar}
+            onToggleChatDrawer={handleToggleChatDrawer}
+            onSearchChange={setHeaderSearchKeyword}
+            onCreateJobClick={handleCreateJobFromHeader}
+            activeSectionTitle={activeSectionTitle}
+          />
+
+          {renderBanner()}
+
+          <main className="flex-1 flex flex-col">
+            <AdminPortal
+              currentUser={currentUser}
+              onLogout={handleLogout}
+              requestedMenu={portalActiveMenu}
+              onOpenAccountModal={handleOpenAccountModal}
+              mobileSidebarOpen={sidebarOpen}
+              onToggleMobileSidebar={handleToggleSidebar}
+              onSectionChange={setActiveSectionTitle}
+              onShowBanner={handleShowBanner}
+            />
+          </main>
+
+          <AccountModal
+            isOpen={isAccountModalOpen}
+            onClose={() => setIsAccountModalOpen(false)}
+            currentUser={currentUser}
+            onUpdateSuccess={(u) => setCurrentUser(u)}
+          />
+
+          <Footer 
+            currentUser={currentUser} 
+            onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })} 
+          />
+        </div>
+      </ErrorBoundary>
     );
   }
 
-  // 2. KHI ĐÃ ĐĂNG NHẬP: VÀO GIAO DIỆN DARK 4D CỦA TỪNG ROLE VỚI CÁC LIÊN KẾT REAL-TIME
-  return (
-    <div className="flex flex-col min-h-screen bg-[#030712] text-slate-100 font-sans selection:bg-blue-500 selection:text-white">
-      
-      {/* THANH HEADER ĐIỀU KHIỂN RIÊNG BIỆT THEO TỪNG ROLE */}
-      <Header
-        currentUser={currentUser}
-        onLogout={handleLogout}
-        onOpenAccountModal={handleOpenAccountModal}
-        onGoHome={handleGoHome}
-        onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })}
-        onToggleSidebar={handleToggleSidebar}
-        onToggleChatDrawer={handleToggleChatDrawer}
-        onSearchChange={setHeaderSearchKeyword}
-        onCreateJobClick={handleCreateJobFromHeader}
-        activeSectionTitle={activeSectionTitle}
-      />
+  // 2. EMPLOYER ROUTE (/employer): Giao diện Trang xem của Nhà tuyển dụng riêng biệt
+  if (isEmployerPath) {
+    if (currentPath === '/employer/login') {
+      return (
+        <ErrorBoundary>
+          <LoginScreen
+            onAuthSuccess={handleAuthSuccess}
+            onNavigate={handleNavigateAuth}
+            initialRole="employer"
+            lockRole={true}
+          />
+        </ErrorBoundary>
+      );
+    }
+    if (currentPath === '/employer/register') {
+      return (
+        <ErrorBoundary>
+          <RegisterScreen
+            onAuthSuccess={handleAuthSuccess}
+            onNavigate={handleNavigateAuth}
+            initialRole="employer"
+            lockRole={true}
+          />
+        </ErrorBoundary>
+      );
+    }
+    if (currentPath === '/employer/forgot-password') {
+      return (
+        <ErrorBoundary>
+          <ForgotPasswordScreen
+            onNavigate={handleNavigateAuth}
+            initialRole="employer"
+            lockRole={true}
+          />
+        </ErrorBoundary>
+      );
+    }
 
-      {/* THÔNG BÁO HÀNH ĐỘNG DƯỚI THANH HEADER (Căn phải, tự tắt sau 5s, Xanh lá: Thành công/An toàn | Vàng: Chờ/Đang tải | Đỏ: Cảnh báo) */}
-      {bannerInfo && (
-        <div className="fixed top-[88px] right-4 sm:right-6 z-50 pointer-events-auto max-w-md w-full animate-in slide-in-from-top-3 duration-300">
-          <div className={`p-4 rounded-2xl shadow-2xl border-2 flex items-center justify-between gap-3.5 ${
-            bannerInfo.type === 'success'
-              ? 'bg-[#064e3b] border-emerald-500 text-emerald-100 shadow-emerald-950/80'
-              : bannerInfo.type === 'loading'
-              ? 'bg-[#78350f] border-amber-500 text-amber-100 shadow-amber-950/80'
-              : 'bg-[#881337] border-rose-500 text-rose-100 shadow-rose-950/80'
-          }`}>
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              {bannerInfo.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-300 shrink-0" />}
-              {bannerInfo.type === 'loading' && <RefreshCw className="w-5 h-5 text-amber-300 shrink-0 animate-spin" />}
-              {bannerInfo.type === 'error' && <AlertTriangle className="w-5 h-5 text-rose-300 shrink-0" />}
-              <span className="text-xs sm:text-sm font-bold truncate leading-snug">{bannerInfo.message}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setBannerInfo(null)}
-              className="p-1 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-colors cursor-pointer shrink-0"
-              title="Đóng thông báo"
-            >
-              <X className="w-4 h-4" />
-            </button>
+    // Nếu chưa đăng nhập: Giao diện Trang xem trước (Chế độ khách) của Nhà tuyển dụng với đầy đủ 9 danh mục Sidebar
+    if (!currentUser || currentUser.role !== 'employer') {
+      return (
+        <ErrorBoundary>
+          <div className="flex flex-col min-h-screen bg-[#faf8ff] text-[#131b2e] font-sans selection:bg-blue-600 selection:text-white">
+            <Header
+              currentUser={null}
+              guestRole="employer"
+              onLogout={handleLogout}
+              onOpenAccountModal={handleOpenAccountModal}
+              onGoHome={handleGoHome}
+              onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })}
+              onToggleSidebar={handleToggleSidebar}
+              onToggleChatDrawer={handleToggleChatDrawer}
+              onSearchChange={setHeaderSearchKeyword}
+              onCreateJobClick={() => handleNavigateAuth('login', 'employer')}
+              activeSectionTitle={activeSectionTitle}
+              onNavigateAuth={handleNavigateAuth}
+            />
+
+            {renderBanner()}
+
+            <main className="flex-1 flex flex-col">
+              <EmployerPortal
+                currentUser={null}
+                isGuestMode={true}
+                onNavigateAuth={handleNavigateAuth}
+                onLogout={handleLogout}
+                requestedMenu={portalActiveMenu}
+                onOpenAccountModal={handleOpenAccountModal}
+                chatDrawerOpen={chatDrawerOpen}
+                onCloseChatDrawer={() => setChatDrawerOpen(false)}
+                mobileSidebarOpen={sidebarOpen}
+                onToggleMobileSidebar={handleToggleSidebar}
+                onSectionChange={setActiveSectionTitle}
+                onShowBanner={handleShowBanner}
+              />
+            </main>
+
+            <Footer 
+              currentUser={null} 
+              onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })} 
+            />
           </div>
-        </div>
-      )}
+        </ErrorBoundary>
+      );
+    }
 
-      {/* VÙNG MAIN CONTENT RENDER CỔNG ROLE PHÙ HỢP */}
-      <main className="flex-1 flex flex-col">
-        {currentUser.role === 'student' && (
+    // Nếu đã đăng nhập: Giao diện toàn diện của Nhà tuyển dụng với đầy đủ 9 danh mục Sidebar
+    return (
+      <ErrorBoundary>
+        <div className="flex flex-col min-h-screen bg-[#faf8ff] text-[#131b2e] font-sans selection:bg-blue-600 selection:text-white">
+          <Header
+            currentUser={currentUser}
+            guestRole="employer"
+            onLogout={handleLogout}
+            onOpenAccountModal={handleOpenAccountModal}
+            onGoHome={handleGoHome}
+            onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })}
+            onToggleSidebar={handleToggleSidebar}
+            onToggleChatDrawer={handleToggleChatDrawer}
+            onSearchChange={setHeaderSearchKeyword}
+            onCreateJobClick={handleCreateJobFromHeader}
+            activeSectionTitle={activeSectionTitle}
+            onNavigateAuth={handleNavigateAuth}
+          />
+
+          {renderBanner()}
+
+          <main className="flex-1 flex flex-col">
+            <EmployerPortal
+              currentUser={currentUser}
+              isGuestMode={false}
+              onNavigateAuth={handleNavigateAuth}
+              onLogout={handleLogout}
+              requestedMenu={portalActiveMenu}
+              onOpenAccountModal={handleOpenAccountModal}
+              chatDrawerOpen={chatDrawerOpen}
+              onCloseChatDrawer={() => setChatDrawerOpen(false)}
+              mobileSidebarOpen={sidebarOpen}
+              onToggleMobileSidebar={handleToggleSidebar}
+              onSectionChange={setActiveSectionTitle}
+              onShowBanner={handleShowBanner}
+            />
+          </main>
+
+          <AccountModal
+            isOpen={isAccountModalOpen}
+            onClose={() => setIsAccountModalOpen(false)}
+            currentUser={currentUser}
+            onUpdateSuccess={(u) => setCurrentUser(u)}
+          />
+
+          <Footer 
+            currentUser={currentUser} 
+            onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })} 
+          />
+        </div>
+      </ErrorBoundary>
+    );
+  }
+
+  // 3. STUDENT ROUTE (/student hoặc /): Giao diện Trang xem của Sinh viên riêng biệt
+  if (currentPath === '/student/login' || currentPath === '/login') {
+    return (
+      <ErrorBoundary>
+        <LoginScreen
+          onAuthSuccess={handleAuthSuccess}
+          onNavigate={handleNavigateAuth}
+          initialRole="student"
+          lockRole={true}
+        />
+      </ErrorBoundary>
+    );
+  }
+  if (currentPath === '/student/register' || currentPath === '/register') {
+    return (
+      <ErrorBoundary>
+        <RegisterScreen
+          onAuthSuccess={handleAuthSuccess}
+          onNavigate={handleNavigateAuth}
+          initialRole="student"
+          lockRole={true}
+        />
+      </ErrorBoundary>
+    );
+  }
+  if (currentPath === '/student/forgot-password' || currentPath === '/forgot-password') {
+    return (
+      <ErrorBoundary>
+        <ForgotPasswordScreen
+          onNavigate={handleNavigateAuth}
+          initialRole="student"
+          lockRole={true}
+        />
+      </ErrorBoundary>
+    );
+  }
+
+  // Nếu chưa đăng nhập: Giao diện Trang xem trước (Chế độ khách) của Sinh viên với đầy đủ 9 danh mục Sidebar
+  if (!currentUser || currentUser.role !== 'student') {
+    return (
+      <ErrorBoundary>
+        <div className="flex flex-col min-h-screen bg-[#faf8ff] text-[#131b2e] font-sans selection:bg-blue-600 selection:text-white">
+          <Header
+            currentUser={null}
+            guestRole="student"
+            onLogout={handleLogout}
+            onOpenAccountModal={handleOpenAccountModal}
+            onGoHome={handleGoHome}
+            onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })}
+            onToggleSidebar={handleToggleSidebar}
+            onToggleChatDrawer={handleToggleChatDrawer}
+            onSearchChange={setHeaderSearchKeyword}
+            onCreateJobClick={() => handleNavigateAuth('login', 'employer')}
+            activeSectionTitle={activeSectionTitle}
+            onNavigateAuth={handleNavigateAuth}
+          />
+
+          {renderBanner()}
+
+          <main className="flex-1 flex flex-col">
+            <StudentPortal
+              currentUser={null}
+              isGuestMode={true}
+              onNavigateAuth={handleNavigateAuth}
+              onLogout={handleLogout}
+              requestedMenu={portalActiveMenu}
+              onOpenAccountModal={handleOpenAccountModal}
+              chatDrawerOpen={chatDrawerOpen}
+              onCloseChatDrawer={() => setChatDrawerOpen(false)}
+              mobileSidebarOpen={sidebarOpen}
+              onToggleMobileSidebar={handleToggleSidebar}
+              headerSearchQuery={headerSearchKeyword}
+              onSectionChange={setActiveSectionTitle}
+              onShowBanner={handleShowBanner}
+            />
+          </main>
+
+          <Footer 
+            currentUser={null} 
+            onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })} 
+          />
+        </div>
+      </ErrorBoundary>
+    );
+  }
+
+  // Nếu đã đăng nhập: Giao diện toàn diện của Sinh viên với đầy đủ 9 danh mục Sidebar
+  return (
+    <ErrorBoundary>
+      <div className="flex flex-col min-h-screen bg-[#faf8ff] text-[#131b2e] font-sans selection:bg-blue-600 selection:text-white">
+        <Header
+          currentUser={currentUser}
+          guestRole="student"
+          onLogout={handleLogout}
+          onOpenAccountModal={handleOpenAccountModal}
+          onGoHome={handleGoHome}
+          onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })}
+          onToggleSidebar={handleToggleSidebar}
+          onToggleChatDrawer={handleToggleChatDrawer}
+          onSearchChange={setHeaderSearchKeyword}
+          onCreateJobClick={handleCreateJobFromHeader}
+          activeSectionTitle={activeSectionTitle}
+          onNavigateAuth={handleNavigateAuth}
+        />
+
+        {renderBanner()}
+
+        <main className="flex-1 flex flex-col">
           <StudentPortal
             currentUser={currentUser}
+            isGuestMode={false}
+            onNavigateAuth={handleNavigateAuth}
             onLogout={handleLogout}
             requestedMenu={portalActiveMenu}
             onOpenAccountModal={handleOpenAccountModal}
@@ -250,50 +669,20 @@ export default function App() {
             onSectionChange={setActiveSectionTitle}
             onShowBanner={handleShowBanner}
           />
-        )}
+        </main>
 
-        {currentUser.role === 'employer' && (
-          <EmployerPortal
-            currentUser={currentUser}
-            onLogout={handleLogout}
-            requestedMenu={portalActiveMenu}
-            onOpenAccountModal={handleOpenAccountModal}
-            chatDrawerOpen={chatDrawerOpen}
-            onCloseChatDrawer={() => setChatDrawerOpen(false)}
-            mobileSidebarOpen={sidebarOpen}
-            onToggleMobileSidebar={handleToggleSidebar}
-            onSectionChange={setActiveSectionTitle}
-            onShowBanner={handleShowBanner}
-          />
-        )}
+        <AccountModal
+          isOpen={isAccountModalOpen}
+          onClose={() => setIsAccountModalOpen(false)}
+          currentUser={currentUser}
+          onUpdateSuccess={(u) => setCurrentUser(u)}
+        />
 
-        {currentUser.role === 'admin' && (
-          <AdminPortal
-            currentUser={currentUser}
-            onLogout={handleLogout}
-            requestedMenu={portalActiveMenu}
-            onOpenAccountModal={handleOpenAccountModal}
-            mobileSidebarOpen={sidebarOpen}
-            onToggleMobileSidebar={handleToggleSidebar}
-            onSectionChange={setActiveSectionTitle}
-            onShowBanner={handleShowBanner}
-          />
-        )}
-      </main>
-
-      {/* Shared Account Profile & Password Modal */}
-      <AccountModal
-        isOpen={isAccountModalOpen}
-        onClose={() => setIsAccountModalOpen(false)}
-        currentUser={currentUser}
-        onUpdateSuccess={(u) => setCurrentUser(u)}
-      />
-
-      {/* CHÂN TRANG FOOTER RIÊNG BIỆT CHO TỪNG ROLE */}
-      <Footer 
-        currentUser={currentUser} 
-        onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })} 
-      />
-    </div>
+        <Footer 
+          currentUser={currentUser} 
+          onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })} 
+        />
+      </div>
+    </ErrorBoundary>
   );
 }

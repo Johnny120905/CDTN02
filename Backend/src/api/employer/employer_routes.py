@@ -283,21 +283,60 @@ def update_job(job_id):
     job_col.update_one({"_id": job_id}, {"$set": update_fields})
     return jsonify({"success": True, "message": "Cập nhật tin tuyển dụng thành công!"})
 
-@employer_bp.route("/jobs/<job_id>/status", methods=["PATCH"])
+@employer_bp.route("/jobs/<job_id>/status", methods=["PATCH", "PUT"])
 @role_required("employer")
 def toggle_job_status(job_id):
     user = request.current_user
     emp = get_employer_record(user["_id"])
     job_col = db_manager.get_collection("jobs")
+    app_col = db_manager.get_collection("applications")
     
     job = job_col.find_one({"_id": job_id, "employer_id": emp["_id"]})
     if not job:
         return jsonify({"success": False, "message": "Không tìm thấy tin tuyển dụng."}), 404
 
+    data = request.get_json(silent=True) or {}
+    target_status = data.get("status")
+
+    if target_status == "filled":
+        # Bắt buộc có >= 1 đơn Đã duyệt (accepted)
+        accepted_count = app_col.count_documents({
+            "job_id": job_id,
+            "application_status": {"$in": ["accepted", "Đã duyệt"]}
+        })
+        if accepted_count == 0:
+            return jsonify({"success": False, "message": "Bắt buộc có ít nhất 1 đơn ứng tuyển Đã duyệt để chốt danh sách Đã nhận người."}), 400
+        
+        job_col.update_one({"_id": job_id}, {"$set": {"status": "filled", "is_open": False}})
+        # Tự động chuyển toàn bộ đơn đang Chờ duyệt sang Từ chối kèm lý do "Tin đã đủ người"
+        app_col.update_many(
+            {"job_id": job_id, "application_status": {"$in": ["pending", "Chờ duyệt"]}},
+            {
+                "$set": {"application_status": "rejected", "reject_reason": "Tin đã đủ người"},
+                "$push": {"status_history": {"status": "rejected", "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"), "note": "Tin đã đủ người"}}
+            }
+        )
+        return jsonify({"success": True, "status": "filled", "message": "Đã chốt danh sách ca làm (Đã nhận đủ người)."})
+
+    elif target_status == "completed":
+        # Chuyển trạng thái sang Hoàn thành (kết thúc công việc vĩnh viễn và kích hoạt đánh giá 2 chiều)
+        job_col.update_one({"_id": job_id}, {"$set": {"status": "completed", "is_open": False, "completed_at": time.strftime("%Y-%m-%d %H:%M:%S")}})
+        return jsonify({"success": True, "status": "completed", "message": "Đã xác nhận hoàn thành ca làm và kết thúc công việc thành công!"})
+
+    elif target_status == "closed":
+        job_col.update_one({"_id": job_id}, {"$set": {"status": "closed", "is_open": False}})
+        return jsonify({"success": True, "status": "closed", "is_open": False, "message": "Đã tạm đóng tin tuyển dụng."})
+
+    elif target_status == "open":
+        job_col.update_one({"_id": job_id}, {"$set": {"status": "open", "is_open": True}})
+        return jsonify({"success": True, "status": "open", "is_open": True, "message": "Đã mở lại tin tuyển dụng."})
+
+    # Fallback legacy 2-way toggle
     new_status = not job.get("is_open", True)
-    job_col.update_one({"_id": job_id}, {"$set": {"is_open": new_status}})
+    status_label = "open" if new_status else "closed"
+    job_col.update_one({"_id": job_id}, {"$set": {"is_open": new_status, "status": status_label}})
     msg = "Đã mở lại tin tuyển dụng." if new_status else "Đã đóng nhận hồ sơ tin tuyển dụng."
-    return jsonify({"success": True, "is_open": new_status, "message": msg})
+    return jsonify({"success": True, "is_open": new_status, "status": status_label, "message": msg})
 
 # 3. Applicant Tracking System - ATS (FR 2.5)
 @employer_bp.route("/applicants", methods=["GET"])

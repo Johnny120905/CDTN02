@@ -339,7 +339,7 @@ export default function HeroLogo3D() {
       />
 
       {/* Interactive Tag Badge */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-lg border border-emerald-100 flex items-center gap-2 text-[11px] font-bold text-emerald-800 whitespace-nowrap">
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-lg border border-emerald-100 flex items-center gap-2 text-xs font-bold text-emerald-800 whitespace-nowrap">
         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
         <span>Mô hình 3D Logo PARTIME.VN • {deviceHint}</span>
         <span className="hidden sm:inline-flex items-center gap-1 text-slate-400 pl-1 border-l border-slate-200">

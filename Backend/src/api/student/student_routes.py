@@ -313,8 +313,14 @@ def cancel_application(app_id):
     if not app:
         return jsonify({"success": False, "message": "Không tìm thấy đơn ứng tuyển."}), 404
         
-    if app.get("application_status") != "pending":
-        return jsonify({"success": False, "message": "Chỉ được phép hủy đơn khi trạng thái đang là 'Chờ duyệt'."}), 400
+    job_col = db_manager.get_collection("jobs")
+    job = job_col.find_one({"_id": app.get("job_id")})
+    if job and job.get("status") in ["completed", "Hoàn thành"]:
+        return jsonify({"success": False, "message": "Không thể hủy đơn của công việc đã hoàn thành."}), 400
+
+    prev_status = app.get("application_status")
+    if prev_status not in ["pending", "accepted", "Chờ duyệt", "Đã duyệt"]:
+        return jsonify({"success": False, "message": "Chỉ được phép hủy đơn khi trạng thái đang là 'Chờ duyệt' hoặc 'Đã duyệt' trước khi hoàn thành."}), 400
         
     app_col.update_one(
         {"_id": app_id},
@@ -323,6 +329,20 @@ def cancel_application(app_id):
             "$push": {"status_history": {"status": "cancelled", "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"), "note": "Sinh viên chủ động hủy"}}
         }
     )
+
+    # FR 1.6.4: Tác động lùi trạng thái công việc
+    # Nếu sinh viên rút đơn Đã duyệt cuối cùng của một công việc, tự động lùi từ "filled" -> "open"
+    if prev_status in ["accepted", "Đã duyệt"]:
+        remaining_accepted = app_col.count_documents({
+            "job_id": app.get("job_id"),
+            "application_status": {"$in": ["accepted", "Đã duyệt"]}
+        })
+        if remaining_accepted == 0:
+            job_col.update_one(
+                {"_id": app.get("job_id"), "status": {"$in": ["filled", "Đã nhận người"]}},
+                {"$set": {"status": "open"}}
+            )
+
     return jsonify({"success": True, "message": "Đã hủy đơn ứng tuyển thành công."})
 
 # 5. Reviews (FR 1.7)

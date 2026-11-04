@@ -183,7 +183,7 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
             <BrandLogo size="md" />
             <div className="hidden lg:block">
-              <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest block">
+              <span className="text-xs font-bold text-blue-400 uppercase tracking-widest block">
                 Nền tảng việc làm sinh viên
               </span>
               <span className="text-xs text-slate-400 font-medium">
@@ -350,7 +350,7 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
                       <button
                         key={tag}
                         onClick={() => setSearchKeyword(tag)}
-                        className="bg-slate-800/80 hover:bg-blue-900/40 hover:text-blue-300 px-2.5 py-1 rounded-xl text-[11px] font-medium transition-colors border border-slate-700/50 cursor-pointer"
+                        className="bg-slate-800/80 hover:bg-blue-900/40 hover:text-blue-300 px-2.5 py-1 rounded-xl text-xs font-medium transition-colors border border-slate-700/50 cursor-pointer"
                       >
                         {tag}
                       </button>
@@ -376,7 +376,7 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
                       <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 text-center pt-2 border-t border-slate-800 text-[11px] text-slate-400">
+                  <div className="grid grid-cols-3 gap-2 text-center pt-2 border-t border-slate-800 text-xs text-slate-400">
                     <div className="flex items-center justify-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                       <span>Duyệt tin 15 phút</span>
@@ -408,7 +408,7 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
                     <ShieldCheck className="w-6 h-6" />
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Đã xác minh GPKD</span>
+                    <span className="text-xs text-slate-400 font-bold uppercase block">Đã xác minh GPKD</span>
                     <span className="text-xs font-bold text-slate-100">100% Doanh nghiệp uy tín</span>
                   </div>
                 </div>
@@ -419,7 +419,7 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
                     <Clock className="w-6 h-6" />
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Linh hoạt theo ca</span>
+                    <span className="text-xs text-slate-400 font-bold uppercase block">Linh hoạt theo ca</span>
                     <span className="text-xs font-bold text-slate-100">25.000đ - 55.000đ/giờ</span>
                   </div>
                 </div>
@@ -703,7 +703,7 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
             <p className="text-slate-500 leading-relaxed">
               PARTIME.VN là nền tảng kết nối việc làm bán thời gian thông minh dành cho sinh viên Việt Nam, giải quyết bài toán lịch học và việc làm minh bạch.
             </p>
-            <p className="text-[11px] text-slate-600">
+            <p className="text-xs text-slate-600">
               Đề tài Chuyên đề tốt nghiệp 2 (CDTN02) - ĐH Văn Lang.
             </p>
           </div>
@@ -794,7 +794,7 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
             {/* Details Content */}
             <div className="space-y-5 text-xs text-slate-300 leading-relaxed mb-8">
               <div>
-                <h4 className="font-bold text-slate-100 uppercase tracking-wider mb-1.5 text-[11px] text-blue-400">
+                <h4 className="font-bold text-slate-100 uppercase tracking-wider mb-1.5 text-xs text-blue-400">
                   Mô Tả Công Việc
                 </h4>
                 <p className="whitespace-pre-line">{activeJobDetail.description}</p>
@@ -802,7 +802,7 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
 
               {activeJobDetail.requirements && (
                 <div>
-                  <h4 className="font-bold text-slate-100 uppercase tracking-wider mb-1.5 text-[11px] text-amber-400">
+                  <h4 className="font-bold text-slate-100 uppercase tracking-wider mb-1.5 text-xs text-amber-400">
                     Yêu Cầu Ứng Viên
                   </h4>
                   <p className="whitespace-pre-line">{activeJobDetail.requirements}</p>
@@ -811,7 +811,7 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
 
               {activeJobDetail.benefits && (
                 <div>
-                  <h4 className="font-bold text-slate-100 uppercase tracking-wider mb-1.5 text-[11px] text-emerald-400">
+                  <h4 className="font-bold text-slate-100 uppercase tracking-wider mb-1.5 text-xs text-emerald-400">
                     Quyền Lợi Được Hưởng
                   </h4>
                   <p className="whitespace-pre-line">{activeJobDetail.benefits}</p>

@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 
 export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuccess }) {
-  if (!isOpen) return null;
+  if (!isOpen || !currentUser) return null;
 
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'password'
   
@@ -166,31 +166,31 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-blue-900/40 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl shadow-blue-950/60 text-white relative animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl text-slate-800 relative animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
         
         {/* Header with Close */}
         <div className="flex items-start justify-between mb-5">
           <div>
-            <h2 className="text-lg font-black text-white">Tài Khoản & Bảo Mật</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Quản lý hồ sơ cá nhân, trạng thái hoạt động và mật khẩu bảo mật</p>
+            <h2 className="text-lg font-black text-slate-900">Tài Khoản & Bảo Mật</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Quản lý hồ sơ cá nhân, trạng thái hoạt động và mật khẩu bảo mật</p>
           </div>
           <button 
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+            className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex bg-slate-950/80 p-1.5 rounded-2xl mb-6 border border-slate-800 text-xs font-bold">
+        <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-6 border border-slate-200 text-xs font-bold">
           <button
             type="button"
             onClick={() => { setActiveTab('profile'); setMsg({ text: '', type: '' }); }}
             className={`flex-1 py-2 rounded-xl transition-all cursor-pointer ${
-              activeTab === 'profile' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+              activeTab === 'profile' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             Thông Tin Tài Khoản
@@ -199,7 +199,7 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
             type="button"
             onClick={() => { setActiveTab('password'); setMsg({ text: '', type: '' }); }}
             className={`flex-1 py-2 rounded-xl transition-all cursor-pointer ${
-              activeTab === 'password' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'
+              activeTab === 'password' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             Đổi Mật Khẩu
@@ -209,8 +209,8 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
         {/* Alerts */}
         {msg.text && (
           <div className={`p-3 rounded-2xl text-xs font-semibold mb-4 flex items-center gap-2 ${
-            msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' :
-            (msg.type === 'error' ? 'bg-red-500/10 text-red-400 border border-red-500/30' : 'bg-blue-500/10 text-sky-400 border border-blue-500/30')
+            msg.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+            (msg.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-blue-50 text-blue-700 border border-blue-200')
           }`}>
             {msg.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
             <span>{msg.text}</span>
@@ -221,40 +221,40 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
         {activeTab === 'profile' && (
           <form onSubmit={handleUpdateProfile} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1.5">Địa chỉ Email (Cố định)</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">Địa chỉ Email (Cố định)</label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="email"
                   disabled
                   value={currentUser.email}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-2xl text-xs font-medium text-slate-400 cursor-not-allowed"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-100 border border-slate-200 rounded-2xl text-xs font-medium text-slate-500 cursor-not-allowed"
                 />
               </div>
             </div>
 
             {/* Trạng thái hoạt động tự động đồng bộ (Online khi đăng nhập, Tạm dừng khi đăng xuất, Ngưng khi khóa/hủy) */}
-            <div className="p-3.5 bg-slate-950/70 rounded-2xl border border-blue-900/40 flex items-center justify-between">
+            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <Activity className="w-4 h-4 text-sky-400 shrink-0" />
+                <Activity className="w-4 h-4 text-blue-600 shrink-0" />
                 <div>
-                  <p className="text-xs font-bold text-slate-200">Trạng Thái Tài Khoản</p>
-                  <p className="text-[10px] text-slate-400">Tự động đồng bộ theo phiên đăng nhập / đăng xuất</p>
+                  <p className="text-xs font-bold text-slate-800">Trạng Thái Tài Khoản</p>
+                  <p className="text-xs text-slate-500">Tự động đồng bộ theo phiên đăng nhập / đăng xuất</p>
                 </div>
               </div>
               <span className={`px-2.5 py-1 rounded-full text-xs font-bold border flex items-center gap-1.5 ${
                 (currentUser?.is_banned || userStatus === 'inactive' || userStatus === 'cancelled')
-                  ? 'bg-red-500/20 text-red-300 border-red-500/40'
+                  ? 'bg-red-50 text-red-700 border-red-200'
                   : (userStatus === 'paused'
-                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                    : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40')
+                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200')
               }`}>
                 <span className={`w-2 h-2 rounded-full ${
                   (currentUser?.is_banned || userStatus === 'inactive' || userStatus === 'cancelled')
-                    ? 'bg-red-400'
+                    ? 'bg-red-500'
                     : (userStatus === 'paused'
-                      ? 'bg-amber-400'
-                      : 'bg-emerald-400 animate-pulse')
+                      ? 'bg-amber-500'
+                      : 'bg-emerald-500 animate-pulse')
                 }`} />
                 <span>
                   {(currentUser?.is_banned || userStatus === 'inactive' || userStatus === 'cancelled')
@@ -267,32 +267,32 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
             {/* Role-specific fields */}
             {currentUser.role === 'admin' ? (
               <div className="space-y-4 pt-1">
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/60 to-slate-900 border border-blue-600/30">
+                <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-sky-400">Hồ Sơ Quản Trị Viên Hệ Thống</span>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-500/20 text-sky-300 border border-blue-500/40">
+                    <span className="text-xs font-bold uppercase tracking-wider text-blue-700">Hồ Sơ Quản Trị Viên Hệ Thống</span>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-blue-100 text-blue-700 border border-blue-200">
                       SUPER ADMIN
                     </span>
                   </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div>
-                      <p className="text-[11px] text-slate-400">Mã định danh (Admin ID):</p>
-                      <p className="font-mono font-bold text-white bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 mt-1">
+                      <p className="text-xs text-slate-600">Mã định danh (Admin ID):</p>
+                      <p className="font-mono font-bold text-slate-900 bg-white px-2.5 py-1 rounded-lg border border-slate-200 mt-1">
                         {currentUser._id || currentUser.id || 'ADM_SUPER_2026'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-[11px] text-slate-400">Họ và tên Quản trị viên:</p>
-                      <p className="font-bold text-white bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 mt-1">
+                      <p className="text-xs text-slate-600">Họ và tên Quản trị viên:</p>
+                      <p className="font-bold text-slate-900 bg-white px-2.5 py-1 rounded-lg border border-slate-200 mt-1">
                         {currentUser.profile?.full_name || currentUser.full_name || 'Lê Thị Thúy Ngân'}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="p-3 bg-blue-950/40 border border-blue-800/40 rounded-xl text-[11px] text-sky-300 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-sky-400 shrink-0" />
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
                   <span>Để đổi mật khẩu đăng nhập của Quản trị viên, vui lòng chuyển sang tab <strong>"Đổi Mật Khẩu"</strong> ở phía trên.</span>
                 </div>
               </div>
@@ -302,96 +302,96 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-bold text-slate-300 mb-1.5">Tên Doanh nghiệp / Công ty *</label>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">Tên Doanh nghiệp / Công ty *</label>
                         <div className="relative">
-                          <Building className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                          <Building className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                           <input
                             type="text"
                             required
                             value={companyName}
                             onChange={(e) => setCompanyName(e.target.value)}
-                            placeholder="ví dụ: Phúc Long Coffee & Tea"
-                            className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-2xl text-xs font-medium text-white focus:outline-none focus:border-blue-500"
+                            placeholder="ví dụ: Công ty TNHH Cà phê & Trà Sài Gòn"
+                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:outline-none focus:border-blue-500"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold text-slate-300 mb-1.5">Chi nhánh / Đơn vị</label>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">Chi nhánh / Đơn vị</label>
                         <div className="relative">
-                          <MapPin className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                          <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                           <input
                             type="text"
                             value={branchName}
                             onChange={(e) => setBranchName(e.target.value)}
                             placeholder="ví dụ: Chi nhánh Quận 1"
-                            className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-2xl text-xs font-medium text-white focus:outline-none focus:border-blue-500"
+                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:outline-none focus:border-blue-500"
                           />
                         </div>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1.5">Họ và tên Người đại diện tuyển dụng *</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">Họ và tên Người đại diện tuyển dụng *</label>
                       <div className="relative">
-                        <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                         <input
                           type="text"
                           required
                           value={fullName}
                           onChange={(e) => setFullName(e.target.value)}
                           placeholder="ví dụ: Huỳnh Nguyễn Bảo Ngọc"
-                          className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-2xl text-xs font-medium text-white focus:outline-none focus:border-blue-500"
+                          className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:outline-none focus:border-blue-500"
                         />
                       </div>
                     </div>
                   </>
                 ) : (
                   <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1.5">Họ và tên sinh viên *</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Họ và tên sinh viên *</label>
                     <div className="relative">
-                      <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
                         required
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-2xl text-xs font-medium text-white focus:outline-none focus:border-blue-500"
+                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:outline-none focus:border-blue-500"
                       />
                     </div>
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">Số điện thoại liên hệ</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Số điện thoại liên hệ</label>
                   <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="tel"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="09xx xxx xxx"
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-2xl text-xs font-medium text-white focus:outline-none focus:border-blue-500"
+                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:outline-none focus:border-blue-500"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     {currentUser.role === 'student' ? 'Trường Đại học / Cao đẳng' : 'Địa chỉ trụ sở chính'}
                   </label>
                   <div className="relative">
                     {currentUser.role === 'student' ? (
-                      <GraduationCap className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <GraduationCap className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     ) : (
-                      <Building className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <Building className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     )}
                     <input
                       type="text"
                       value={extraField}
                       onChange={(e) => setExtraField(e.target.value)}
                       placeholder={currentUser.role === 'student' ? 'Đại học Văn Lang' : '42 Nguyễn Huệ, Quận 1, TP.HCM'}
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-2xl text-xs font-medium text-white focus:outline-none focus:border-blue-500"
+                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:outline-none focus:border-blue-500"
                     />
                   </div>
                 </div>
@@ -399,7 +399,7 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-500 hover:to-sky-500 disabled:opacity-50 text-white rounded-2xl text-xs font-bold shadow-lg shadow-blue-950/60 transition-all cursor-pointer"
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-2xl text-xs font-bold shadow-md shadow-blue-500/25 transition-all cursor-pointer"
                 >
                   {loading ? 'Đang lưu...' : 'Lưu Thay Đổi Thông Tin'}
                 </button>
@@ -412,89 +412,89 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
         {activeTab === 'password' && (
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1.5">Mật khẩu hiện tại *</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">Mật khẩu hiện tại *</label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type={showOldPassword ? 'text' : 'password'}
                   required
                   value={oldPassword}
                   onChange={(e) => setOldPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full pl-10 pr-10 py-2.5 bg-slate-950/80 border border-slate-800 rounded-2xl text-xs font-medium text-white focus:outline-none focus:border-blue-500"
+                  className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:outline-none focus:border-blue-500"
                 />
                 <button
                   type="button"
                   onClick={() => setShowOldPassword(!showOldPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors cursor-pointer p-1"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer p-1"
                   title={showOldPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                 >
-                  {showOldPassword ? <EyeOff className="w-4 h-4 text-sky-400" /> : <Eye className="w-4 h-4" />}
+                  {showOldPassword ? <EyeOff className="w-4 h-4 text-blue-600" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1.5">Mật khẩu mới (tối thiểu 8 ký tự) *</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">Mật khẩu mới (tối thiểu 8 ký tự) *</label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type={showNewPassword ? 'text' : 'password'}
                   required
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full pl-10 pr-10 py-2.5 bg-slate-950/80 border border-slate-800 rounded-2xl text-xs font-medium text-white focus:outline-none focus:border-blue-500"
+                  className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:outline-none focus:border-blue-500"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors cursor-pointer p-1"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer p-1"
                   title={showNewPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                 >
-                  {showNewPassword ? <EyeOff className="w-4 h-4 text-sky-400" /> : <Eye className="w-4 h-4" />}
+                  {showNewPassword ? <EyeOff className="w-4 h-4 text-blue-600" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1.5">Xác nhận lại mật khẩu mới *</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">Xác nhận lại mật khẩu mới *</label>
               <div className="relative">
-                <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type={showConfirmPassword ? 'text' : 'password'}
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••••••"
-                  className="w-full pl-10 pr-10 py-2.5 bg-slate-950/80 border border-slate-800 rounded-2xl text-xs font-medium text-white focus:outline-none focus:border-blue-500"
+                  className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:outline-none focus:border-blue-500"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors cursor-pointer p-1"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer p-1"
                   title={showConfirmPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                 >
-                  {showConfirmPassword ? <EyeOff className="w-4 h-4 text-sky-400" /> : <Eye className="w-4 h-4" />}
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4 text-blue-600" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
             {/* Checklist */}
-            <div className="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800 flex flex-wrap gap-2 text-[10px]">
-              <span className={`flex items-center gap-1 font-semibold ${pwChecks.length ? 'text-emerald-400' : 'text-slate-500'}`}>
+            <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap gap-2 text-xs">
+              <span className={`flex items-center gap-1 font-semibold ${pwChecks.length ? 'text-emerald-600' : 'text-slate-400'}`}>
                 <Check className="w-3 h-3" /> ≥8 ký tự
               </span>
-              <span className={`flex items-center gap-1 font-semibold ${pwChecks.hasUpper ? 'text-emerald-400' : 'text-slate-500'}`}>
+              <span className={`flex items-center gap-1 font-semibold ${pwChecks.hasUpper ? 'text-emerald-600' : 'text-slate-400'}`}>
                 <Check className="w-3 h-3" /> Chữ hoa
               </span>
-              <span className={`flex items-center gap-1 font-semibold ${pwChecks.hasLower ? 'text-emerald-400' : 'text-slate-500'}`}>
+              <span className={`flex items-center gap-1 font-semibold ${pwChecks.hasLower ? 'text-emerald-600' : 'text-slate-400'}`}>
                 <Check className="w-3 h-3" /> Chữ thường
               </span>
-              <span className={`flex items-center gap-1 font-semibold ${pwChecks.hasNumber ? 'text-emerald-400' : 'text-slate-500'}`}>
+              <span className={`flex items-center gap-1 font-semibold ${pwChecks.hasNumber ? 'text-emerald-600' : 'text-slate-400'}`}>
                 <Check className="w-3 h-3" /> Số
               </span>
-              <span className={`flex items-center gap-1 font-semibold ${pwChecks.hasSpecial ? 'text-emerald-400' : 'text-slate-500'}`}>
+              <span className={`flex items-center gap-1 font-semibold ${pwChecks.hasSpecial ? 'text-emerald-600' : 'text-slate-400'}`}>
                 <Check className="w-3 h-3" /> Ký tự đặc biệt
               </span>
             </div>
@@ -502,7 +502,7 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-500 hover:to-sky-500 disabled:opacity-50 text-white rounded-2xl text-xs font-bold shadow-lg shadow-blue-950/60 transition-all cursor-pointer"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-2xl text-xs font-bold shadow-md shadow-blue-500/25 transition-all cursor-pointer"
             >
               {loading ? 'Đang cập nhật...' : 'Cập Nhật Mật Khẩu Mới'}
             </button>

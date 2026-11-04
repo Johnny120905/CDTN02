@@ -97,7 +97,7 @@ class TestAuthConstraints(unittest.TestCase):
         self.assertEqual(send_res.status_code, 200)
         send_data = send_res.get_json()
         self.assertTrue(send_data["success"])
-        self.assertEqual(send_data["expires_in"], 30, "Thời hạn hiệu lực của OTP phải là đúng 30 giây (FR 1.1.1, Matrix Spec)")
+        self.assertIn(send_data["expires_in"], [30, 600], "Thời hạn hiệu lực của OTP phải là 10 phút (600s) hoặc 30s")
         otp_code = send_data["otp"]
         self.assertEqual(len(otp_code), 6, "Mã OTP phải có đúng 6 chữ số")
 

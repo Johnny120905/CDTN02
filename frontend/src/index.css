@@ -3,24 +3,178 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    font-size: 16px; /* Chuẩn 16px toàn hệ thống - Đảm bảo văn bản to rõ, chấm dứt hoàn toàn chữ nhỏ đau mắt */
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
-    @apply bg-slate-50 text-slate-800 selection:bg-brand-500 selection:text-white font-sans;
+    @apply bg-[#faf8ff] text-[#131b2e] font-sans antialiased min-h-screen selection:bg-blue-600 selection:text-white;
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Đảm bảo toàn bộ văn bản tự ngắt dòng khi chạm khung, không bao giờ văng ra ngoài */
+  p, span, h1, h2, h3, h4, h5, h6, div, button, a, td, th {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  /* Chuẩn hóa kích thước chữ cho toàn bộ form inputs và labels để không bị nhỏ tí */
+  input, select, textarea {
+    font-size: 0.9375rem; /* Tối thiểu 15px */
+  }
+
+  input::placeholder, textarea::placeholder {
+    font-size: 0.875rem; /* Placeholder tối thiểu 14px */
   }
 }
 
-/* Custom 3D & Glassmorphism Utilities */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+/* Nâng cấp toàn cục cho các class chữ nhỏ để đạt chuẩn dễ đọc */
+@layer utilities {
+  .text-xs {
+    font-size: 0.875rem !important; /* 14px */
+    line-height: 1.25rem !important;
+  }
+  .text-sm {
+    font-size: 0.9375rem !important; /* 15px */
+    line-height: 1.375rem !important;
+  }
+  .text-base {
+    font-size: 1rem !important; /* 16px */
+    line-height: 1.5rem !important;
+  }
 }
 
-.emerald-glow {
-  box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.35);
+/* 4D Digital Light Dimension Prismatic & Canvas Surfaces */
+.bg-canvas-dimension {
+  background: radial-gradient(circle at 15% 20%, #f0f7ff 0%, #faf8ff 50%, #eaedff 100%);
 }
 
-.emerald-glow-sm {
-  box-shadow: 0 4px 14px -3px rgba(16, 185, 129, 0.25);
+.glass-card-dimension {
+  background: rgba(255, 255, 255, 0.90);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 4px 20px -2px rgba(29, 78, 216, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.glass-card-dimension:hover {
+  transform: translateY(-2px);
+  border-color: rgba(37, 99, 235, 0.35);
+  box-shadow: 0 16px 36px -6px rgba(37, 99, 235, 0.14), 0 0 0 1px rgba(56, 189, 248, 0.2);
+}
+
+.glass-header-dimension {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 2px 12px -2px rgba(29, 78, 216, 0.04);
+}
+
+.glass-elevated-modal {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  box-shadow: 0 12px 32px -4px rgba(37, 99, 235, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+}
+
+.btn-primary-dimension {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08), 0 1px 2px -1px rgba(0, 0, 0, 0.08) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-weight: 700 !important;
+}
+
+.btn-primary-dimension:hover {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+  color: #000000 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-1px);
+}
+
+.btn-primary-dimension:active {
+  transform: scale(0.98);
+}
+
+.btn-primary-dimension svg,
+.btn-primary-dimension span {
+  color: #0f172a !important;
+  stroke: #0f172a !important;
+}
+
+.btn-glass-dimension {
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+  border-radius: 0.75rem;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-glass-dimension:hover {
+  background: #f8fafc !important;
+  border-color: #94a3b8 !important;
+  color: #000000 !important;
+}
+
+/* Toàn bộ nút bấm hệ thống chuyển sang MÀU SÁNG, CHỮ ĐEN, ICON ĐEN */
+button.bg-blue-600,
+button.bg-blue-700,
+button.bg-indigo-600,
+button.bg-emerald-600,
+button.bg-slate-900 {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.08) !important;
+}
+
+button.bg-blue-600:hover,
+button.bg-blue-700:hover,
+button.bg-indigo-600:hover,
+button.bg-emerald-600:hover,
+button.bg-slate-900:hover {
+  background-color: #f8fafc !important;
+  border-color: #94a3b8 !important;
+  color: #000000 !important;
+}
+
+button.bg-blue-600 svg,
+button.bg-blue-700 svg,
+button.bg-indigo-600 svg,
+button.bg-emerald-600 svg,
+button.bg-slate-900 svg {
+  color: #0f172a !important;
+  stroke: #0f172a !important;
+}
+
+/* Custom scrollbars for clean look */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}

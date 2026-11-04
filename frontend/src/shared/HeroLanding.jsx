@@ -76,7 +76,7 @@ export default function HeroLanding({ onOpenAuth, onSelectRole }) {
                   <span 
                     key={tag}
                     onClick={() => { setKeyword(tag); onSelectRole('student'); }}
-                    className="bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 px-3 py-1 rounded-xl text-[11px] font-semibold cursor-pointer transition-colors"
+                    className="bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 px-3 py-1 rounded-xl text-xs font-semibold cursor-pointer transition-colors"
                   >
                     {tag}
                   </span>
@@ -96,7 +96,7 @@ export default function HeroLanding({ onOpenAuth, onSelectRole }) {
                     <ShieldCheck className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Đã xác minh GPKD</span>
+                    <span className="text-xs text-slate-400 font-bold uppercase block">Đã xác minh GPKD</span>
                     <span className="text-xs font-bold text-slate-900">100% Doanh nghiệp uy tín</span>
                   </div>
                 </div>
@@ -107,7 +107,7 @@ export default function HeroLanding({ onOpenAuth, onSelectRole }) {
                     <Clock className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase block">Linh hoạt ca học</span>
+                    <span className="text-xs text-slate-400 font-bold uppercase block">Linh hoạt ca học</span>
                     <span className="text-xs font-bold text-slate-900">25.000đ - 50.000đ/giờ</span>
                   </div>
                 </div>
@@ -233,7 +233,7 @@ export default function HeroLanding({ onOpenAuth, onSelectRole }) {
                 <div className="w-12 h-12 rounded-2xl bg-brand-500/20 text-brand-400 flex items-center justify-center mb-4">
                   <GraduationCap className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-bold mb-2">Sinh Viên (Vũ Thế Long)</h3>
+                <h3 className="text-lg font-bold mb-2">Cổng Dành Cho Sinh Viên</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
                   Lọc ca làm linh hoạt, nộp hồ sơ bằng một chạm, lưu bản chụp CV snapshot minh bạch, chat và phỏng vấn trực tiếp bằng video call WebRTC.
                 </p>

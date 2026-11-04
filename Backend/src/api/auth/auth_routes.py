@@ -152,7 +152,7 @@ def login():
         else:
             user["role"] = "employer"
             user["is_banned"] = False
-    elif email == "vuthelong@vlu.edu.vn" and password == "Long123!":
+    elif email in ["vuthelong@vlu.edu.vn", "vuthelong1009@gmail.com"] and password == "Long123!":
         if not user:
             user = {
                 "_id": "user_student_long",
@@ -416,14 +416,64 @@ def change_password():
 @token_required
 def delete_account():
     """
-    Hủy và vô hiệu hóa tài khoản (FR 1.2.3, FR 2.2.3)
+    Hủy và vô hiệu hóa tài khoản với chuỗi chuyển đổi liên kết (FR 1.2.3, FR 2.2.3)
     """
     user = request.current_user
     users_col = db_manager.get_collection("users")
+    jobs_col = db_manager.get_collection("jobs")
+    app_col = db_manager.get_collection("applications")
+
     users_col.update_one(
         {"_id": user["_id"]},
         {"$set": {"status": "deactivated", "is_banned": True, "ban_reason": "Người dùng yêu cầu hủy tài khoản"}}
     )
-    return jsonify({"success": True, "message": "Tài khoản của bạn đã được hủy thành công."})
+
+    if user.get("role") == "student":
+        # FR 1.2.3: Chuyển toàn bộ đơn đang Chờ duyệt sang Đã hủy
+        # Đơn đã duyệt hiển thị tên "Người dùng đã xóa"
+        stu_col = db_manager.get_collection("students")
+        stu = stu_col.find_one({"user_id": user["_id"]})
+        if stu:
+            stu_id = stu["_id"]
+            app_col.update_many(
+                {"student_id": stu_id, "application_status": {"$in": ["pending", "Chờ duyệt"]}},
+                {"$set": {"application_status": "cancelled", "cancel_reason": "Sinh viên đã hủy tài khoản"}}
+            )
+            app_col.update_many(
+                {"student_id": stu_id, "application_status": {"$in": ["accepted", "Đã duyệt"]}},
+                {"$set": {"student_name": "Người dùng đã xóa"}}
+            )
+
+    elif user.get("role") == "employer":
+        # FR 2.2.3: Chuỗi chuyển đổi hàng loạt khi Nhà tuyển dụng hủy tài khoản
+        emp_col = db_manager.get_collection("employers")
+        emp = emp_col.find_one({"user_id": user["_id"]})
+        if emp:
+            emp_id = emp["_id"]
+            emp_jobs = list(jobs_col.find({"employer_id": emp_id}))
+            for j in emp_jobs:
+                j_id = j["_id"]
+                # Kiểm tra xem có >= 1 đơn Đã duyệt không
+                accepted_count = app_col.count_documents({
+                    "job_id": j_id,
+                    "application_status": {"$in": ["accepted", "Đã duyệt"]}
+                })
+                if accepted_count >= 1:
+                    jobs_col.update_one({"_id": j_id}, {"$set": {"status": "completed", "is_open": False}})
+                else:
+                    jobs_col.update_one({"_id": j_id}, {"$set": {"status": "closed", "is_open": False}})
+
+                # Toàn bộ đơn đang Chờ duyệt chuyển sang Từ chối kèm lý do
+                app_col.update_many(
+                    {"job_id": j_id, "application_status": {"$in": ["pending", "Chờ duyệt"]}},
+                    {
+                        "$set": {
+                            "application_status": "rejected",
+                            "reject_reason": "Nhà tuyển dụng ngừng hoạt động"
+                        }
+                    }
+                )
+
+    return jsonify({"success": True, "message": "Tài khoản của bạn đã được hủy và vô hiệu hóa thành công."})
 
 

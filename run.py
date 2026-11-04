@@ -20,7 +20,7 @@ if sys.stderr and hasattr(sys.stderr, "reconfigure"):
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 FRONTEND_DIR = os.path.join(ROOT_DIR, "frontend")
 FRONTEND_DIST = os.path.join(FRONTEND_DIR, "dist")
-BACKEND_DIR = os.path.join(ROOT_DIR, "backend")
+BACKEND_DIR = os.path.join(ROOT_DIR, "Backend") if os.path.exists(os.path.join(ROOT_DIR, "Backend")) else os.path.join(ROOT_DIR, "backend")
 
 def ensure_frontend_built():
     """Kiểm tra và tự động build frontend nếu dist chưa tồn tại."""
@@ -55,8 +55,11 @@ def main():
     print("  PARTIME.VN - NỀN TẢNG TUYỂN DỤNG VIỆC LÀM LINH HOẠT CHO SINH VIÊN")
     print("  ĐỀ TÀI: CHUYÊN ĐỀ TỐT NGHIỆP 2 (CDTN02) - ĐH VĂN LANG")
     print("=" * 68)
-    print(f"  👉 CẢ FRONTEND VÀ BACKEND CHẠY TRÊN CÙNG 1 ĐỊA CHỈ DUY NHẤT:")
-    print(f"     🌐 {url}   (hoặc http://{host}:{port})")
+    print(f"  👉 HỆ THỐNG PHÂN ĐỊNH 3 ĐƯỜNG DẪN WEB RIÊNG BIỆT CHO 3 ROLE:")
+    print(f"     🎓 Web Sinh viên:       http://localhost:{port}/student  (hoặc http://localhost:{port}/)")
+    print(f"     💼 Web Nhà tuyển dụng:  http://localhost:{port}/employer")
+    print(f"     🛡️  Web Quản trị viên:   http://localhost:{port}/admin")
+    print(f"     🔌 Backend API:         http://localhost:{port}/api/...")
     print("=" * 68)
     print("  Phân hệ 3 thành viên:")
     print("    🎓 Sinh viên:        Vũ Thế Long        (WBS 1.1 -> 1.10)")

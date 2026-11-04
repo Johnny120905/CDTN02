@@ -15,12 +15,12 @@ export default function Footer({ currentUser, onNavigateMenu }) {
   };
 
   return (
-    <footer className="bg-[#070d1e] border-t border-blue-900/40 text-slate-400 text-xs mt-auto">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+    <footer className="bg-white border-t border-slate-200 text-slate-600 text-sm mt-auto shadow-sm">
+      <div className="w-full max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-10 mb-8">
           
           {/* CỘT 1: THƯƠNG HIỆU & GIỚI THIỆU HỆ THỐNG */}
-          <div className="space-y-3.5">
+          <div className="space-y-4">
             <button
               type="button"
               onClick={() => onNavigateMenu && onNavigateMenu('home')}
@@ -29,61 +29,58 @@ export default function Footer({ currentUser, onNavigateMenu }) {
             >
               <BrandLogo size="md" />
             </button>
-            <p className="text-slate-400 leading-relaxed text-xs max-w-sm">
+            <p className="text-slate-600 leading-relaxed text-sm max-w-sm">
               Nền tảng tuyển dụng việc làm linh hoạt và bán thời gian hàng đầu dành cho sinh viên. 
               Cam kết 100% doanh nghiệp xác minh giấy phép kinh doanh, tuyệt đối không thu phí cọc và hỗ trợ xếp ca học linh hoạt.
             </p>
-            <div className="flex items-center gap-2 text-[11px] text-sky-400 font-semibold pt-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>Cổng dịch vụ {role === 'admin' ? 'Quản Trị Viên' : (role === 'employer' ? 'Nhà Tuyển Dụng' : 'Sinh Viên')} đang hoạt động</span>
-            </div>
+            
           </div>
 
           {/* CỘT 2: ĐIỀU HƯỚNG NHANH THEO VAI TRÒ */}
-          <div className="space-y-3.5">
-            <h4 className="text-sm font-bold text-white flex items-center gap-2">
-              {role === 'student' && <GraduationCap className="w-4 h-4 text-sky-400" />}
-              {role === 'employer' && <Building2 className="w-4 h-4 text-sky-400" />}
-              {role === 'admin' && <ShieldCheck className="w-4 h-4 text-sky-400" />}
+          <div className="space-y-4">
+            <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              {role === 'student' && <GraduationCap className="w-5 h-5 text-blue-600" />}
+              {role === 'employer' && <Building2 className="w-5 h-5 text-blue-600" />}
+              {role === 'admin' && <ShieldCheck className="w-5 h-5 text-blue-600" />}
               <span>
                 {role === 'student' ? 'Dành Cho Sinh Viên' : (role === 'employer' ? 'Dành Cho Nhà Tuyển Dụng' : 'Phân Hệ Quản Trị Hệ Thống')}
               </span>
             </h4>
-            <ul className="space-y-2 text-xs">
+            <ul className="space-y-2.5 text-sm">
               {role === 'student' && (
                 <>
                   <li>
                     <button 
                       type="button" 
                       onClick={() => onNavigateMenu && onNavigateMenu('jobs')} 
-                      className="hover:text-sky-300 transition-colors text-left cursor-pointer flex items-center gap-1.5"
+                      className="text-slate-600 hover:text-blue-600 transition-colors text-left cursor-pointer flex items-center gap-1.5 font-medium"
                     >
-                      <span>• Tìm việc làm part-time nhanh theo ca học</span>
+                      <span>• Khám phá việc làm part-time theo ca học</span>
                     </button>
                   </li>
                   <li>
                     <button 
                       type="button" 
-                      onClick={() => onNavigateMenu && onNavigateMenu('cv')} 
-                      className="hover:text-sky-300 transition-colors text-left cursor-pointer flex items-center gap-1.5"
+                      onClick={() => onNavigateMenu && onNavigateMenu('profile_cv')} 
+                      className="text-slate-600 hover:text-blue-600 transition-colors text-left cursor-pointer flex items-center gap-1.5 font-medium"
                     >
-                      <span>• Quản lý kho CV PDF & Thư giới thiệu chuẩn</span>
+                      <span>• Quản lý kho CV PDF chuẩn</span>
                     </button>
                   </li>
                   <li>
                     <button 
                       type="button" 
                       onClick={() => onNavigateMenu && onNavigateMenu('applications')} 
-                      className="hover:text-sky-300 transition-colors text-left cursor-pointer flex items-center gap-1.5"
+                      className="text-slate-600 hover:text-blue-600 transition-colors text-left cursor-pointer flex items-center gap-1.5 font-medium"
                     >
-                      <span>• Theo dõi tiến độ 4 giai đoạn hồ sơ & Phỏng vấn</span>
+                      <span>• Theo dõi tiến độ hồ sơ & lịch phỏng vấn</span>
                     </button>
                   </li>
                   <li>
                     <button 
                       type="button" 
                       onClick={() => showInfo('Cẩm Nang Tìm Việc An Toàn', 'Tuyệt đối từ chối các tin tuyển dụng yêu cầu chuyển khoản đặt cọc, nạp tiền làm nhiệm vụ, hoặc cài đặt ứng dụng không rõ nguồn gốc. Hãy sử dụng chức năng Báo Cáo Vi Phạm nếu phát hiện dấu hiệu lừa đảo.')} 
-                      className="hover:text-sky-300 transition-colors text-left cursor-pointer flex items-center gap-1.5"
+                      className="text-slate-600 hover:text-blue-600 transition-colors text-left cursor-pointer flex items-center gap-1.5 font-medium"
                     >
                       <span>• Cẩm nang phỏng vấn & tìm việc làm an toàn</span>
                     </button>
@@ -96,37 +93,37 @@ export default function Footer({ currentUser, onNavigateMenu }) {
                   <li>
                     <button 
                       type="button" 
-                      onClick={() => onNavigateMenu && onNavigateMenu('jobs')} 
-                      className="hover:text-sky-300 transition-colors text-left cursor-pointer flex items-center gap-1.5"
+                      onClick={() => onNavigateMenu && onNavigateMenu('post_job')} 
+                      className="text-slate-600 hover:text-blue-600 transition-colors text-left cursor-pointer flex items-center gap-1.5 font-medium"
                     >
-                      <span>• Quản lý danh sách tin đăng tuyển dụng</span>
+                      <span>• Đăng tin tuyển dụng part-time theo ca (60s)</span>
                     </button>
                   </li>
                   <li>
                     <button 
                       type="button" 
                       onClick={() => onNavigateMenu && onNavigateMenu('applicants')} 
-                      className="hover:text-sky-300 transition-colors text-left cursor-pointer flex items-center gap-1.5"
+                      className="text-slate-600 hover:text-blue-600 transition-colors text-left cursor-pointer flex items-center gap-1.5 font-medium"
                     >
-                      <span>• Quản trị phễu ứng viên & Hồ sơ CV trực tuyến</span>
+                      <span>• Phễu ứng viên chuẩn hóa ATS Kanban</span>
                     </button>
                   </li>
                   <li>
                     <button 
                       type="button" 
                       onClick={() => onNavigateMenu && onNavigateMenu('company')} 
-                      className="hover:text-sky-300 transition-colors text-left cursor-pointer flex items-center gap-1.5"
+                      className="text-slate-600 hover:text-blue-600 transition-colors text-left cursor-pointer flex items-center gap-1.5 font-medium"
                     >
-                      <span>• Hồ sơ thương hiệu doanh nghiệp & Giấy phép GPKD</span>
+                      <span>• Thẩm định Giấy phép kinh doanh (GPKD)</span>
                     </button>
                   </li>
                   <li>
                     <button 
                       type="button" 
-                      onClick={() => onNavigateMenu && onNavigateMenu('reviews')} 
-                      className="hover:text-sky-300 transition-colors text-left cursor-pointer flex items-center gap-1.5"
+                      onClick={() => onNavigateMenu && onNavigateMenu('interviews')} 
+                      className="text-slate-600 hover:text-blue-600 transition-colors text-left cursor-pointer flex items-center gap-1.5 font-medium"
                     >
-                      <span>• Đánh giá năng lực sinh viên sau ca làm việc</span>
+                      <span>• Phỏng vấn trực tuyến video WebRTC</span>
                     </button>
                   </li>
                 </>
@@ -138,36 +135,36 @@ export default function Footer({ currentUser, onNavigateMenu }) {
                     <button 
                       type="button" 
                       onClick={() => onNavigateMenu && onNavigateMenu('dashboard')} 
-                      className="hover:text-sky-300 transition-colors text-left cursor-pointer flex items-center gap-1.5"
+                      className="text-slate-600 hover:text-blue-600 transition-colors text-left cursor-pointer flex items-center gap-1.5 font-medium"
                     >
-                      <span>• Dashboard thống kê tuần, tháng, năm</span>
+                      <span>• Trung tâm chỉ huy (Analytics Dashboard)</span>
                     </button>
                   </li>
                   <li>
                     <button 
                       type="button" 
-                      onClick={() => onNavigateMenu && onNavigateMenu('users')} 
-                      className="hover:text-sky-300 transition-colors text-left cursor-pointer flex items-center gap-1.5"
+                      onClick={() => onNavigateMenu && onNavigateMenu('gpkd_verification')} 
+                      className="text-slate-600 hover:text-blue-600 transition-colors text-left cursor-pointer flex items-center gap-1.5 font-medium"
                     >
-                      <span>• Phê duyệt GPKD & Kiểm duyệt người dùng</span>
-                    </button>
-                  </li>
-                  <li>
-                    <button 
-                      type="button" 
-                      onClick={() => onNavigateMenu && onNavigateMenu('reports')} 
-                      className="hover:text-sky-300 transition-colors text-left cursor-pointer flex items-center gap-1.5"
-                    >
-                      <span>• Xử lý báo cáo vi phạm & Xem bằng chứng chat</span>
+                      <span>• Bàn thẩm định GPKD & Mã số thuế 10/13 số</span>
                     </button>
                   </li>
                   <li>
                     <button 
                       type="button" 
                       onClick={() => onNavigateMenu && onNavigateMenu('keywords')} 
-                      className="hover:text-sky-300 transition-colors text-left cursor-pointer flex items-center gap-1.5"
+                      className="text-slate-600 hover:text-blue-600 transition-colors text-left cursor-pointer flex items-center gap-1.5 font-medium"
                     >
-                      <span>• Quản trị bộ lọc từ khóa cấm toàn hệ thống</span>
+                      <span>• Kiểm duyệt từ khoá cấm & Quét chat tự động</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button 
+                      type="button" 
+                      onClick={() => onNavigateMenu && onNavigateMenu('categories')} 
+                      className="text-slate-600 hover:text-blue-600 transition-colors text-left cursor-pointer flex items-center gap-1.5 font-medium"
+                    >
+                      <span>• Quản trị danh mục Master Data (63 Tỉnh/Thành)</span>
                     </button>
                   </li>
                 </>
@@ -175,77 +172,46 @@ export default function Footer({ currentUser, onNavigateMenu }) {
             </ul>
           </div>
 
-          {/* CỘT 3: CHÍNH SÁCH, TIÊU CHUẨN & HỖ TRỢ */}
-          <div className="space-y-3.5">
-            <h4 className="text-sm font-bold text-white flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Chính Sách & Tiêu Chuẩn Kiểm Định</span>
+          {/* CỘT 3: HỖ TRỢ KỸ THUẬT & AN TOÀN NỀN TẢNG */}
+          <div className="space-y-4">
+            <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <PhoneCall className="w-5 h-5 text-emerald-600" />
+              <span>Đường Dây Nóng Hỗ Trợ</span>
             </h4>
-            <ul className="space-y-2 text-xs">
-              <li>
-                <button
-                  type="button"
-                  onClick={() => showInfo('Chính Sách Bảo Mật Hồ Sơ', 'Hồ sơ cá nhân và tệp CV của sinh viên được bảo vệ nghiêm ngặt. Thông tin liên hệ chỉ hiển thị với các Nhà tuyển dụng đã được Quản trị viên đối soát Giấy phép kinh doanh hợp lệ.')}
-                  className="text-slate-400 hover:text-white transition-colors text-left cursor-pointer"
-                >
-                  • Quy định bảo mật hồ sơ & CV cá nhân
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => showInfo('Tiêu Chuẩn Kiểm Định GPKD', 'Doanh nghiệp bắt buộc đính kèm tệp GPKD định dạng .pdf dung lượng ≤ 10MB khi đăng ký. Quản trị viên đối chiếu thông tin pháp nhân trên CSDL quốc gia trước khi kích hoạt quyền đăng tin.')}
-                  className="text-slate-400 hover:text-white transition-colors text-left cursor-pointer"
-                >
-                  • Quy định kiểm duyệt Giấy phép kinh doanh (GPKD)
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={() => showInfo('Kênh Hỗ Trợ 24/7', 'Đầu mối liên hệ Quản trị viên: lethithuyngan985@gmail.com | Hotline hỗ trợ kỹ thuật: 1900-CDTN02 (Khoa CNTT, Trường Đại học Văn Lang).')}
-                  className="text-amber-400 hover:text-amber-300 transition-colors text-left cursor-pointer"
-                >
-                  • Kênh hỗ trợ & Liên hệ Ban Quản Trị
-                </button>
-              </li>
-              <li>
-                <span className="text-slate-500 text-[11px] block pt-1">
-                  • Chuẩn kiểm định chất lượng đồ án tốt nghiệp CDTN02 - NFR-01 Responsive
-                </span>
-              </li>
-            </ul>
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">Tổng đài hỗ trợ sinh viên:</span>
+                <span className="font-mono font-bold text-emerald-600 text-sm">1900 8888</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">Thẩm định DN & Kỹ thuật:</span>
+                <span className="font-mono font-bold text-blue-600 text-sm">028 7300 8888</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600">Hòm thư giải quyết tố cáo:</span>
+                <span className="font-mono text-slate-700 text-sm font-medium">khieunai@partime.vn</span>
+              </div>
+            </div>
+            
           </div>
 
         </div>
 
-        {/* DÒNG BẢN QUYỀN ĐỒNG BỘ CHO CẢ 3 ROLE */}
-        <div className="pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500">
-          <p className="font-medium text-slate-400 text-center sm:text-left">
-            © 2026 CDTN02 – Chuyên ngành Công nghệ phần mềm – Khoa CNTT, Trường Đại học Văn Lang.
-          </p>
-          <div className="flex items-center gap-4 text-sky-400/90 font-mono text-[10px]">
-            <span className="flex items-center gap-1.5 text-emerald-400">
-              <Database className="w-3.5 h-3.5" />
-              <span>MongoDB Atlas: Connected</span>
-            </span>
-            <span className="text-slate-700">|</span>
-            <span className="flex items-center gap-1.5 text-sky-400">
-              <Radio className="w-3.5 h-3.5 animate-pulse" />
-              <span>Socket.IO: Active</span>
-            </span>
+        {/* BOTTOM COPYRIGHT */}
+        <div className="pt-6 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4 text-slate-500 text-sm">
+          <div>
+            © 2026 PARTIME.VN - Nền Tảng Tuyển Dụng Sinh Viên Part-time & Thời Vụ. All rights reserved.
           </div>
         </div>
       </div>
 
-      {/* INFORMATIONAL DIALOG MODAL (REPLACES ALL BROWSER ALERTS) */}
+    {/* Info Dialog */}
       <ConfirmDialog
         isOpen={infoModal.isOpen}
         title={infoModal.title}
         message={infoModal.message}
         type="info"
         confirmText="Đã Hiểu"
-        showCancel={false}
         onConfirm={() => setInfoModal({ isOpen: false, title: '', message: '' })}
         onCancel={() => setInfoModal({ isOpen: false, title: '', message: '' })}
       />

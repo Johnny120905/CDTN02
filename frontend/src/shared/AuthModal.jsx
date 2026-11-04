@@ -283,7 +283,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
   // Demo account helper
   const handleQuickDemoLogin = (demoRole) => {
     const credentials = {
-      student: { email: 'vuthelong@vlu.edu.vn', pass: 'Long123!' },
+      student: { email: 'vuthelong1009@gmail.com', pass: 'Long123!' },
       employer: { email: 'huynhnguyenbaongoc2k5@gmail.com', pass: 'Huynh120905!' },
       admin: { email: 'lethithuyngan985@gmail.com', pass: 'Le090805!' }
     };
@@ -368,7 +368,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
         {/* Real-time Incoming Simulated Email Notification (Toast on Top) */}
         {otpNotification && (
           <div className="mb-4 p-3 bg-gradient-to-r from-emerald-600 to-brand-600 text-white rounded-2xl shadow-lg shadow-emerald-500/20 animate-in slide-in-from-top-3 duration-300">
-            <div className="flex items-center justify-between text-[11px] opacity-90 mb-1 border-b border-white/20 pb-1">
+            <div className="flex items-center justify-between text-xs opacity-90 mb-1 border-b border-white/20 pb-1">
               <span className="flex items-center gap-1.5 font-semibold">
                 <Mail className="w-3.5 h-3.5" /> Hộp thư đến: {otpNotification.email}
               </span>
@@ -376,7 +376,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
             </div>
             <div className="flex items-center justify-between mt-1">
               <span className="text-xs font-medium">Mã OTP: <strong className="text-sm font-mono tracking-widest bg-white/20 px-2 py-0.5 rounded-lg">{otpNotification.code}</strong></span>
-              <span className="text-[10px] bg-emerald-700/80 px-2 py-0.5 rounded-full font-bold">10 phút</span>
+              <span className="text-xs bg-emerald-700/80 px-2 py-0.5 rounded-full font-bold">10 phút</span>
             </div>
           </div>
         )}
@@ -421,7 +421,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                 />
               </div>
 
-              <div className="flex items-center justify-between mt-2 text-[11px] text-slate-500">
+              <div className="flex items-center justify-between mt-2 text-xs text-slate-500">
                 <span>Email: <strong className="text-slate-800">{email}</strong></span>
                 <span className="font-semibold text-emerald-700">Hiệu lực 10:00</span>
               </div>
@@ -438,7 +438,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                 <button
                   type="button"
                   onClick={handleInstantAutoFill}
-                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-lg transition-all"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-lg transition-all"
                   title="Tự động điền không cần nhập tay"
                 >
                   <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
@@ -467,7 +467,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
               </div>
 
               {/* Auto-fill indicator toggle */}
-              <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-500">
+              <div className="mt-2.5 flex items-center justify-between text-xs text-slate-500">
                 <label className="flex items-center gap-1.5 cursor-pointer">
                   <input
                     type="checkbox"
@@ -554,7 +554,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                       required
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder={activeTab === 'student' ? 'Vũ Thế Long' : 'The Coffee House'}
+                      placeholder={activeTab === 'student' ? 'Nguyễn Văn A' : 'Tên doanh nghiệp / Công ty'}
                       className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-brand-500"
                     />
                   </div>
@@ -621,7 +621,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                   <button
                     type="button"
                     onClick={() => handleRequestOtp('forgot_password')}
-                    className="text-[11px] font-bold text-brand-600 hover:text-brand-700 hover:underline flex items-center gap-1"
+                    className="text-xs font-bold text-brand-600 hover:text-brand-700 hover:underline flex items-center gap-1"
                   >
                     <KeyRound className="w-3 h-3" />
                     <span>Quên mật khẩu? (Nhận OTP 10p)</span>
@@ -685,28 +685,28 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
 
         {/* Demo Fast Login Shortcuts (Footer of Modal) */}
         <div className="mt-5 pt-4 border-t border-slate-100">
-          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 text-center">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 text-center">
             Tài Khoản Mẫu Trải Nghiệm Nhanh
           </p>
           <div className="grid grid-cols-3 gap-2">
             <button
               type="button"
               onClick={() => handleQuickDemoLogin('student')}
-              className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-[11px] font-bold border border-emerald-200 transition-colors text-center"
+              className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-bold border border-emerald-200 transition-colors text-center"
             >
               🎓 Sinh Viên
             </button>
             <button
               type="button"
               onClick={() => handleQuickDemoLogin('employer')}
-              className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-xl text-[11px] font-bold border border-blue-200 transition-colors text-center"
+              className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-xl text-xs font-bold border border-blue-200 transition-colors text-center"
             >
               💼 Tuyển Dụng
             </button>
             <button
               type="button"
               onClick={() => handleQuickDemoLogin('admin')}
-              className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-[11px] font-bold border border-slate-200 transition-colors text-center"
+              className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold border border-slate-200 transition-colors text-center"
             >
               🛡️ Quản Trị
             </button>
