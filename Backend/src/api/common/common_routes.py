@@ -410,7 +410,7 @@ def get_call_status():
                     "sender_id": call_session.get("caller_id"),
                     "sender_name": call_session.get("caller_name"),
                     "sender_role": call_session.get("caller_role"),
-                    "content": f"📞 Cuộc gọi nhỡ ({'Video' if call_session.get('call_type') == 'video' else 'Thoại'}) - Không trả lời sau 3 phút",
+                    "content": f"Cuộc gọi nhỡ ({'Video' if call_session.get('call_type') == 'video' else 'Thoại'}) - Không trả lời sau 3 phút",
                     "type": "call_record",
                     "call_status": "missed",
                     "call_type": call_session.get("call_type"),
@@ -461,7 +461,7 @@ def respond_call():
                 "caller_name": call_session.get("caller_name"),
                 "caller_role": call_session.get("caller_role"),
                 "call_type": call_session.get("call_type", "video"),
-                "content": f"📞 Cuộc gọi nhỡ ({'Video' if call_session.get('call_type') == 'video' else 'Thoại'}) - Không trả lời sau 3 phút đổ chuông",
+                "content": f"Cuộc gọi nhỡ ({'Video' if call_session.get('call_type') == 'video' else 'Thoại'}) - Không trả lời sau 3 phút đổ chuông",
                 "type": "call_record",
                 "call_status": "missed",
                 "created_at": time.strftime("%H:%M")
@@ -480,7 +480,7 @@ def respond_call():
                 "caller_name": call_session.get("caller_name"),
                 "caller_role": call_session.get("caller_role"),
                 "call_type": call_session.get("call_type", "video"),
-                "content": f"📞 Cuộc gọi ({'Video' if call_session.get('call_type') == 'video' else 'Thoại'}) - Người nhận từ chối cuộc gọi",
+                "content": f"Cuộc gọi ({'Video' if call_session.get('call_type') == 'video' else 'Thoại'}) - Người nhận từ chối cuộc gọi",
                 "type": "call_record",
                 "call_status": "missed",
                 "created_at": time.strftime("%H:%M")
@@ -514,7 +514,7 @@ def end_call():
                 "caller_name": call_session.get("caller_name", "Đối tác"),
                 "caller_role": call_session.get("caller_role", "student"),
                 "call_type": call_session.get("call_type", "video"),
-                "content": f"📞 Cuộc gọi kết thúc (Thời lượng đàm thoại: {duration_str})",
+                "content": f"Cuộc gọi kết thúc (Thời lượng đàm thoại: {duration_str})",
                 "type": "call_record",
                 "call_status": "ended",
                 "duration": duration,
@@ -544,6 +544,14 @@ def mark_notification_read(notif_id):
     notif_col.update_one({"_id": notif_id, "user_id": user["_id"]}, {"$set": {"is_read": True}})
     return jsonify({"success": True, "message": "Đã đánh dấu đã đọc."})
 
+@common_bp.route("/notifications/<notif_id>", methods=["DELETE"])
+@token_required
+def delete_my_notification(notif_id):
+    user = request.current_user
+    notif_col = db_manager.get_collection("notifications")
+    notif_col.update_one({"_id": notif_id, "user_id": user["_id"]}, {"$set": {"is_deleted": True}})
+    return jsonify({"success": True, "message": "Đã xóa thông báo thành công!"})
+
 # 6. Violation Report Submission (FR 1.5.7, 2.5.6)
 @common_bp.route("/reports", methods=["POST"])
 @token_required
@@ -572,7 +580,7 @@ def submit_report():
         if candidate_app and candidate_app.get("application_status") != "accepted":
             return jsonify({
                 "success": False,
-                "message": "Theo quy tắc ràng buộc nghiêm ngặt (FR 2.5.6): Chỉ cho phép báo cáo đối với ứng viên đã có đơn ứng tuyển ở trạng thái 'Đã duyệt'!"
+                "message": "Chỉ cho phép gửi báo cáo đối với ứng viên đã có đơn ứng tuyển ở trạng thái 'Đã duyệt'!"
             }), 400
 
     ticket_code = f"TK-2026-{uuid.uuid4().hex[:4].upper()}"

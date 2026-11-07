@@ -4,9 +4,9 @@ import {
   XCircle, Clock, DollarSign, MapPin, Eye, Star, AlertCircle, 
   Edit, Trash2, Video, Search, Filter, ShieldCheck, RefreshCw,
   Phone, Mic, MicOff, Camera, CameraOff, Bell, KeyRound, 
-  ChevronRight, Send, Paperclip, AlertTriangle, Menu, Check,
+  ChevronRight, ChevronLeft, Send, Paperclip, AlertTriangle, Menu, Check,
   Upload, Download, Image as ImageIcon, ArrowLeft, ArrowUpDown, Home,
-  Sparkles, Briefcase, PhoneIncoming, MessageSquare, Flag,
+  Briefcase, PhoneIncoming, MessageSquare, Flag,
   MoreVertical, FileCheck, CheckSquare, X, ChevronDown, Lock, Link, MessageSquarePlus
 } from 'lucide-react';
 import DocumentViewerModal from '../../shared/DocumentViewerModal';
@@ -107,6 +107,13 @@ export default function EmployerPortal({
   };
   // Navigation State
   const [activeMenu, setActiveMenu] = useState('home'); // 'home' | 'jobs' | 'applicants' | 'company' | 'reviews' | 'chat'
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('partime_sidebar_collapsed_employer') === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('partime_sidebar_collapsed_employer', String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
   const [jobViewMode, setJobViewMode] = useState('list'); // 'list' | 'create' | 'edit'
   const [editingReviewId, setEditingReviewId] = useState(null);
   const [confirmDialog, setConfirmDialog] = useState({
@@ -275,12 +282,12 @@ export default function EmployerPortal({
   const [chatPreviewDoc, setChatPreviewDoc] = useState(null);
   const chatFileInputRef = useRef(null);
 
-  const token = localStorage.getItem('partime_token');
+  const token = isGuestMode ? null : localStorage.getItem('partime_token');
   const headers = token ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } : { 'Content-Type': 'application/json' };
 
   // Sync title - 9 Mục Nhà tuyển dụng chuẩn
   const sectionTitleMap = {
-    home: 'Bảng điều kiển tuyển dụng',
+    home: 'Bảng điều khiển tuyển dụng',
     company: 'Hồ sơ doanh nghiệp & Giấy phép kinh doanh',
     post_job: 'Đăng tin Part-time theo ca',
     jobs: 'Quản lý tin tuyển dụng',
@@ -309,7 +316,7 @@ export default function EmployerPortal({
     } else if (menuId === 'jobs') {
       setJobViewMode('list');
     }
-    if (onSectionChange) onSectionChange(sectionTitleMap[menuId] || 'Bảng điều kiển tuyển dụng');
+    if (onSectionChange) onSectionChange(sectionTitleMap[menuId] || 'Bảng điều khiển tuyển dụng');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -344,17 +351,22 @@ export default function EmployerPortal({
     fetchAllData();
     const interval = setInterval(fetchAllData, 8000);
     return () => clearInterval(interval);
-  }, [token]);
+  }, [token, isGuestMode, currentUser]);
 
   const fetchAllData = () => {
     fetchCategories();
-    if (!isGuestMode && token) {
-      fetchMyJobs();
-      fetchApplicants();
-      fetchCompanyProfile();
-      fetchReviews();
-      fetchChatMessages();
+    if (isGuestMode || !token || !currentUser) {
+      setMyJobs([]);
+      setApplicants([]);
+      setReviews([]);
+      setContacts([]);
+      return;
     }
+    fetchMyJobs();
+    fetchApplicants();
+    fetchCompanyProfile();
+    fetchReviews();
+    fetchChatMessages();
   };
 
   // WebRTC Stream Handler
@@ -409,10 +421,11 @@ export default function EmployerPortal({
       if (data.success && Array.isArray(data.data)) {
         setApplicants(data.data);
 
-        // Với nhà tuyển dụng: CHỈ sinh viên nào THỰC SỰ nộp hồ sơ vào công việc của NTD này mới xuất hiện trong contacts
+        // Với nhà tuyển dụng: CHỈ sinh viên nào THỰC SỰ nộp hồ sơ hợp lệ (chưa hủy) vào công việc của NTD này mới xuất hiện trong contacts
         const uniqueStudents = [];
         const seen = new Set();
         data.data.forEach(app => {
+          if (app.application_status === 'cancelled' || app.application_status === 'withdrawn' || app.is_cancelled) return;
           const sId = app.student_user_id || app.student_id;
           if (sId && !seen.has(sId)) {
             seen.add(sId);
@@ -700,7 +713,7 @@ export default function EmployerPortal({
     });
   };
 
-  // Toggle Job is_open status (FR 2.4.7)
+  // Toggle Job is_open status
   const handleToggleJobStatus = async (jobId) => {
     try {
       const res = await fetch(`/api/employer/jobs/${jobId}/status`, {
@@ -709,14 +722,17 @@ export default function EmployerPortal({
       });
       const data = await res.json();
       if (data.success) {
+        notify(data.message || 'Đã cập nhật trạng thái tin tuyển dụng thành công!', 'success');
         fetchMyJobs();
+      } else {
+        notify(data.message || 'Không thể cập nhật trạng thái tin tuyển dụng.', 'error');
       }
     } catch (err) {
-      console.warn(err);
+      notify('Lỗi kết nối máy chủ khi cập nhật trạng thái tin.', 'error');
     }
   };
 
-  // Advance Job Lifecycle: "filled" ("Đã nhận người") -> "completed" ("Hoàn thành") (FR 2.4.7)
+  // Advance Job Lifecycle: "filled" ("Đã nhận người") -> "completed" ("Hoàn thành")
   const handleAdvanceJobLifecycle = async (job, targetStatus) => {
     const approvedCount = applicants.filter(a => a.job_id === job._id && (a.application_status === 'accepted' || a.application_status === 'interview')).length;
     if (targetStatus === 'filled' && approvedCount === 0) {
@@ -733,6 +749,7 @@ export default function EmployerPortal({
       if (data.success) {
         notify(`Đã chuyển trạng thái công việc sang: ${targetStatus === 'filled' ? 'Đã nhận người' : 'Hoàn thành'}`, 'success');
         fetchMyJobs();
+        fetchApplicants();
       } else {
         notify(data.message || 'Lỗi cập nhật vòng đời công việc.', 'error');
       }
@@ -741,17 +758,12 @@ export default function EmployerPortal({
     }
   };
 
-  // Delete Job with constraint: disabled if applicants > 0 or reports > 0 (FR 2.4.8)
+  // Delete Job permanently with ConfirmDialog
   const handleDeleteJob = async (job) => {
-    if ((job.applicant_count || 0) > 0) {
-      notify('Không thể xóa tin tuyển dụng này vì đã có sinh viên nộp hồ sơ ứng tuyển!', 'error');
-      return;
-    }
-
     setConfirmDialog({
       isOpen: true,
       title: 'Xác Nhận Xóa Tin Tuyển Dụng',
-      message: `Bạn có chắc chắn muốn xóa tin tuyển dụng "${job.title}" vĩnh viễn khỏi hệ thống?`,
+      message: `Bạn có chắc chắn muốn xóa tin tuyển dụng "${job.title}" vĩnh viễn khỏi hệ thống? Toàn bộ hồ sơ ứng tuyển liên quan của tin này cũng sẽ được gỡ bỏ.`,
       type: 'danger',
       confirmText: 'Xóa Vĩnh Viễn',
       cancelText: 'Hủy Bỏ',
@@ -766,6 +778,7 @@ export default function EmployerPortal({
           if (data.success) {
             notify(data.message || 'Đã xóa tin tuyển dụng thành công!', 'success');
             fetchMyJobs();
+            fetchApplicants();
           } else {
             notify(data.message || 'Lỗi khi xóa tin.', 'error');
           }
@@ -828,7 +841,7 @@ export default function EmployerPortal({
     }
   };
 
-  // ATS Kanban Status Update (FR 2.5.4 & 2.5.5)
+  // ATS Kanban Status Update & Delete Applicant
   const handleUpdateApplicantStatus = async (appId, newStatus, note = '') => {
     try {
       const res = await fetch(`/api/employer/applicants/${appId}/status`, {
@@ -838,7 +851,9 @@ export default function EmployerPortal({
       });
       const data = await res.json();
       if (data.success) {
+        notify(data.message || 'Đã cập nhật trạng thái hồ sơ ứng viên thành công!', 'success');
         fetchApplicants();
+        fetchMyJobs();
         if (selectedApplicant && selectedApplicant._id === appId) {
           setSelectedApplicant(prev => ({ ...prev, application_status: newStatus }));
         }
@@ -846,8 +861,42 @@ export default function EmployerPortal({
         notify(data.message || 'Cập nhật trạng thái ứng viên thất bại.', 'error');
       }
     } catch (err) {
-      console.warn(err);
+      notify('Lỗi kết nối máy chủ khi cập nhật trạng thái ứng viên.', 'error');
     }
+  };
+
+  const handleDeleteApplicant = (app) => {
+    const stuName = app.application_snapshot?.student_name || app.student_name || 'Ứng viên';
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Xóa Hồ Sơ Ứng Tuyển',
+      message: `Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ ứng tuyển của "${stuName}" (${app.job_title || 'Việc làm'}) khỏi hệ thống?`,
+      type: 'danger',
+      confirmText: 'Xóa Vĩnh Viễn',
+      cancelText: 'Hủy Bỏ',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        try {
+          const res = await fetch(`/api/employer/applicants/${app._id}`, {
+            method: 'DELETE',
+            headers
+          });
+          const data = await res.json();
+          if (data.success) {
+            notify(data.message || 'Đã xóa hồ sơ ứng viên thành công!', 'success');
+            if (selectedApplicant && selectedApplicant._id === app._id) {
+              setSelectedApplicant(null);
+            }
+            fetchApplicants();
+            fetchMyJobs();
+          } else {
+            notify(data.message || 'Không thể xóa hồ sơ ứng viên.', 'error');
+          }
+        } catch (err) {
+          notify('Lỗi máy chủ khi xóa hồ sơ ứng viên.', 'error');
+        }
+      }
+    });
   };
 
   // Handle File Selection for Chat (FR 2.9.3: Chỉ nhận .pdf, .png, .jpg <= 10MB)
@@ -938,7 +987,7 @@ export default function EmployerPortal({
 
     // Ràng buộc kiểm tra trạng thái đơn: Chặn gửi nếu đã bị từ chối hoặc đã hủy
     if (app.application_status === 'rejected' || app.application_status === 'cancelled' || app.is_cancelled) {
-      notify('Đơn ứng tuyển của ứng viên này đã bị Từ chối hoặc Đã hủy. Theo quy định FR-NTD-08, cuộc trò chuyện chỉ mở ở chế độ CHỈ ĐỌC, không được phép gửi thêm tin nhắn!', 'error');
+      notify('Đơn ứng tuyển của ứng viên này đã bị Từ chối hoặc Đã hủy. Cuộc trò chuyện chỉ mở ở chế độ CHỈ ĐỌC, không được phép gửi thêm tin nhắn!', 'error');
       handleStartChatWithApplicant(app);
       setNewChatModalOpen(false);
       return;
@@ -1245,25 +1294,56 @@ export default function EmployerPortal({
     }
   };
 
-  // Filter Jobs Table (FR 2.4.2: Đang tuyển, Tạm đóng, Đã nhận người, Hoàn thành)
+  // Delete Employer Review permanently
+  const handleDeleteEmployerReview = (rev) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Xóa Đánh Giá Năng Lực Sinh Viên',
+      message: 'Bạn có chắc chắn muốn xóa vĩnh viễn bài đánh giá năng lực sinh viên này khỏi hệ thống?',
+      type: 'danger',
+      confirmText: 'Xóa Đánh Giá',
+      cancelText: 'Hủy Bỏ',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        try {
+          const res = await fetch(`/api/employer/reviews/${rev._id}`, {
+            method: 'DELETE',
+            headers
+          });
+          const data = await res.json();
+          if (data.success) {
+            notify(data.message || 'Đã xóa đánh giá năng lực sinh viên thành công!', 'success');
+            fetchReviews();
+          } else {
+            notify(data.message || 'Không thể xóa đánh giá.', 'error');
+          }
+        } catch (err) {
+          notify('Lỗi máy chủ khi xóa đánh giá.', 'error');
+        }
+      }
+    });
+  };
+
+  // Filter Jobs Table (Đang tuyển, Tạm đóng, Đã nhận người, Hoàn thành)
   const filteredJobs = myJobs.filter(j => {
     const matchesSearch = !jobSearch || 
       j.title.toLowerCase().includes(jobSearch.toLowerCase()) || 
       (j.description && j.description.toLowerCase().includes(jobSearch.toLowerCase()));
+    const jSt = j.job_status || j.status;
     const matchesStatus = !jobStatusFilter || 
-      (jobStatusFilter === 'open' && (j.job_status === 'open' || (j.is_open && j.approval_status === 'approved'))) || 
-      (jobStatusFilter === 'closed' && (j.job_status === 'closed' || j.job_status === 'paused' || !j.is_open)) ||
-      (jobStatusFilter === 'filled' && j.job_status === 'filled') ||
-      (jobStatusFilter === 'completed' && j.job_status === 'completed') ||
-      (j.job_status === jobStatusFilter);
+      (jobStatusFilter === 'open' && (jSt === 'open' || (j.is_open && jSt !== 'filled' && jSt !== 'completed'))) || 
+      (jobStatusFilter === 'closed' && (jSt === 'closed' || jSt === 'paused' || (!j.is_open && jSt !== 'filled' && jSt !== 'completed'))) ||
+      (jobStatusFilter === 'filled' && jSt === 'filled') ||
+      (jobStatusFilter === 'completed' && jSt === 'completed') ||
+      (jSt === jobStatusFilter);
     return matchesSearch && matchesStatus;
   });
 
   const totalJobPages = Math.ceil(filteredJobs.length / JOBS_PER_PAGE) || 1;
   const paginatedJobs = filteredJobs.slice((jobPage - 1) * JOBS_PER_PAGE, jobPage * JOBS_PER_PAGE);
 
-  // Tự động ẩn đi các đơn ứng tuyển mà sinh viên đã chủ động hủy trước đó (FR 2.5.1 / 1.6.4)
-  const validApplicants = applicants.filter(a => 
+  // Tự động ẩn đi các đơn ứng tuyển mà sinh viên đã chủ động hủy trước đó
+  const validApplicants = isGuestMode ? [] : applicants.filter(a => 
     a.application_status !== 'cancelled' && 
     a.application_status !== 'withdrawn' && 
     !a.is_cancelled
@@ -1284,39 +1364,57 @@ export default function EmployerPortal({
   const acceptedApps = filteredKanbanApplicants.filter(a => a.application_status === 'accepted' || a.application_status === 'interview');
   const rejectedApps = filteredKanbanApplicants.filter(a => a.application_status === 'rejected');
 
-  // Filled jobs with candidates for shift completion (job_completion)
-  const filledJobsForCompletion = myJobs.filter(j => j.status === 'filled' || j.status === 'completed' || j.application_count > 0);
+  // Filled jobs with candidates for shift completion (job_completion) - khớp 100% giữa Sidebar và Main Content
+  const filledJobsForCompletion = myJobs.filter(j => j.status === 'filled' || j.job_status === 'filled' || j.status === 'completed' || j.job_status === 'completed' || (j.applicant_count || 0) > 0);
 
-  // Sidebar Menu Items for Employer (9 Danh mục chuẩn)
+  // Sinh viên chờ đánh giá (loại trừ sinh viên đã gửi đánh giá cho đơn đó)
+  const reviewedEmployerAppIds = new Set(reviews.map(r => String(r.application_id || '')));
+  const pendingEmployerReviews = validApplicants.filter(
+    a => (a.application_status === 'accepted' || a.application_status === 'interview') && !reviewedEmployerAppIds.has(String(a._id))
+  );
+
+  // Sidebar Menu Items for Employer (9 Danh mục chuẩn - Khớp 100% với Main Content)
   // Khi ở chế độ Khách (isGuestMode), toàn bộ count = undefined để không hiển thị badge đếm ảo
   const employerMenuItems = [
-    { id: 'home', label: 'Bảng điều kiển tuyển dụng', icon: <Home className="w-4 h-4" /> },
+    { id: 'home', label: 'Bảng điều khiển tuyển dụng', icon: <Home className="w-4 h-4" /> },
     { id: 'company', label: 'Hồ sơ doanh nghiệp & Giấy phép kinh doanh', icon: <Building2 className="w-4 h-4" /> },
     { id: 'post_job', label: 'Đăng tin Part-time theo ca', icon: <PlusCircle className="w-4 h-4" /> },
     { id: 'jobs', label: 'Quản lý tin tuyển dụng', icon: <Briefcase className="w-4 h-4" />, count: isGuestMode ? undefined : myJobs.length },
-    { id: 'applicants', label: 'Quản trị ứng viên', icon: <Users className="w-4 h-4" />, count: isGuestMode ? undefined : applicants.length },
-    { id: 'interviews', label: 'Lịch phỏng vấn trực tuyến', icon: <Video className="w-4 h-4" />, count: isGuestMode ? undefined : applicants.filter(a => a.application_status === 'interview').length },
+    { id: 'applicants', label: 'Quản trị ứng viên', icon: <Users className="w-4 h-4" />, count: isGuestMode ? undefined : validApplicants.length },
+    { id: 'interviews', label: 'Lịch phỏng vấn trực tuyến', icon: <Video className="w-4 h-4" />, count: isGuestMode ? undefined : validApplicants.length },
     { id: 'job_completion', label: 'Xác nhận hoàn thành ca làm', icon: <FileCheck className="w-4 h-4" />, count: isGuestMode ? undefined : filledJobsForCompletion.length },
     { id: 'reviews', label: 'Đánh giá năng lực sinh viên', icon: <Star className="w-4 h-4" />, count: isGuestMode ? undefined : reviews.length },
-    { id: 'chat', label: 'Tin nhắn & Phỏng vấn ứng viên', icon: <MessageSquare className="w-4 h-4" />, count: isGuestMode ? undefined : (contacts.length > 0 ? contacts.reduce((acc, c) => acc + (c.unread || 0), 0) : undefined) }
+    { id: 'chat', label: 'Tin nhắn & Phỏng vấn ứng viên', icon: <MessageSquare className="w-4 h-4" />, count: isGuestMode ? undefined : contacts.length }
   ];
 
   return (
     <div className="flex-1 flex flex-col md:flex-row bg-[#F8FAFC] text-slate-800 min-h-[calc(100vh-80px)]">
       
-      {/* ======================= LEFT SIDEBAR DOANH NGHIỆP (9 MỤC CHUẨN) ======================= */}
-      <aside className={`w-80 bg-white/95 backdrop-blur-xl border-r border-slate-200 shadow-sm flex flex-col shrink-0 transition-all ${
-        mobileSidebarOpen ? 'fixed inset-y-0 left-0 z-50 shadow-2xl block' : 'hidden md:flex'
-      }`}>
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></span>
-            <span className="text-sm sm:text-base font-black tracking-wider text-slate-800 uppercase">Cổng Doanh Nghiệp</span>
-          </div>
+      {/* ======================= LEFT SIDEBAR DOANH NGHIỆP (CÓ NÚT THU GỌN / MỞ RỘNG) ======================= */}
+      <aside className={`${
+        mobileSidebarOpen
+          ? 'fixed inset-y-0 left-0 z-50 w-80 shadow-2xl flex'
+          : `hidden md:flex ${isSidebarCollapsed ? 'md:w-20' : 'md:w-80'}`
+      } bg-white/95 backdrop-blur-xl border-r border-slate-200 shadow-sm flex-col shrink-0 transition-all duration-300`}>
+        <div className={`p-4 border-b border-slate-100 flex items-center ${isSidebarCollapsed && !mobileSidebarOpen ? 'justify-center' : 'justify-between'} gap-2`}>
+          {(!isSidebarCollapsed || mobileSidebarOpen) && (
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0"></span>
+              <span className="text-sm sm:text-base font-black tracking-wider text-slate-900 uppercase truncate">Cổng Doanh Nghiệp</span>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setIsSidebarCollapsed(prev => !prev)}
+            title={isSidebarCollapsed ? 'Mở rộng thanh danh mục' : 'Thu gọn thanh danh mục'}
+            className="hidden md:inline-flex items-center justify-center w-8 h-8 rounded-xl bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 transition-all cursor-pointer shrink-0"
+          >
+            {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
           <button 
             type="button" 
             onClick={onToggleMobileSidebar} 
-            className="md:hidden text-slate-400 hover:text-slate-700"
+            className="md:hidden p-1.5 rounded-xl bg-slate-100 text-slate-700 hover:text-slate-900"
           >
             <X className="w-5 h-5" />
           </button>
@@ -1326,31 +1424,44 @@ export default function EmployerPortal({
         <nav className="p-3 space-y-1.5 flex-1 overflow-y-auto">
           {employerMenuItems.map((item) => {
             const isActive = activeMenu === item.id;
+            const collapsedDesktop = isSidebarCollapsed && !mobileSidebarOpen;
             return (
               <button
                 key={item.id}
                 type="button"
+                title={item.label}
                 onClick={() => {
                   handleMenuSwitch(item.id);
                   if (item.id === 'jobs') setJobViewMode('list');
+                  if (item.id === 'reviews' && pendingEmployerReviews.length === 0 && reviews.length > 0) {
+                    setReviewTab('history');
+                  }
                   if (mobileSidebarOpen && onToggleMobileSidebar) onToggleMobileSidebar();
                 }}
-                className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl text-sm sm:text-base font-bold transition-all cursor-pointer text-left ${
+                className={`w-full flex items-center ${collapsedDesktop ? 'justify-center px-2 py-3.5 relative' : 'justify-between px-4 py-3.5 gap-2'} rounded-2xl text-sm sm:text-base font-bold transition-all cursor-pointer text-left ${
                   isActive
                     ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 font-black'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                    : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100/90'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <span className={isActive ? 'text-white' : 'text-blue-600'}>{item.icon}</span>
-                  <span className="leading-snug">{item.label}</span>
+                <div className={`flex items-center ${collapsedDesktop ? 'justify-center' : 'gap-3 min-w-0'}`}>
+                  <span className={`shrink-0 ${isActive ? 'text-white' : 'text-blue-600'}`}>{item.icon}</span>
+                  {!collapsedDesktop && <span className="leading-snug">{item.label}</span>}
                 </div>
                 {item.count !== undefined && item.count > 0 && (
-                  <span className={`px-2.5 py-1 rounded-full text-xs sm:text-sm font-black shrink-0 ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-700 border border-blue-100'
-                  }`}>
-                    {item.count}
-                  </span>
+                  collapsedDesktop ? (
+                    <span className={`absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black flex items-center justify-center whitespace-nowrap ring-2 ${
+                      isActive ? 'bg-white text-blue-700 ring-indigo-600' : 'bg-blue-600 text-white ring-white'
+                    }`}>
+                      {item.count}
+                    </span>
+                  ) : (
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-black shrink-0 whitespace-nowrap ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-800 border border-blue-200'
+                    }`}>
+                      {item.count}
+                    </span>
+                  )
                 )}
               </button>
             );
@@ -1358,45 +1469,45 @@ export default function EmployerPortal({
         </nav>
       </aside>
 
-      {/* ======================= WIDGET CHAT SIDEBAR DRAWER (UI-NTD-CHAT-01) ======================= */}
+      {/* ======================= WIDGET CHAT SIDEBAR DRAWER ======================= */}
       {chatDrawerOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-white border-l border-slate-200 flex flex-col shadow-2xl h- text-slate-800full animate-in slide-in-from-right duration-300">
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-white border-l border-slate-200 flex flex-col shadow-2xl h-full text-slate-800 animate-in slide-in-from-right duration-300">
+            <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-sky-400" />
-                <h3 className="text-xs font-bold text-white uppercase">Hội Thoại Ứng Viên</h3>
+                <MessageSquare className="w-4 h-4 text-blue-600" />
+                <h3 className="text-xs sm:text-sm font-black text-slate-900 uppercase">Hội Thoại Ứng Viên</h3>
               </div>
               <button 
                 type="button" 
                 onClick={onCloseChatDrawer} 
-                className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="p-1 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-200/70 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Thanh tìm kiếm hội thoại theo tên Sinh viên (FR 2.7.1) */}
-            <div className="p-3 border-b border-slate-800/60">
+            {/* Thanh tìm kiếm hội thoại theo tên Sinh viên */}
+            <div className="p-3 border-b border-slate-200">
               <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={chatSearchQuery}
                   onChange={(e) => setChatSearchQuery(e.target.value)}
                   placeholder="Tìm theo tên Sinh viên..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-500 outline-none focus:border-sky-500"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 placeholder-slate-500 outline-none focus:border-blue-600 focus:bg-white"
                 />
               </div>
             </div>
 
-            {/* Danh sách các cuộc hội thoại với SV thật đã ứng tuyển (FR 2.7.2 & 2.9.1) */}
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60 p-2 space-y-1">
+            {/* Danh sách các cuộc hội thoại */}
+            <div className="flex-1 overflow-y-auto divide-y divide-slate-100 p-2 space-y-1">
               {contacts.length === 0 ? (
-                <div className="p-6 text-center text-slate-500 text-xs">
-                  <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-40 text-slate-400" />
-                  <p className="font-semibold text-slate-400">Chưa có cuộc trò chuyện nào</p>
-                  <p className="text-xs text-slate-500 mt-1">
+                <div className="p-6 text-center text-slate-600 text-xs">
+                  <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50 text-slate-400" />
+                  <p className="font-bold text-slate-800">Chưa có cuộc trò chuyện nào</p>
+                  <p className="text-xs text-slate-600 mt-1">
                     Danh bạ sẽ tự động xuất hiện khi có sinh viên ứng tuyển vào công việc của bạn.
                   </p>
                 </div>
@@ -1412,38 +1523,38 @@ export default function EmployerPortal({
                         handleMenuSwitch('chat');
                         if (onCloseChatDrawer) onCloseChatDrawer();
                       }}
-                      className="w-full p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-all text-left flex items-start gap-3 cursor-pointer group"
+                      className="w-full p-3 rounded-xl bg-slate-50 hover:bg-blue-50/70 border border-slate-200 transition-all text-left flex items-start gap-3 cursor-pointer group"
                     >
                       <div className="relative shrink-0">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-sky-500 text-white font-bold flex items-center justify-center text-sm shadow-md">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-sky-500 text-white font-bold flex items-center justify-center text-sm shadow-sm">
                           {contact.name.charAt(0)}
                         </div>
-                        <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-slate-900 ${
-                          contact.online ? 'bg-emerald-500' : 'bg-slate-500'
+                        <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
+                          contact.online ? 'bg-emerald-500' : 'bg-slate-400'
                         }`}></span>
                       </div>
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between">
-                          <p className="text-xs font-bold text-white truncate group-hover:text-sky-300">{contact.name}</p>
+                          <p className="text-xs sm:text-sm font-bold text-slate-900 truncate group-hover:text-blue-700">{contact.name}</p>
                           <span className="text-xs text-slate-500 font-mono">{contact.time}</span>
                         </div>
-                        <p className="text-xs text-sky-400 font-medium truncate mt-0.5">{contact.subtitle}</p>
-                        <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">{contact.lastMsg}</p>
+                        <p className="text-xs text-blue-700 font-semibold truncate mt-0.5">{contact.subtitle}</p>
+                        <p className="text-xs text-slate-600 line-clamp-1 mt-0.5">{contact.lastMsg}</p>
                       </div>
                     </button>
                   ))
               )}
             </div>
 
-            <div className="p-3 border-t border-slate-800 text-center">
+            <div className="p-3 border-t border-slate-200 bg-slate-50 text-center">
               <button
                 type="button"
                 onClick={() => {
                   handleMenuSwitch('chat');
                   if (onCloseChatDrawer) onCloseChatDrawer();
                 }}
-                className="w-full py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold text-xs font-bold transition-all shadow-md shadow-blue-950/50"
+                className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-all shadow-sm cursor-pointer"
               >
                 Mở Toàn Màn Hình Chat & Video Call
               </button>
@@ -1453,28 +1564,28 @@ export default function EmployerPortal({
       )}
 
       {/* ======================= MAIN CONTENT AREA ======================= */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+      <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto transition-all duration-300">
 
         {/* 1. MÀN HÌNH TRANG CHỦ DOANH NGHIỆP */}
         {activeMenu === 'home' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
+          <div className="w-full max-w-full mx-auto space-y-8">
             
-            {/* Banner Doanh nghiệp - Digital Light Dimension Style */}
+            {/* Banner Doanh nghiệp */}
             <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 p-8 sm:p-12 lg:p-14 shadow-xl text-white min-h-[240px] sm:min-h-[270px] flex flex-col justify-center">
               <div className="max-w-3xl relative z-10 space-y-3">
                 
-                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black leading-tight tracking-tight">
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black leading-tight tracking-tight text-white">
                   {isGuestMode ? (
-                    <>Tuyển Dụng Sinh Viên Part-time <span className="text-slate-900">Linh Hoạt Theo Ca Làm</span></>
+                    <>Tuyển Dụng Sinh Viên Part-time <span className="text-sky-100">Linh Hoạt Theo Ca Làm</span></>
                   ) : (
                     companyInfo.company_name || 'Doanh Nghiệp Tuyển Dụng'
                   )}
                 </h2>
-                <p className="text-xs sm:text-sm text-blue-100 leading-relaxed max-w-3xl mt-2">
+                <p className="text-xs sm:text-sm text-blue-50 leading-relaxed max-w-3xl mt-2">
                   {isGuestMode ? (
                     <>Lấp đầy ca làm việc trống nhanh chóng. Kết nối trực tiếp sinh viên các trường Đại học, Cao đẳng với chi phí tuyển dụng tối ưu và thẩm định Giấy phép kinh doanh 100%.</>
                   ) : (
-                    <>Người đại diện: <strong className="text-slate-900">{companyInfo.representative_name}</strong> • Chi nhánh: {companyInfo.branch_name}</>
+                    <>Người đại diện: <strong className="text-white font-black">{companyInfo.representative_name}</strong> • Chi nhánh: {companyInfo.branch_name}</>
                   )}
                 </p>
                 <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -1496,7 +1607,7 @@ export default function EmployerPortal({
                     className="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl bg-white hover:bg-slate-100 text-blue-700 text-xs sm:text-sm font-bold shadow-xl transition-all cursor-pointer flex items-center gap-2.5"
                   >
                     <PlusCircle className="w-4 h-4" />
-                    <span>{isGuestMode ? 'Trải Nghiệm Đăng Tin Tuyển Dụng' : '+ Đăng Tin Tuyển Dụng Mới'}</span>
+                    <span>{isGuestMode ? 'Trải Nghiệm Đăng Tin Tuyển Dụng' : 'Đăng Tin Tuyển Dụng Mới'}</span>
                   </button>
                   <button
                     type="button"
@@ -1597,7 +1708,7 @@ export default function EmployerPortal({
             {isGuestMode && (
               <div className="p-8 sm:p-10 rounded-3xl bg-white border border-slate-200 shadow-md space-y-5">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-blue-600" />
+                  <Briefcase className="w-5 h-5 text-blue-600" />
                   <h3 className="text-xl sm:text-2xl font-black text-slate-900 uppercase tracking-wider">Quy Trình Tuyển Dụng Sinh Viên 3 Bước Tinh Gọn:</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 text-xs">
@@ -1698,7 +1809,7 @@ export default function EmployerPortal({
 
         {/* 2. MÀN HÌNH HỒ SƠ DOANH NGHIỆP & GPKD (UI-NTD-PRO-01, 02 - 2.3.1 -> 2.3.5) */}
         {activeMenu === 'company' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
+          <div className="w-full max-w-full mx-auto space-y-8">
             {isGuestMode ? (
               /* GIAO DIỆN XEM TRƯỚC HỒ SƠ DOANH NGHIỆP & GPKD (CHẾ ĐỘ KHÁCH - KHÔNG CHỨA DỮ LIỆU CÁ NHÂN / GPKD ẢO) */
               <div className="space-y-8 animate-in fade-in duration-300">
@@ -1715,22 +1826,6 @@ export default function EmployerPortal({
                     <p className="text-xs sm:text-sm text-blue-100 leading-relaxed max-w-2xl">
                       Thiết lập hồ sơ doanh nghiệp chuẩn chuyên nghiệp với Logo, Ảnh bìa, Địa chỉ chi nhánh và nộp Giấy phép kinh doanh để được Quản trị viên cấp tích xanh thẩm định hợp lệ 100%.
                     </p>
-                    <div className="flex flex-wrap items-center gap-3 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => onNavigateAuth && onNavigateAuth('login', 'employer')}
-                        className="px-6 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-xs sm:text-sm font-bold shadow-md cursor-pointer transition-all"
-                      >
-                        Đăng Nhập Doanh Nghiệp
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onNavigateAuth && onNavigateAuth('register', 'employer')}
-                        className="px-6 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-xs sm:text-sm font-bold shadow-md cursor-pointer transition-all"
-                      >
-                        Đăng Ký Doanh Nghiệp Mới
-                      </button>
-                    </div>
                   </div>
                 </div>
 
@@ -1770,7 +1865,7 @@ export default function EmployerPortal({
                 {/* 3. Quy Trình 3 Bước Kích Hoạt Quyền Đăng Tin Tuyển Dụng */}
                 <div className="p-8 sm:p-10 rounded-3xl bg-white border border-slate-200 shadow-md space-y-5">
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-blue-600" />
+                    <FileCheck className="w-5 h-5 text-blue-600" />
                     <h3 className="text-xl sm:text-2xl font-black text-slate-900 uppercase tracking-wider">
                       Quy Trình 3 Bước Để Mở Khóa Đăng Tin Tuyển Dụng:
                     </h3>
@@ -1802,7 +1897,7 @@ export default function EmployerPortal({
                   </div>
                 </div>
 
-                {/* 4. Hộp Kêu Gọi Hành Động (CTA Box) */}
+                {/* 4. Hộp Giới Thiệu Chế Độ Xem Trước */}
                 <div className="p-8 sm:p-10 rounded-3xl bg-slate-50 border border-slate-200 text-center space-y-4">
                   <div className="w-14 h-14 rounded-2xl bg-white border border-slate-300 text-slate-800 flex items-center justify-center mx-auto shadow-sm">
                     <Building2 className="w-7 h-7 text-blue-600" />
@@ -1812,24 +1907,8 @@ export default function EmployerPortal({
                       Bạn Đang Ở Chế Độ Xem Trước (Khách)
                     </h4>
                     <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto leading-relaxed">
-                      Để cập nhật hồ sơ thương hiệu, tải lên ảnh bìa, logo và nộp Giấy phép kinh doanh của công ty bạn, vui lòng đăng nhập hoặc tạo tài khoản mới.
+                      Để cập nhật hồ sơ thương hiệu, tải lên ảnh bìa, logo và nộp Giấy phép kinh doanh của công ty bạn, vui lòng sử dụng nút Đăng Nhập hoặc Đăng Ký Doanh Nghiệp ở thanh tiêu đề trên cùng.
                     </p>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => onNavigateAuth && onNavigateAuth('login', 'employer')}
-                      className="px-6 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-xs sm:text-sm font-bold shadow-sm cursor-pointer"
-                    >
-                      Đăng Nhập
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onNavigateAuth && onNavigateAuth('register', 'employer')}
-                      className="px-6 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-xs sm:text-sm font-bold shadow-sm cursor-pointer"
-                    >
-                      Đăng Ký Doanh Nghiệp
-                    </button>
                   </div>
                 </div>
 
@@ -1864,7 +1943,7 @@ export default function EmployerPortal({
                       </div>
                     )}
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                      <label className="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold text-xs font-bold flex items-center gap-2 cursor-pointer shadow-lg">
+                      <label className="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold text-xs flex items-center gap-2 cursor-pointer shadow-lg">
                         <Upload className="w-4 h-4" />
                         <span>Thay Ảnh Bìa (Kéo thả hoặc Chọn)</span>
                         <input 
@@ -1885,9 +1964,9 @@ export default function EmployerPortal({
                     </div>
                   </div>
 
-                  {/* Logo công ty chồng lên góc ảnh bìa có hỗ trợ kéo thả */}
-                  <div className="px-6 pb-6 pt-4 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 -mt-16 sm:-mt-20 relative z-10">
-                    <div className="flex items-end gap-4">
+                  {/* Logo công ty và Thông tin Doanh Nghiệp (Logo nổi trên cạnh dưới bìa, text đặt trang nhã trên nền trắng) */}
+                  <div className="px-6 sm:px-8 pb-6 pt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10 bg-white">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                       <div 
                         onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingLogo(true); }}
                         onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDraggingLogo(false); }}
@@ -1897,7 +1976,7 @@ export default function EmployerPortal({
                           setIsDraggingLogo(false);
                           if (e.dataTransfer.files?.[0]) handleMediaFileProcess('logo_url', e.dataTransfer.files[0]);
                         }}
-                        className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white border-4 border-white shadow-xl overflow-hidden group ${
+                        className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-white border-4 border-white shadow-xl overflow-hidden group shrink-0 -mt-12 sm:-mt-14 ${
                           isDraggingLogo ? 'ring-4 ring-blue-500 scale-105' : ''
                         }`}
                       >
@@ -1934,14 +2013,14 @@ export default function EmployerPortal({
                         </div>
                       </div>
 
-                      <div className="mb-2">
-                        <h3 className="text-xl font-black text-slate-900">
+                      <div className="pt-1">
+                        <h3 className="text-xl sm:text-2xl font-black text-slate-900">
                           {isGuestMode ? 'Hồ Sơ Doanh Nghiệp (Xem Trước)' : (companyInfo.company_name || 'Doanh Nghiệp Tuyển Dụng')}
                         </h3>
-                        <p className="text-xs text-slate-600 font-semibold">
+                        <p className="text-xs sm:text-sm text-slate-600 font-semibold mt-0.5">
                           {isGuestMode ? 'Chế độ khách - Chưa đăng nhập tài khoản' : companyInfo.branch_name}
                         </p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-slate-500 mt-0.5">
                           {isGuestMode ? 'Đăng nhập hoặc đăng ký tài khoản để cập nhật hồ sơ chính thức' : `Người đại diện: ${companyInfo.representative_name}`}
                         </p>
                       </div>
@@ -1950,9 +2029,9 @@ export default function EmployerPortal({
                     <button
                       type="button"
                       onClick={() => setIsEditingCompany(!isEditingCompany)}
-                      className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-300 transition-all cursor-pointer flex items-center gap-2 shadow-sm"
+                      className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs sm:text-sm font-bold border border-slate-300 transition-all cursor-pointer flex items-center gap-2 shadow-xs shrink-0"
                     >
-                      <Edit className="w-3.5 h-3.5 text-blue-600" />
+                      <Edit className="w-4 h-4 text-blue-600" />
                       <span>{isEditingCompany ? 'Hủy Sửa' : 'Chỉnh Sửa Thông Tin'}</span>
                     </button>
                   </div>
@@ -2004,7 +2083,7 @@ export default function EmployerPortal({
                               ? 'bg-red-50 text-red-700 border-red-200'
                               : 'bg-amber-50 text-amber-700 border-amber-200'))
                       }`}>
-                        {isGuestMode ? 'Chế độ xem trước (Chưa liên kết tài khoản)' : (employerRecord.approval_status === 'approved' ? '✓ Đã Phê Duyệt Hợp Lệ' : (employerRecord.approval_status === 'rejected' ? '✕ Bị Từ Chối GPKD' : '⏳ Chờ Admin Duyệt'))}
+                        {isGuestMode ? 'Chế độ xem trước (Chưa liên kết tài khoản)' : (employerRecord.approval_status === 'approved' ? 'Đã Phê Duyệt Hợp Lệ' : (employerRecord.approval_status === 'rejected' ? 'Bị Từ Chối GPKD' : 'Chờ Admin Duyệt'))}
                       </span>
                     </div>
                   </div>
@@ -2138,7 +2217,7 @@ export default function EmployerPortal({
                           <Upload className="w-6 h-6 text-blue-600 mb-1.5 group-hover:scale-110 transition-transform" />
                           <p className="text-xs font-bold text-slate-800">
                             {companyForm.new_gpkd_name 
-                              ? `✓ Đã chọn: ${companyForm.new_gpkd_name}`
+                              ? `Đã chọn: ${companyForm.new_gpkd_name}`
                               : (companyForm.business_license_url ? 'Nhấn để tải lại tệp GPKD mới thay thế' : 'Nhấn để chọn tệp GPKD (.pdf) từ thiết bị')}
                           </p>
                           <p className="text-xs text-slate-500 mt-0.5">Định dạng chấp nhận: PDF (kích thước tối đa 10MB)</p>
@@ -2147,7 +2226,7 @@ export default function EmployerPortal({
                         <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2">
                           <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                           <p>
-                            <strong>Lưu ý quan trọng (FR 2.3.2):</strong> Khi bạn tải lại Giấy phép kinh doanh mới, hệ thống sẽ tự động chuyển trạng thái tài khoản về <strong>"Chờ duyệt"</strong> và đẩy yêu cầu duyệt hồ sơ sang Quản trị viên để kiểm tra tính hợp lệ.
+                            <strong>Lưu ý quan trọng:</strong> Khi bạn tải lại Giấy phép kinh doanh mới, hệ thống sẽ tự động chuyển trạng thái tài khoản về <strong>"Chờ duyệt"</strong> và đẩy yêu cầu duyệt hồ sơ sang Quản trị viên để kiểm tra tính hợp lệ.
                           </p>
                         </div>
                       </div>
@@ -2222,29 +2301,26 @@ export default function EmployerPortal({
                 {/* 3. MÀN HÌNH QUẢN LÝ TIN TUYỂN DỤNG & FORM ĐĂNG TIN PART-TIME THEO CA (UI-NTD-JOB-01 -> 03 - 2.4.1 -> 2.4.8) */}
                 {/* 3. MÀN HÌNH QUẢN LÝ TIN TUYỂN DỤNG & FORM ĐĂNG TIN PART-TIME THEO CA (UI-NTD-JOB-01 -> 03 - 2.4.1 -> 2.4.8) */}
         {(activeMenu === 'jobs' || activeMenu === 'post_job') && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
+          <div className="w-full max-w-full mx-auto space-y-8">
             
             {/* SUBVIEW 1: FORM TẠO / SỬA TIN (UI-NTD-JOB-03) */}
             {(activeMenu === 'post_job' || jobViewMode === 'create' || jobViewMode === 'edit') ? (
-              <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200/80 shadow-md space-y-5">
-                <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+              <div className="form-card-col2 p-6 sm:p-8 rounded-3xl shadow-xl space-y-6">
+                <div className="flex items-center justify-between pb-4 border-b border-blue-200/60">
                   <div className="flex items-center gap-3">
-
                     <div>
-                      <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
+                      <h3 className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2">
                         <PlusCircle className="w-5 h-5 text-blue-600" />
-                        <span>{activeMenu === 'post_job' ? 'Đăng Tin Part-Time Theo Ca Mới' : jobViewMode === 'create' ? '+ Đăng Tin Tuyển Dụng Mới' : 'Chỉnh Sửa Tin Tuyển Dụng'}</span>
+                        <span>{activeMenu === 'post_job' ? 'Đăng Tin Part-Time Theo Ca Mới' : jobViewMode === 'create' ? 'Đăng Tin Tuyển Dụng Mới' : 'Chỉnh Sửa Tin Tuyển Dụng'}</span>
                       </h3>
-                      <p className="text-xs text-slate-500 mt-0.5">Phân bổ ca làm việc, mức lương theo giờ và địa điểm theo chuẩn 63 Tỉnh/Thành phố</p>
+                      <p className="text-xs sm:text-sm text-slate-600 font-medium mt-0.5">Phân bổ ca làm việc, mức lương theo giờ và địa điểm theo chuẩn 63 Tỉnh/Thành phố</p>
                     </div>
                   </div>
                 </div>
 
-
-
-                <form onSubmit={handleSaveJobSubmit} className="space-y-4 text-xs">
+                <form onSubmit={handleSaveJobSubmit} className="space-y-5 text-xs sm:text-sm">
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Tiêu Đề Công Việc (Gợi ý ngành nghề linh hoạt) *</label>
+                    <label className="block font-bold text-slate-800 mb-1.5">Tiêu Đề Công Việc (Gợi ý ngành nghề linh hoạt) *</label>
                     <input
                       type="text"
                       required
@@ -2252,7 +2328,7 @@ export default function EmployerPortal({
                       placeholder="Ví dụ: Nhân viên Pha chế Barista & Phục vụ ca linh hoạt"
                       value={jobForm.title}
                       onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-slate-900 outline-none focus:border-blue-600 focus:bg-white"
+                      className="w-full bg-white border border-blue-200/80 rounded-xl px-4 py-3 text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-400/20 shadow-xs text-xs sm:text-sm"
                     />
                     <datalist id="hcm-professions-list">
                       {PROFESSION_SUGGESTIONS.map((p, idx) => (
@@ -2263,9 +2339,9 @@ export default function EmployerPortal({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block font-bold text-slate-700">Ngành Nghề Tuyển Dụng *</label>
-                        <span className="text-xs text-blue-600 font-medium">Nhập tay hoặc chọn gợi ý dropdown</span>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block font-bold text-slate-800">Ngành Nghề Tuyển Dụng *</label>
+                        <span className="text-xs text-blue-700 font-semibold">Nhập tay hoặc chọn gợi ý dropdown</span>
                       </div>
                       <div className="relative">
                         <input
@@ -2275,7 +2351,7 @@ export default function EmployerPortal({
                           value={jobForm.category_id}
                           onChange={(e) => setJobForm({ ...jobForm, category_id: e.target.value })}
                           placeholder="Nhập hoặc chọn ngành nghề tuyển dụng..."
-                          className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-slate-900 outline-none focus:border-blue-600 focus:bg-white placeholder:text-slate-400"
+                          className="w-full bg-white border border-blue-200/80 rounded-xl px-4 py-3 text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-400/20 shadow-xs text-xs sm:text-sm placeholder:text-slate-400"
                         />
                         <datalist id="job-industry-suggestions">
                           {categories.filter(c => c.type === 'job' || !c.type).map(c => (
@@ -2293,10 +2369,10 @@ export default function EmployerPortal({
                             key={c._id}
                             type="button"
                             onClick={() => setJobForm({ ...jobForm, category_id: c.name })}
-                            className={`px-2 py-0.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                               jobForm.category_id === c.name || jobForm.category_id === c._id
-                                ? 'bg-white text-slate-900 font-bold border border-slate-300 shadow-sm'
-                                : 'bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 hover:border-slate-300'
+                                ? 'bg-blue-600 text-white font-bold shadow-xs'
+                                : 'bg-white text-slate-700 hover:text-blue-700 border border-blue-200 hover:bg-blue-50'
                             }`}
                           >
                             {c.name}
@@ -2306,7 +2382,7 @@ export default function EmployerPortal({
                     </div>
 
                     <div className="space-y-2">
-                      <label className="block font-bold text-slate-700">Địa Điểm Làm Việc (63 Tỉnh/Thành phố & Quận/Huyện) *</label>
+                      <label className="block font-bold text-slate-800">Địa Điểm Làm Việc (63 Tỉnh/Thành phố & Quận/Huyện) *</label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <select
                           value={postProvince}
@@ -2321,7 +2397,7 @@ export default function EmployerPortal({
                               location: `${postCustomAddress ? postCustomAddress + ', ' : ''}${newDist}, ${newProv}`
                             }));
                           }}
-                          className="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 outline-none focus:border-blue-600 focus:bg-white text-xs cursor-pointer"
+                          className="bg-white border border-blue-200/80 rounded-xl px-3 py-2.5 text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-400/20 shadow-xs text-xs sm:text-sm cursor-pointer"
                         >
                           {VIETNAM_PROVINCES.map((p) => (
                             <option key={p} value={p}>{p}</option>
@@ -2337,22 +2413,21 @@ export default function EmployerPortal({
                               location: `${postCustomAddress ? postCustomAddress + ', ' : ''}${newDist}, ${postProvince}`
                             }));
                           }}
-                          className="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-slate-900 outline-none focus:border-blue-600 focus:bg-white text-xs cursor-pointer"
+                          className="bg-white border border-blue-200/80 rounded-xl px-3 py-2.5 text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-400/20 shadow-xs text-xs sm:text-sm cursor-pointer"
                         >
                           {getDistrictsByProvince(postProvince).map((d) => (
                             <option key={d} value={d}>{d}</option>
                           ))}
                         </select>
                       </div>
-
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="block font-bold text-slate-700">Khoảng Lương Theo Giờ (K/Giờ) *</label>
+                    <label className="block font-bold text-slate-800">Khoảng Lương Theo Giờ (VNĐ/giờ) *</label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                       <div>
-                        <span className="text-xs text-slate-500 block mb-1">Lương tối thiểu (VNĐ/giờ):</span>
+                        <span className="text-xs text-slate-600 font-semibold block mb-1">Lương tối thiểu (VNĐ/giờ):</span>
                         <input
                           type="number"
                           min={15000}
@@ -2360,11 +2435,11 @@ export default function EmployerPortal({
                           required
                           value={jobForm.salary_min}
                           onChange={(e) => setJobForm({ ...jobForm, salary_min: Number(e.target.value) })}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 text-slate-900 outline-none focus:border-blue-600 focus:bg-white font-mono text-xs"
+                          className="w-full bg-white border border-blue-200/80 rounded-xl px-4 py-2.5 text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-400/20 shadow-xs font-mono text-xs sm:text-sm"
                         />
                       </div>
                       <div>
-                        <span className="text-xs text-slate-500 block mb-1">Lương tối đa (VNĐ/giờ):</span>
+                        <span className="text-xs text-slate-600 font-semibold block mb-1">Lương tối đa (VNĐ/giờ):</span>
                         <input
                           type="number"
                           min={15000}
@@ -2372,7 +2447,7 @@ export default function EmployerPortal({
                           required
                           value={jobForm.salary_max}
                           onChange={(e) => setJobForm({ ...jobForm, salary_max: Number(e.target.value) })}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2 text-slate-900 outline-none focus:border-blue-600 focus:bg-white font-mono text-xs"
+                          className="w-full bg-white border border-blue-200/80 rounded-xl px-4 py-2.5 text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-400/20 shadow-xs font-mono text-xs sm:text-sm"
                         />
                       </div>
                     </div>
@@ -2381,8 +2456,8 @@ export default function EmployerPortal({
                   {/* Ca làm việc Part-Time theo ca */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="block font-bold text-slate-700">Ca Làm Việc Part-Time Theo Ca *</label>
-                      <span className="text-xs text-blue-600 font-medium">Hỗ trợ 4 khung ca: Sáng, Chiều, Tối, Linh hoạt</span>
+                      <label className="block font-bold text-slate-800">Ca Làm Việc Part-Time Theo Ca *</label>
+                      <span className="text-xs text-blue-700 font-semibold">Hỗ trợ 4 khung ca: Sáng, Chiều, Tối, Linh hoạt</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {WORK_SHIFTS.map((s) => (
@@ -2390,33 +2465,32 @@ export default function EmployerPortal({
                           key={s.id}
                           type="button"
                           onClick={() => setJobForm({ ...jobForm, work_time: `${s.label}: ${s.time}` })}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                          className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                             jobForm.work_time.includes(s.label)
-                              ? 'bg-white text-slate-900 font-bold border border-slate-300 shadow-sm'
-                              : 'bg-slate-100 text-slate-700 border border-slate-200 hover:border-slate-300'
+                              ? 'bg-blue-600 text-white font-bold shadow-sm'
+                              : 'bg-white text-slate-700 border border-blue-200 hover:border-blue-400 hover:bg-blue-50'
                           }`}
                         >
                           {s.label} ({s.time})
                         </button>
                       ))}
                     </div>
-
                   </div>
 
                   <div>
-                    <label className="block font-bold text-slate-700 mb-1">Mô Tả Chi Tiết Công Việc & Yêu Cầu *</label>
+                    <label className="block font-bold text-slate-800 mb-1.5">Mô Tả Chi Tiết Công Việc & Yêu Cầu *</label>
                     <textarea
                       rows={5}
                       required
                       placeholder="Mô tả công việc pha chế, phục vụ khách hàng, bảo quản nguyên vật liệu..."
                       value={jobForm.description}
                       onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-slate-900 outline-none focus:border-blue-600 focus:bg-white leading-relaxed"
+                      className="w-full bg-white border border-blue-200/80 rounded-xl p-4 text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-400/20 shadow-xs leading-relaxed text-xs sm:text-sm"
                     />
                   </div>
 
                   {jobFormMsg && (
-                    <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
+                    <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">
                       {jobFormMsg}
                     </div>
                   )}
@@ -2428,13 +2502,13 @@ export default function EmployerPortal({
                         setActiveMenu('jobs');
                         setJobViewMode('list');
                       }}
-                      className="px-4 py-2 text-slate-600 hover:text-slate-900 font-semibold cursor-pointer"
+                      className="px-5 py-2.5 text-slate-700 hover:text-slate-950 font-bold cursor-pointer"
                     >
                       Hủy Bỏ
                     </button>
                     <button
                       type="submit"
-                      className="px-6 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold shadow-sm cursor-pointer"
+                      className="px-8 py-3 rounded-xl btn-primary-dimension text-xs sm:text-sm font-bold shadow-lg cursor-pointer transition-all"
                     >
                       {activeMenu === 'post_job' || jobViewMode === 'create' ? 'Đăng Tin Ngay' : 'Lưu Thay Đổi'}
                     </button>
@@ -2609,7 +2683,7 @@ export default function EmployerPortal({
                                           : 'bg-slate-100 text-slate-600 border-slate-200'
                                       }`}
                                     >
-                                      {job.is_open ? '🟢 Đang tuyển' : '⚪ Tạm đóng'}
+                                      {job.is_open ? 'Đang tuyển' : 'Tạm đóng'}
                                     </button>
                                   </td>
 
@@ -2638,7 +2712,7 @@ export default function EmployerPortal({
                                           className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold border border-emerald-500 cursor-pointer shadow-sm"
                                           title="Chuyển sang Hoàn thành công việc"
                                         >
-                                          ✓ Hoàn thành
+                                          Hoàn thành
                                         </button>
                                       )}
 
@@ -2650,16 +2724,16 @@ export default function EmployerPortal({
                                     </div>
                                   </td>
 
-                                  {/* Nút Xem chi tiết, Sửa & Xóa (FR 2.4.3, 2.4.6, 2.4.8) */}
-                                  <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
-                                    <div className="flex items-center justify-end gap-1.5">
+                                  <td className="p-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex items-center justify-end gap-2">
                                       <button
                                         type="button"
                                         onClick={() => setSelectedJobDetail(job)}
-                                        className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 cursor-pointer"
+                                        className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs"
                                         title="Xem chi tiết tin tuyển dụng"
                                       >
                                         <Eye className="w-3.5 h-3.5" />
+                                        <span>Xem</span>
                                       </button>
 
                                       <button
@@ -2678,23 +2752,21 @@ export default function EmployerPortal({
                                           });
                                           setJobViewMode('edit');
                                         }}
-                                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer"
+                                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs"
                                         title="Sửa tin"
                                       >
                                         <Edit className="w-3.5 h-3.5" />
+                                        <span>Sửa</span>
                                       </button>
 
                                       <button
                                         type="button"
                                         onClick={() => handleDeleteJob(job)}
-                                        className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
-                                          hasApps 
-                                            ? 'bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-600 border-slate-200' 
-                                            : 'bg-red-50 hover:bg-red-100 border-red-200 text-red-600 cursor-pointer'
-                                        }`}
-                                        title={hasApps ? 'Tin đã có sinh viên ứng tuyển (Nhấp để xem chi tiết)' : 'Xóa tin tuyển dụng'}
+                                        className="px-3 py-1.5 rounded-xl border bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700 text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap shadow-xs"
+                                        title="Xóa vĩnh viễn tin tuyển dụng"
                                       >
                                         <Trash2 className="w-3.5 h-3.5" />
+                                        <span>Xóa</span>
                                       </button>
                                     </div>
                                   </td>
@@ -2740,7 +2812,7 @@ export default function EmployerPortal({
 
                 {/* 4. MÀN HÌNH BẢNG KANBAN QUẢN LÝ ỨNG VIÊN (UI-NTD-CAND-01 -> 03 - 2.5.1 -> 2.5.6) */}
         {activeMenu === 'applicants' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
+          <div className="w-full max-w-full mx-auto space-y-8">
             {/* Header thanh tìm kiếm & lọc theo tin tuyển dụng */}
                 <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-md space-y-3">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -2749,7 +2821,7 @@ export default function EmployerPortal({
                         <Users className="w-5 h-5 text-blue-600" />
                         <span>Bảng Quản Lý Ứng Viên (ATS)</span>
                       </h3>
-                      <p className="text-xs text-slate-500 mt-0.5">Sàng lọc hồ sơ sinh viên, xem CV ứng viên trực tiếp (Tự động ẩn đơn đã hủy - FR 2.5.1)</p>
+                      <p className="text-xs text-slate-600 mt-0.5">Sàng lọc hồ sơ sinh viên, xem CV ứng viên trực tiếp (Tự động ẩn đơn đã hủy)</p>
                     </div>
 
                     <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-2xl border border-slate-200">
@@ -2867,7 +2939,7 @@ export default function EmployerPortal({
                                         ? 'bg-red-50 text-red-700 border-red-200'
                                         : 'bg-amber-50 text-amber-700 border-amber-200')
                                   }`}>
-                                    {app.application_status === 'accepted' ? '✓ Đã Duyệt' : (app.application_status === 'rejected' ? '✕ Từ Chối' : '⏳ Chờ Duyệt')}
+                                    {app.application_status === 'accepted' ? 'Đã Duyệt' : (app.application_status === 'rejected' ? 'Từ Chối' : 'Chờ Duyệt')}
                                   </span>
                                 </td>
                                 <td className="p-4 text-slate-500 font-mono text-xs">{app.applied_at || 'Mới nộp'}</td>
@@ -2910,11 +2982,20 @@ export default function EmployerPortal({
                                     ) : (
                                       <span 
                                         className="px-2 py-1 rounded-lg bg-slate-100 text-slate-400 text-xs font-medium border border-slate-200 cursor-not-allowed"
-                                        title="Chỉ cho phép báo cáo đối với ứng viên đã có trạng thái 'Đã duyệt' theo quy định BR-NTD-06"
+                                        title="Chỉ cho phép báo cáo đối với ứng viên đã có trạng thái 'Đã duyệt'"
                                       >
                                         Báo cáo (Khóa)
                                       </span>
                                     )}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteApplicant(app)}
+                                      className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                                      title="Xóa vĩnh viễn hồ sơ ứng viên này"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                      <span>Xóa</span>
+                                    </button>
                                   </div>
                                 </td>
                               </tr>
@@ -2972,12 +3053,18 @@ export default function EmployerPortal({
                                 <MessageSquare className="w-3 h-3" />
                                 <span>Nhắn tin</span>
                               </button>
-                              <span 
-                                className="text-xs text-slate-400 cursor-not-allowed"
-                                title="Chỉ cho phép báo cáo ứng viên đã có trạng thái 'Đã duyệt' theo quy định BR-NTD-06"
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteApplicant(app);
+                                }}
+                                className="px-2 py-0.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                                title="Xóa hồ sơ ứng viên"
                               >
-                                Báo cáo (Khóa)
-                              </span>
+                                <Trash2 className="w-3 h-3" />
+                                <span>Xóa</span>
+                              </button>
                             </div>
                           </div>
                         ))
@@ -3011,7 +3098,7 @@ export default function EmployerPortal({
                           >
                             <div className="flex items-start justify-between">
                               <p className="text-xs font-bold text-slate-900 group-hover:text-emerald-700">{app.application_snapshot?.student_name || 'Ứng viên'}</p>
-                              <span className="text-emerald-700 font-bold text-xs">✓ Đã Phê Duyệt</span>
+                              <span className="text-emerald-700 font-bold text-xs">Đã Phê Duyệt</span>
                             </div>
                             <p className="text-xs text-slate-600 line-clamp-1">{app.job_title}</p>
                             <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
@@ -3031,24 +3118,37 @@ export default function EmployerPortal({
                                 <span>Nhắn tin</span>
                               </button>
                               
-                              {/* Nút Báo cáo ứng viên vi phạm nghiêm ngặt theo FR 2.5.6 */}
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setReportModalData({
-                                    type: 'applicant',
-                                    target_id: app.student_user_id || app.student_id,
-                                    target_title: `Ứng viên ${app.application_snapshot?.student_name || 'Ứng viên'} (${app.job_title})`,
-                                    application_id: app._id
-                                  });
-                                }}
-                                className="px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                                title="Báo cáo vi phạm đối với ứng viên đã duyệt (ví dụ: bùng việc, vô trách nhiệm)"
-                              >
-                                <Flag className="w-3 h-3 text-red-600" />
-                                <span>Báo Cáo Vi Phạm</span>
-                              </button>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setReportModalData({
+                                      type: 'applicant',
+                                      target_id: app.student_user_id || app.student_id,
+                                      target_title: `Ứng viên ${app.application_snapshot?.student_name || 'Ứng viên'} (${app.job_title})`,
+                                      application_id: app._id
+                                    });
+                                  }}
+                                  className="px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                                  title="Báo cáo vi phạm đối với ứng viên đã duyệt"
+                                >
+                                  <Flag className="w-3 h-3 text-red-600" />
+                                  <span>Báo Cáo</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteApplicant(app);
+                                  }}
+                                  className="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                                  title="Xóa hồ sơ ứng viên"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  <span>Xóa</span>
+                                </button>
+                              </div>
                             </div>
                           </div>
                         ))
@@ -3097,12 +3197,18 @@ export default function EmployerPortal({
                                 <MessageSquare className="w-3 h-3" />
                                 <span>Xem lịch sử chat (Chỉ đọc)</span>
                               </button>
-                              <span 
-                                className="text-xs text-slate-400 cursor-not-allowed"
-                                title="Chỉ cho phép báo cáo ứng viên đã có trạng thái 'Đã duyệt' theo quy định BR-NTD-06"
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteApplicant(app);
+                                }}
+                                className="px-2 py-0.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                                title="Xóa hồ sơ ứng viên"
                               >
-                                Báo cáo (Khóa)
-                              </span>
+                                <Trash2 className="w-3 h-3" />
+                                <span>Xóa</span>
+                              </button>
                             </div>
                           </div>
                         ))
@@ -3116,9 +3222,9 @@ export default function EmployerPortal({
           </div>
         )}
 
-        {/* 6. MÀN HÌNH LỊCH PHỎNG VẤN TRỰC TUYẾN (UI-NTD-INT-01 / WebRTC Video Call) */}
+        {/* 6. MÀN HÌNH LỊCH PHỎNG VẤN TRỰC TUYẾN */}
         {activeMenu === 'interviews' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
+          <div className="w-full max-w-full mx-auto space-y-8">
             <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
                     <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
@@ -3138,7 +3244,7 @@ export default function EmployerPortal({
                         interviewFilter === 'all' ? 'bg-white text-slate-900 font-bold border border-slate-300 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      Tất Cả ({applicants.length})
+                      Tất Cả ({validApplicants.length})
                     </button>
                     <button
                       type="button"
@@ -3147,7 +3253,7 @@ export default function EmployerPortal({
                         interviewFilter === 'interview' ? 'bg-white text-slate-900 font-bold border border-slate-300 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      Mời Phỏng Vấn ({applicants.filter(a => a.application_status === 'interview').length})
+                      Mời Phỏng Vấn ({validApplicants.filter(a => a.application_status === 'interview').length})
                     </button>
                     <button
                       type="button"
@@ -3156,7 +3262,7 @@ export default function EmployerPortal({
                         interviewFilter === 'accepted' ? 'bg-white text-slate-900 font-bold border border-slate-300 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      Đã Trúng Tuyển ({applicants.filter(a => a.application_status === 'accepted').length})
+                      Đã Trúng Tuyển ({validApplicants.filter(a => a.application_status === 'accepted').length})
                     </button>
                   </div>
                 </div>
@@ -3174,7 +3280,7 @@ export default function EmployerPortal({
                 </div>
 
                 {/* Danh sách thẻ ứng viên phỏng vấn */}
-                {applicants.length === 0 ? (
+                {validApplicants.length === 0 ? (
                   <div className="p-12 text-center rounded-3xl bg-white border border-slate-200/80 shadow-md space-y-4">
                     <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-700 mx-auto">
                       <Video className="w-7 h-7 text-blue-600" />
@@ -3210,7 +3316,7 @@ export default function EmployerPortal({
                   </div>
                 ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {applicants
+                  {validApplicants
                     .filter(app => {
                       if (interviewFilter === 'interview') return app.application_status === 'interview';
                       if (interviewFilter === 'accepted') return app.application_status === 'accepted';
@@ -3341,15 +3447,15 @@ export default function EmployerPortal({
 
         {/* 7. MÀN HÌNH XÁC NHẬN HOÀN THÀNH CA LÀM (UI-NTD-COMP-01 - 2.4.7 / 2.7) */}
         {activeMenu === 'job_completion' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
+          <div className="w-full max-w-full mx-auto space-y-8">
             <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
                     <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
                       <FileCheck className="w-5 h-5 text-emerald-600" />
                       <span>Xác Nhận Hoàn Thành Ca Làm & Bàn Giao</span>
                     </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Xác nhận kết thúc công việc/ca làm việc đối với các tin đã nhận đủ người (filled) để tự động mở quyền Đánh giá năng lực sinh viên 2 chiều (FR 2.7 & 3.6)
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      Xác nhận kết thúc công việc/ca làm việc đối với các tin đã nhận đủ người để tự động mở quyền Đánh giá năng lực sinh viên 2 chiều
                     </p>
                   </div>
 
@@ -3360,7 +3466,7 @@ export default function EmployerPortal({
                         setActiveMenu('reviews');
                         setReviewTab('pending');
                       }}
-                      className="px-4 py-2 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-all"
+                      className="px-4 py-2 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm cursor-pointer transition-all whitespace-nowrap"
                     >
                       <Star className="w-4 h-4 fill-slate-950" />
                       <span>Chuyển Sang Bảng Đánh Giá</span>
@@ -3372,7 +3478,7 @@ export default function EmployerPortal({
                 <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200 flex items-start gap-3 text-xs text-blue-900">
                   <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-bold text-blue-950">Quy Trình Hoàn Thành Ca Làm Chuẩn BR-NTD-05 & FR 2.4.7:</p>
+                    <p className="font-bold text-blue-950">Quy Trình Hoàn Thành Ca Làm Chuẩn:</p>
                     <p className="text-xs text-blue-800 mt-0.5">
                       1. Tin tuyển dụng đạt đủ nhân sự và chuyển trạng thái "Đã nhận người" (Filled) → 
                       2. Sinh viên đi làm và hoàn thành các ca làm việc được giao → 
@@ -3384,7 +3490,7 @@ export default function EmployerPortal({
 
                 {/* Danh sách các tin tuyển dụng cần xác nhận hoàn thành hoặc đã hoàn thành */}
                 <div className="space-y-4">
-                  {myJobs.filter(j => j.status === 'filled' || j.job_status === 'filled' || j.status === 'completed' || j.job_status === 'completed' || (j.applicant_count || 0) > 0).length === 0 ? (
+                  {filledJobsForCompletion.length === 0 ? (
                     <div className="p-12 text-center rounded-3xl bg-white border border-slate-200/80 shadow-md space-y-4">
                       <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-700 mx-auto">
                         <FileCheck className="w-7 h-7 text-emerald-600" />
@@ -3419,8 +3525,7 @@ export default function EmployerPortal({
                       )}
                     </div>
                   ) : (
-                    myJobs
-                      .filter(j => j.status === 'filled' || j.job_status === 'filled' || j.status === 'completed' || j.job_status === 'completed' || (j.applicant_count || 0) > 0)
+                    filledJobsForCompletion
                       .map((job) => {
                         const isFilled = job.status === 'filled' || job.job_status === 'filled';
                         const isCompleted = job.status === 'completed' || job.job_status === 'completed';
@@ -3440,7 +3545,7 @@ export default function EmployerPortal({
                                     isFilled ? 'bg-blue-50 text-blue-700 border border-blue-200' :
                                     'bg-amber-50 text-amber-700 border border-amber-200'
                                   }`}>
-                                    {isCompleted ? '✓ Đã Hoàn Thành Ca Làm' : isFilled ? 'Đã Nhận Người (Đang Chạy Ca)' : 'Đang Mở Tuyển'}
+                                    {isCompleted ? 'Đã Hoàn Thành Ca Làm' : isFilled ? 'Đã Nhận Người (Đang Chạy Ca)' : 'Đang Mở Tuyển'}
                                   </span>
                                 </div>
                                 <p className="text-xs text-slate-500 mt-1 flex items-center gap-3">
@@ -3524,7 +3629,7 @@ export default function EmployerPortal({
 
                 {/* 8. MÀN HÌNH ĐÁNH GIÁ SINH VIÊN (UI-NTD-REV-01 -> 03 - 2.6.1 -> 2.6.4) */}
         {activeMenu === 'reviews' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
+          <div className="w-full max-w-full mx-auto space-y-8">
             <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
                     <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
@@ -3542,7 +3647,7 @@ export default function EmployerPortal({
                         reviewTab === 'pending' ? 'bg-white text-slate-900 font-bold border border-slate-300 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      Sinh Viên Chờ Đánh Giá ({acceptedApps.length})
+                      Sinh Viên Chờ Đánh Giá ({pendingEmployerReviews.length})
                     </button>
                     <button
                       type="button"
@@ -3556,10 +3661,10 @@ export default function EmployerPortal({
                   </div>
                 </div>
 
-                {/* TAB CHỜ ĐÁNH GIÁ (2.6.1, 2.6.2) */}
+                {/* TAB CHỜ ĐÁNH GIÁ */}
                 {reviewTab === 'pending' && (
                   <div className="space-y-4">
-                    {acceptedApps.length === 0 ? (
+                    {pendingEmployerReviews.length === 0 ? (
                       <div className="p-12 text-center rounded-2xl bg-white border border-slate-200 text-xs text-slate-500">
                         {isGuestMode ? (
                           <div className="space-y-3 py-4">
@@ -3586,11 +3691,11 @@ export default function EmployerPortal({
                             </div>
                           </div>
                         ) : (
-                          'Chưa có sinh viên nào trong danh sách đã hoàn thành công việc cần đánh giá.'
+                          'Chưa có sinh viên nào trong danh sách chờ đánh giá.'
                         )}
                       </div>
                     ) : (
-                      acceptedApps.map((app) => (
+                      pendingEmployerReviews.map((app) => (
                         <div
                           key={app._id}
                           className="p-5 rounded-2xl bg-white border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm"
@@ -3663,8 +3768,9 @@ export default function EmployerPortal({
                             </button>
 
                             {rev.is_hidden ? (
-                              <span className="text-red-700 font-bold text-xs bg-red-50 px-3 py-1.5 rounded-xl border border-red-200">
-                                ✕ Đánh giá bị Quản trị viên ẩn do vi phạm (Không thể chỉnh sửa)
+                              <span className="text-red-700 font-bold text-xs bg-red-50 px-3 py-1.5 rounded-xl border border-red-200 inline-flex items-center gap-1.5">
+                                <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                                <span>Đánh giá bị Quản trị viên ẩn do vi phạm (Không thể chỉnh sửa)</span>
                               </span>
                             ) : (
                               <button
@@ -3685,6 +3791,14 @@ export default function EmployerPortal({
                                 <span>Chỉnh Sửa Đánh Giá</span>
                               </button>
                             )}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteEmployerReview(rev)}
+                              className="px-3.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Xóa Đánh Giá</span>
+                            </button>
                           </div>
                         </div>
                       ))
@@ -3734,7 +3848,7 @@ export default function EmployerPortal({
                         className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all border border-slate-300 flex items-center gap-2 cursor-pointer shadow-sm"
                       >
                         <Users className="w-4 h-4" />
-                        <span>Xem Danh Sách Ứng Viên ({applicants.length})</span>
+                        <span>Xem Danh Sách Ứng Viên ({validApplicants.length})</span>
                       </button>
                       <button
                         type="button"
@@ -3753,6 +3867,33 @@ export default function EmployerPortal({
               </div>
             ) : (
               <>
+                {/* Thanh chuyển đổi danh bạ ứng viên khớp với số đếm Sidebar */}
+                {contacts.length > 0 && (
+                  <div className="px-4 py-2.5 bg-white border-b border-slate-200 flex items-center gap-2 overflow-x-auto">
+                    <span className="text-xs font-bold text-slate-600 shrink-0">
+                      Danh bạ ứng viên ({contacts.length}):
+                    </span>
+                    {contacts.map((c) => {
+                      const activeContact = selectedContact?.id === c.id;
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => setSelectedContact(c)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 border ${
+                            activeContact
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                              : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                          }`}
+                        >
+                          <span className={`w-2 h-2 rounded-full ${c.online ? 'bg-emerald-400' : 'bg-slate-400'}`}></span>
+                          <span>{c.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
                 {/* Header chat: Tên sinh viên, Trạng thái, Nút Tạo tin nhắn mới, Camera WebRTC, Cờ báo cáo */}
                 <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -4084,8 +4225,9 @@ export default function EmployerPortal({
                               )}
 
                               {m.is_flagged && (
-                                <span className="inline-block mt-2 px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
-                                  ⚠️ Tin nhắn chứa từ khóa vi phạm: {Array.isArray(m.flagged_words) ? m.flagged_words.join(', ') : 'Cấm'}
+                                <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                  <span>Tin nhắn chứa từ khóa vi phạm: {Array.isArray(m.flagged_words) ? m.flagged_words.join(', ') : 'Cấm'}</span>
                                 </span>
                               )}
                             </div>
@@ -4115,16 +4257,16 @@ export default function EmployerPortal({
                       </div>
                     )}
 
-                    {/* Chế độ Chỉ Đọc (Read-Only) hoặc Form gửi tin nhắn (FR 2.7.1 & 2.7.2) */}
+                    {/* Chế độ Chỉ Đọc (Read-Only) hoặc Form gửi tin nhắn */}
                     {isChatReadOnly ? (
-                      <div className="p-4 bg-red-50 border-t border-red-200 flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0 border border-red-200">
+                      <div className="p-4 bg-rose-50 border-t border-rose-200 flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0 border border-rose-200">
                           <Lock className="w-5 h-5" />
                         </div>
                         <div className="flex-1 text-xs">
-                          <p className="font-bold text-red-700">Cuộc trò chuyện đang ở chế độ CHỈ ĐỌC (Read-Only)</p>
-                          <p className="text-xs text-slate-600 mt-0.5">
-                            Đơn ứng tuyển của sinh viên đã bị "Từ chối" hoặc "Đã hủy" (hoặc tài khoản đang bị khóa). Theo quy định ràng buộc FR 2.7.1, hệ thống không cho phép gửi thêm tin nhắn hay gọi điện.
+                          <p className="font-bold text-rose-800">Cuộc trò chuyện đang ở chế độ CHỈ ĐỌC</p>
+                          <p className="text-xs text-slate-700 mt-0.5">
+                            Đơn ứng tuyển của sinh viên đã bị "Từ chối" hoặc "Đã hủy" (hoặc tài khoản đang bị khóa). Hệ thống không cho phép gửi thêm tin nhắn hay gọi điện.
                           </p>
                         </div>
                       </div>
@@ -4180,50 +4322,50 @@ export default function EmployerPortal({
         )}
       </main>
 
-      {/* ======================= MODAL XEM HỒ SƠ ỨNG VIÊN & CV (UI-NTD-CAND-02 - 2.5.4, 2.5.5) ======================= */}
+      {/* ======================= MODAL XEM HỒ SƠ ỨNG VIÊN & CV ======================= */}
       {selectedApplicant && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-7xl w-full h-[90vh] flex flex-col text-slate-800 shadow-2xl overflow-hidden">
             {/* Header Modal */}
-            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <div className="p-4 sm:p-5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
               <div>
                 <h3 className="text-base font-black text-slate-900">
                   Hồ Sơ Ứng Viên: {selectedApplicant.application_snapshot?.student_name || selectedApplicant.student_name || 'Ứng viên'}
                 </h3>
-                <p className="text-xs text-sky-400 font-semibold mt-0.5">Vị trí: {selectedApplicant.job_title}</p>
+                <p className="text-xs text-blue-700 font-bold mt-0.5">Vị trí: {selectedApplicant.job_title}</p>
               </div>
               <button 
                 type="button" 
                 onClick={() => setSelectedApplicant(null)} 
-                className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Thân Modal: Chi Tiết Ứng Viên & Tệp CV Đính Kèm (FR 2.5.3 & 2.5.4) */}
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-800 overflow-hidden">
+            {/* Thân Modal: Chi Tiết Ứng Viên & Tệp CV Đính Kèm */}
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-200 overflow-hidden">
               
-              {/* NỬA TRÁI: HỒ SƠ CV ỨNG VIÊN TRỰC DIỆN (FR 2.5.3, 2.5.4) */}
+              {/* NỬA TRÁI: HỒ SƠ CV ỨNG VIÊN TRỰC DIỆN */}
               <div className="p-6 bg-slate-50 flex flex-col space-y-4 overflow-y-auto">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-blue-600/20 text-sky-400">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-200 gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="p-2 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 shrink-0">
                       <FileText className="w-5 h-5" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Hồ Sơ Năng Lực Ứng Viên</h4>
-                      <p className="text-xs text-slate-400 font-mono truncate max-w-[220px]">
+                      <p className="text-xs text-slate-600 font-mono truncate max-w-[220px]">
                         {selectedApplicant.application_snapshot?.cv_name || 'CV_UngVien.pdf'}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
                       type="button"
                       onClick={() => handleDownloadApplicantCv(selectedApplicant)}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md cursor-pointer transition-all"
+                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-sm cursor-pointer transition-all whitespace-nowrap"
                       title="Tải tệp PDF CV về máy tính"
                     >
                       <Download className="w-3.5 h-3.5" />
@@ -4232,7 +4374,7 @@ export default function EmployerPortal({
                     <button
                       type="button"
                       onClick={() => setApplicantCvViewer(selectedApplicant)}
-                      className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 cursor-pointer"
+                      className="p-2 rounded-xl bg-white hover:bg-blue-50 text-blue-700 border border-slate-300 cursor-pointer"
                       title="Xem toàn màn hình"
                     >
                       <Eye className="w-4 h-4" />
@@ -4240,47 +4382,47 @@ export default function EmployerPortal({
                   </div>
                 </div>
 
-                {/* Khung nội dung chi tiết bản trích xuất CV cố định lưu tại thời điểm nộp (FR 1.5.6) */}
-                <div className="flex-1 rounded-2xl bg-white border border-slate-200 p-5 space-y-4 text-xs text-slate-700t-slate-200">
-                  <div className="flex items-center gap-3 pb-3 border-b border-slate-800">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-sky-500 text-white font-black text-lg flex items-center justify-center shadow-md">
+                {/* Khung nội dung chi tiết bản trích xuất CV */}
+                <div className="flex-1 rounded-2xl bg-white border border-slate-200 p-5 space-y-4 text-xs text-slate-800 shadow-xs">
+                  <div className="flex items-center gap-3 pb-3 border-b border-slate-200">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-sky-500 text-white font-black text-lg flex items-center justify-center shadow-sm shrink-0">
                       {(selectedApplicant.application_snapshot?.student_name || selectedApplicant.student_name || 'U').charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <h3 className="text-sm font-bold text-white">{selectedApplicant.application_snapshot?.student_name || selectedApplicant.student_name || 'Ứng viên'}</h3>
-                      <p className="text-sky-400 text-xs font-semibold">{selectedApplicant.application_snapshot?.major || 'Chuyên ngành'}</p>
-                      <p className="text-xs text-slate-500">{selectedApplicant.application_snapshot?.university || 'Trường Đại học/Cao đẳng'}</p>
+                      <h3 className="text-sm font-bold text-slate-900">{selectedApplicant.application_snapshot?.student_name || selectedApplicant.student_name || 'Ứng viên'}</h3>
+                      <p className="text-blue-700 text-xs font-bold">{selectedApplicant.application_snapshot?.major || 'Chuyên ngành'}</p>
+                      <p className="text-xs text-slate-600">{selectedApplicant.application_snapshot?.university || 'Trường Đại học/Cao đẳng'}</p>
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Thông Tin Liên Hệ</span>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
+                    <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Thông Tin Liên Hệ</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                       <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                        <span className="text-slate-500 block text-xs">Số điện thoại:</span>
-                        <span className="font-mono font-bold text-white">{selectedApplicant.application_snapshot?.phone || 'Chưa cập nhật'}</span>
+                        <span className="text-slate-600 block text-xs">Số điện thoại:</span>
+                        <span className="font-mono font-bold text-slate-900">{selectedApplicant.application_snapshot?.phone || 'Chưa cập nhật'}</span>
                       </div>
                       <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                        <span className="text-slate-500 block text-xs">Email sinh viên:</span>
-                        <span className="font-mono font-bold text-white truncate block">{selectedApplicant.student_email || selectedApplicant.application_snapshot?.email || 'Chưa cập nhật'}</span>
+                        <span className="text-slate-600 block text-xs">Email sinh viên:</span>
+                        <span className="font-mono font-bold text-slate-900 truncate block">{selectedApplicant.student_email || selectedApplicant.application_snapshot?.email || 'Chưa cập nhật'}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Mục Tiêu & Điểm Mạnh</span>
-                    <p className="text-xs text-slate-300 leading-relaxed p-3 rounded-xl bg-slate-50 border border-slate-200-800">
+                    <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Mục Tiêu & Điểm Mạnh</span>
+                    <p className="text-xs text-slate-800 leading-relaxed p-3 rounded-xl bg-slate-50 border border-slate-200">
                       Sinh viên năng nổ, có tinh thần trách nhiệm cao, sẵn sàng làm việc xoay ca linh hoạt và cam kết gắn bó lâu dài tại môi trường chuyên nghiệp.
                     </p>
                   </div>
 
                   <div className="space-y-1">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Kỹ Năng Thực Tế</span>
+                    <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Kỹ Năng Thực Tế</span>
                     <div className="flex flex-wrap gap-1.5">
-                      <span className="px-2 py-0.5 rounded-md bg-blue-500/20 text-sky-300 border border-blue-500/30 text-xs">Giao tiếp & Phục vụ</span>
-                      <span className="px-2 py-0.5 rounded-md bg-blue-500/20 text-sky-300 border border-blue-500/30 text-xs">Thao tác máy POS</span>
-                      <span className="px-2 py-0.5 rounded-md bg-blue-500/20 text-sky-300 border border-blue-500/30 text-xs">Đúng giờ & Kỷ luật</span>
-                      <span className="px-2 py-0.5 rounded-md bg-blue-500/20 text-sky-300 border border-blue-500/30 text-xs">Tiếng Anh giao tiếp cơ bản</span>
+                      <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-200 font-semibold text-xs">Giao tiếp & Phục vụ</span>
+                      <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-200 font-semibold text-xs">Thao tác máy POS</span>
+                      <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-200 font-semibold text-xs">Đúng giờ & Kỷ luật</span>
+                      <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 border border-blue-200 font-semibold text-xs">Tiếng Anh giao tiếp cơ bản</span>
                     </div>
                   </div>
                 </div>
@@ -4288,27 +4430,27 @@ export default function EmployerPortal({
 
               {/* NỬA PHẢI: KHUNG XEM TÀI LIỆU CV & THÔNG TIN ỨNG TUYỂN */}
               <div className="p-6 bg-white flex flex-col space-y-4 overflow-y-auto">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                  <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-sky-400" />
+                <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-blue-600" />
                     <span>Tài Liệu CV & Cam Kết Ứng Tuyển</span>
                   </h4>
-                  <span className="text-xs text-slate-500 font-mono">Định dạng .PDF hợp lệ (≤ 10MB)</span>
+                  <span className="text-xs text-slate-600 font-mono">Định dạng .PDF hợp lệ (≤ 10MB)</span>
                 </div>
                 
                 <div className="flex-1 flex flex-col space-y-4">
                   {/* Card CV info */}
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-400 flex items-center justify-center font-bold text-xs border border-red-500/20">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-700 flex items-center justify-center font-bold text-xs border border-rose-200 shrink-0">
                           PDF
                         </div>
-                        <div>
-                          <p className="text-xs font-bold text-white truncate max-w-[200px]">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-900 truncate max-w-[200px]">
                             {selectedApplicant.application_snapshot?.cv_name || 'CV_UngVien_PartTime.pdf'}
                           </p>
-                          <p className="text-xs text-slate-400 mt-0.5">
+                          <p className="text-xs text-slate-600 mt-0.5">
                             Bản sao hồ sơ cố định lưu tại thời điểm nộp đơn
                           </p>
                         </div>
@@ -4316,22 +4458,22 @@ export default function EmployerPortal({
                       <button
                         type="button"
                         onClick={() => setApplicantCvViewer(selectedApplicant)}
-                        className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold font-bold text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
+                        className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-900 font-bold text-xs inline-flex items-center gap-1.5 transition-all shadow-xs cursor-pointer whitespace-nowrap shrink-0"
                       >
                         <Eye className="w-3.5 h-3.5" />
                         <span>Xem Toàn Màn Hình</span>
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80 text-xs">
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200 text-xs">
                       <div>
-                        <span className="text-slate-500 text-xs block">Thời gian nộp đơn:</span>
-                        <span className="text-slate-300 font-mono">{selectedApplicant.applied_at || 'Gần đây'}</span>
+                        <span className="text-slate-600 text-xs block">Thời gian nộp đơn:</span>
+                        <span className="text-slate-900 font-semibold font-mono">{selectedApplicant.applied_at || 'Gần đây'}</span>
                       </div>
                       <div>
-                        <span className="text-slate-500 text-xs block">Xác thực tệp:</span>
-                        <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" /> Đã kiểm duyệt PDF
+                        <span className="text-slate-600 text-xs block">Xác thực tệp:</span>
+                        <span className="text-emerald-700 font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Đã kiểm duyệt PDF
                         </span>
                       </div>
                     </div>
@@ -4339,21 +4481,21 @@ export default function EmployerPortal({
 
                   {/* Cam kết của ứng viên */}
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                    <h5 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-sky-400" />
+                    <h5 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
                       <span>Cam Kết Nhận Ca & Kỷ Luật Sinh Viên</span>
                     </h5>
-                    <ul className="space-y-1.5 text-xs text-slate-400">
+                    <ul className="space-y-1.5 text-xs text-slate-700">
                       <li className="flex items-start gap-2">
-                        <span className="text-emerald-400 font-bold">✓</span>
+                        <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                         <span>Cam kết tuân thủ đúng khung giờ ca làm đã đăng ký, không đi muộn hoặc về sớm.</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="text-emerald-400 font-bold">✓</span>
+                        <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                         <span>Chấp hành nghiêm chỉnh nội quy an toàn lao động, văn hóa phục vụ của doanh nghiệp.</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <span className="text-emerald-400 font-bold">✓</span>
+                        <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                         <span>Sẵn sàng tham gia đánh giá chất lượng 2 chiều minh bạch sau khi hoàn thành ca làm.</span>
                       </li>
                     </ul>
@@ -4361,9 +4503,9 @@ export default function EmployerPortal({
 
                   {/* Khung xem nhanh tài liệu */}
                   <div className="flex-1 min-h-[160px] rounded-2xl bg-slate-50 border border-slate-200 p-4 flex flex-col items-center justify-center text-center">
-                    <FileText className="w-10 h-10 text-slate-600 mb-2" />
-                    <p className="text-xs font-bold text-slate-300">Tệp Hồ Sơ Ứng Tuyển Sẵn Sàng</p>
-                    <p className="text-xs text-slate-500 max-w-xs mt-1">
+                    <FileText className="w-10 h-10 text-blue-600 mb-2" />
+                    <p className="text-xs font-bold text-slate-900">Tệp Hồ Sơ Ứng Tuyển Sẵn Sàng</p>
+                    <p className="text-xs text-slate-600 max-w-xs mt-1">
                       Nhấn vào nút "Xem Toàn Màn Hình" hoặc "Tải Về Máy" để đọc toàn bộ nội dung PDF chi tiết của sinh viên.
                     </p>
                   </div>
@@ -4372,11 +4514,11 @@ export default function EmployerPortal({
 
             </div>
 
-            {/* DƯỚI LÀ CÁC NÚT THAO TÁC: DUYỆT / TỪ CHỐI / NHẮN TIN / BÁO CÁO (2.5.5, 2.5.6) */}
+            {/* DƯỚI LÀ CÁC NÚT THAO TÁC: DUYỆT / TỪ CHỐI / NHẮN TIN / BÁO CÁO */}
             <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-400 font-mono">
-                  Trạng thái: <strong className="text-white uppercase">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="text-xs text-slate-700 font-mono">
+                  Trạng thái: <strong className="text-slate-900 uppercase">
                     {selectedApplicant.application_status === 'accepted' ? 'ĐÃ TRÚNG TUYỂN' :
                      selectedApplicant.application_status === 'rejected' ? 'ĐÃ TỪ CHỐI' :
                      selectedApplicant.application_status === 'interview' ? 'MỜI PHỎNG VẤN' : 'CHỜ XÉT DUYỆT'}
@@ -4389,13 +4531,12 @@ export default function EmployerPortal({
                     handleStartChatWithApplicant(selectedApplicant);
                     setSelectedApplicant(null);
                   }}
-                  className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold text-xs inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
                   <span>Nhắn Tin Tuyển Dụng</span>
                 </button>
 
-                {/* Báo cáo vi phạm: Ràng buộc nghiêm ngặt chỉ mở khi application_status === 'accepted' */}
                 {selectedApplicant.application_status === 'accepted' ? (
                   <button
                     type="button"
@@ -4407,18 +4548,18 @@ export default function EmployerPortal({
                         application_id: selectedApplicant._id
                       });
                     }}
-                    className="px-3 py-1.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 font-bold text-xs flex items-center gap-1.5 cursor-pointer"
-                    title="Báo cáo vi phạm đối với ứng viên đã duyệt (ví dụ: bùng việc, vô trách nhiệm)"
+                    className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                    title="Báo cáo vi phạm đối với ứng viên đã duyệt"
                   >
-                    <Flag className="w-3.5 h-3.5 text-red-400" />
+                    <Flag className="w-3.5 h-3.5 text-rose-600" />
                     <span>Báo Cáo Vi Phạm</span>
                   </button>
                 ) : (
                   <span 
-                    className="px-2.5 py-1 rounded-xl bg-slate-800/40 text-slate-600 text-xs font-medium border border-slate-800 cursor-not-allowed flex items-center gap-1"
-                    title="Chỉ cho phép báo cáo đối với ứng viên đã có trạng thái 'Đã duyệt' theo quy định BR-NTD-06"
+                    className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 text-xs font-semibold border border-slate-300 cursor-not-allowed inline-flex items-center gap-1.5 whitespace-nowrap"
+                    title="Chỉ cho phép báo cáo đối với ứng viên đã có trạng thái 'Đã duyệt'"
                   >
-                    <Flag className="w-3.5 h-3.5 text-slate-600" />
+                    <Flag className="w-3.5 h-3.5 text-slate-500" />
                     <span>Báo Cáo (Khóa)</span>
                   </span>
                 )}
@@ -4441,10 +4582,10 @@ export default function EmployerPortal({
                       }
                     });
                   }}
-                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-lg shadow-red-950/60 cursor-pointer flex items-center gap-2"
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm cursor-pointer inline-flex items-center gap-2 whitespace-nowrap"
                 >
                   <X className="w-4 h-4" />
-                  <span>Từ Chối (Đỏ)</span>
+                  <span>Từ Chối</span>
                 </button>
 
                 <button
@@ -4452,10 +4593,10 @@ export default function EmployerPortal({
                   onClick={() => {
                     handleUpdateApplicantStatus(selectedApplicant._id, 'accepted', 'Nhà tuyển dụng phê duyệt trúng tuyển');
                   }}
-                  className="px-7 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-lg shadow-emerald-950/60 cursor-pointer flex items-center gap-2"
+                  className="px-7 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-sm cursor-pointer inline-flex items-center gap-2 whitespace-nowrap"
                 >
                   <Check className="w-4 h-4" />
-                  <span>Duyệt Hồ Sơ (Xanh)</span>
+                  <span>Duyệt Hồ Sơ</span>
                 </button>
               </div>
             </div>
@@ -4464,38 +4605,38 @@ export default function EmployerPortal({
         </div>
       )}
 
-      {/* ======================= MODAL BÁO CÁO VI PHẠM (FR 2.5.6 & 2.7.5) ======================= */}
+      {/* ======================= MODAL BÁO CÁO VI PHẠM ======================= */}
       {reportModalData && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white border border-red-200 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow- text-slate-8002xl space-y-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white border border-rose-200 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-slate-800 space-y-4">
             <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2 text-red-400">
+              <div className="flex items-center gap-2 text-rose-600">
                 <AlertTriangle className="w-5 h-5 shrink-0" />
-                <h3 className="text-sm font-black text-slate-900">Báo Cáo Vi Phạm (Ticket)</h3>
+                <h3 className="text-base font-black text-slate-900">Báo Cáo Vi Phạm</h3>
               </div>
               <button 
                 type="button" 
                 onClick={() => setReportModalData(null)} 
-                className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="p-1 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-300">
-              Đối tượng: <strong className="text-white">{reportModalData.target_title}</strong>
+            <p className="text-xs sm:text-sm text-slate-700">
+              Đối tượng: <strong className="text-slate-900">{reportModalData.target_title}</strong>
             </p>
 
             <form onSubmit={handleReportSubmit} className="space-y-3">
               {reportModalData.type === 'applicant' && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
-                    Lý do khiếu nại vi phạm (FR 2.5.6) *
+                  <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1">
+                    Lý do khiếu nại vi phạm *
                   </label>
                   <select
                     value={reportReasonType}
                     onChange={(e) => setReportReasonType(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-red-500 mb-2 font-medium"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-900 outline-none focus:border-rose-500 mb-2 font-medium"
                   >
                     <option value="Bùng việc không lý do / Không đến nhận việc">Bùng việc không lý do / Không đến nhận việc</option>
                     <option value="Vô trách nhiệm / Tự ý bỏ ca">Vô trách nhiệm / Tự ý bỏ ca làm việc giữa chừng</option>
@@ -4507,8 +4648,8 @@ export default function EmployerPortal({
               )}
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Mô tả chi tiết nội dung khiếu nại gửi Quản trị viên (FR 3.8.2) *
+                <label className="block text-xs sm:text-sm font-bold text-slate-800 mb-1">
+                  Mô tả chi tiết nội dung khiếu nại gửi Quản trị viên *
                 </label>
                 <textarea
                   required
@@ -4516,12 +4657,12 @@ export default function EmployerPortal({
                   placeholder="Mô tả cụ thể vi phạm của sinh viên..."
                   value={reportReason}
                   onChange={(e) => setReportReason(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs text-slate-800 outline-none focus:border-red-500 leading-relaxed"
+                  className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs sm:text-sm text-slate-900 outline-none focus:border-rose-500 leading-relaxed"
                 />
               </div>
 
               {reportSuccessMsg && (
-                <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 text-xs">
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-semibold text-xs">
                   {reportSuccessMsg}
                 </div>
               )}
@@ -4530,13 +4671,13 @@ export default function EmployerPortal({
                 <button
                   type="button"
                   onClick={() => setReportModalData(null)}
-                  className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-lg shadow-red-950/60 cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm cursor-pointer"
                 >
                   Gửi Báo Cáo
                 </button>
@@ -4553,8 +4694,8 @@ export default function EmployerPortal({
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-base font-black text-slate-900">Đánh Giá Năng Lực Sinh Viên</h3>
-                <p className="text-xs text-sky-400 font-semibold mt-0.5">{reviewModalApp.application_snapshot?.student_name || reviewModalApp.student_name || 'Ứng viên'}</p>
-                <p className="text-xs text-slate-500">{reviewModalApp.job_title}</p>
+                <p className="text-xs text-blue-600 font-bold mt-0.5">{reviewModalApp.application_snapshot?.student_name || reviewModalApp.student_name || 'Ứng viên'}</p>
+                <p className="text-xs text-slate-600 font-medium">{reviewModalApp.job_title}</p>
               </div>
               <button 
                 type="button" 
@@ -4567,7 +4708,7 @@ export default function EmployerPortal({
 
             <form onSubmit={handleReviewStudentSubmit} className="space-y-4">
               <div className="space-y-1 text-center py-2">
-                <label className="block text-xs font-bold text-slate-300 mb-2">Chấm Điểm Đánh Giá</label>
+                <label className="block text-xs font-bold text-slate-800 mb-2">Chấm Điểm Đánh Giá</label>
                 <div className="flex items-center justify-center gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -4580,21 +4721,21 @@ export default function EmployerPortal({
                         className={`w-7 h-7 transition-colors ${
                           star <= reviewScore
                             ? 'fill-yellow-400 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]'
-                            : 'text-slate-700'
+                            : 'text-slate-300'
                         }`}
                       />
                     </button>
                   ))}
                 </div>
-                <span className="text-xs font-bold text-yellow-400 block mt-1">
+                <span className="text-xs font-bold text-amber-600 block mt-1">
                   {reviewScore}/5 sao
                 </span>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-bold text-slate-300">Nhận xét tác phong làm việc (&lt; 1.000 ký tự) *</label>
-                  <span className={`text-xs font-mono ${reviewNote.length >= 1000 ? 'text-red-400 font-bold' : 'text-slate-400'}`}>
+                  <label className="block text-xs font-bold text-slate-800">Nhận xét tác phong làm việc (&lt; 1.000 ký tự) *</label>
+                  <span className={`text-xs font-mono ${reviewNote.length >= 1000 ? 'text-red-500 font-bold' : 'text-slate-500'}`}>
                     {reviewNote.length} / 1.000 ký tự
                   </span>
                 </div>
@@ -4605,7 +4746,7 @@ export default function EmployerPortal({
                   placeholder="Nhận xét về tinh thần trách nhiệm, thái độ phục vụ khách hàng, đúng giờ..."
                   value={reviewNote}
                   onChange={(e) => setReviewNote(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs text-slate-800 outline-none focus:border-sky-500 leading-relaxed"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-xs text-slate-900 outline-none focus:border-blue-600 focus:bg-white leading-relaxed"
                 />
               </div>
 
@@ -4613,13 +4754,13 @@ export default function EmployerPortal({
                 <button
                   type="button"
                   onClick={() => setReviewModalApp(null)}
-                  className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white"
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-slate-950 text-xs font-black shadow-lg shadow-yellow-950/60 cursor-pointer"
+                  className="px-6 py-2.5 rounded-xl btn-primary-dimension text-xs font-bold shadow-md cursor-pointer transition-all"
                 >
                   Gửi Đánh Giá
                 </button>
@@ -4676,8 +4817,8 @@ export default function EmployerPortal({
               <p className="text-xs uppercase tracking-widest text-sky-400 font-bold mb-1">
                 Cuộc Gọi Phỏng Vấn Đến
               </p>
-              <h3 className="text-lg font-black text-slate-900">{incomingCall.caller_name || 'Ứng viên sinh viên'}</h3>
-              <p className="text-xs text-slate-400 mt-1">
+              <h3 className="text-lg font-black text-white">{incomingCall.caller_name || 'Ứng viên sinh viên'}</h3>
+              <p className="text-xs text-slate-200 mt-1">
                 Ứng viên đang gọi {incomingCall.call_type === 'video' ? 'Video phỏng vấn' : 'Thoại trực tiếp'}
               </p>
             </div>
@@ -4714,29 +4855,29 @@ export default function EmployerPortal({
         />
       )}
 
-      {/* ======================= MODAL XEM CHI TIẾT TIN TUYỂN DỤNG (FR 2.4.3) ======================= */}
+      {/* ======================= MODAL XEM CHI TIẾT TIN TUYỂN DỤNG ======================= */}
       {selectedJobDetail && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full max-h-[90vh] flex text-slate-800 flex-col shadow-2xl overflow-hidden animate-in zoom-in-95">
             {/* Header */}
             <div className="p-6 bg-slate-50 border-b border-slate-200 flex items-start justify-between gap-4">
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${
-                    selectedJobDetail.status === 'open' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                    selectedJobDetail.status === 'closed' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
-                    selectedJobDetail.status === 'filled' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' :
-                    'bg-slate-800 text-slate-400 border border-slate-700'
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider whitespace-nowrap ${
+                    selectedJobDetail.status === 'open' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                    selectedJobDetail.status === 'closed' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                    selectedJobDetail.status === 'filled' ? 'bg-purple-100 text-purple-800 border border-purple-300' :
+                    'bg-slate-100 text-slate-800 border border-slate-300'
                   }`}>
                     {selectedJobDetail.status === 'open' ? 'Đang tuyển' :
                      selectedJobDetail.status === 'closed' ? 'Tạm đóng' :
                      selectedJobDetail.status === 'filled' ? 'Đã nhận người' : 'Hoàn thành'}
                   </span>
-                  <span className="text-xs text-sky-400 font-semibold">{selectedJobDetail.category_name || selectedJobDetail.job_type || 'Dịch vụ & F&B'}</span>
+                  <span className="text-xs text-blue-700 font-bold">{selectedJobDetail.category_name || selectedJobDetail.job_type || 'Dịch vụ & F&B'}</span>
                 </div>
                 <h3 className="text-lg font-black text-slate-900">{selectedJobDetail.title}</h3>
-                <p className="text-xs text-slate-400 flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-slate-500" />
+                <p className="text-xs text-slate-600 flex items-center gap-1.5 font-medium">
+                  <MapPin className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   <span>{selectedJobDetail.address || 'Chi nhánh Quận 1'}, {selectedJobDetail.district || 'Quận 1'}, TP. Hồ Chí Minh</span>
                 </p>
               </div>
@@ -4744,7 +4885,7 @@ export default function EmployerPortal({
               <button
                 type="button"
                 onClick={() => setSelectedJobDetail(null)}
-                className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -4755,29 +4896,29 @@ export default function EmployerPortal({
               {/* Quick Info Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Mức Lương</span>
-                  <p className="text-xs font-black text-emerald-400 mt-0.5">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Mức Lương</span>
+                  <p className="text-xs sm:text-sm font-black text-emerald-700 mt-0.5">
                     {selectedJobDetail.salary_display || (selectedJobDetail.hourly_rate ? `${selectedJobDetail.hourly_rate.toLocaleString('vi-VN')} đ/h` : 'Lương thỏa thuận')}
                   </p>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Số Lượng Tuyển</span>
-                  <p className="text-xs font-black text-sky-400 mt-0.5">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Số Lượng Tuyển</span>
+                  <p className="text-xs sm:text-sm font-black text-blue-700 mt-0.5">
                     {selectedJobDetail.vacancies_count || 3} nhân sự
                   </p>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Hồ Sơ Hợp Lệ</span>
-                  <p className="text-xs font-black text-indigo-400 mt-0.5">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Hồ Sơ Hợp Lệ</span>
+                  <p className="text-xs sm:text-sm font-black text-indigo-700 mt-0.5">
                     {validApplicants.filter(a => a.job_id === selectedJobDetail._id || a.job_title === selectedJobDetail.title).length} ứng viên
                   </p>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Hình Thức Ca</span>
-                  <p className="text-xs font-black text-amber-400 mt-0.5">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">Hình Thức Ca</span>
+                  <p className="text-xs sm:text-sm font-black text-amber-700 mt-0.5">
                     {selectedJobDetail.working_time || 'Ca linh hoạt 4h-6h'}
                   </p>
                 </div>
@@ -4786,13 +4927,13 @@ export default function EmployerPortal({
               {/* Ca làm việc */}
               {selectedJobDetail.shifts && selectedJobDetail.shifts.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <Clock className="w-4 h-4 text-sky-400" />
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-blue-600" />
                     <span>Lịch & Khung Giờ Ca Làm Việc</span>
                   </h4>
                   <div className="flex flex-wrap gap-2">
                     {selectedJobDetail.shifts.map((s, idx) => (
-                      <span key={idx} className="px-3 py-1 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sky-300 text-xs font-medium">
+                      <span key={idx} className="px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs font-bold">
                         {typeof s === 'string' ? s : `${s.name || 'Ca'}: ${s.start_time || '08:00'} - ${s.end_time || '14:00'}`}
                       </span>
                     ))}
@@ -4802,31 +4943,31 @@ export default function EmployerPortal({
 
               {/* Mô tả công việc */}
               <div className="space-y-2">
-                <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider">Mô Tả Chi Tiết Công Việc (FR 2.4.3)</h4>
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-300 leading-relaxed whitespace-pre-line">
+                <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider">Mô Tả Chi Tiết Công Việc</h4>
+                <div className="p-4 rounded-2xl bg-white border border-slate-200 text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-line shadow-xs font-medium">
                   {selectedJobDetail.description || 'Chưa có thông tin mô tả chi tiết công việc.'}
                 </div>
               </div>
 
               {/* Yêu cầu ứng viên */}
               <div className="space-y-2">
-                <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider">Yêu Cầu Năng Lực & Trách Nhiệm</h4>
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-300 leading-relaxed whitespace-pre-line">
+                <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider">Yêu Cầu Năng Lực & Trách Nhiệm</h4>
+                <div className="p-4 rounded-2xl bg-white border border-slate-200 text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-line shadow-xs font-medium">
                   {selectedJobDetail.requirements || 'Yêu cầu ứng viên theo thỏa thuận khi phỏng vấn.'}
                 </div>
               </div>
 
               {/* Quyền lợi */}
               <div className="space-y-2">
-                <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider">Chế Độ Đãi Ngộ & Quyền Lợi</h4>
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-300 leading-relaxed whitespace-pre-line">
+                <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider">Chế Độ Đãi Ngộ & Quyền Lợi</h4>
+                <div className="p-4 rounded-2xl bg-white border border-slate-200 text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-line shadow-xs font-medium">
                   {selectedJobDetail.benefits || 'Mức lương và chế độ đãi ngộ theo thỏa thuận hợp đồng.'}
                 </div>
               </div>
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2">
               <button
                 type="button"
                 onClick={() => {
@@ -4834,9 +4975,9 @@ export default function EmployerPortal({
                   setSelectedJobDetail(null);
                   setActiveMenu('applicants');
                 }}
-                className="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold text-xs font-bold flex items-center gap-2 cursor-pointer shadow-md"
+                className="px-4 py-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-900 font-bold text-xs flex items-center gap-2 cursor-pointer shadow-xs whitespace-nowrap"
               >
-                <Users className="w-4 h-4" />
+                <Users className="w-4 h-4 text-blue-600" />
                 <span>Xem Hồ Sơ Ứng Viên ({validApplicants.filter(a => a.job_id === selectedJobDetail._id || a.job_title === selectedJobDetail.title).length})</span>
               </button>
 
@@ -4859,14 +5000,14 @@ export default function EmployerPortal({
                     });
                     setActiveMenu('post_job');
                   }}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold cursor-pointer shadow-xs whitespace-nowrap"
                 >
                   Chỉnh Sửa Tin
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedJobDetail(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs font-bold cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 text-xs font-bold cursor-pointer whitespace-nowrap"
                 >
                   Đóng
                 </button>
@@ -4876,22 +5017,22 @@ export default function EmployerPortal({
         </div>
       )}
 
-      {/* ======================= MODAL XEM CHI TIẾT ĐÁNH GIÁ (FR 2.6.3) ======================= */}
+      {/* ======================= MODAL XEM CHI TIẾT ĐÁNH GIÁ ======================= */}
       {selectedReviewDetail && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full shadow-2xl overflow text-slate-800-hidden animate-in zoom-in-95">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden text-slate-800 animate-in zoom-in-95">
             {/* Header */}
             <div className="p-6 bg-slate-50 border-b border-slate-200 flex items-start justify-between gap-4">
               <div>
-                <span className="text-xs uppercase tracking-wider font-bold text-sky-400 block mb-1">
-                  Đánh Giá 2 Chiều Doanh Nghiệp (FR 2.6.3)
+                <span className="text-xs uppercase tracking-wider font-bold text-blue-700 block mb-1">
+                  Đánh Giá 2 Chiều Doanh Nghiệp
                 </span>
                 <h3 className="text-base font-black text-slate-900">Chi Tiết Bài Nhận Xét Của Sinh Viên</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedReviewDetail(null)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                className="p-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -4906,10 +5047,10 @@ export default function EmployerPortal({
                     {(selectedReviewDetail.reviewer_name || selectedReviewDetail.student_name || 'L')[0]}
                   </div>
                   <div>
-                    <h4 className="text-xs font-black text-white">
+                    <h4 className="text-sm font-black text-slate-900">
                       {selectedReviewDetail.reviewer_name || selectedReviewDetail.student_name || 'Sinh viên'}
                     </h4>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-600 font-medium">
                       {selectedReviewDetail.job_title || 'Nhân viên Phục vụ Part-time'}
                     </p>
                   </div>
@@ -4923,7 +5064,7 @@ export default function EmployerPortal({
                         className={`w-4 h-4 ${
                           star <= (selectedReviewDetail.rating || selectedReviewDetail.score || 5)
                             ? 'fill-yellow-400 text-yellow-400'
-                            : 'text-slate-700'
+                            : 'text-slate-300'
                         }`}
                       />
                     ))}
@@ -4936,20 +5077,20 @@ export default function EmployerPortal({
 
               {/* Nội dung đầy đủ */}
               <div className="space-y-2">
-                <h5 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5 text-sky-400" />
+                <h5 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-blue-600" />
                   <span>Toàn Bộ Nội Dung Văn Bản Nhận Xét</span>
                 </h5>
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-200 leading-relaxed whitespace-pre-line shadow-inner min-h-[120px]">
+                <div className="p-4 rounded-2xl bg-white border border-slate-200 text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-line shadow-xs min-h-[120px] font-medium">
                   {selectedReviewDetail.comment || selectedReviewDetail.review_note || selectedReviewDetail.content || 
                    'Môi trường làm việc rất chuyên nghiệp, quản lý hỗ trợ sinh viên nhiệt tình, ca làm linh hoạt và thanh toán lương đúng hạn theo cam kết. Trải nghiệm làm việc rất tốt!'}
                 </div>
               </div>
 
               {/* Trạng thái xác thực */}
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between text-xs">
-                <span className="text-slate-400">Trạng thái hiển thị:</span>
-                <span className="font-bold text-emerald-400 flex items-center gap-1">
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-xs">
+                <span className="text-slate-700 font-semibold">Trạng thái hiển thị:</span>
+                <span className="font-bold text-emerald-700 flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   Đã công khai trên hồ sơ doanh nghiệp
                 </span>
@@ -4961,7 +5102,7 @@ export default function EmployerPortal({
               <button
                 type="button"
                 onClick={() => setSelectedReviewDetail(null)}
-                className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs sm:text-sm font-bold cursor-pointer transition-colors"
               >
                 Đóng
               </button>
@@ -4970,19 +5111,19 @@ export default function EmployerPortal({
         </div>
       )}
 
-      {/* ======================= MODAL TẠO TIN NHẮN MỚI & MỜI PHỎNG VẤN (FR 2.7.1 - 2.7.3) ======================= */}
+      {/* ======================= MODAL TẠO TIN NHẮN MỚI & MỜI PHỎNG VẤN ======================= */}
       {newChatModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full shadow-2xl overflow text-slate-800-hidden animate-in zoom-in-95">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden text-slate-800 animate-in zoom-in-95">
             {/* Header */}
             <div className="p-6 bg-slate-50 border-b border-slate-200 flex items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <div className="p-1.5 rounded-lg bg-sky-500/20 text-sky-400">
+                  <div className="p-1.5 rounded-lg bg-blue-100 text-blue-700">
                     <MessageSquarePlus className="w-4 h-4" />
                   </div>
-                  <span className="text-xs uppercase tracking-wider font-bold text-sky-400">
-                    Giao Tiếp Tuyển Dụng Trực Tiếp (FR 2.7.1)
+                  <span className="text-xs uppercase tracking-wider font-bold text-blue-700">
+                    Giao Tiếp Tuyển Dụng Trực Tiếp
                   </span>
                 </div>
                 <h3 className="text-base font-black text-slate-900">Tạo Tin Nhắn Mới / Mời Phỏng Vấn</h3>
@@ -4990,7 +5131,7 @@ export default function EmployerPortal({
               <button
                 type="button"
                 onClick={() => setNewChatModalOpen(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                className="p-1.5 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -5000,7 +5141,7 @@ export default function EmployerPortal({
             <form onSubmit={handleCreateNewChatSubmit} className="p-6 space-y-4">
               {/* Chọn Ứng Viên / Đơn Ứng Tuyển */}
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                <label className="block text-xs font-bold text-slate-800 mb-1.5">
                   Chọn Sinh Viên Đang Ứng Tuyển *
                 </label>
                 <select
@@ -5014,7 +5155,7 @@ export default function EmployerPortal({
                       setNewChatMessageText(`Kính gửi ${sName}, ${companyInfo?.company_name || 'Doanh nghiệp'} trân trọng mời bạn tham gia buổi phỏng vấn trực tuyến cho vị trí "${chosen.job_title}" tại phòng họp: ${meetUrl}. Vui lòng tham gia đúng giờ.`);
                     }
                   }}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 outline-none focus:border-sky-500 font-medium"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs text-slate-900 outline-none focus:border-blue-500 font-medium"
                 >
                   <option value="">-- Chọn hồ sơ ứng viên ({applicants.length} hồ sơ) --</option>
                   {applicants.map((a) => (
@@ -5029,7 +5170,7 @@ export default function EmployerPortal({
                 </select>
               </div>
 
-              {/* RÀNG BUỘC KIỂM TRA TRẠNG THÁI (FR 2.7.2): BỊ KHÓA NẾU TỪ CHỐI HOẶC ĐÃ HỦY */}
+              {/* RÀNG BUỘC KIỂM TRA TRẠNG THÁI: BỊ KHÓA NẾU TỪ CHỐI HOẶC ĐÃ HỦY */}
               {(() => {
                 const targetApp = applicants.find(a => a._id === newChatSelectedAppId);
                 const isBlocked = targetApp && (
@@ -5041,13 +5182,13 @@ export default function EmployerPortal({
 
                 if (isBlocked) {
                   return (
-                    <div className="p-4 rounded-2xl bg-red-950/40 border border-red-500/50 flex items-start gap-3 text-red-200">
-                      <Lock className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                    <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 flex items-start gap-3 text-rose-900">
+                      <Lock className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
                       <div className="space-y-1">
-                        <p className="text-xs font-bold text-white uppercase tracking-wider">
-                          Cuộc trò chuyện ở chế độ CHỈ ĐỌC (FR 2.7.2)
+                        <p className="text-xs font-bold text-rose-900 uppercase tracking-wider">
+                          Cuộc trò chuyện ở chế độ CHỈ ĐỌC
                         </p>
-                        <p className="text-xs leading-relaxed text-red-300">
+                        <p className="text-xs leading-relaxed text-rose-800">
                           Đơn ứng tuyển của sinh viên này đã ở trạng thái <strong>"{targetApp.application_status === 'rejected' ? 'Đã từ chối' : 'Đã hủy'}"</strong>.
                           Theo quy chuẩn bảo mật và quyền riêng tư, hệ thống khóa chiều gửi tin nhắn mới và chỉ cho phép xem lại lịch sử hội thoại trước đó.
                         </p>
@@ -5057,7 +5198,7 @@ export default function EmployerPortal({
                             handleStartChatWithApplicant(targetApp);
                             setNewChatModalOpen(false);
                           }}
-                          className="mt-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 font-bold text-xs flex items-center gap-1.5 cursor-pointer border border-slate-700"
+                          className="mt-2 px-3 py-1.5 rounded-xl bg-white hover:bg-rose-100 text-rose-900 font-bold text-xs flex items-center gap-1.5 cursor-pointer border border-rose-300 shadow-xs"
                         >
                           <Eye className="w-3.5 h-3.5" />
                           <span>Xem Lịch Sử Trò Chuyện Cũ</span>
@@ -5071,7 +5212,7 @@ export default function EmployerPortal({
                   <>
                     {/* Loại hình tin nhắn */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-bold text-slate-300">
+                      <label className="block text-xs font-bold text-slate-800">
                         Mục Đích Khởi Tạo Cuộc Trò Chuyện
                       </label>
                       <div className="grid grid-cols-2 gap-2">
@@ -5086,8 +5227,8 @@ export default function EmployerPortal({
                           }}
                           className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all ${
                             newChatType === 'text'
-                              ? 'bg-blue-600/20 border-blue-500 text-sky-400'
-                              : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900'
+                              ? 'bg-blue-50 border-blue-500 text-blue-800 shadow-xs'
+                              : 'bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50'
                           }`}
                         >
                           <MessageSquare className="w-4 h-4" />
@@ -5105,8 +5246,8 @@ export default function EmployerPortal({
                           }}
                           className={`p-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all ${
                             newChatType === 'interview'
-                              ? 'bg-purple-600/20 border-purple-500 text-purple-400'
-                              : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900'
+                              ? 'bg-purple-50 border-purple-500 text-purple-800 shadow-xs'
+                              : 'bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50'
                           }`}
                         >
                           <Video className="w-4 h-4" />
@@ -5118,11 +5259,11 @@ export default function EmployerPortal({
                     {/* Nội dung tin nhắn */}
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className="block text-xs font-bold text-slate-300">
-                          Nội Dung Tin Nhắn Gửi Đến Sinh Viên (1.8.3 & 1.9.1) *
+                        <label className="block text-xs font-bold text-slate-800">
+                          Nội Dung Tin Nhắn Gửi Đến Sinh Viên *
                         </label>
                         {newChatType === 'interview' && (
-                          <span className="text-xs text-purple-400 font-mono font-bold flex items-center gap-1">
+                          <span className="text-xs text-purple-700 font-mono font-bold flex items-center gap-1">
                             <Link className="w-3 h-3" />
                             Đã đính kèm liên kết họp trực tuyến
                           </span>
@@ -5134,25 +5275,25 @@ export default function EmployerPortal({
                         value={newChatMessageText}
                         onChange={(e) => setNewChatMessageText(e.target.value)}
                         placeholder="Nhập nội dung trao đổi hoặc liên kết phòng phỏng vấn..."
-                        className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs text-slate-800 outline-none focus:border-sky-500 leading-relaxed"
+                        className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 outline-none focus:border-blue-500 leading-relaxed"
                       />
                     </div>
 
-                    <div className="p-3 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-300 text-xs leading-relaxed">
-                      💡 Khi gửi, tin nhắn sẽ lập tức xuất hiện trong hộp thoại của sinh viên và kích hoạt chuông thông báo đẩy theo thời gian thực (FR 1.9.1).
+                    <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs leading-relaxed font-medium">
+                      Khi gửi, tin nhắn sẽ lập tức xuất hiện trong hộp thoại của sinh viên và kích hoạt chuông thông báo đẩy theo thời gian thực.
                     </div>
 
                     <div className="flex items-center justify-end gap-3 pt-2">
                       <button
                         type="button"
                         onClick={() => setNewChatModalOpen(false)}
-                        className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white cursor-pointer"
+                        className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs font-bold text-slate-800 cursor-pointer"
                       >
                         Hủy
                       </button>
                       <button
                         type="submit"
-                        className="px-6 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold text-xs font-bold shadow-lg shadow-blue-950/60 cursor-pointer flex items-center gap-2"
+                        className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md cursor-pointer flex items-center gap-2"
                       >
                         <Send className="w-3.5 h-3.5" />
                         <span>Khởi Tạo & Gửi Tin</span>

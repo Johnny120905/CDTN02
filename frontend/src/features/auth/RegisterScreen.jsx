@@ -210,27 +210,22 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
 
   return (
     <div className="min-h-screen bg-canvas-dimension text-slate-900 font-sans selection:bg-blue-600 selection:text-white flex flex-col justify-center items-center p-4 relative py-12">
-      
-      {/* Top back button */}
-      <div className="absolute top-6 left-6">
-        <button
-          onClick={() => {
-            const landingPath = role === 'employer' ? '/employer' : '/student';
-            if (window.history && window.history.pushState) window.history.pushState({}, '', landingPath);
-            onNavigate('landing', role);
-          }}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/90 hover:bg-white text-xs font-semibold text-slate-700 shadow-sm border border-slate-200 transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          <span>Về trang chủ {role === 'employer' ? 'Nhà tuyển dụng' : 'Sinh viên'}</span>
-        </button>
-      </div>
-
       <div className="w-full max-w-2xl">
         
-        {/* Brand Header */}
+        {/* Brand Header - Bấm vào logo để quay lại trang xem chế độ khách */}
         <div className="flex flex-col items-center mb-6">
-          <BrandLogo size="lg" />
+          <button
+            type="button"
+            onClick={() => {
+              const landingPath = role === 'employer' ? '/employer' : '/student';
+              if (window.history && window.history.pushState) window.history.pushState({}, '', landingPath);
+              onNavigate('landing', role);
+            }}
+            className="cursor-pointer hover:opacity-90 transition-opacity focus:outline-none"
+            title="Nhấn vào logo để quay lại trang xem chế độ khách"
+          >
+            <BrandLogo size="lg" />
+          </button>
         </div>
 
         {/* Card */}
@@ -248,7 +243,8 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <span>🎓 Sinh Viên</span>
+                <GraduationCap className="w-4 h-4" />
+                <span>Sinh Viên</span>
               </button>
               <button
                 type="button"
@@ -259,7 +255,8 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <span>💼 Doanh Nghiệp</span>
+                <Briefcase className="w-4 h-4" />
+                <span>Doanh Nghiệp</span>
               </button>
             </div>
           ) : (
@@ -545,17 +542,17 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-600 space-y-1">
               <p className="font-semibold text-slate-700">Yêu cầu bảo mật mật khẩu:</p>
               <div className="grid grid-cols-2 gap-1 text-xs">
-                <span className={pwChecks.length ? 'text-emerald-600 font-semibold' : 'text-slate-400'}>
-                  ✓ Tối thiểu 8 ký tự
+                <span className={pwChecks.length ? 'text-emerald-600 font-semibold flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
+                  <Check className="w-3.5 h-3.5 shrink-0" /> Tối thiểu 8 ký tự
                 </span>
-                <span className={pwChecks.hasUpper ? 'text-emerald-600 font-semibold' : 'text-slate-400'}>
-                  ✓ Chữ hoa (A-Z)
+                <span className={pwChecks.hasUpper ? 'text-emerald-600 font-semibold flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
+                  <Check className="w-3.5 h-3.5 shrink-0" /> Chữ hoa (A-Z)
                 </span>
-                <span className={pwChecks.hasLower ? 'text-emerald-600 font-semibold' : 'text-slate-400'}>
-                  ✓ Chữ thường (a-z)
+                <span className={pwChecks.hasLower ? 'text-emerald-600 font-semibold flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
+                  <Check className="w-3.5 h-3.5 shrink-0" /> Chữ thường (a-z)
                 </span>
-                <span className={pwChecks.hasSpecial ? 'text-emerald-600 font-semibold' : 'text-slate-400'}>
-                  ✓ Ký tự đặc biệt (@#$...)
+                <span className={pwChecks.hasSpecial ? 'text-emerald-600 font-semibold flex items-center gap-1' : 'text-slate-400 flex items-center gap-1'}>
+                  <Check className="w-3.5 h-3.5 shrink-0" /> Ký tự đặc biệt (@#$...)
                 </span>
               </div>
             </div>

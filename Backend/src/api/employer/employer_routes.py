@@ -1,3 +1,4 @@
+import os
 import time
 import uuid
 from flask import Blueprint, request, jsonify
@@ -144,18 +145,24 @@ def update_company_profile():
         except Exception:
             pass
 
+    existing_comp = comp_col.find_one({"employer_id": emp["_id"]}) or {}
     update_fields = {
-        "company_name": data.get("company_name", "Doanh nghiệp"),
-        "representative_name": data.get("representative_name", ""),
-        "branch_name": data.get("branch_name", ""),
-        "description": data.get("description", ""),
-        "scale": data.get("scale", "1-10"),
-        "address": data.get("address", ""),
-        "business_license_url": gpkd or data.get("business_license_url", ""),
-        "logo_url": logo or data.get("logo_url", ""),
-        "cover_image_url": cover or data.get("cover_image_url", "")
+        "company_name": data["company_name"] if "company_name" in data else existing_comp.get("company_name", "Doanh nghiệp"),
+        "representative_name": data["representative_name"] if "representative_name" in data else existing_comp.get("representative_name", ""),
+        "branch_name": data["branch_name"] if "branch_name" in data else existing_comp.get("branch_name", ""),
+        "description": data["description"] if "description" in data else existing_comp.get("description", ""),
+        "scale": data["scale"] if "scale" in data else existing_comp.get("scale", "1-10"),
+        "address": data["address"] if "address" in data else existing_comp.get("address", ""),
+        "business_license": data["business_license"] if "business_license" in data else existing_comp.get("business_license", ""),
+        "phone": data["phone"] if "phone" in data else existing_comp.get("phone", ""),
+        "website": data["website"] if "website" in data else existing_comp.get("website", ""),
+        "business_license_url": gpkd or (data["business_license_url"] if "business_license_url" in data else existing_comp.get("business_license_url", "")),
+        "logo_url": logo or (data["logo_url"] if "logo_url" in data else existing_comp.get("logo_url", "")),
+        "cover_image_url": cover or (data["cover_image_url"] if "cover_image_url" in data else existing_comp.get("cover_image_url", ""))
     }
-    comp_col.update_one({"employer_id": emp["_id"]}, {"$set": update_fields})
+    if "status" in data:
+        update_fields["status"] = data["status"]
+    comp_col.update_one({"employer_id": emp["_id"]}, {"$set": update_fields}, upsert=True)
     msg = "Cập nhật hồ sơ doanh nghiệp thành công!"
     if is_new_license:
         msg = "Cập nhật hồ sơ thành công! Giấy phép kinh doanh mới đã được ghi nhận. Tài khoản của bạn đã được chuyển sang trạng thái 'Chờ duyệt' để Quản trị viên xem xét lại."
@@ -276,9 +283,13 @@ def update_job(job_id):
             return jsonify({"success": False, "message": "Ảnh bìa Doanh nghiệp chỉ nhận định dạng ảnh .png, .jpg, .jpeg (≤ 10MB)!"}), 400
 
     update_fields = {}
-    for key in ["title", "category_id", "location", "description", "salary_min", "salary_max", "is_negotiable", "work_time", "is_open", "job_status"]:
+    for key in ["title", "category_id", "location", "description", "salary_min", "salary_max", "is_negotiable", "work_time", "is_open", "job_status", "status"]:
         if key in data:
             update_fields[key] = data[key]
+    if "job_status" in update_fields and "status" not in update_fields:
+        update_fields["status"] = update_fields["job_status"]
+    elif "status" in update_fields and "job_status" not in update_fields:
+        update_fields["job_status"] = update_fields["status"]
 
     job_col.update_one({"_id": job_id}, {"$set": update_fields})
     return jsonify({"success": True, "message": "Cập nhật tin tuyển dụng thành công!"})
@@ -307,7 +318,7 @@ def toggle_job_status(job_id):
         if accepted_count == 0:
             return jsonify({"success": False, "message": "Bắt buộc có ít nhất 1 đơn ứng tuyển Đã duyệt để chốt danh sách Đã nhận người."}), 400
         
-        job_col.update_one({"_id": job_id}, {"$set": {"status": "filled", "is_open": False}})
+        job_col.update_one({"_id": job_id}, {"$set": {"status": "filled", "job_status": "filled", "is_open": False}})
         # Tự động chuyển toàn bộ đơn đang Chờ duyệt sang Từ chối kèm lý do "Tin đã đủ người"
         app_col.update_many(
             {"job_id": job_id, "application_status": {"$in": ["pending", "Chờ duyệt"]}},
@@ -316,27 +327,27 @@ def toggle_job_status(job_id):
                 "$push": {"status_history": {"status": "rejected", "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"), "note": "Tin đã đủ người"}}
             }
         )
-        return jsonify({"success": True, "status": "filled", "message": "Đã chốt danh sách ca làm (Đã nhận đủ người)."})
+        return jsonify({"success": True, "status": "filled", "job_status": "filled", "is_open": False, "message": "Đã chốt danh sách ca làm (Đã nhận đủ người)."})
 
     elif target_status == "completed":
         # Chuyển trạng thái sang Hoàn thành (kết thúc công việc vĩnh viễn và kích hoạt đánh giá 2 chiều)
-        job_col.update_one({"_id": job_id}, {"$set": {"status": "completed", "is_open": False, "completed_at": time.strftime("%Y-%m-%d %H:%M:%S")}})
-        return jsonify({"success": True, "status": "completed", "message": "Đã xác nhận hoàn thành ca làm và kết thúc công việc thành công!"})
+        job_col.update_one({"_id": job_id}, {"$set": {"status": "completed", "job_status": "completed", "is_open": False, "completed_at": time.strftime("%Y-%m-%d %H:%M:%S")}})
+        return jsonify({"success": True, "status": "completed", "job_status": "completed", "is_open": False, "message": "Đã xác nhận hoàn thành ca làm và kết thúc công việc thành công!"})
 
     elif target_status == "closed":
-        job_col.update_one({"_id": job_id}, {"$set": {"status": "closed", "is_open": False}})
-        return jsonify({"success": True, "status": "closed", "is_open": False, "message": "Đã tạm đóng tin tuyển dụng."})
+        job_col.update_one({"_id": job_id}, {"$set": {"status": "closed", "job_status": "closed", "is_open": False}})
+        return jsonify({"success": True, "status": "closed", "job_status": "closed", "is_open": False, "message": "Đã tạm đóng tin tuyển dụng."})
 
     elif target_status == "open":
-        job_col.update_one({"_id": job_id}, {"$set": {"status": "open", "is_open": True}})
-        return jsonify({"success": True, "status": "open", "is_open": True, "message": "Đã mở lại tin tuyển dụng."})
+        job_col.update_one({"_id": job_id}, {"$set": {"status": "open", "job_status": "open", "is_open": True}})
+        return jsonify({"success": True, "status": "open", "job_status": "open", "is_open": True, "message": "Đã mở lại tin tuyển dụng."})
 
     # Fallback legacy 2-way toggle
     new_status = not job.get("is_open", True)
     status_label = "open" if new_status else "closed"
-    job_col.update_one({"_id": job_id}, {"$set": {"is_open": new_status, "status": status_label}})
+    job_col.update_one({"_id": job_id}, {"$set": {"is_open": new_status, "status": status_label, "job_status": status_label}})
     msg = "Đã mở lại tin tuyển dụng." if new_status else "Đã đóng nhận hồ sơ tin tuyển dụng."
-    return jsonify({"success": True, "is_open": new_status, "status": status_label, "message": msg})
+    return jsonify({"success": True, "is_open": new_status, "status": status_label, "job_status": status_label, "message": msg})
 
 # 3. Applicant Tracking System - ATS (FR 2.5)
 @employer_bp.route("/applicants", methods=["GET"])
@@ -418,6 +429,20 @@ def update_applicant_status(app_id):
     })
 
     return jsonify({"success": True, "message": f"Đã cập nhật trạng thái ứng viên sang: {new_status}"})
+
+@employer_bp.route("/applicants/<app_id>", methods=["DELETE"])
+@role_required("employer")
+def delete_employer_applicant(app_id):
+    user = request.current_user
+    emp = get_employer_record(user["_id"])
+    app_col = db_manager.get_collection("applications")
+    app = app_col.find_one({"_id": app_id, "$or": [{"employer_id": emp["_id"]}, {"employer_id": user["_id"]}]})
+    if not app:
+        return jsonify({"success": False, "message": "Không tìm thấy hồ sơ ứng viên cần xóa."}), 404
+
+    app_col.delete_one({"_id": app_id})
+    db_manager.get_collection("reviews").delete_many({"application_id": app_id})
+    return jsonify({"success": True, "message": "Đã xóa hồ sơ ứng viên thành công!"})
 
 # 4. Employer Reviews (FR 2.6)
 @employer_bp.route("/reviews", methods=["POST"])
@@ -553,9 +578,22 @@ def update_employer_review(rev_id):
         {"_id": rev_id},
         {"$set": {"rating": rating, "comment": comment, "updated_at": time.strftime("%Y-%m-%d %H:%M:%S")}}
     )
-    return jsonify({"success": True, "message": "Đã cập nhật đánh giá sinh viên."})
+    return jsonify({"success": True, "message": "Đã cập nhật đánh giá sinh viên thành công!"})
 
-# 5. Delete Job (FR 2.4.8)
+@employer_bp.route("/reviews/<rev_id>", methods=["DELETE"])
+@role_required("employer")
+def delete_employer_review(rev_id):
+    user = request.current_user
+    emp = get_employer_record(user["_id"])
+    rev_col = db_manager.get_collection("reviews")
+    rev = rev_col.find_one({"_id": rev_id, "$or": [{"reviewer_id": user["_id"]}, {"reviewer_id": emp["_id"]}]})
+    if not rev:
+        return jsonify({"success": False, "message": "Không tìm thấy đánh giá cần xóa."}), 404
+
+    rev_col.delete_one({"_id": rev_id})
+    return jsonify({"success": True, "message": "Đã xóa đánh giá năng lực sinh viên thành công!"})
+
+# 5. Delete Job
 @employer_bp.route("/jobs/<job_id>", methods=["DELETE"])
 @role_required("employer")
 def delete_employer_job(job_id):
@@ -566,16 +604,11 @@ def delete_employer_job(job_id):
     if not job:
         return jsonify({"success": False, "message": "Không tìm thấy tin tuyển dụng."}), 404
 
-    # Ràng buộc FR 2.4.8: Không xóa tin đã có lượt nộp đơn > 0 hoặc lượt báo cáo > 0
-    app_col = db_manager.get_collection("applications")
-    rep_col = db_manager.get_collection("reports")
-    app_count = app_col.count_documents({"job_id": job_id})
-    rep_count = rep_col.count_documents({"target_id": job_id})
-    if app_count > 0 or rep_count > 0:
-        return jsonify({"success": False, "message": f"Không thể xóa tin tuyển dụng đã có {app_count} lượt nộp đơn hoặc {rep_count} báo cáo vi phạm."}), 400
-
+    db_manager.get_collection("bookmarks").delete_many({"job_id": job_id})
+    db_manager.get_collection("applications").delete_many({"job_id": job_id})
+    db_manager.get_collection("reports").delete_many({"target_id": job_id})
     job_col.delete_one({"_id": job_id})
-    return jsonify({"success": True, "message": "Đã xóa tin tuyển dụng thành công."})
+    return jsonify({"success": True, "message": "Đã xóa tin tuyển dụng thành công!"})
 
 # 6. Notifications (FR 2.8)
 @employer_bp.route("/notifications", methods=["GET"])

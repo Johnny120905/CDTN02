@@ -12,15 +12,17 @@ export default function DocumentViewerModal({
   onDownloadSuccess
 }) {
   const printAreaRef = useRef(null);
-  const [viewMode, setViewMode] = useState(data.fileUrl ? 'file' : 'a4');
+  const [viewMode, setViewMode] = useState(type === 'gpkd' ? 'a4' : (data.fileUrl ? 'file' : 'a4'));
 
   React.useEffect(() => {
-    if (data.fileUrl) {
+    if (type === 'gpkd') {
+      setViewMode('a4');
+    } else if (data.fileUrl) {
       setViewMode('file');
     } else {
       setViewMode('a4');
     }
-  }, [data.fileUrl, isOpen]);
+  }, [data.fileUrl, isOpen, type]);
 
   if (!isOpen) return null;
 
@@ -92,30 +94,6 @@ export default function DocumentViewerModal({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {/* View Mode Toggle if GPKD */}
-            {type !== 'cv' && (
-              <div className="hidden sm:flex items-center bg-slate-100 border border-slate-200 rounded-xl p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('file')}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                    viewMode === 'file' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Tài liệu
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('a4')}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                    viewMode === 'a4' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  Chi Tiết GPKD (A4)
-                </button>
-              </div>
-            )}
-
             {/* Download File */}
             <button
               type="button"
@@ -125,16 +103,6 @@ export default function DocumentViewerModal({
             >
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">Tải về</span>
-            </button>
-
-            {/* Print document */}
-            <button
-              type="button"
-              onClick={handlePrint}
-              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer border border-slate-200"
-              title="In tài liệu"
-            >
-              <Printer className="w-4 h-4" />
             </button>
 
             {/* Close */}

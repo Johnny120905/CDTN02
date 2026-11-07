@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import BrandLogo from '../../shared/BrandLogo';
 import { 
-  Key, ShieldCheck, Mail, ArrowRight, ArrowLeft, 
-  Clock, Zap, AlertCircle, CheckCircle2, RefreshCw, Lock,
+  Key, KeyRound, ShieldCheck, Mail, ArrowRight, ArrowLeft, 
+  Clock, AlertCircle, CheckCircle2, RefreshCw, Lock,
   ChevronRight, Eye, EyeOff, Check, ChevronLeft
 } from 'lucide-react';
 
@@ -264,28 +264,13 @@ export default function ForgotPasswordScreen({ onNavigate, initialRole = 'studen
 
   return (
     <div className="min-h-screen bg-canvas-dimension text-slate-900 font-sans selection:bg-blue-600 selection:text-white flex flex-col justify-center items-center p-4 relative">
-      
-      {/* Top back button */}
-      <div className="absolute top-6 left-6">
-        <button
-          onClick={() => {
-            const loginPath = role === 'employer' ? '/employer/login' : '/student/login';
-            if (window.history && window.history.pushState) window.history.pushState({}, '', loginPath);
-            onNavigate('login', role);
-          }}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/90 hover:bg-white text-xs font-semibold text-slate-700 shadow-sm border border-slate-200 transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          <span>Về trang đăng nhập</span>
-        </button>
-      </div>
 
       {/* Floating OTP Simulator Toast */}
       {otpToast && (
         <div className="fixed top-6 right-6 z-50 bg-white border-2 border-emerald-500 rounded-2xl p-4 shadow-2xl max-w-sm w-full animate-in slide-in-from-top-4 duration-300">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2 text-emerald-700">
-              <Zap className="w-5 h-5" />
+              <KeyRound className="w-5 h-5" />
               <h4 className="text-xs font-bold uppercase">Mã OTP Xác Thực (10 Phút)</h4>
             </div>
             <button onClick={() => setOtpToast(null)} className="text-slate-400 hover:text-slate-600">
@@ -312,9 +297,20 @@ export default function ForgotPasswordScreen({ onNavigate, initialRole = 'studen
 
       <div className="w-full max-w-md">
         
-        {/* Brand Header */}
+        {/* Brand Header - Bấm vào logo để quay lại trang xem chế độ khách */}
         <div className="flex flex-col items-center mb-6">
-          <BrandLogo size="lg" />
+          <button
+            type="button"
+            onClick={() => {
+              const landingPath = role === 'employer' ? '/employer' : '/student';
+              if (window.history && window.history.pushState) window.history.pushState({}, '', landingPath);
+              onNavigate('landing', role);
+            }}
+            className="cursor-pointer hover:opacity-90 transition-opacity focus:outline-none"
+            title="Nhấn vào logo để quay lại trang xem chế độ khách"
+          >
+            <BrandLogo size="lg" />
+          </button>
         </div>
 
         {/* Card */}
@@ -368,7 +364,7 @@ export default function ForgotPasswordScreen({ onNavigate, initialRole = 'studen
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="email@example.com"
+                    placeholder={role === 'employer' ? 'Nhatuyendung@gmail.com' : 'Sinhvien@gmail.com'}
                     className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white"
                   />
                 </div>

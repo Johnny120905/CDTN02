@@ -3,12 +3,12 @@ import {
   Briefcase, Search, Filter, Bookmark, Send, Clock,
   CheckCircle2, XCircle, AlertCircle, FileText, Upload, Download,
   Trash2, Eye, Star, MessageSquare, Video, Bell, User,
-  KeyRound, ChevronRight, Check, AlertTriangle, RefreshCw,
+  KeyRound, ChevronRight, ChevronLeft, Check, AlertTriangle, RefreshCw,
   Phone, Mic, MicOff, Camera, CameraOff, Paperclip, Menu,
-  ArrowUpDown, X, Home, Sparkles, Activity, Flag, Edit,
+  ArrowUpDown, X, Home, Activity, Flag, Edit,
   MoreVertical, FileCheck, Building, HelpCircle, ChevronDown, Heart,
   Calendar, CalendarDays, CheckSquare, Layers, MapPin, DollarSign,
-  Coffee, ShieldCheck, ExternalLink, ArrowRight, CornerDownRight
+  ShieldCheck, ExternalLink, ArrowRight, CornerDownRight
 } from 'lucide-react';
 import { PROFESSION_SUGGESTIONS, filterSuggestions, getStatusBadge, HCM_DISTRICTS, HCM_BRANCH_SUGGESTIONS, JOB_CATEGORIES } from '../../shared/professionSuggestions';
 import {
@@ -43,6 +43,14 @@ export default function StudentPortal({
   };
   // Navigation State
   const [activeMenu, setActiveMenu] = useState(() => localStorage.getItem('partime_active_menu_student') || 'home'); // 'home' | 'jobs' | 'saved_jobs' | 'applications' | 'profile_cv' | 'reviews' | 'chat'
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => localStorage.getItem('partime_sidebar_collapsed_student') === 'true');
+  const toggleSidebarCollapse = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('partime_sidebar_collapsed_student', String(next));
+      return next;
+    });
+  };
   const [reviewTab, setReviewTab] = useState('pending'); // 'pending' | 'history'
   const [userStatus, setUserStatus] = useState(currentUser?.profile?.status || currentUser?.status || 'active');
 
@@ -68,6 +76,7 @@ export default function StudentPortal({
   const [jobs, setJobs] = useState([]);
   const [categories, setCategories] = useState([]);
   const [bookmarkedIds, setBookmarkedIds] = useState(new Set());
+  const [savedJobs, setSavedJobs] = useState([]);
   const [myApplications, setMyApplications] = useState([]);
   const [myResumes, setMyResumes] = useState([]);
   const [myReviews, setMyReviews] = useState([]);
@@ -195,7 +204,7 @@ export default function StudentPortal({
   const [chatPreviewDoc, setChatPreviewDoc] = useState(null);
   const chatFileInputRef = useRef(null);
 
-  const token = localStorage.getItem('partime_token');
+  const token = isGuestMode ? null : localStorage.getItem('partime_token');
   const headers = token ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } : { 'Content-Type': 'application/json' };
 
   // Sync section title with parent - 9 Mục Sinh Viên chuẩn
@@ -248,18 +257,24 @@ export default function StudentPortal({
     fetchAllData();
     const interval = setInterval(fetchAllData, 8000);
     return () => clearInterval(interval);
-  }, [token]);
+  }, [token, isGuestMode, currentUser]);
 
   const fetchAllData = () => {
     fetchJobs();
     fetchCategories();
-    if (token) {
+    if (!isGuestMode && token && currentUser) {
       fetchBookmarks();
       fetchApplications();
       fetchResumes();
       fetchReviews();
       fetchProfile();
       fetchChatMessages();
+    } else if (isGuestMode || !currentUser) {
+      setBookmarkedIds(new Set());
+      setSavedJobs([]);
+      setMyApplications([]);
+      setMyResumes([]);
+      setMyReviews([]);
     }
   };
 
@@ -434,6 +449,7 @@ export default function StudentPortal({
       const res = await fetch('/api/student/bookmarks', { headers });
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
+        setSavedJobs(data.data);
         setBookmarkedIds(new Set(data.data.map(j => j._id)));
       }
     } catch (err) {
@@ -528,6 +544,9 @@ export default function StudentPortal({
           university: data.data.university || '',
           major: data.data.major || ''
         });
+        if (data.data.free_schedule && typeof data.data.free_schedule === 'object') {
+          setFreeSchedule(prev => ({ ...prev, ...data.data.free_schedule }));
+        }
       }
     } catch (err) {
       console.warn('Could not fetch profile:', err);
@@ -574,7 +593,7 @@ export default function StudentPortal({
     setApplyModalJob(job);
   };
 
-  // Toggle Bookmark with pulsating heart (FR 1.5.4, 1.5.5)
+  // Toggle Bookmark with persistent backend sync & toast notification
   const handleToggleBookmark = async (jobId) => {
     if (isGuestMode || !token) {
       if (onShowBanner) onShowBanner('Vui lòng Đăng nhập tài khoản Sinh viên để lưu việc làm yêu thích!', 'error');
@@ -582,17 +601,35 @@ export default function StudentPortal({
       return;
     }
     const isSaved = bookmarkedIds.has(jobId);
-    // Optimistic
     const next = new Set(bookmarkedIds);
-    if (isSaved) next.delete(jobId);
-    else next.add(jobId);
+    if (isSaved) {
+      next.delete(jobId);
+      setSavedJobs(prev => prev.filter(j => j._id !== jobId));
+    } else {
+      next.add(jobId);
+      const foundJob = jobs.find(j => j._id === jobId);
+      if (foundJob) {
+        setSavedJobs(prev => prev.some(j => j._id === jobId) ? prev : [foundJob, ...prev]);
+      }
+    }
     setBookmarkedIds(next);
 
     try {
       const method = isSaved ? 'DELETE' : 'POST';
-      await fetch(`/api/student/bookmarks/${jobId}`, { method, headers });
+      const res = await fetch(`/api/student/bookmarks/${jobId}`, { method, headers });
+      const data = await res.json();
+      if (data.success) {
+        notify(
+          data.message || (isSaved ? 'Đã xóa việc làm khỏi danh sách đã lưu thành công!' : 'Đã lưu việc làm yêu thích thành công!'),
+          'success'
+        );
+        fetchBookmarks();
+      } else {
+        notify(data.message || 'Không thể cập nhật danh sách việc làm đã lưu.', 'error');
+        fetchBookmarks();
+      }
     } catch (err) {
-      console.warn('Bookmark error:', err);
+      notify('Lỗi kết nối máy chủ khi cập nhật việc làm đã lưu.', 'error');
     }
   };
 
@@ -631,7 +668,7 @@ export default function StudentPortal({
     }
   };
 
-  // Cancel Application (FR 1.6.4)
+  // Cancel Application
   const handleCancelApplication = async (appId) => {
     try {
       const res = await fetch(`/api/student/applications/${appId}/cancel`, {
@@ -639,14 +676,66 @@ export default function StudentPortal({
         headers
       });
       const data = await res.json();
-      notify(data.message || 'Đã rút hồ sơ thành công.', data.success ? 'success' : 'error');
+      notify(data.message || 'Đã rút hồ sơ thành công!', data.success ? 'success' : 'error');
       fetchApplications();
     } catch (err) {
-      console.error(err);
+      notify('Lỗi kết nối máy chủ khi rút hồ sơ.', 'error');
     }
   };
 
-  // Profile Save with 10-Digit Phone Validator (FR 1.3.1 & 1.3.2)
+  // Permanently Delete Application
+  const handleDeleteApplication = (app) => {
+    setConfirmDialogConfig({
+      isOpen: true,
+      title: 'Xóa Đơn Ứng Tuyển Vĩnh Viễn',
+      message: `Bạn có chắc chắn muốn xóa vĩnh viễn đơn ứng tuyển vị trí "${app.job_title || 'Công việc'}" tại "${app.company_name || 'Doanh nghiệp'}" khỏi hệ thống?`,
+      type: 'danger',
+      confirmText: 'Xóa Vĩnh Viễn',
+      onConfirm: async () => {
+        setConfirmDialogConfig(null);
+        try {
+          const res = await fetch(`/api/student/applications/${app._id}`, {
+            method: 'DELETE',
+            headers
+          });
+          const data = await res.json();
+          if (data.success) {
+            notify(data.message || 'Đã xóa đơn ứng tuyển thành công!', 'success');
+            fetchApplications();
+            fetchJobs();
+          } else {
+            notify(data.message || 'Không thể xóa đơn ứng tuyển.', 'error');
+          }
+        } catch (err) {
+          notify('Lỗi máy chủ khi xóa đơn ứng tuyển.', 'error');
+        }
+      }
+    });
+  };
+
+  // Persist Shift Status Update
+  const handleUpdateShiftStatus = async (appId, nextStatus, customMsg) => {
+    const shiftKey = `shift_${appId}`;
+    setShiftStatuses(prev => ({ ...prev, [shiftKey]: nextStatus }));
+    try {
+      const res = await fetch(`/api/student/applications/${appId}/shift-status`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ shift_status: nextStatus })
+      });
+      const data = await res.json();
+      if (data.success) {
+        notify(customMsg || data.message || 'Đã cập nhật trạng thái ca làm việc thành công!', 'success');
+        fetchApplications();
+      } else {
+        notify(data.message || 'Lỗi cập nhật trạng thái ca làm.', 'error');
+      }
+    } catch (err) {
+      notify('Lỗi máy chủ khi cập nhật trạng thái ca làm.', 'error');
+    }
+  };
+
+  // Profile Save with 10-Digit Phone Validator
   const handleProfileSave = async (e) => {
     e.preventDefault();
     setPhoneError('');
@@ -663,19 +752,55 @@ export default function StudentPortal({
       const res = await fetch('/api/student/profile', {
         method: 'PUT',
         headers,
-        body: JSON.stringify(profileForm)
+        body: JSON.stringify({
+          ...profileForm,
+          free_schedule: freeSchedule
+        })
       });
       const data = await res.json();
       if (data.success) {
         setProfile(data.data);
         setIsEditingProfile(false);
         setProfileSaveMsg('Cập nhật thông tin cá nhân thành công!');
+        notify('Đã cập nhật thông tin cá nhân thành công!', 'success');
         setTimeout(() => setProfileSaveMsg(''), 3000);
       } else {
         setPhoneError(data.message || 'Lỗi cập nhật hồ sơ.');
+        notify(data.message || 'Lỗi cập nhật hồ sơ.', 'error');
       }
     } catch (err) {
       setPhoneError('Lỗi kết nối máy chủ.');
+    }
+  };
+
+  // Persist Weekly Free Schedule Matrix to Backend
+  const handleSaveFreeSchedule = async () => {
+    if (isGuestMode || !token) {
+      notify('Vui lòng đăng nhập tài khoản Sinh viên để lưu lịch rảnh!', 'info');
+      if (onNavigateAuth) onNavigateAuth('login', 'student');
+      return;
+    }
+    try {
+      const res = await fetch('/api/student/profile', {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+          full_name: profileForm.full_name || profile.full_name || '',
+          phone: profileForm.phone || profile.phone || '',
+          university: profileForm.university || profile.university || '',
+          major: profileForm.major || profile.major || '',
+          free_schedule: freeSchedule
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (data.data) setProfile(data.data);
+        notify('Đã lưu khung giờ rảnh theo tuần thành công!', 'success');
+      } else {
+        notify(data.message || 'Không thể lưu lịch rảnh.', 'error');
+      }
+    } catch (err) {
+      notify('Lỗi kết nối máy chủ khi lưu lịch rảnh.', 'error');
     }
   };
 
@@ -781,8 +906,11 @@ export default function StudentPortal({
             })
           }).then(res => res.json()).then(d => {
             if (d.success) {
+              notify('Đã thêm tệp CV mới thành công!', 'success');
               setNewCvName('');
               fetchResumes();
+            } else {
+              notify(d.message || 'Không thể thêm CV.', 'error');
             }
           });
           return 100;
@@ -792,7 +920,7 @@ export default function StudentPortal({
     }, 200);
   };
 
-  // Set Default CV (FR 1.4.5)
+  // Set Default CV
   const handleSetDefaultCv = async (cvId) => {
     try {
       const res = await fetch(`/api/student/resumes/${cvId}/default`, {
@@ -800,9 +928,14 @@ export default function StudentPortal({
         headers
       });
       const data = await res.json();
-      if (data.success) fetchResumes();
+      if (data.success) {
+        notify(data.message || 'Đã đặt tệp CV làm mặc định thành công!', 'success');
+        fetchResumes();
+      } else {
+        notify(data.message || 'Không thể đặt CV mặc định.', 'error');
+      }
     } catch (err) {
-      console.warn(err);
+      notify('Lỗi kết nối máy chủ khi cập nhật CV mặc định.', 'error');
     }
   };
 
@@ -917,7 +1050,39 @@ export default function StudentPortal({
     }
   };
 
-  // Xem chi tiết đánh giá (FR-SV-07.03) - Nhấn vào mục lịch sử để tải và hiển thị đầy đủ nội dung văn bản nhận xét
+  // Delete Student Review permanently
+  const handleDeleteStudentReview = (rev) => {
+    setConfirmDialogConfig({
+      isOpen: true,
+      title: 'Xóa Đánh Giá Doanh Nghiệp',
+      message: 'Bạn có chắc chắn muốn xóa vĩnh viễn bài đánh giá doanh nghiệp này khỏi hệ thống?',
+      type: 'danger',
+      confirmText: 'Xóa Đánh Giá',
+      onConfirm: async () => {
+        setConfirmDialogConfig(null);
+        try {
+          const res = await fetch(`/api/student/reviews/${rev._id}`, {
+            method: 'DELETE',
+            headers
+          });
+          const d = await res.json();
+          if (d.success) {
+            notify(d.message || 'Đã xóa đánh giá thành công!', 'success');
+            if (viewReviewDetailModal && viewReviewDetailModal._id === rev._id) {
+              setViewReviewDetailModal(null);
+            }
+            fetchReviews();
+          } else {
+            notify(d.message || 'Không thể xóa đánh giá.', 'error');
+          }
+        } catch (err) {
+          notify('Lỗi kết nối máy chủ khi xóa đánh giá.', 'error');
+        }
+      }
+    });
+  };
+
+  // Xem chi tiết đánh giá - Nhấn vào mục lịch sử để tải và hiển thị đầy đủ nội dung văn bản nhận xét
   const handleOpenReviewDetail = async (rev) => {
     const matchedApp = myApplications.find(a => a._id === rev.application_id);
     const enrichedRev = {
@@ -1095,10 +1260,13 @@ export default function StudentPortal({
     );
   };
 
+  // Danh sách việc làm đang mở công khai (đồng bộ 100% giữa Sidebar và Main Content)
+  const activeOpenJobs = jobs.filter(
+    j => !j.is_hidden && j.status !== 'banned' && j.status !== 'closed' && j.job_status !== 'closed'
+  );
+
   // Filter Jobs (63 Tỉnh Thành, Đa Quận Huyện, Nhập tay, Khung ca, Khoảng lương theo giờ)
-  const filteredJobs = jobs.filter(j => {
-    // Tự động sàng lọc loại trừ tin bị Admin ẩn, tin của NTD bị khóa, hoặc tin đang tạm đóng
-    if (j.is_hidden || j.status === 'banned' || j.status === 'closed') return false;
+  const filteredJobs = activeOpenJobs.filter(j => {
 
     // 1. Tìm kiếm theo từ khóa Chức danh công việc / công ty
     const matchesSearch = !searchQuery.trim() ||
@@ -1168,23 +1336,26 @@ export default function StudentPortal({
     return matchesSearch && matchesStatus;
   });
 
-  // Completed jobs ready for review (FR 1.7.1)
-  const completedJobsForReview = myApplications.filter(a => a.application_status === 'accepted');
+  // Completed jobs ready for review (loại trừ các đơn đã gửi đánh giá để khớp 100% với danh sách chờ đánh giá)
+  const reviewedStudentAppIds = new Set(myReviews.map(r => String(r.application_id || '')));
+  const completedJobsForReview = isGuestMode
+    ? []
+    : myApplications.filter(a => a.application_status === 'accepted' && !reviewedStudentAppIds.has(String(a._id)));
 
   // Đơn ứng tuyển đã đạt trạng thái Đã duyệt cho Lịch ca làm đã nhận (my_shifts)
-  const acceptedApplications = myApplications.filter(a => a.application_status === 'accepted' || a.status === 'accepted');
+  const acceptedApplications = isGuestMode ? [] : myApplications.filter(a => a.application_status === 'accepted' || a.status === 'accepted');
 
-  // Sidebar Menu Items for Student (Đúng 9 Danh mục chuẩn - Không hiển thị số đếm trong chế độ khách)
+  // Sidebar Menu Items for Student (Đúng 9 Danh mục chuẩn - Khớp 100% với Main Content)
   const studentMenuItems = [
     { id: 'home', label: 'Trang chủ', icon: <Home className="w-4 h-4" /> },
-    { id: 'jobs', label: 'Khám việc làm', icon: <Search className="w-4 h-4" />, count: isGuestMode ? undefined : jobs.length },
-    { id: 'saved_jobs', label: 'Việc làm đã lưu', icon: <Heart className="w-4 h-4" />, count: isGuestMode ? undefined : bookmarkedIds.size },
+    { id: 'jobs', label: 'Khám việc làm', icon: <Search className="w-4 h-4" />, count: isGuestMode ? undefined : activeOpenJobs.length },
+    { id: 'saved_jobs', label: 'Việc làm đã lưu', icon: <Heart className="w-4 h-4" />, count: isGuestMode ? undefined : savedJobs.length },
     { id: 'applications', label: 'Tiến độ ứng tuyển', icon: <Clock className="w-4 h-4" />, count: isGuestMode ? undefined : myApplications.length },
     { id: 'my_shifts', label: 'Lịch ca làm đã nhận', icon: <CalendarDays className="w-4 h-4" />, count: isGuestMode ? undefined : acceptedApplications.length },
     { id: 'profile_cv', label: 'Quản lý CV', icon: <Upload className="w-4 h-4" />, count: isGuestMode ? undefined : myResumes.length },
     { id: 'student_profile', label: 'Hồ sơ cá nhân & Lịch rảnh', icon: <User className="w-4 h-4" /> },
     { id: 'reviews', label: 'Doanh nghiệp chờ đánh giá', icon: <Star className="w-4 h-4" />, count: isGuestMode ? undefined : completedJobsForReview.length },
-    { id: 'chat', label: 'Tin nhắn & Phỏng vấn', icon: <MessageSquare className="w-4 h-4" />, count: isGuestMode ? undefined : (contacts.length > 0 ? 1 : 0) }
+    { id: 'chat', label: 'Tin nhắn & Phỏng vấn', icon: <MessageSquare className="w-4 h-4" />, count: isGuestMode ? undefined : contacts.length }
   ];
 
   return (
@@ -1195,25 +1366,38 @@ export default function StudentPortal({
         <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center">
           <div className="absolute inset-0 bg-blue-500/10 backdrop-blur-[2px] animate-pulse"></div>
           <div className="relative text-center p-8 rounded-3xl bg-white border border-blue-300 shadow-2xl shadow-blue-500/20 animate-in zoom-in-75 duration-300">
-            <Sparkles className="w-16 h-16 text-yellow-500 mx-auto animate-bounce mb-3" />
-            <h3 className="text-xl font-black text-slate-900">🎉 Ứng Tuyển Thành Công!</h3>
+            <CheckCircle2 className="w-16 h-16 text-emerald-600 mx-auto mb-3" />
+            <h3 className="text-xl font-black text-slate-900">Ứng Tuyển Thành Công!</h3>
             <p className="text-xs text-blue-600 mt-2">Hồ sơ CV của bạn đã được chuyển thẳng tới Nhà tuyển dụng.</p>
           </div>
         </div>
       )}
 
-      {/* ======================= LEFT SIDEBAR SINH VIÊN (9 MỤC CHUẨN) ======================= */}
-      <aside className={`w-80 bg-white/95 backdrop-blur-xl border-r border-slate-200 shadow-sm flex flex-col shrink-0 transition-all ${mobileSidebarOpen ? 'fixed inset-y-0 left-0 z-50 shadow-2xl block' : 'hidden md:flex'
-        }`}>
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></span>
-            <span className="text-sm sm:text-base font-black tracking-wider text-slate-800 uppercase">Cổng Sinh Viên</span>
-          </div>
+      {/* ======================= LEFT SIDEBAR SINH VIÊN (ĐỒNG BỘ 100% VỚI NTD & QUẢN TRỊ VIÊN) ======================= */}
+      <aside className={`${
+        mobileSidebarOpen
+          ? 'fixed inset-y-0 left-0 z-50 w-80 shadow-2xl flex'
+          : `hidden md:flex ${isSidebarCollapsed ? 'md:w-20' : 'md:w-80'}`
+      } bg-white/95 backdrop-blur-xl border-r border-slate-200 shadow-sm flex-col shrink-0 transition-all duration-300`}>
+        <div className={`p-4 border-b border-slate-100 flex items-center ${isSidebarCollapsed && !mobileSidebarOpen ? 'justify-center' : 'justify-between'} gap-2`}>
+          {(!isSidebarCollapsed || mobileSidebarOpen) && (
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0"></span>
+              <span className="text-sm sm:text-base font-black tracking-wider text-slate-900 uppercase truncate">Cổng Sinh Viên</span>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={toggleSidebarCollapse}
+            title={isSidebarCollapsed ? 'Mở rộng thanh danh mục' : 'Thu gọn thanh danh mục'}
+            className="hidden md:inline-flex items-center justify-center w-8 h-8 rounded-xl bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 transition-all cursor-pointer shrink-0"
+          >
+            {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
           <button
             type="button"
             onClick={onToggleMobileSidebar}
-            className="md:hidden text-slate-400 hover:text-slate-700"
+            className="md:hidden p-1.5 rounded-xl bg-slate-100 text-slate-700 hover:text-slate-900"
           >
             <X className="w-5 h-5" />
           </button>
@@ -1223,29 +1407,40 @@ export default function StudentPortal({
         <nav className="p-3 space-y-1.5 flex-1 overflow-y-auto">
           {studentMenuItems.map((item) => {
             const isActive = activeMenu === item.id;
+            const collapsedDesktop = isSidebarCollapsed && !mobileSidebarOpen;
             return (
               <button
                 key={item.id}
                 type="button"
+                title={item.label}
                 onClick={() => {
                   handleMenuSwitch(item.id);
                   if (mobileSidebarOpen && onToggleMobileSidebar) onToggleMobileSidebar();
                 }}
-                className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl text-sm sm:text-base font-bold transition-all cursor-pointer text-left ${isActive
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 font-black'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
-                  }`}
+                className={`w-full flex items-center ${collapsedDesktop ? 'justify-center px-2 py-3.5 relative' : 'justify-between px-4 py-3.5 gap-2'} rounded-2xl text-sm sm:text-base font-bold transition-all cursor-pointer text-left ${
+                  isActive
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 font-black'
+                    : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100/90'
+                }`}
               >
-                <div className="flex items-center gap-3">
-                  <span className={isActive ? 'text-white' : 'text-blue-600'}>{item.icon}</span>
-                  <span className="leading-snug">{item.label}</span>
+                <div className={`flex items-center ${collapsedDesktop ? 'justify-center' : 'gap-3 min-w-0'}`}>
+                  <span className={`shrink-0 ${isActive ? 'text-white' : 'text-blue-600'}`}>{item.icon}</span>
+                  {!collapsedDesktop && <span className="leading-snug">{item.label}</span>}
                 </div>
                 {item.count !== undefined && item.count > 0 && (
-                  <span className={`px-2.5 py-1 rounded-full text-xs sm:text-sm font-black shrink-0 ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-700 border border-blue-100'
-                  }`}>
-                    {item.count}
-                  </span>
+                  collapsedDesktop ? (
+                    <span className={`absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black flex items-center justify-center whitespace-nowrap ring-2 ${
+                      isActive ? 'bg-white text-blue-700 ring-indigo-600' : 'bg-blue-600 text-white ring-white'
+                    }`}>
+                      {item.count}
+                    </span>
+                  ) : (
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-black shrink-0 whitespace-nowrap ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-800 border border-blue-200'
+                    }`}>
+                      {item.count}
+                    </span>
+                  )
                 )}
               </button>
             );
@@ -1348,11 +1543,11 @@ export default function StudentPortal({
       )}
 
       {/* ======================= MAIN CONTENT AREA ======================= */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+      <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto transition-all duration-300">
 
         {/* 1. MÀN HÌNH TRANG CHỦ (HOME OVERVIEW) */}
         {activeMenu === 'home' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
+          <div className="w-full max-w-full mx-auto space-y-8">
 
             {/* Hero Welcome Banner - Digital Light Dimension Style */}
             <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 p-8 sm:p-12 lg:p-14 shadow-xl text-white min-h-[240px] sm:min-h-[270px] flex flex-col justify-center">
@@ -1526,12 +1721,12 @@ export default function StudentPortal({
                 <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ngành Nghề Sinh Viên Phổ Biến:</p>
                 <div className="flex flex-wrap items-center gap-2">
                   {[
-                    { label: '☕ F&B / Pha Chế & Phục Vụ', kw: 'Pha chế' },
-                    { label: '🛒 Bán Lẻ / Cửa Hàng Tiện Lợi', kw: 'Thu ngân' },
-                    { label: '📚 Gia Sư / Trợ Giảng', kw: 'Trợ giảng' },
-                    { label: '📦 Kho Vận / Soạn Hàng Ca', kw: 'Kho vận' },
-                    { label: '💻 IT & Nhập Liệu Online', kw: 'Nhập liệu' },
-                    { label: '🎪 Sự Kiện & Thời Vụ', kw: 'Sự kiện' }
+                    { label: 'F&B / Pha Chế & Phục Vụ', kw: 'Pha chế' },
+                    { label: 'Bán Lẻ / Cửa Hàng Tiện Lợi', kw: 'Thu ngân' },
+                    { label: 'Gia Sư / Trợ Giảng', kw: 'Trợ giảng' },
+                    { label: 'Kho Vận / Soạn Hàng Ca', kw: 'Kho vận' },
+                    { label: 'IT & Nhập Liệu Online', kw: 'Nhập liệu' },
+                    { label: 'Sự Kiện & Thời Vụ', kw: 'Sự kiện' }
                   ].map((cat, idx) => (
                     <button
                       key={idx}
@@ -1553,7 +1748,7 @@ export default function StudentPortal({
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2.5">
-                  <Sparkles className="w-6 h-6 text-blue-600" />
+                  <Briefcase className="w-6 h-6 text-blue-600" />
                   <span>Việc Làm Part-Time Nổi Bật Dành Cho Bạn</span>
                 </h3>
                 <button
@@ -1695,7 +1890,7 @@ export default function StudentPortal({
 
         {/* 2. MÀN HÌNH KHÁM PHÁ VIỆC LÀM & BỘ LỌC (FR 1.5.1 - 1.5.3) */}
         {activeMenu === 'jobs' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
+          <div className="w-full max-w-full mx-auto space-y-8">
 
             {/* Header & Filter Controls (FR 1.5.2) */}
             <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-5">
@@ -1828,11 +2023,11 @@ export default function StudentPortal({
                               onClick={() => handleToggleDistrict(dist)}
                               className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                                 isChecked
-                                  ? 'bg-white text-slate-900 font-bold border border-slate-300 shadow-sm'
+                                  ? 'bg-blue-50 text-blue-800 font-bold border border-blue-300 shadow-sm'
                                   : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
                               }`}
                             >
-                              {isChecked ? '✓ ' : '+ '}{dist}
+                              {dist}
                             </button>
                           );
                         })}
@@ -1943,7 +2138,7 @@ export default function StudentPortal({
 
         {/* 3. MÀN HÌNH VIỆC LÀM ĐÃ LƯU (UI-SV-JOB-04 - 1.5.8) */}
         {activeMenu === 'saved_jobs' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
+          <div className="w-full max-w-full mx-auto space-y-8">
             <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-sm flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
@@ -2004,12 +2199,12 @@ export default function StudentPortal({
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {jobs.filter(j => bookmarkedIds.has(j._id)).length === 0 ? (
+                {savedJobs.length === 0 ? (
                   <div className="col-span-2 py-16 text-center text-slate-500 text-xs bg-white rounded-3xl border border-slate-200 shadow-sm">
                     Bạn chưa lưu công việc nào. Hãy nhấp vào icon Trái tim tại trang Khám phá việc làm để lưu lại.
                   </div>
                 ) : (
-                  jobs.filter(j => bookmarkedIds.has(j._id)).map((job) => {
+                  savedJobs.map((job) => {
                     const isGreyedOut = !job.is_open || job.job_status === 'filled' || job.job_status === 'completed';
 
                     return (
@@ -2042,10 +2237,11 @@ export default function StudentPortal({
                               e.stopPropagation();
                               handleToggleBookmark(job._id);
                             }}
-                            className="p-2 rounded-xl bg-red-50 border border-red-200 text-red-500 cursor-pointer"
-                            title="Bỏ lưu việc làm"
+                            className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                            title="Xóa việc làm khỏi danh sách đã lưu"
                           >
-                            <Heart className="w-4 h-4 fill-red-500 text-red-500" />
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Xóa lưu</span>
                           </button>
                         </div>
 
@@ -2077,7 +2273,7 @@ export default function StudentPortal({
 
         {/* 4. MÀN HÌNH QUẢN LÝ TIẾN ĐỘ ỨNG TUYỂN (UI-SV-APP-02 & 03 - 1.6.1 -> 1.6.4) */}
         {activeMenu === 'applications' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
+          <div className="w-full max-w-full mx-auto space-y-8">
             <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
@@ -2120,7 +2316,7 @@ export default function StudentPortal({
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${appStatusTab === 'pending' ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'
                       }`}
                   >
-                    🟡 Chờ duyệt ({myApplications.filter(a => a.application_status === 'pending').length})
+                    Chờ duyệt ({myApplications.filter(a => a.application_status === 'pending').length})
                   </button>
                   <button
                     type="button"
@@ -2128,7 +2324,7 @@ export default function StudentPortal({
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${appStatusTab === 'accepted' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'
                       }`}
                   >
-                    🟢 Đã duyệt ({myApplications.filter(a => a.application_status === 'accepted').length})
+                    Đã duyệt ({myApplications.filter(a => a.application_status === 'accepted').length})
                   </button>
                   <button
                     type="button"
@@ -2136,7 +2332,7 @@ export default function StudentPortal({
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${appStatusTab === 'rejected' ? 'bg-red-100 text-red-800 border border-red-300' : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'
                       }`}
                   >
-                    🔴 Từ chối ({myApplications.filter(a => a.application_status === 'rejected').length})
+                    Từ chối ({myApplications.filter(a => a.application_status === 'rejected').length})
                   </button>
                   <button
                     type="button"
@@ -2144,7 +2340,7 @@ export default function StudentPortal({
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${appStatusTab === 'cancelled' ? 'bg-slate-200 text-slate-800 border border-slate-300' : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'
                       }`}
                   >
-                    ⚪ Đã hủy ({myApplications.filter(a => a.application_status === 'cancelled').length})
+                    Đã hủy ({myApplications.filter(a => a.application_status === 'cancelled').length})
                   </button>
                 </div>
               </div>
@@ -2239,29 +2435,29 @@ export default function StudentPortal({
                           </div>
                         )}
                         {app.reject_reason && (
-                          <div className="p-2.5 rounded-lg bg-red-950/40 border border-red-900/40 text-red-300 text-xs">
+                          <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium">
                             <strong>Lý do từ chối:</strong> {app.reject_reason}
                           </div>
                         )}
                       </div>
 
                       {/* Trục thời gian tiến độ ứng tuyển 4 bước cụ thể (Đã gỡ bỏ hiệu ứng nhấp nháy / ẩn hiện ở số 1) */}
-                      <div className="pt-3 pb-1 border-t border-slate-800/80 mt-3">
+                      <div className="pt-3 pb-1 border-t border-slate-200 mt-3">
                         <div className="flex items-center justify-between mb-4">
-                          <p className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                            <Clock className="w-3.5 h-3.5 text-sky-400" />
+                          <p className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-blue-600" />
                             <span>Tiến Độ Tuyển Dụng (Quy Trình 4 Bước Chuẩn)</span>
                           </p>
                           {(() => {
                             const viStatusMap = {
-                              pending: { label: '⏳ Đang Chờ Xét Duyệt', color: 'text-amber-300', bg: 'bg-amber-500/20 border-amber-500/40' },
-                              reviewed: { label: '👁️ Đã Tiếp Nhận Hồ Sơ', color: 'text-sky-300', bg: 'bg-sky-500/20 border-sky-500/40' },
-                              interview: { label: '📞 Mời Phỏng Vấn Trực Tuyến', color: 'text-purple-300', bg: 'bg-purple-500/20 border-purple-500/40' },
-                              accepted: { label: '🎉 Trúng Tuyển Chính Thức', color: 'text-emerald-300', bg: 'bg-emerald-500/20 border-emerald-500/40' },
-                              rejected: { label: '✕ Chưa Phù Hợp Lần Này', color: 'text-rose-300', bg: 'bg-rose-500/20 border-rose-500/40' },
-                              cancelled: { label: '🚫 Đã Rút Hồ Sơ', color: 'text-slate-400', bg: 'bg-slate-700 border-slate-600' }
+                              pending: { label: 'Đang Chờ Xét Duyệt', color: 'text-amber-800', bg: 'bg-amber-50 border-amber-300' },
+                              reviewed: { label: 'Đã Tiếp Nhận Hồ Sơ', color: 'text-blue-800', bg: 'bg-blue-50 border-blue-300' },
+                              interview: { label: 'Mời Phỏng Vấn Trực Tuyến', color: 'text-purple-800', bg: 'bg-purple-50 border-purple-300' },
+                              accepted: { label: 'Trúng Tuyển Chính Thức', color: 'text-emerald-800', bg: 'bg-emerald-50 border-emerald-300' },
+                              rejected: { label: 'Chưa Phù Hợp Lần Này', color: 'text-rose-800', bg: 'bg-rose-50 border-rose-300' },
+                              cancelled: { label: 'Đã Rút Hồ Sơ', color: 'text-slate-800', bg: 'bg-slate-100 border-slate-300' }
                             };
-                            const stInfo = viStatusMap[app.application_status] || { label: app.application_status, color: 'text-slate-300', bg: 'bg-slate-800 border-slate-700' };
+                            const stInfo = viStatusMap[app.application_status] || { label: app.application_status, color: 'text-slate-800', bg: 'bg-slate-100 border-slate-300' };
                             return (
                               <span className={`px-3 py-1 rounded-full text-xs font-bold border shadow-sm ${stInfo.bg} ${stInfo.color}`}>
                                 {stInfo.label}
@@ -2344,29 +2540,28 @@ export default function StudentPortal({
                                       if (isPassed) {
                                         circleClass = 'bg-blue-600 border-blue-400 text-white shadow-md shadow-blue-500/20';
                                         titleClass = 'text-blue-700 font-bold';
-                                        badgeStatus = '✓ Đã xong';
+                                        badgeStatus = 'Đã xong';
                                       } else if (isCurrent) {
                                         if (app.application_status === 'accepted') {
-                                          circleClass = 'bg-emerald-500 border-emerald-400 text-white shadow-md';
+                                          circleClass = 'bg-emerald-600 border-emerald-400 text-white shadow-md';
                                           titleClass = 'text-emerald-700 font-black';
-                                          badgeStatus = '🎉 Trúng tuyển';
+                                          badgeStatus = 'Trúng tuyển';
                                         } else if (app.application_status === 'rejected') {
                                           circleClass = 'bg-rose-600 border-rose-400 text-white shadow-md';
-                                          titleClass = 'text-rose-400 font-black';
-                                          badgeStatus = '✕ Chưa phù hợp';
+                                          titleClass = 'text-rose-700 font-black';
+                                          badgeStatus = 'Chưa phù hợp';
                                         } else if (st.num === 1) {
-                                          // TĨNH HOÀN TOÀN: Bỏ animate-pulse và bỏ ring-4 nhấp nháy ẩn hiện
-                                          circleClass = 'bg-blue-600 border-sky-300 text-white shadow-md';
+                                          circleClass = 'bg-blue-600 border-blue-400 text-white shadow-md';
                                           titleClass = 'text-blue-700 font-black';
-                                          badgeStatus = '⚡ Đang xử lý';
+                                          badgeStatus = 'Đang xử lý';
                                         } else if (st.num === 2) {
                                           circleClass = 'bg-amber-500 border-amber-300 text-slate-950 shadow-md';
                                           titleClass = 'text-amber-700 font-black';
-                                          badgeStatus = '⚡ Đang xem xét';
+                                          badgeStatus = 'Đang xem xét';
                                         } else if (st.num === 3) {
                                           circleClass = 'bg-purple-600 border-purple-300 text-white shadow-md';
                                           titleClass = 'text-purple-700 font-black';
-                                          badgeStatus = '📞 Đang phỏng vấn';
+                                          badgeStatus = 'Đang phỏng vấn';
                                         }
                                       } else {
                                         badgeStatus = 'Chưa tới';
@@ -2394,12 +2589,12 @@ export default function StudentPortal({
 
                                           {/* Huy hiệu trạng thái bước */}
                                           {badgeStatus && (
-                                            <span className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-bold ${
+                                            <span className={`inline-block mt-1 px-2.5 py-0.5 rounded-lg text-xs font-bold ${
                                               isCurrent 
-                                                ? (app.application_status === 'accepted' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
-                                                   app.application_status === 'rejected' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' :
-                                                   'bg-sky-500/20 text-sky-300 border border-sky-500/40')
-                                                : (isPassed ? 'text-emerald-400/80' : 'text-slate-600')
+                                                ? (app.application_status === 'accepted' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                                                   app.application_status === 'rejected' ? 'bg-rose-100 text-rose-800 border border-rose-300' :
+                                                   'bg-blue-100 text-blue-800 border border-blue-300')
+                                                : (isPassed ? 'text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200' : 'text-slate-500 font-medium')
                                             }`}>
                                               {badgeStatus}
                                             </span>
@@ -2427,18 +2622,26 @@ export default function StudentPortal({
                         </div>
                       </div>
 
-                      {/* Action buttons: Nút Rút hồ sơ / Hủy ứng tuyển (FR 1.6.4) */}
-                      {app.application_status === 'pending' && (
-                        <div className="flex items-center justify-end pt-2 border-t border-slate-800/80">
+                      {/* Action buttons: Nút Rút hồ sơ & Xóa vĩnh viễn đơn ứng tuyển */}
+                      <div className="flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                        {app.application_status === 'pending' && (
                           <button
                             type="button"
                             onClick={() => handleCancelApplication(app._id)}
-                            className="px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold transition-all cursor-pointer"
+                            className="px-3.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 text-xs font-bold transition-all cursor-pointer"
                           >
                             Rút hồ sơ / Hủy ứng tuyển
                           </button>
-                        </div>
-                      )}
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteApplication(app)}
+                          className="px-3.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Xóa đơn</span>
+                        </button>
+                      </div>
                     </div>
                   );
                 })
@@ -2449,7 +2652,7 @@ export default function StudentPortal({
 
         {/* 4.5. MÀN HÌNH LỊCH CA LÀM ĐÃ NHẬN (my_shifts) (1.11.1, 1.11.2) */}
         {activeMenu === 'my_shifts' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8 animate-in fade-in duration-300">
+          <div className="w-full max-w-full mx-auto space-y-8 animate-in fade-in duration-300">
             <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
@@ -2576,10 +2779,35 @@ export default function StudentPortal({
                       <p className="text-xs text-slate-500 leading-relaxed">Báo bận đột xuất hoặc xin đổi ca có phép nhanh chóng qua hệ thống trước 24 giờ.</p>
                     </div>
                   </div>
+
+                  {/* Guest Callout */}
+                  <div className="p-8 rounded-3xl bg-slate-50 border border-slate-200 text-center space-y-3">
+                    <CalendarDays className="w-10 h-10 text-slate-300 mx-auto" />
+                    <h4 className="text-base font-bold text-slate-900">Chưa có ca làm nào được nhận</h4>
+                    <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+                      Bạn đang xem ở chế độ khách. Đăng nhập hoặc tạo tài khoản Sinh viên để bắt đầu nhận ca làm việc và đồng bộ thời khóa biểu tự động.
+                    </p>
+                    <div className="flex items-center justify-center gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => onNavigateAuth && onNavigateAuth('login', 'student')}
+                        className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold shadow-sm cursor-pointer"
+                      >
+                        Đăng Nhập
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onNavigateAuth && onNavigateAuth('register', 'student')}
+                        className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold shadow-sm cursor-pointer"
+                      >
+                        Đăng Ký Sinh Viên
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ) : acceptedApplications.length === 0 ? (
                 <div className="p-12 rounded-3xl bg-white border border-slate-200 text-center space-y-3 shadow-sm">
-                  <Coffee className="w-12 h-12 text-slate-300 mx-auto" />
+                  <CalendarDays className="w-12 h-12 text-slate-300 mx-auto" />
                   <p className="text-xs text-slate-600 font-semibold">
                     Bạn chưa có đơn ứng tuyển nào đạt trạng thái Đã duyệt.
                   </p>
@@ -2589,9 +2817,18 @@ export default function StudentPortal({
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {acceptedApplications.map((app, idx) => {
+                  {acceptedApplications
+                    .filter((app) => {
+                      if (!shiftFilterTime || shiftFilterTime === 'all') return true;
+                      const wt = (app.work_time || '').toLowerCase();
+                      if (shiftFilterTime === 'morning') return wt.includes('sáng') || wt.includes('06:') || wt.includes('07:');
+                      if (shiftFilterTime === 'afternoon') return wt.includes('chiều') || wt.includes('12:') || wt.includes('13:');
+                      if (shiftFilterTime === 'evening') return wt.includes('tối') || wt.includes('18:');
+                      return true;
+                    })
+                    .map((app, idx) => {
                     const shiftKey = `shift_${app._id || idx}`;
-                    const currentStatus = shiftStatuses[shiftKey] || (idx === 0 ? 'in_progress' : 'upcoming');
+                    const currentStatus = app.shift_status || shiftStatuses[shiftKey] || 'upcoming';
                     return (
                       <div
                         key={app._id || idx}
@@ -2600,7 +2837,7 @@ export default function StudentPortal({
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              ✓ Đã Duyệt Nhận Ca
+                              Đã Duyệt Nhận Ca
                             </span>
                             <h5 className="text-sm font-bold text-slate-900 mt-2">{app.job_title || 'Việc làm bán thời gian'}</h5>
                             <p className="text-xs font-semibold text-blue-600">{app.company_name || 'Doanh nghiệp'}</p>
@@ -2638,28 +2875,32 @@ export default function StudentPortal({
                         <div className="p-3 bg-slate-50 rounded-2xl space-y-1 text-xs text-slate-600 border border-slate-100">
                           <p className="flex items-center gap-2">
                             <Clock className="w-3.5 h-3.5 text-slate-400" />
-                            <span>Khung ca: <strong>Ca chiều (13:00 - 17:00), Thứ 2 - Thứ 4 - Thứ 7</strong></span>
+                            <span>Khung ca: <strong>{app.work_time || 'Ca linh hoạt theo lịch học'}</strong></span>
                           </p>
                           <p className="flex items-center gap-2">
                             <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                            <span>Địa điểm: <strong>42 Ngô Đức Kế, Bến Nghé, Quận 1, TP.HCM</strong></span>
+                            <span>Địa điểm: <strong>{app.location || 'TP. Hồ Chí Minh'}</strong></span>
                           </p>
                           <p className="flex items-center gap-2">
                             <DollarSign className="w-3.5 h-3.5 text-slate-400" />
-                            <span>Lương theo giờ: <strong className="text-emerald-600">25.000đ - 30.000đ/giờ</strong></span>
+                            <span>
+                              Lương theo giờ:{' '}
+                              <strong className="text-emerald-600">
+                                {app.salary_min || app.salary_max
+                                  ? `${(app.salary_min || 0).toLocaleString('vi-VN')}đ - ${(app.salary_max || app.salary_min || 0).toLocaleString('vi-VN')}đ/giờ`
+                                  : 'Theo quy định ca làm'}
+                              </strong>
+                            </span>
                           </p>
                         </div>
 
-                        {/* Nút Điều Khiển Trạng Thái Ca Làm (1.11.2) */}
+                        {/* Nút Điều Khiển Trạng Thái Ca Làm */}
                         <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-slate-100">
                           {currentStatus === 'upcoming' && (
                             <button
                               type="button"
-                              onClick={() => {
-                                setShiftStatuses(prev => ({ ...prev, [shiftKey]: 'in_progress' }));
-                                notify('Đã bắt đầu vào ca làm việc!', 'success');
-                              }}
-                              className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold text-xs font-bold shadow-sm cursor-pointer"
+                              onClick={() => handleUpdateShiftStatus(app._id, 'in_progress', 'Đã bắt đầu vào ca làm việc!')}
+                              className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold text-xs shadow-sm cursor-pointer"
                             >
                               Bắt Đầu Ca Làm
                             </button>
@@ -2668,13 +2909,10 @@ export default function StudentPortal({
                           {currentStatus === 'in_progress' && (
                             <button
                               type="button"
-                              onClick={() => {
-                                setShiftStatuses(prev => ({ ...prev, [shiftKey]: 'completed' }));
-                                notify('Đã xác nhận hoàn thành ca làm việc!', 'success');
-                              }}
+                              onClick={() => handleUpdateShiftStatus(app._id, 'completed', 'Đã xác nhận hoàn thành ca làm việc!')}
                               className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm cursor-pointer"
                             >
-                              ✓ Xác Nhận Xong Ca
+                              Xác Nhận Xong Ca
                             </button>
                           )}
 
@@ -2685,13 +2923,12 @@ export default function StudentPortal({
                                 setConfirmDialogConfig({
                                   isOpen: true,
                                   title: 'Xin Nghỉ / Hủy Ca Làm',
-                                  message: 'Bạn có chắc chắn muốn hủy ca làm đã nhận này? Việc hủy ca sẽ thông báo ngay tới Doanh nghiệp.',
+                                  message: 'Bạn có chắc chắn muốn hủy ca làm đã nhận này? Việc hủy ca sẽ lưu trên hệ thống và thông báo tới Doanh nghiệp.',
                                   type: 'danger',
                                   confirmText: 'Xác Nhận Hủy Ca',
                                   onConfirm: () => {
                                     setConfirmDialogConfig(null);
-                                    setShiftStatuses(prev => ({ ...prev, [shiftKey]: 'cancelled' }));
-                                    notify('Đã hủy ca làm việc.', 'info');
+                                    handleUpdateShiftStatus(app._id, 'cancelled', 'Đã hủy ca làm việc thành công!');
                                   }
                                 });
                               }}
@@ -2727,7 +2964,7 @@ export default function StudentPortal({
 
         {/* 5. MÀN HÌNH QUẢN LÝ CV (profile_cv) (1.4.1 - 1.4.6, NFR-08) */}
         {activeMenu === 'profile_cv' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8 animate-in fade-in duration-300">
+          <div className="w-full max-w-full mx-auto space-y-8 animate-in fade-in duration-300">
             <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
@@ -2748,7 +2985,7 @@ export default function StudentPortal({
               <div className="space-y-6">
                 {/* Guest Mode Notice */}
                 <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200 text-blue-900 flex items-start gap-3">
-                  <Sparkles className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                  <FileText className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
                   <div>
                     <p className="font-bold text-xs text-blue-900">Kho Quản Lý CV Chuẩn ATS Cho Sinh Viên</p>
                     <p className="text-xs text-blue-700 mt-0.5 leading-relaxed">
@@ -2760,7 +2997,7 @@ export default function StudentPortal({
                 
               </div>
             ) : (
-              <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-6">
+              <div className="form-card-col2 p-6 sm:p-8 rounded-3xl shadow-xl space-y-6">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div>
                     <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -2840,49 +3077,49 @@ export default function StudentPortal({
                         )}
                       </div>
 
-                      {/* 4 Nút thao tác trên Card CV (FR 1.4.3 - 1.4.6) */}
+                      {/* 4 Nút thao tác trên Card CV */}
                       <div className="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-slate-100">
-                        {/* 1. Icon Con mắt: Mở Modal xem trước PDF trực tiếp trên web (1.4.3) */}
+                        {/* 1. Icon Con mắt: Mở Modal xem trước PDF trực tiếp trên web */}
                         <button
                           type="button"
                           onClick={() => setPreviewCvPdf(cv)}
-                          className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-blue-600 transition-colors cursor-pointer border border-slate-200"
+                          className="p-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 transition-colors cursor-pointer border border-blue-200"
                           title="Xem trước PDF trực tiếp"
                         >
-                          <Eye className="w-4 h-4 text-blue-600" />
+                          <Eye className="w-4 h-4 text-blue-700" />
                         </button>
 
-                        {/* 2. Icon Ngôi sao: Đặt làm CV mặc định phát sáng vàng (1.4.5) */}
+                        {/* 2. Icon Ngôi sao: Đặt làm CV mặc định */}
                         <button
                           type="button"
                           onClick={() => handleSetDefaultCv(cv._id)}
                           className={`p-2 rounded-xl border transition-all cursor-pointer ${cv.is_default
-                            ? 'bg-yellow-500/20 border-yellow-500/40 text-yellow-400'
-                            : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-yellow-400'
+                            ? 'bg-amber-50 border-amber-300 text-amber-700'
+                            : 'bg-slate-50 hover:bg-amber-50 border-slate-200 text-slate-600 hover:text-amber-700'
                             }`}
                           title="Đặt làm CV mặc định"
                         >
-                          <Star className={`w-4 h-4 ${cv.is_default ? 'fill-yellow-400' : ''}`} />
+                          <Star className={`w-4 h-4 ${cv.is_default ? 'fill-amber-400 text-amber-500' : ''}`} />
                         </button>
 
-                        {/* 3. Icon Đính kèm: Thay thế file CV từ máy tính (1.4.4) */}
+                        {/* 3. Icon Đính kèm: Thay thế file CV từ máy tính */}
                         <button
                           type="button"
                           onClick={() => {
                             setReplacingCvId(cv._id);
                             replaceCvInputRef.current?.click();
                           }}
-                          className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                          className="p-2 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 transition-colors cursor-pointer"
                           title="Chọn tệp PDF từ máy tính để thay thế CV"
                         >
-                          <Paperclip className="w-4 h-4 text-purple-400" />
+                          <Paperclip className="w-4 h-4 text-purple-700" />
                         </button>
 
-                        {/* 4. Icon Thùng rác: Xóa CV (1.4.6) */}
+                        {/* 4. Icon Thùng rác: Xóa CV */}
                         <button
                           type="button"
                           onClick={() => handleDeleteCv(cv._id)}
-                          className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 transition-colors cursor-pointer"
+                          className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 transition-colors cursor-pointer"
                           title="Xóa CV"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -2898,7 +3135,7 @@ export default function StudentPortal({
 
         {/* 5.5. MÀN HÌNH HỒ SƠ CÁ NHÂN & LỊCH RẢNH (student_profile) (1.3.1, 1.3.2, 1.3.3) */}
         {activeMenu === 'student_profile' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8 animate-in fade-in duration-300">
+          <div className="w-full max-w-full mx-auto space-y-8 animate-in fade-in duration-300">
             {isGuestMode ? (
               <div className="space-y-6">
                 
@@ -2923,7 +3160,7 @@ export default function StudentPortal({
                   </div>
                   <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-1.5 text-xs">
                     <p className="font-bold text-slate-900 flex items-center gap-1.5">
-                      <Coffee className="w-4 h-4 text-purple-600" />
+                      <Bell className="w-4 h-4 text-purple-600" />
                       <span>Tuyệt Đối Không Làm Phiền</span>
                     </p>
                     <p className="text-xs text-slate-500 leading-relaxed">Không có tin nhắn rác hay cuộc gọi tiếp thị, chỉ trao đổi trực tiếp với nhà tuyển dụng bạn đã chọn.</p>
@@ -2932,8 +3169,8 @@ export default function StudentPortal({
               </div>
             ) : (
               /* Thẻ Thông Tin Cá Nhân Cho Sinh Viên Đã Đăng Nhập */
-              <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-6">
-                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="form-card-col2 p-6 sm:p-8 rounded-3xl shadow-xl space-y-6">
+                <div className="flex items-center justify-between pb-4 border-b border-blue-200/60">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white font-black text-lg flex items-center justify-center shadow-md">
                       {profile.full_name?.charAt(0) || 'V'}
@@ -2946,7 +3183,7 @@ export default function StudentPortal({
 
                   <div className="flex items-center gap-3">
                     {profileSaveMsg && (
-                      <span className="text-xs font-bold text-emerald-600">✓ {profileSaveMsg}</span>
+                      <span className="text-xs font-bold text-emerald-600">{profileSaveMsg}</span>
                     )}
                     <button
                       type="button"
@@ -2972,7 +3209,7 @@ export default function StudentPortal({
                           required
                           value={profileForm.full_name}
                           onChange={(e) => setProfileForm({ ...profileForm, full_name: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm sm:text-base text-slate-900 outline-none focus:border-blue-600 focus:bg-white"
+                          className="w-full bg-white border border-blue-200/80 rounded-xl px-4 py-3 text-sm sm:text-base text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-400/20 shadow-xs"
                         />
                       </div>
 
@@ -2987,7 +3224,7 @@ export default function StudentPortal({
                           placeholder="0987654321"
                           value={profileForm.phone}
                           onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm sm:text-base text-slate-900 outline-none focus:border-blue-600 focus:bg-white font-mono"
+                          className="w-full bg-white border border-blue-200/80 rounded-xl px-4 py-3 text-sm sm:text-base text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-400/20 shadow-xs font-mono"
                         />
                       </div>
 
@@ -2998,7 +3235,7 @@ export default function StudentPortal({
                           required
                           value={profileForm.university}
                           onChange={(e) => setProfileForm({ ...profileForm, university: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm sm:text-base text-slate-900 outline-none focus:border-blue-600 focus:bg-white"
+                          className="w-full bg-white border border-blue-200/80 rounded-xl px-4 py-3 text-sm sm:text-base text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-400/20 shadow-xs"
                         />
                       </div>
 
@@ -3009,7 +3246,7 @@ export default function StudentPortal({
                           required
                           value={profileForm.major}
                           onChange={(e) => setProfileForm({ ...profileForm, major: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm sm:text-base text-slate-900 outline-none focus:border-blue-600 focus:bg-white"
+                          className="w-full bg-white border border-blue-200/80 rounded-xl px-4 py-3 text-sm sm:text-base text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-400/20 shadow-xs"
                         />
                       </div>
                     </div>
@@ -3078,15 +3315,8 @@ export default function StudentPortal({
 
                 <button
                   type="button"
-                  onClick={() => {
-                    if (isGuestMode) {
-                      notify('Vui lòng đăng nhập tài khoản Sinh viên để lưu lịch rảnh!', 'info');
-                      if (onNavigateAuth) onNavigateAuth('login', 'student');
-                      return;
-                    }
-                    notify('Đã cập nhật khung giờ rảnh theo tuần thành công!', 'success');
-                  }}
-                  className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold text-sm font-bold shadow-md cursor-pointer flex items-center gap-2"
+                  onClick={handleSaveFreeSchedule}
+                  className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold text-sm shadow-md cursor-pointer flex items-center gap-2"
                 >
                   <Check className="w-4 h-4" />
                   <span>Lưu Lịch Rảnh</span>
@@ -3143,7 +3373,7 @@ export default function StudentPortal({
                                   </>
                                 ) : (
                                   <>
-                                    <span className="text-xs text-slate-300">✕</span>
+                                    <X className="w-3.5 h-3.5 text-slate-300" />
                                     <span className="text-xs text-slate-400">Trống</span>
                                   </>
                                 )}
@@ -3162,7 +3392,7 @@ export default function StudentPortal({
 
         {/* 6. MÀN HÌNH ĐÁNH GIÁ NHÀ TUYỂN DỤNG (UI-SV-REV-01 -> 03 - 1.7.1 -> 1.7.4) */}
         {activeMenu === 'reviews' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
+          <div className="w-full max-w-full mx-auto space-y-8">
 
             <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
@@ -3309,10 +3539,23 @@ export default function StudentPortal({
                           "{rev.comment}"
                         </p>
 
-                        {/* RÀNG BUỘC 1.7.4: Nút Sửa đánh giá bị ẩn nếu Admin khóa is_hidden = true */}
                         {rev.is_hidden ? (
-                          <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
-                            ⚠️ Đánh giá này đã bị Quản trị viên ẩn do vi phạm tiêu chuẩn cộng đồng.
+                          <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
+                            <span className="flex items-center gap-1.5">
+                              <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                              <span>Đánh giá này đã bị Quản trị viên ẩn do vi phạm tiêu chuẩn cộng đồng.</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteStudentReview(rev);
+                              }}
+                              className="px-3 py-1 rounded-lg bg-white hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold flex items-center gap-1 cursor-pointer shrink-0"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Xóa</span>
+                            </button>
                           </div>
                         ) : (
                           <div className="flex items-center justify-between pt-3 border-t border-slate-100">
@@ -3328,23 +3571,36 @@ export default function StudentPortal({
                               <span>Xem chi tiết đánh giá</span>
                             </button>
 
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingReviewModal({
-                                  _id: rev._id,
-                                  rating: rev.rating || 5,
-                                  comment: rev.comment || '',
-                                  job_title: jTitle,
-                                  company_name: compName
-                                });
-                              }}
-                              className="text-xs font-semibold text-blue-600 hover:text-blue-700 cursor-pointer flex items-center gap-1"
-                            >
-                              <Edit className="w-4 h-4" />
-                              <span>Sửa đánh giá</span>
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingReviewModal({
+                                    _id: rev._id,
+                                    rating: rev.rating || 5,
+                                    comment: rev.comment || '',
+                                    job_title: jTitle,
+                                    company_name: compName
+                                  });
+                                }}
+                                className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-bold cursor-pointer flex items-center gap-1"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                                <span>Sửa đánh giá</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteStudentReview(rev);
+                                }}
+                                className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold cursor-pointer flex items-center gap-1"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Xóa đánh giá</span>
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -3360,7 +3616,7 @@ export default function StudentPortal({
 
         {/* 7. MÀN HÌNH CHAT CHI TIẾT & GỌI VIDEO WEBRTC (UI-SV-CHAT-02, UI-SV-CALL-01 - 1.8 & 1.10) */}
         {activeMenu === 'chat' && (
-          <div className="w-full max-w-[1720px] mx-auto h-[calc(100vh-140px)] flex flex-col rounded-3xl bg-white border border-slate-200/80 shadow-sm overflow-hidden">
+          <div className="w-full max-w-full mx-auto h-[calc(100vh-140px)] flex flex-col rounded-3xl bg-white border border-slate-200/80 shadow-sm overflow-hidden">
             {isGuestMode ? (
               <div className="flex-1 flex flex-col p-4 sm:p-6 space-y-6 overflow-y-auto">
                 
@@ -3406,10 +3662,10 @@ export default function StudentPortal({
                 <div className="w-20 h-20 rounded-3xl bg-blue-950/40 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-5 shadow-xl">
                   <MessageSquare className="w-10 h-10" />
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">
+                <h3 className="text-xl font-bold text-slate-900 mb-2">
                   Chưa Có Cuộc Trò Chuyện Nào
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto mb-6 leading-relaxed">
+                <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto mb-6 leading-relaxed">
                   Bạn chưa ứng tuyển vào công việc nào. Khi bạn nộp hồ sơ ứng tuyển, bạn có thể trò chuyện và trao đổi trực tiếp với nhà tuyển dụng tại đây.
                 </p>
                 <button
@@ -3418,11 +3674,38 @@ export default function StudentPortal({
                   className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold text-xs font-bold transition-all shadow-lg shadow-blue-900/40 flex items-center gap-2 cursor-pointer"
                 >
                   <Briefcase className="w-4 h-4" />
-                  <span>Tìm Việc Ngay ({jobs.length} việc làm)</span>
+                  <span>Tìm Việc Ngay ({activeOpenJobs.length} việc làm)</span>
                 </button>
               </div>
             ) : (
               <>
+            {/* Thanh chuyển đổi danh bạ doanh nghiệp khớp với số đếm Sidebar */}
+            {contacts.length > 0 && (
+              <div className="px-4 py-2.5 bg-white border-b border-slate-200 flex items-center gap-2 overflow-x-auto">
+                <span className="text-xs font-bold text-slate-600 shrink-0">
+                  Danh bạ doanh nghiệp ({contacts.length}):
+                </span>
+                {contacts.map((c) => {
+                  const activeContact = selectedContact?.id === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setSelectedContact(c)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 border ${
+                        activeContact
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full ${c.online ? 'bg-emerald-400' : 'bg-slate-400'}`}></span>
+                      <span>{c.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Khung Header Chat: Tên NTD, Online/Offline, Icon Camera WebRTC, Icon 3 chấm -> Báo cáo */}
             <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -3434,19 +3717,19 @@ export default function StudentPortal({
                     }`}></span>
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-white">{selectedContact?.name || 'Doanh nghiệp'}</h4>
-                  <p className="text-xs text-emerald-400 font-medium">
+                  <h4 className="text-sm font-bold text-slate-900">{selectedContact?.name || 'Doanh nghiệp'}</h4>
+                  <p className="text-xs text-emerald-700 font-bold">
                     {selectedContact?.online ? '● Đang trực tuyến' : '○ Ngoại tuyến'}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                {/* 2 Nút Gọi Trực Tuyến: Gọi Thoại & Gọi Video (FR 1.10.4) */}
+                {/* 2 Nút Gọi Trực Tuyến: Gọi Thoại & Gọi Video */}
                 <button
                   type="button"
                   onClick={() => handleStartCall('audio')}
-                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 hover:border-sky-500/50 text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                   title="Gọi thoại trực tiếp với Doanh nghiệp"
                 >
                   <Phone className="w-3.5 h-3.5" />
@@ -3456,14 +3739,14 @@ export default function StudentPortal({
                 <button
                   type="button"
                   onClick={() => handleStartCall('video')}
-                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white text-xs font-bold transition-all shadow-md shadow-blue-950/60 flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                   title="Gọi video phỏng vấn trực tuyến qua WebRTC"
                 >
                   <Video className="w-4 h-4" />
                   <span className="hidden sm:inline">Phỏng Vấn Video</span>
                 </button>
 
-                {/* Icon Cờ Báo Cáo Vi Phạm (FR 1.8.5) */}
+                {/* Icon Cờ Báo Cáo Vi Phạm */}
                 <button
                   type="button"
                   onClick={() => {
@@ -3479,7 +3762,7 @@ export default function StudentPortal({
                       target_title: `Hội thoại với ${selectedContact?.name || 'Doanh nghiệp'}`
                     });
                   }}
-                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
+                  className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 transition-colors cursor-pointer"
                   title="Báo cáo quấy rối hoặc vi phạm quy định cộng đồng"
                 >
                   <Flag className="w-4 h-4" />
@@ -3614,14 +3897,14 @@ export default function StudentPortal({
                       return (
                         <div key={m._id} className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'} my-2`}>
                           <div className={`px-4 py-2 rounded-2xl text-xs font-bold border flex items-center gap-2 shadow-sm ${isOutgoing
-                            ? 'bg-blue-900/30 text-sky-300 border-sky-500/40 rounded-br-sm'
-                            : 'bg-emerald-950/40 text-emerald-300 border-emerald-500/40 rounded-bl-sm'
+                            ? 'bg-blue-50 text-blue-800 border-blue-200 rounded-br-sm'
+                            : 'bg-emerald-50 text-emerald-800 border-emerald-200 rounded-bl-sm'
                             }`}>
-                            <Phone className={`w-3.5 h-3.5 ${isOutgoing ? 'text-sky-400' : 'text-emerald-400'}`} />
+                            <Phone className={`w-3.5 h-3.5 ${isOutgoing ? 'text-blue-600' : 'text-emerald-600'}`} />
                             <span>
                               {isOutgoing ? `Cuộc gọi đi (${callTypeLabel})` : `Cuộc gọi đến (${callTypeLabel})`} • {m.duration_str || '0:00'}
                             </span>
-                            <span className="text-xs text-slate-400 font-mono ml-1">({m.created_at})</span>
+                            <span className="text-xs text-slate-500 font-mono ml-1">({m.created_at})</span>
                           </div>
                         </div>
                       );
@@ -3634,17 +3917,17 @@ export default function StudentPortal({
                         className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
                       >
                         <div className="flex items-center gap-2 mb-1 px-1">
-                          <span className="text-xs font-bold text-slate-400">
+                          <span className="text-xs font-bold text-slate-700">
                             {isMe ? `Bạn (${currentUser?.profile?.full_name || currentUser?.full_name || 'Tôi'})` : (m.sender_name || selectedContact?.name || 'Doanh nghiệp')}
                           </span>
-                          <span className="text-xs text-slate-600 font-mono">{m.created_at}</span>
+                          <span className="text-xs text-slate-500 font-mono">{m.created_at}</span>
                         </div>
 
                         {/* Bong bóng tin nhắn kèm cảnh báo từ cấm & tệp đính kèm */}
                         <div
                           className={`max-w-md p-3.5 rounded-2xl text-xs leading-relaxed ${isMe
-                            ? 'bg-blue-600 text-white rounded-br-sm shadow-md shadow-blue-950/50'
-                            : 'bg-slate-800 text-slate-200 rounded-bl-sm border border-slate-700'
+                            ? 'bg-blue-600 text-white rounded-br-sm shadow-sm'
+                            : 'bg-slate-100 text-slate-900 rounded-bl-sm border border-slate-200'
                             }`}
                         >
                           <p className="whitespace-pre-wrap">{m.content || m.clean_content}</p>
@@ -3726,8 +4009,9 @@ export default function StudentPortal({
                           )}
 
                           {m.is_flagged && (
-                            <span className="inline-block mt-2 px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold">
-                              ⚠️ Tin nhắn chứa từ khóa vi phạm: {Array.isArray(m.flagged_words) ? m.flagged_words.join(', ') : 'Cấm'}
+                            <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold">
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                              <span>Tin nhắn chứa từ khóa vi phạm: {Array.isArray(m.flagged_words) ? m.flagged_words.join(', ') : 'Cấm'}</span>
                             </span>
                           )}
                         </div>
@@ -3739,17 +4023,17 @@ export default function StudentPortal({
 
                 {/* Chip Preview Tệp Đính Kèm Trước Khi Gửi */}
                 {chatAttachment && (
-                  <div className="px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-slate-600 animate-in slide-in-from-bottom-2">
-                    <div className="flex items-center gap-2 text-xs text-sky-300">
-                      <Paperclip className="w-4 h-4 text-purple-400 shrink-0" />
-                      <span className="font-bold text-white truncate max-w-xs">{chatAttachment.name}</span>
-                      <span className="text-xs text-slate-400 font-mono">({chatAttachment.sizeStr})</span>
-                      <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-xs font-bold uppercase">Sẵn sàng gửi</span>
+                  <div className="px-4 py-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-slate-700 animate-in slide-in-from-bottom-2">
+                    <div className="flex items-center gap-2 text-xs text-slate-800">
+                      <Paperclip className="w-4 h-4 text-purple-600 shrink-0" />
+                      <span className="font-bold text-slate-900 truncate max-w-xs">{chatAttachment.name}</span>
+                      <span className="text-xs text-slate-500 font-mono">({chatAttachment.sizeStr})</span>
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold uppercase whitespace-nowrap">Sẵn sàng gửi</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => setChatAttachment(null)}
-                      className="p-1 text-slate-400 hover:text-red-400 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                      className="p-1 text-slate-500 hover:text-rose-700 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
                       title="Hủy đính kèm"
                     >
                       <X className="w-4 h-4" />
@@ -3769,7 +4053,7 @@ export default function StudentPortal({
                   <button
                     type="button"
                     onClick={() => chatFileInputRef.current?.click()}
-                    className="p-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-600 border border-purple-200 transition-colors cursor-pointer shrink-0"
+                    className="p-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 transition-colors cursor-pointer shrink-0"
                     title="Đính kèm tệp PDF hoặc ảnh (≤ 10MB)"
                   >
                     <Paperclip className="w-4 h-4" />
@@ -3780,12 +4064,12 @@ export default function StudentPortal({
                     value={newMsgText}
                     onChange={(e) => setNewMsgText(e.target.value)}
                     placeholder="Nhập tin nhắn... (Hệ thống tự động lọc từ ngữ cấm ***)"
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-sky-500"
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 outline-none focus:border-blue-500"
                   />
                   <button
                     type="submit"
                     disabled={!newMsgText.trim() && !chatAttachment}
-                    className="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold disabled:opacity-40 transition-all cursor-pointer shadow-md shadow-blue-950/50"
+                    className="p-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold disabled:opacity-40 transition-all cursor-pointer shadow-sm"
                   >
                     <Send className="w-4 h-4" />
                   </button>
@@ -3800,23 +4084,23 @@ export default function StudentPortal({
 
       </main>
 
-      {/* ======================= SLIDE-OVER PANE CHI TIẾT JD (1.5.3) ======================= */}
+      {/* ======================= SLIDE-OVER PANE CHI TIẾT JD ======================= */}
       {selectedJobDetail && (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-xl bg-white border-l border-slate-200 flex flex-col shadow-2xl h-full text-slate-800 animate-in slide-in-from-right duration-300 p-6 overflow-y-auto space-y-6">
-            <div className="flex items-start justify-between pb-4 border-b border-slate-800">
+            <div className="flex items-start justify-between pb-4 border-b border-slate-200">
               <div>
-                <span className="px-2.5 py-0.5 rounded-md bg-blue-500/20 text-sky-300 text-xs font-bold">
+                <span className="px-2.5 py-0.5 rounded-md bg-blue-100 text-blue-800 text-xs font-bold border border-blue-200">
                   {selectedJobDetail.work_time || 'Ca làm linh hoạt'}
                 </span>
-                <h3 className="text-lg font-black text-white mt-1.5">{selectedJobDetail.title}</h3>
-                <p className="text-xs font-semibold text-emerald-400 mt-0.5">{selectedJobDetail.company_name}</p>
-                <p className="text-xs text-slate-400">{selectedJobDetail.location}</p>
+                <h3 className="text-xl font-black text-slate-900 mt-1.5">{selectedJobDetail.title}</h3>
+                <p className="text-xs sm:text-sm font-semibold text-emerald-700 mt-0.5">{selectedJobDetail.company_name}</p>
+                <p className="text-xs text-slate-600">{selectedJobDetail.location}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedJobDetail(null)}
-                className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="text-slate-500 hover:text-slate-900 cursor-pointer p-1"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3825,14 +4109,14 @@ export default function StudentPortal({
             {/* Thông số việc làm */}
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="text-slate-400 block mb-1">Mức Lương Theo Giờ</span>
-                <span className="text-sm font-bold text-sky-400">
+                <span className="text-slate-700 font-bold block mb-1">Mức Lương Theo Giờ</span>
+                <span className="text-sm font-black text-blue-700">
                   {selectedJobDetail.is_negotiable ? 'Thỏa thuận' : `${selectedJobDetail.salary_min?.toLocaleString()}đ - ${selectedJobDetail.salary_max?.toLocaleString()}đ/h`}
                 </span>
               </div>
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="text-slate-400 block mb-1">Độ Tin Cậy Doanh Nghiệp</span>
-                <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                <span className="text-slate-700 font-bold block mb-1">Độ Tin Cậy Doanh Nghiệp</span>
+                <span className="text-xs sm:text-sm font-bold text-emerald-700 flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>100% Đã xác thực GPKD</span>
                 </span>
@@ -3841,14 +4125,14 @@ export default function StudentPortal({
 
             {/* Mô tả chi tiết JD */}
             <div className="space-y-2">
-              <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">Mô Tả Chi Tiết Công Việc (JD)</h4>
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+              <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider">Mô Tả Chi Tiết Công Việc (JD)</h4>
+              <div className="p-4 rounded-2xl bg-white border border-slate-200 text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-line font-medium shadow-xs">
                 {selectedJobDetail.description}
               </div>
             </div>
 
-            {/* Footer Buttons: Ứng tuyển & Báo cáo lừa đảo (FR 1.5.7) */}
-            <div className="flex items-center justify-between gap-3 pt-4 border-t border-slate-800">
+            {/* Footer Buttons: Ứng tuyển & Báo cáo lừa đảo */}
+            <div className="flex items-center justify-between gap-3 pt-4 border-t border-slate-200">
               <button
                 type="button"
                 onClick={() => {
@@ -3858,7 +4142,7 @@ export default function StudentPortal({
                     target_title: selectedJobDetail.title
                   });
                 }}
-                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-red-400 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
                 title="Báo cáo tin tuyển dụng vi phạm quy định"
               >
                 <Flag className="w-4 h-4" />
@@ -3872,7 +4156,7 @@ export default function StudentPortal({
                   setSelectedJobDetail(null);
                   handleOpenApplyModal(jobToApply);
                 }}
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white text-xs font-bold shadow-lg shadow-blue-950/60 cursor-pointer"
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white text-xs font-bold shadow-md cursor-pointer whitespace-nowrap"
               >
                 Ứng Tuyển Ngay
               </button>
@@ -3881,43 +4165,43 @@ export default function StudentPortal({
         </div>
       )}
 
-      {/* ======================= POPUP MODAL ỨNG TUYỂN (UI-SV-APP-01 - 1.5.6) ======================= */}
+      {/* ======================= POPUP MODAL ỨNG TUYỂN ======================= */}
       {applyModalJob && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl text-slate-800 space-y-5">
-            <div className="flex items-start justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-start justify-between pb-3 border-b border-slate-200">
               <div>
                 <h3 className="text-base font-black text-slate-900">Nộp Hồ Sơ Ứng Tuyển</h3>
-                <p className="text-xs text-sky-400 font-semibold mt-0.5">{applyModalJob.title}</p>
-                <p className="text-xs text-slate-400">{applyModalJob.company_name}</p>
+                <p className="text-xs text-blue-700 font-bold mt-0.5">{applyModalJob.title}</p>
+                <p className="text-xs text-slate-600 font-medium">{applyModalJob.company_name}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setApplyModalJob(null)}
-                className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="text-slate-500 hover:text-slate-900 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleApplyJobSubmit} className="space-y-4">
-              {/* Tự động chọn sẵn "CV Mặc định" (FR 1.5.6) */}
+              {/* Tự động chọn sẵn "CV Mặc định" */}
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-800 mb-1">
                   Chọn CV Ứng Tuyển (Tự động chọn CV Mặc định) *
                 </label>
                 <select
                   required
                   value={selectedResumeId}
                   onChange={(e) => setSelectedResumeId(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 outline-none focus:border-sky-500"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-900 outline-none focus:border-blue-500 font-medium"
                 >
                   {myResumes.length === 0 ? (
                     <option value="">Chưa có CV nào - Hãy tải CV lên trước</option>
                   ) : (
                     myResumes.map(r => (
                       <option key={r._id} value={r._id}>
-                        {r.file_name} {r.is_default ? '(⭐ CV Mặc Định)' : ''}
+                        {r.file_name} {r.is_default ? '(CV Mặc Định)' : ''}
                       </option>
                     ))
                   )}
@@ -3926,9 +4210,9 @@ export default function StudentPortal({
 
 
               {applyMsg.text && (
-                <div className={`p-3 rounded-xl text-xs flex items-center gap-2 ${applyMsg.type === 'success'
-                  ? 'bg-emerald-950/60 border border-emerald-500/50 text-emerald-300'
-                  : 'bg-red-950/60 border border-red-500/50 text-red-300'
+                <div className={`p-3 rounded-xl text-xs flex items-center gap-2 font-medium ${applyMsg.type === 'success'
+                  ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                  : 'bg-rose-50 border border-rose-200 text-rose-800'
                   }`}>
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{applyMsg.text}</span>
@@ -3939,14 +4223,14 @@ export default function StudentPortal({
                 <button
                   type="button"
                   onClick={() => setApplyModalJob(null)}
-                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs font-bold text-slate-800 cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={applyLoading}
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white text-xs font-black shadow-lg shadow-blue-950/60 cursor-pointer disabled:opacity-50"
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
                 >
                   {applyLoading ? 'Đang gửi...' : 'Gửi Hồ Sơ'}
                 </button>
@@ -3976,8 +4260,8 @@ export default function StudentPortal({
           studentName: currentUser?.profile?.full_name || currentUser?.full_name || 'Hồ sơ sinh viên',
           major: currentUser?.profile?.major || 'Công nghệ thông tin',
           university: currentUser?.profile?.university || 'Trường Đại học',
-          phone: currentUser?.profile?.phone || '0900000000',
-          email: currentUser?.email || 'sinhvien@partime.vn',
+          phone: currentUser?.profile?.phone || '',
+          email: currentUser?.email || '',
           fileName: previewCvPdf?.file_name || 'CV_UngVien.pdf',
           fileUrl: previewCvPdf?.file_url
         }}
@@ -3999,7 +4283,7 @@ export default function StudentPortal({
                 Cuộc Gọi Đến Trực Tuyến
               </p>
               <h3 className="text-lg font-black text-white">{incomingCall.caller_name || 'Doanh nghiệp'}</h3>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-xs text-slate-300 mt-1">
                 Mời bạn tham gia {incomingCall.call_type === 'video' ? 'cuộc gọi Video phỏng vấn' : 'cuộc gọi Thoại Audio'}
               </p>
             </div>
@@ -4025,31 +4309,31 @@ export default function StudentPortal({
         </div>
       )}
 
-      {/* ======================= MODAL BÁO CÁO VI PHẠM (FR 1.5.7 & 1.8.5) ======================= */}
+      {/* ======================= MODAL BÁO CÁO VI PHẠM ======================= */}
       {reportModalData && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white border border-red-200 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-slate-800 space-y-4">
+          <div className="bg-white border border-rose-200 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-slate-800 space-y-4">
             <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2.5 text-red-400">
+              <div className="flex items-center gap-2.5 text-rose-600">
                 <AlertTriangle className="w-5 h-5 shrink-0" />
                 <h3 className="text-sm font-black text-slate-900">Báo Cáo Vi Phạm Tới Admin</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setReportModalData(null)}
-                className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="text-slate-500 hover:text-slate-900 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Đối tượng bị báo cáo: <strong className="text-white">{reportModalData.target_title}</strong>
+            <p className="text-xs text-slate-700 leading-relaxed">
+              Đối tượng bị báo cáo: <strong className="text-slate-950 font-black">{reportModalData.target_title}</strong>
             </p>
 
             <form onSubmit={handleReportSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-800 mb-1">
                   Lý do vi phạm (ví dụ: yêu cầu nạp tiền, thu cọc đồng phục, quấy rối) *
                 </label>
                 <textarea
@@ -4058,12 +4342,12 @@ export default function StudentPortal({
                   placeholder="Mô tả cụ thể hành vi vi phạm..."
                   value={reportReason}
                   onChange={(e) => setReportReason(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs text-slate-800 outline-none focus:border-red-500 leading-relaxed"
+                  className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs text-slate-900 outline-none focus:border-rose-500 leading-relaxed"
                 />
               </div>
 
               {reportMsg && (
-                <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 text-xs">
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
                   {reportMsg}
                 </div>
               )}
@@ -4072,13 +4356,13 @@ export default function StudentPortal({
                 <button
                   type="button"
                   onClick={() => setReportModalData(null)}
-                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs font-bold text-slate-800 cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-lg shadow-red-950/60 cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md cursor-pointer"
                 >
                   Gửi Báo Cáo
                 </button>
@@ -4088,29 +4372,29 @@ export default function StudentPortal({
         </div>
       )}
 
-      {/* ======================= MODAL VIẾT ĐÁNH GIÁ CÔNG TY (1.7.2) ======================= */}
+      {/* ======================= MODAL VIẾT ĐÁNH GIÁ CÔNG TY ======================= */}
       {reviewModalJob && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-slate-800 space-y-4">
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-base font-black text-slate-900">Đánh Giá Nhà Tuyển Dụng</h3>
-                <p className="text-xs text-emerald-400 font-semibold">{reviewModalJob.company_name}</p>
-                <p className="text-xs text-slate-400">{reviewModalJob.job_title}</p>
+                <p className="text-xs text-emerald-700 font-bold">{reviewModalJob.company_name}</p>
+                <p className="text-xs text-slate-600">{reviewModalJob.job_title}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setReviewModalJob(null)}
-                className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="text-slate-500 hover:text-slate-900 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleReviewSubmit} className="space-y-4">
-              {/* 1 - 5 sao phát sáng khi rê chuột (FR 1.7.2) */}
+              {/* 1 - 5 sao phát sáng khi rê chuột */}
               <div className="space-y-1 text-center py-2">
-                <label className="block text-xs font-bold text-slate-300 mb-2">Số Điểm Đánh Giá</label>
+                <label className="block text-xs font-bold text-slate-800 mb-2">Số Điểm Đánh Giá</label>
                 <div className="flex items-center justify-center gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -4124,22 +4408,22 @@ export default function StudentPortal({
                       <Star
                         className={`w-7 h-7 transition-colors ${star <= (reviewHoverScore || reviewScore)
                           ? 'fill-yellow-400 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]'
-                          : 'text-slate-700'
+                          : 'text-slate-300'
                           }`}
                       />
                     </button>
                   ))}
                 </div>
-                <span className="text-xs font-bold text-yellow-400 block mt-1">
+                <span className="text-xs font-bold text-amber-600 block mt-1">
                   {reviewScore === 5 ? 'Tuyệt vời (5/5 sao)' : (reviewScore === 4 ? 'Rất tốt (4/5 sao)' : `${reviewScore}/5 sao`)}
                 </span>
               </div>
 
-              {/* Nhận xét (< 1.000 ký tự - FR 1.7.2) */}
+              {/* Nhận xét (< 1.000 ký tự) */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-bold text-slate-300">Nhận xét trải nghiệm làm việc *</label>
-                  <span className="text-xs text-slate-400 font-mono">{reviewContent.length}/1.000 ký tự</span>
+                  <label className="text-xs font-bold text-slate-800">Nhận xét trải nghiệm làm việc *</label>
+                  <span className="text-xs text-slate-500 font-mono">{reviewContent.length}/1.000 ký tự</span>
                 </div>
                 <textarea
                   required
@@ -4148,7 +4432,7 @@ export default function StudentPortal({
                   placeholder="Chia sẻ về môi trường làm việc, quản lý, xếp ca học..."
                   value={reviewContent}
                   onChange={(e) => setReviewContent(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs text-slate-800 outline-none focus:border-sky-500 leading-relaxed"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-xs text-slate-900 outline-none focus:border-blue-600 focus:bg-white leading-relaxed"
                 />
               </div>
 
@@ -4156,13 +4440,13 @@ export default function StudentPortal({
                 <button
                   type="button"
                   onClick={() => setReviewModalJob(null)}
-                  className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs font-bold text-slate-800 cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-slate-950 text-xs font-black shadow-lg shadow-yellow-950/60 cursor-pointer"
+                  className="px-6 py-2.5 rounded-xl btn-primary-dimension text-xs font-bold shadow-md cursor-pointer transition-all"
                 >
                   Gửi Đánh Giá
                 </button>
@@ -4172,19 +4456,19 @@ export default function StudentPortal({
         </div>
       )}
 
-      {/* ======================= MODAL XEM CHI TIẾT BÀI ĐÁNH GIÁ (FR-SV-07.03 - 1.7.3) ======================= */}
+      {/* ======================= MODAL XEM CHI TIẾT BÀI ĐÁNH GIÁ ======================= */}
       {viewReviewDetailModal && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-[#0b1329] border border-blue-500/40 rounded-3xl max-w-xl w-full shadow-2xl overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full shadow-2xl overflow-hidden flex flex-col text-slate-800">
             {/* Header */}
-            <div className="p-5 bg-[#090f20] border-b border-slate-800 flex items-center justify-between">
+            <div className="p-5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400">
-                  <Star className="w-5 h-5 fill-yellow-400" />
+                <div className="p-2.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-500">
+                  <Star className="w-5 h-5 fill-amber-400 text-amber-500" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-white">Chi Tiết Bài Đánh Giá</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <h3 className="text-base font-black text-slate-900">Chi Tiết Bài Đánh Giá</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
                     Đánh giá 2 chiều minh bạch sau khi hoàn thành công việc
                   </p>
                 </div>
@@ -4192,7 +4476,7 @@ export default function StudentPortal({
               <button
                 type="button"
                 onClick={() => setViewReviewDetailModal(null)}
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -4203,34 +4487,34 @@ export default function StudentPortal({
               {/* Doanh nghiệp & Vị trí */}
               <div className="flex items-start justify-between gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800">
                 <div className="space-y-1">
-                  <span className="text-xs uppercase font-bold tracking-wider text-sky-400">Doanh Nghiệp Được Đánh Giá</span>
-                  <h4 className="text-sm font-bold text-white">
+                  <span className="text-xs uppercase font-bold tracking-wider text-blue-600">Doanh Nghiệp Được Đánh Giá</span>
+                  <h4 className="text-base font-bold text-slate-900">
                     {viewReviewDetailModal.company_name || 'Doanh nghiệp'}
                   </h4>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-600 font-medium">
                     {viewReviewDetailModal.job_title || 'Việc làm bán thời gian'}
                   </p>
                 </div>
 
                 <div className="text-right shrink-0">
                   <span className="text-xs text-slate-500 font-mono block">Ngày nhận xét</span>
-                  <span className="text-xs font-mono text-slate-300 font-semibold">{viewReviewDetailModal.created_at}</span>
+                  <span className="text-xs font-mono text-slate-700 font-bold">{viewReviewDetailModal.created_at}</span>
                 </div>
               </div>
 
               {/* Số sao đánh giá */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-slate-800">
-                <span className="text-xs font-bold text-slate-300">Điểm đánh giá:</span>
+                <span className="text-xs font-bold text-slate-700">Điểm đánh giá:</span>
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center text-yellow-400">
+                  <div className="flex items-center text-amber-400">
                     {[1, 2, 3, 4, 5].map((s) => (
                       <Star
                         key={s}
-                        className={`w-5 h-5 ${s <= viewReviewDetailModal.rating ? 'fill-yellow-400 text-yellow-400' : 'text-slate-700'}`}
+                        className={`w-5 h-5 ${s <= viewReviewDetailModal.rating ? 'fill-yellow-400 text-yellow-400' : 'text-slate-300'}`}
                       />
                     ))}
                   </div>
-                  <span className="text-sm font-black text-yellow-300">
+                  <span className="text-sm font-black text-amber-600">
                     ({viewReviewDetailModal.rating}/5 sao)
                   </span>
                 </div>
@@ -4238,23 +4522,23 @@ export default function StudentPortal({
 
               {/* Trạng thái kiểm duyệt */}
               {viewReviewDetailModal.is_hidden ? (
-                <div className="p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 shrink-0 text-red-400" />
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 font-medium">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
                   <span>Đánh giá này đã bị Quản trị viên ẩn do vi phạm tiêu chuẩn cộng đồng.</span>
                 </div>
               ) : (
-                <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2 font-medium">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
                   <span>Đánh giá đã được xác thực và hiển thị công khai trên hệ thống.</span>
                 </div>
               )}
 
               {/* Nội dung đầy đủ bài nhận xét văn bản */}
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
-                  Nội Dung Văn Bản Nhận Xét Đầy Đủ (1.7.3)
+                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  Nội Dung Văn Bản Nhận Xét Đầy Đủ
                 </label>
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-sm text-slate-800 leading-relaxed whitespace-pre-line shadow-inner min-h-[90px]">
+                <div className="p-4 rounded-2xl bg-white border border-slate-200 text-sm text-slate-800 leading-relaxed whitespace-pre-line shadow-xs min-h-[90px] font-medium">
                   {viewReviewDetailModal.comment ? `"${viewReviewDetailModal.comment}"` : 'Không có nội dung văn bản.'}
                 </div>
               </div>
@@ -4277,7 +4561,7 @@ export default function StudentPortal({
                         company_name: cur.company_name || 'Doanh nghiệp'
                       });
                     }}
-                    className="px-4 py-2 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 border border-sky-500/40 text-sky-300 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <Edit className="w-3.5 h-3.5" />
                     <span>Sửa Đánh Giá Này</span>
@@ -4287,7 +4571,7 @@ export default function StudentPortal({
               <button
                 type="button"
                 onClick={() => setViewReviewDetailModal(null)}
-                className="px-5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                className="px-5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold transition-colors cursor-pointer"
               >
                 Đóng
               </button>
@@ -4298,17 +4582,17 @@ export default function StudentPortal({
 
       {/* ======================= MODAL SỬA ĐÁNH GIÁ (FR 1.7.4) ======================= */}
       {editingReviewModal && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-slate-800 space-y-4">
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-base font-black text-slate-900">Chỉnh Sửa Đánh Giá</h3>
-                <p className="text-xs text-sky-400 font-semibold mt-0.5">{editingReviewModal.company_name}</p>
+                <p className="text-xs text-blue-700 font-bold mt-0.5">{editingReviewModal.company_name}</p>
               </div>
               <button
                 type="button"
                 onClick={() => setEditingReviewModal(null)}
-                className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 cursor-pointer p-1"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -4316,7 +4600,7 @@ export default function StudentPortal({
 
             <form onSubmit={handleSaveEditReview} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-2">Đánh giá số sao (1-5 sao)</label>
+                <label className="block text-xs font-bold text-slate-800 mb-2">Đánh giá số sao (1-5 sao)</label>
                 <div className="flex items-center gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -4328,19 +4612,19 @@ export default function StudentPortal({
                       <Star
                         className={`w-6 h-6 transition-colors ${star <= editingReviewModal.rating
                           ? 'fill-yellow-400 text-yellow-400'
-                          : 'text-slate-700 hover:text-yellow-500'
+                          : 'text-slate-300 hover:text-yellow-400'
                           }`}
                       />
                     </button>
                   ))}
-                  <span className="text-xs font-bold text-slate-400 ml-2">
+                  <span className="text-xs font-bold text-slate-700 ml-2">
                     {editingReviewModal.rating}/5 sao
                   </span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-800 mb-1">
                   Nội dung nhận xét (&lt; 1000 ký tự) *
                 </label>
                 <textarea
@@ -4350,7 +4634,7 @@ export default function StudentPortal({
                   placeholder="Nhập nội dung nhận xét chi tiết..."
                   value={editingReviewModal.comment}
                   onChange={(e) => setEditingReviewModal(prev => ({ ...prev, comment: e.target.value }))}
-                  className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs text-slate-800 outline-none focus:border-sky-500 leading-relaxed"
+                  className="w-full bg-white border border-slate-300 rounded-xl p-3 text-xs sm:text-sm text-slate-800 outline-none focus:border-blue-500 leading-relaxed font-medium"
                 />
                 <div className="text-right text-xs text-slate-500 mt-1">
                   {editingReviewModal.comment?.length || 0}/1000 ký tự
@@ -4361,13 +4645,13 @@ export default function StudentPortal({
                 <button
                   type="button"
                   onClick={() => setEditingReviewModal(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-colors cursor-pointer"
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold text-xs font-bold transition-all shadow-lg shadow-blue-950/60 cursor-pointer"
+                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs transition-all shadow-md cursor-pointer"
                 >
                   Lưu Thay Đổi
                 </button>

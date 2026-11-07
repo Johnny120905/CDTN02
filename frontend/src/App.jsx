@@ -373,6 +373,7 @@ export default function App() {
             onSearchChange={setHeaderSearchKeyword}
             onCreateJobClick={handleCreateJobFromHeader}
             activeSectionTitle={activeSectionTitle}
+            onShowBanner={handleShowBanner}
           />
 
           {renderBanner()}
@@ -509,6 +510,7 @@ export default function App() {
             onCreateJobClick={handleCreateJobFromHeader}
             activeSectionTitle={activeSectionTitle}
             onNavigateAuth={handleNavigateAuth}
+            onShowBanner={handleShowBanner}
           />
 
           {renderBanner()}
@@ -601,6 +603,7 @@ export default function App() {
             onCreateJobClick={() => handleNavigateAuth('login', 'employer')}
             activeSectionTitle={activeSectionTitle}
             onNavigateAuth={handleNavigateAuth}
+            onShowBanner={handleShowBanner}
           />
 
           {renderBanner()}
@@ -649,6 +652,7 @@ export default function App() {
           onCreateJobClick={handleCreateJobFromHeader}
           activeSectionTitle={activeSectionTitle}
           onNavigateAuth={handleNavigateAuth}
+          onShowBanner={handleShowBanner}
         />
 
         {renderBanner()}

@@ -1,15 +1,15 @@
 # TÀI LIỆU ĐẶC TẢ THIẾT KẾ GIAO DIỆN & TẬP HỢP PROMPT GOOGLE STITCH CHUẨN XÁC 100%
 ## NỀN TẢNG TUYỂN DỤNG PARTIME.VN - VIỆC LÀM LINH HOẠT CHO SINH VIÊN (CDTN02)
-> **Phiên bản:** 2.0 - Chuẩn hóa Dark 4D Electric Blue & Layered Clean Architecture  
+> **Phiên bản:** 3.0 - Chuẩn hóa Digital Light Dimension (Bảng màu 8 Cột Matrix Chống Mỏi Mắt) & Layered Clean Architecture  
 > **Font chữ tiêu chuẩn:** `Be Vietnam Pro` (Google Fonts: 400 Regular, 500 Medium, 600 SemiBold, 700 Bold, 900 Black)  
-> **Bảng màu chủ đạo:** Vũ trụ không gian sâu `#030712`, thẻ kính mờ `#0b1329` (`backdrop-blur-xl border border-blue-900/30`), xanh điện `#2563eb`, xanh da trời `#38bdf8`, xanh lục `#10b981`, đỏ cảnh báo `#ef4444`, vàng hổ phách `#f59e0b`.  
+> **Nguyên tắc thiết kế tối thượng:** Phong cách ánh sáng số **Digital Light Dimension** dịu mắt, kết hợp điểm nhấn 3D Electric Blue / Deep Navy, biểu tượng Logo 3D WebGL GLTF (`/meshy-3d-logo.glb`) và **100% Vector Icon chuẩn từ thư viện Lucide React** (tuyệt đối không dùng emoji và icon AI vô nghĩa).  
 > **CHỈ THỊ BẮT BUỘC KHI DÙNG PROMPT CHO AI (STRICT AI COMPLIANCE MANDATE):**  
-> *Khi người dùng dán bất kỳ prompt nào trong tài liệu này vào Google Stitch hoặc các công cụ AI UI Generator, hệ thống AI **BẮT BUỘC PHẢI TÁI TẠO NGUYÊN BẢN 100%** theo đúng bố cục, mã màu HEX, font chữ, các trường nhập liệu, thành phần 3D WebGL GLTF, canvas Three.js và văn bản tiếng Việt đã được đặc tả; **TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ Ý THÊM BỚT, TÓM TẮT, THAY THẾ HOẶC BIẾN TẤU NỘI DUNG VÀ MÀU SẮC** so với bản gốc.*
+> *Khi người dùng dán bất kỳ prompt nào trong tài liệu này vào Google Stitch hoặc các công cụ AI UI Generator, hệ thống AI **BẮT BUỘC PHẢI TÁI TẠO NGUYÊN BẢN 100%** theo đúng bố cục, ma trận 8 cột màu sắc HEX, font chữ, các trường nhập liệu, thành phần 3D WebGL GLTF, canvas Three.js và văn bản tiếng Việt đã được đặc tả; **TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ Ý THÊM BỚT, TÓM TẮT, THAY THẾ HOẶC BIẾN TẤU NỘI DUNG VÀ MÀU SẮC** so với bản gốc.*
 
 ---
 
 ## MỤC LỤC BỘ PROMPT
-1. [Hệ Thống Thiết Kế Chuẩn Dark 4D Electric Blue](#1-hệ-thống-thiết-kế-chuẩn-dark-4d-electric-blue)
+1. [Hệ Thống Thiết Kế Chuẩn Digital Light Dimension (Bảng Màu 8 Cột Matrix)](#1-hệ-thống-thiết-kế-chuẩn-digital-light-dimension-bảng-màu-8-cột-matrix)
 2. [Bộ Prompt Xác Thực Riêng Biệt Từng Role (9 Prompts)](#2-bộ-prompt-xác-thực-riêng-biệt-từng-role)
    - Prompt 01A: Đăng Nhập Sinh Viên (`StudentLoginScreen`)
    - Prompt 01B: Đăng Nhập Nhà Tuyển Dụng (`EmployerLoginScreen`)
@@ -55,23 +55,28 @@
 
 ---
 
-## 1. HỆ THỐNG THIẾT KẾ CHUẨN DARK 4D ELECTRIC BLUE
+## 1. HỆ THỐNG THIẾT KẾ CHUẨN DIGITAL LIGHT DIMENSION (BẢNG MÀU 8 CỘT MATRIX)
 
-- **Tông nền vũ trụ 4D:** `#030712` (Không gian nền vũ trụ sâu thẳm với lớp sương mù xanh đen).
-- **Thẻ thành phần Glassmorphism:** `#0B1329` / `#060B17`, `backdrop-blur-xl`, `border border-blue-900/30` (hoặc `border-blue-500/20`), đổ bóng neon `shadow-2xl shadow-blue-950/80`.
-- **Màu nhấn thương hiệu (Electric Blue Spectrum):**
-  - Xanh dương điện chủ đạo: `#2563EB` (Blue 600)
-  - Xanh trời phát sáng: `#38BDF8` (Sky 400)
-  - Xanh Cyan tương tác: `#06B6D4` / `#60A5FA`
-- **Màu chữ tương phản cao:** Chữ chính trắng sáng `#FFFFFF` / `#F8FAFC`, chữ phụ `#94A3B8` (Slate 400), nhãn nổi bật `#38BDF8`.
-- **4 Màu trạng thái nghiệp vụ chuẩn hóa:**
-  - 🟡 **Vàng hổ phách (`#F59E0B`):** Chờ duyệt (`pending`), đang xử lý, đếm ngược OTP.
-  - 🔴 **Đỏ cảnh báo (`#EF4444`):** Khóa (`banned`), từ chối (`rejected`), ẩn tin vi phạm, từ cấm.
-  - 🟢 **Xanh lục an toàn (`#10B981`):** Hoạt động (`active`), đã duyệt (`approved`), trúng tuyển (`accepted`).
-  - 🟠 **Cam điều tra (`#F97316`):** Đang phỏng vấn (`interviewing`), đang điều tra báo cáo.
-- **Đồ họa WebGL 3D & Three.js Canvas:**
-  - Canvas 650 ngôi sao tròn phát sáng lấp lánh (Circular glowing stars), vòng xoay 4D Hyper-Torus đa chiều, sóng biến dạng không-thời gian mềm mại di chuyển theo con trỏ chuột.
-  - Logo 3D WebGL GLTF (`/meshy-3d-logo.glb`) nổi bồng bềnh 4D, nghiêng theo chuột, đổ bóng động kèm chữ nhận diện `PARTIME.VN` - `Việc Làm Linh Hoạt`.
+Hệ thống giao diện PARTIME.VN được xây dựng dựa trên nguyên lý quang học số 4D, cân bằng hoàn hảo giữa tính thẩm mỹ hiện đại và công thái học thị giác chống mỏi mắt (Anti-fatigue).
+
+### Bảng Tổng Hợp Chi Tiết Tất Cả Mã Màu Từng Cột (8 Columns Matrix):
+
+| Cột | Hạng Mục / Thành Phần | Màu Đỉnh (Top Hex) | Màu Giữa (Mid Hex) | Màu Đáy (Bottom Hex) | Tên Phối Thức / Hiệu Ứng | Công Thức CSS Linear-Gradient Chuẩn | Ứng Dụng Thực Tế & Vai Trò Giao Diện |
+| :---: | :--- | :---: | :---: | :---: | :--- | :--- | :--- |
+| **1** | **Background**<br>*(Nền Canvas Toàn Trang)* | `#FAF8FF`<br>*(Trắng ánh tím)* | `#F0F7FF`<br>*(Trắng băng)* | `#E2E7FF`<br>*(Xanh phấn dịu)* | **Pha Trắng Ánh Xanh** | `linear-gradient(135deg, #FAF8FF 0%, #F0F7FF 50%, #E2E7FF 100%)` | Nền tổng thể toàn bộ trang web; tạo cảm giác ánh sáng khuếch tán 4D mềm mại, chống mỏi mắt (Anti-fatigue). |
+| **2** | **Section phụ / Card**<br>*(Khung Form & Thẻ)* | `#EFF6FF`<br>*(Xanh sương)* | `#E2E7FF`<br>*(Xanh phấn)* | `#DBE1FF`<br>*(Xanh kính mờ)* | **Pha Xanh Kính Mờ** | `linear-gradient(180deg, #EFF6FF 0%, #E2E7FF 55%, #DBE1FF 100%)` | Nền khung form nhập liệu, thẻ công việc (Job Card), kết hợp `backdrop-blur-md`. Tiêu đề bên trong luôn dùng chữ đen `#0F172A`. |
+| **3** | **Heading**<br>*(Tiêu đề chính & Slogan)* | `#0F172A`<br>*(Đen mực sâu)* | `#1E3A8A`<br>*(Navy đậm)* | `#2563EB`<br>*(Electric Blue)* | **Đen Mực Pha Navy Ánh Kim** | `linear-gradient(90deg, #0F172A 0%, #1E3A8A 60%, #2563EB 100%)`<br>*(kèm bg-clip-text)* | • H1–H3 thông thường: Giữ đơn sắc `#0F172A` để dễ đọc.<br>• Slogan Hero / Banner 3D lớn: Dùng gradient ánh kim 3D sang trọng. |
+| **4** | **Text**<br>*(Nội dung văn bản)* | `#1E293B`<br>*(Dòng chính)* | `#334155`<br>*(Mô tả JD / Phụ)* | `#475569`<br>*(Gợi ý / Metadata)* | **Xám Than Đậm (Solid Hierarchy)** | *Không dùng gradient cho chữ nhỏ (Dùng solid colors phân cấp 3 bậc)* | Phân tầng thị giác rõ nét theo thứ bậc: Dòng chính (`#1E293B`), mô tả chi tiết (`#334155`), nhãn phụ/timestamp (`#475569`). |
+| **5** | **Button nền**<br>*(Nút bấm chính 3D)* | `#38BDF8`<br>*(Sky Cyan)* | `#2563EB`<br>*(Electric Blue)* | `#1D4ED8`<br>*(Deep Navy)* | **Pha Xanh Logo 3D** | `linear-gradient(135deg, #38BDF8 0%, #2563EB 50%, #1D4ED8 100%)` | Khớp 100% với màu khối mô hình Logo 3D (`meshy-3d-logo.glb`). Dùng cho các nút CTA then chốt: Đăng nhập, Nộp hồ sơ, Ứng tuyển. |
+| **6** | **Button / Text hover**<br>*(Trạng thái tương tác)* | `#2563EB`<br>*(Electric Blue)* | `#1D4ED8`<br>*(Deep Navy)* | `#003EA8`<br>*(Navy nhấn sâu)* | **Pha Navy Nhấn Sâu** | `linear-gradient(135deg, #2563EB 0%, #1D4ED8 60%, #003EA8 100%)` | Kích hoạt khi rê chuột vào nút bấm, kết hợp bóng đổ phát quang `box-shadow: 0 8px 24px rgba(56, 189, 248, 0.45)`, tạo độ lún/nổi 3D. |
+| **7** | **Chữ Button / Input**<br>*(Chữ nút & Ô nhập liệu)* | `#FFFFFF`<br>*(Trắng tinh khiết)* | `#FAF8FF`<br>*(Trắng ngọc)* | `#F8FAFC`<br>*(Trắng mờ nhẹ)* | **Trắng Tinh Khiết 100%** | `linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)` hoặc Solid `#FFFFFF` | • Chữ tương phản cao trên nền nút bấm màu đậm.<br>• Làm màu nền trắng tinh khiết cho ô Input, viền xám sáng `#CBD5E1`. |
+| **8** | **Stroke / Viền & State**<br>*(Đường viền & Trạng thái)* | `#BFDBFE`<br>*(Viền kính mờ)* | `#93C5FD`<br>*(Viền nổi bật)* | `#E2E8F0`<br>*(Viền chia tách)* | **Khung Kính Định Hình** | `border: 1px solid #BFDBFE`<br>State: `#10B981`, `#F59E0B`, `#EF4444` | Phân cách thẻ Card, bảng biểu; 3 màu trạng thái: Xanh lục Thành công (`#10B981`), Vàng Cảnh báo (`#F59E0B`), Đỏ Nguy hiểm (`#EF4444`). |
+
+### 4 Quy Tắc Thiết Kế Bắt Buộc (Core Design Mandates):
+1. **Chuẩn Hóa 100% Vector Icon Lucide React:** Tuyệt đối không dùng emoji (☕, 🛒, 📚, 📦, 💻, 🎪, 🎉, ✓, ✕, 🟢, ⚪, 🟡, 🔴, ⏳, ⭐, 💡, 📞, ⚠️...) và không dùng các icon AI trang trí vô nghĩa (`<Sparkles />`, `<Zap />`, `<Coffee />`). Chỉ dùng các vector icon ngữ nghĩa chuẩn từ `lucide-react`.
+2. **Tên Nút Bấm Không Chứa Từ Ngữ Chỉ Màu Sắc Thô:** Không đặt tên nút là "Phê duyệt (Xanh)", "Từ chối (Đỏ)", v.v. Chỉ cần đặt tên là "Phê duyệt" hoặc "Từ chối" với màu nền tương ứng để giao diện tinh tế, chuyên nghiệp.
+3. **Cơ Chế Quay Lại Bằng Logo 3D:** Loại bỏ toàn bộ các nút bấm "Quay lại trang chủ" trong Admin Dashboard và các nút "Quay lại trang" trong các màn hình Đăng nhập / Đăng ký / Quên mật khẩu. Khi cần quay về trang chủ hoặc chế độ xem trước khách, người dùng chỉ cần nhấp chuột vào biểu tượng Logo 3D `PARTIME.VN`.
+4. **Chế Độ Xem Trước Khách (Guest Preview Mode):** Khi người dùng chưa đăng nhập hoặc chưa tạo tài khoản, giao diện Sinh viên và Nhà tuyển dụng hoạt động ở chế độ xem trước an toàn: Không hiển thị số liệu cá nhân, không hiển thị thông tin doanh nghiệp chi tiết, chỉ hiển thị khung lưới mẫu (Skeleton Grid) và thông báo nhắc đăng nhập/đăng ký để mở khóa tài khoản toàn vẹn.
 
 ---
 
@@ -407,10 +412,10 @@ Tool: Google Stitch / Modern AI Web Canvas
 Task: Generate the Student Job Search & Multi-criteria Filtering Portal with 34 part-time categories, 24 HCMC districts, salary sliders, and interactive job cards.
 
 Layout & Specs:
-- Theme: Dark 4D Electric Blue (#030712 canvas, #0b1329 glass cards, text-white).
+- Theme: Digital Light Dimension (Nền Canvas #FAF8FF -> #F0F7FF -> #E2E7FF, Card #EFF6FF -> #E2E7FF -> #DBE1FF, Chữ đen #0F172A).
 - Top Search Bar:
-  - Big floating search input with Search icon: "Tìm việc làm part-time theo chức danh, kỹ năng, công ty...".
-  - Quick Suggestion Pills: Barista, Phục vụ ca tối, Gia sư Toán, Nhân viên thu ngân, Thực tập sinh IT, Sale Online.
+  - Big floating search input with Lucide Search icon: "Tìm kiếm công việc, chức danh, kỹ năng part-time...".
+  - Quick Suggestion Pills (Standard Lucide badges, strictly NO raw emojis): F&B / Pha Chế & Phục Vụ, Bán Lẻ / Cửa Hàng Tiện Lợi, Gia Sư / Trợ Giảng, Kho Vận / Soạn Hàng Ca, IT & Nhập Liệu Online, Sự Kiện & Thời Vụ.
 - Left Sidebar Filters (25% width on desktop, drawer on mobile):
   - District Filter: Dropdown with all 24 HCMC districts & Thu Duc City (Quận 1, Quận 3, Quận 5, Quận 7, Quận 10, Bình Thạnh, Phú Nhuận, Gò Vấp, Thủ Đức...).
   - Category Filter: 34 part-time categories with checkboxes (F&B - Nhà hàng khách sạn, Bán lẻ - Cửa hàng tiện lợi, Gia sư - Giáo dục, Lập trình CNTT, Marketing - Sự kiện...).
@@ -419,12 +424,12 @@ Layout & Specs:
   - Clear Filter button & "Áp dụng bộ lọc" button.
 - Right Job Listing Feed (75% width):
   - Header: Total jobs counter (e.g. "86 việc làm part-time phù hợp"), Sort by: "Mới nhất", "Lương cao nhất", "Gần bạn nhất".
-  - Job Card (Rich Dark 4D Glass Component):
-    - Company Logo & Company Name with Green Checkmark "GPKD đã xác thực".
-    - Job Title in bold white text (hover text-sky-400).
+  - Job Card (Digital Light Dimension Glass Component):
+    - Company Logo & Company Name with Lucide CheckCircle2 icon "GPKD đã xác thực".
+    - Job Title in bold dark text #0F172A (hover text-blue-600).
     - Badge array: "Lương: 30.000đ - 35.000đ/giờ", "Ca 4 tiếng linh hoạt", "Quận 1", "Tuyển 5 bạn".
-    - Bookmark Button: Heart icon toggling saved state instantly without page reload.
-    - Quick Action: "Xem chi tiết" & "Ứng tuyển ngay" button (blue gradient).
+    - Bookmark Button: Lucide Heart icon toggling saved state instantly without page reload.
+    - Quick Action: "Xem chi tiết" & "Ứng tuyển ngay" button (3D blue gradient).
 ```
 
 ---
@@ -625,21 +630,24 @@ Do NOT alter, omit, summarize, or improvise any layout, label, color code, or be
 
 Role: Senior Frontend Engineer - Employer Platform (Huỳnh Nguyễn Bảo Ngọc)
 Tool: Google Stitch / Modern AI Web Canvas
-Task: Generate the Employer Dashboard with KPI Metric Cards, Verification Status Banner, and Quick Action Posting Bar.
+Task: Generate the Employer Dashboard with KPI Metric Cards, Verification Status Banner, and Guest Preview Mode support.
 
 Components:
-- Theme: Dark 4D Electric Blue.
-- Top Verification Banner:
-  - If GPKD is `pending`: Amber banner "Hồ sơ GPKD đang chờ Quản trị viên phê duyệt. Bạn hiện chỉ có thể tạo tin ở dạng Bản nháp."
-  - If GPKD is `approved`: Emerald badge "Doanh nghiệp đã xác thực GPKD chính thức".
-- 4 KPI Stat Cards:
-  - "Tin đang tuyển dụng": 4 tin đang mở
-  - "Hồ sơ mới nộp": 18 ứng viên (Badge "+6 hôm nay")
-  - "Lịch phỏng vấn": 3 buổi tuần này
-  - "Đánh giá uy tín": 4.8 / 5.0 ⭐ (từ 32 sinh viên)
-- Quick Action Button: "Đăng tin tuyển dụng mới (+)" (Blue gradient glow button).
-- Active Jobs Management Table:
-  - Columns: Tiêu đề công việc, Ngành nghề, Địa điểm (Quận), Lương/giờ, Số ứng viên đã nộp, Trạng thái (Đang mở / Đã đóng), Hành động (Xem ứng viên ATS, Sửa tin, Đóng tin).
+- Theme: Digital Light Dimension (Canvas #FAF8FF -> #F0F7FF -> #E2E7FF, Cards #EFF6FF -> #E2E7FF -> #DBE1FF, Text #0F172A).
+- Guest Preview Mode Mandate:
+  - If user is NOT logged in (Chế độ khách): Do NOT display any private company data or live numbers. Show placeholder skeleton cards and a clear notice banner: "Chế độ khách - Chưa đăng nhập tài khoản. Đăng nhập hoặc đăng ký để quản trị tin tuyển dụng".
+- Authenticated State Components:
+  - Top Verification Banner:
+    - If GPKD is `pending`: Amber banner (Lucide AlertCircle icon) "Hồ sơ GPKD đang chờ Quản trị viên phê duyệt. Bạn hiện chỉ có thể tạo tin ở dạng Bản nháp."
+    - If GPKD is `approved`: Emerald badge (Lucide CheckCircle2 icon) "Doanh nghiệp đã xác thực GPKD chính thức".
+  - 4 KPI Stat Cards:
+    - "Tin đang tuyển dụng": 4 tin đang mở
+    - "Hồ sơ mới nộp": 18 ứng viên (Badge "+6 hôm nay")
+    - "Lịch phỏng vấn": 3 buổi tuần này
+    - "Đánh giá uy tín": 4.8 / 5.0 (từ 32 sinh viên, Lucide Star icon)
+  - Quick Action Button: "Đăng tin tuyển dụng mới (+)" (3D blue gradient glow button).
+  - Active Jobs Management Table:
+    - Columns: Tiêu đề công việc, Ngành nghề, Địa điểm (Quận), Lương/giờ, Số ứng viên đã nộp, Trạng thái (Đang mở / Đã đóng), Hành động (Xem ứng viên ATS, Sửa tin, Đóng tin).
 ```
 
 ---
@@ -651,21 +659,26 @@ Do NOT alter, omit, summarize, or improvise any layout, label, color code, or be
 
 Role: Senior Frontend Engineer - Employer Platform (Huỳnh Nguyễn Bảo Ngọc)
 Tool: Google Stitch / Modern AI Web Canvas
-Task: Generate the Company Profile Studio with Drag-and-Drop GPKD upload, 24 HCMC districts branch list, and Cover Photo manager.
+Task: Generate the Company Profile Studio with Drag-and-Drop GPKD upload, 24 HCMC districts branch list, and Guest Preview mode isolation.
 
 Components:
-- Theme: Dark 4D Electric Blue.
-- Cover Image & Company Logo Drag-and-Drop Box (Supports PNG, JPG <= 10MB).
-- Business License (GPKD) Card:
-  - Status Indicator: "🟢 Đã phê duyệt" / "🟡 Đang chờ duyệt" / "🔴 Bị từ chối (Kèm lý do phản hồi của Admin)".
-  - Drag-and-Drop Upload Area: Accepts PDF and images up to 10MB.
-  - Button "Xem lại GPKD đã tải lên" opening DocumentViewerModal.
-- Company Information Form:
-  - Tên doanh nghiệp chính thức (3-200 ký tự).
-  - Mã số thuế (MST) 10 hoặc 13 số.
-  - Địa chỉ trụ sở chính: Dropdown chọn 24 Quận, Huyện TP.HCM + Địa chỉ cụ thể.
-  - Danh sách chi nhánh tuyển dụng sinh viên.
-  - Giới thiệu môi trường làm việc part-time thân thiện sinh viên.
+- Theme: Digital Light Dimension.
+- Guest Preview Mode Mandate:
+  - When unauthenticated, header shows: "Hồ Sơ Doanh Nghiệp (Xem Trước) - Chế độ khách - Chưa đăng nhập tài khoản. Đăng nhập hoặc đăng ký tài khoản để cập nhật hồ sơ chính thức".
+  - Form fields (Tên Doanh Nghiệp, Người Đại Diện Pháp Luật, Chi Nhánh Cửa Hàng, Địa Chỉ Tuyển Dụng, Giới Thiệu Doanh Nghiệp) remain empty placeholders with disabled state.
+  - GPKD status displays: "Chế độ xem trước (Chưa liên kết tài khoản) - Tệp lưu trữ: Chưa đính kèm tệp".
+- Authenticated State:
+  - Cover Image & Company Logo Drag-and-Drop Box (Supports PNG, JPG <= 10MB).
+  - Business License (GPKD) Card:
+    - Status Indicator: Lucide CheckCircle2 "Đã phê duyệt" / Lucide Clock "Đang chờ duyệt" / Lucide XCircle "Bị từ chối (Kèm lý do phản hồi của Admin)".
+    - Drag-and-Drop Upload Area: Accepts PDF and images up to 10MB.
+    - Button "Xem lại GPKD đã tải lên" opening DocumentViewerModal.
+  - Company Information Form:
+    - Tên doanh nghiệp chính thức (3-200 ký tự).
+    - Mã số thuế (MST) 10 hoặc 13 số.
+    - Địa chỉ trụ sở chính: Dropdown chọn 24 Quận, Huyện TP.HCM + Địa chỉ cụ thể.
+    - Danh sách chi nhánh tuyển dụng sinh viên.
+    - Giới thiệu môi trường làm việc part-time thân thiện sinh viên.
 ```
 
 ---
@@ -851,21 +864,36 @@ Do NOT alter, omit, summarize, or improvise any layout, label, color code, or be
 
 Role: Senior Frontend Engineer - Admin Platform (Lê Thị Thuỳ Ngân)
 Tool: Google Stitch / Modern AI Web Canvas
-Task: Generate the Admin Command Center Dashboard with System KPI Cards and Visual Growth Charts.
+Task: Generate the Admin Command Center Dashboard with Streamlined 2-Column Year-Month Filter, Date Range Picker, System KPI Cards, and Visual Growth Charts.
 
-Components:
-- Theme: Dark 4D Electric Blue.
+Components & Architecture:
+- Theme: Digital Light Dimension (Canvas #FAF8FF -> #F0F7FF -> #E2E7FF, Cards #EFF6FF -> #E2E7FF -> #DBE1FF, Text #0F172A).
+- Time Filter Architecture (MANDATORY 2-COLUMN STRUCTURE):
+  - Row 1: 2 symmetric dropdown columns
+    - Column 1: "1. Chọn Năm" (Options: "Năm 2024", "Năm 2025", "Năm 2026").
+    - Column 2: "2. Chọn Tháng (trong năm đã chọn)" (Options: "Tháng 1 / [Năm]" to "Tháng 12 / [Năm]").
+  - Row 2: Date range picker
+    - "Từ ngày: [dd/mm/yyyy]" and "Đến ngày: [dd/mm/yyyy]" (Native date inputs for exact interval inspection).
+  - Explicit UI exclusions:
+    - Strictly REMOVE any intermediate dropdown selector ("Từ ngày ... đến ngày ... Theo tuần / khoảng ngày").
+    - Strictly REMOVE quick-week shortcut buttons ("Tuần 1", "Tuần 2", "Tuần 3", "Tuần 4").
+    - Strictly REMOVE "Quay lại trang chủ" button (Navigation handled by clicking PARTIME.VN 3D Logo).
+- Data Strategy & Integrity Rules:
+  - Years 2024 & 2025: Historical normalized dataset (loaded via historicalAnalyticsData.js).
+  - Year 2026: Strictly 100% live database sync from MongoDB Atlas (users, jobs, applications); zero simulated or fake metrics.
 - Top Stat Metric Cards:
-  - "Tổng số người dùng": 32,150 (Badge "+18% so với tháng trước")
-  - "Sinh viên đã đăng ký": 27,400
-  - "Doanh nghiệp đã xác thực GPKD": 4,750
-  - "Tin việc làm đang mở": 1,920
-  - "Đơn ứng tuyển đã kết nối": 12,840
-- Analytics Charts Section:
-  - Chart 1: Biểu đồ đường tăng trưởng tài khoản mới qua các tuần.
-  - Chart 2: Biểu đồ cột phân bố tin tuyển dụng theo 24 Quận Huyện TP.HCM.
-  - Chart 3: Tỷ lệ chuyển đổi trạng thái hồ sơ (Chờ duyệt vs Phỏng vấn vs Trúng tuyển).
-- Quick Action: "Xuất báo cáo tổng kết (Excel / CSV)" for faculty graduation evaluation.
+  - Card 1: "1. TỔNG SỐ SINH VIÊN" (Dynamic live counter, e.g. 580, "+15.2% so với tháng trước").
+  - Card 2: "2. TỔNG DOANH NGHIỆP" (Dynamic counter, e.g. 46, "100% Xác thực GPKD").
+  - Card 3: "3. TIN TUYỂN DỤNG" (Dynamic counter, e.g. 120, "110 tin đang hiển thị").
+  - Card 4: "4. ĐƠN ỨNG TUYỂN" (Dynamic counter, e.g. 590, "Tỷ lệ duyệt đơn 94.2%").
+- Visual Charts Section:
+  - Chart 1 (Weekly Bar Chart): "TỐC ĐỘ PHÁT TRIỂN VIỆC LÀM & ỨNG TUYỂN QUA 4 TUẦN" (Tuần 1, Tuần 2, Tuần 3, Tuần 4) with vibrant blue 3D gradients and smooth hover tooltip.
+  - Chart 2 (Monthly Trend Line Chart): Growth trend across months with fixed container height (min-h-[280px]) preventing any screen jitter/shake on hover.
+  - Chart 3 (Industry Distribution Donut/Pie Chart): Categorical breakdown with high-contrast black text #0F172A on white tooltip when hovered (never turning into illegible white text).
+- Standardized Lucide Icons:
+  - Zero raw emojis and zero AI decorative icons; strictly vector icons from lucide-react (Users, Building2, Briefcase, FileText, Calendar, Filter, Download).
+- Quick Action:
+  - Button "Xuất báo cáo tổng kết (Excel / CSV)" for faculty graduation audit.
 ```
 
 ---

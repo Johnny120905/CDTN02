@@ -20,7 +20,8 @@ export default function Header({
   onCreateJobClick,
   activeSectionTitle = 'Trang Chủ',
   guestRole = 'student',
-  onNavigateAuth
+  onNavigateAuth,
+  onShowBanner
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notiOpen, setNotiOpen] = useState(false);
@@ -73,7 +74,9 @@ export default function Header({
   const fetchNotifications = async () => {
     if (!token) return;
     try {
-      const endpoint = isEmployer ? '/api/employer/notifications' : (isStudent ? '/api/student/notifications' : null);
+      const endpoint = isEmployer
+        ? '/api/employer/notifications'
+        : (isStudent ? '/api/student/notifications' : (isAdmin ? '/api/notifications' : null));
       if (!endpoint) return;
       const res = await fetch(endpoint, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -95,14 +98,16 @@ export default function Header({
     return () => clearInterval(interval);
   }, [token, role]);
 
-  // Handle Mark as Read on Hover (FR 1.9.2 & FR 2.8.2)
+  // Handle Mark as Read on Hover
   const handleNotiHover = async (noti) => {
     if (noti.is_read) return;
     setNotifications(prev => prev.map(n => n._id === noti._id ? { ...n, is_read: true } : n));
     setUnreadCount(prev => Math.max(0, prev - 1));
 
     try {
-      const endpoint = isEmployer ? `/api/employer/notifications/${noti._id}/read` : `/api/student/notifications/${noti._id}/read`;
+      const endpoint = isEmployer
+        ? `/api/employer/notifications/${noti._id}/read`
+        : (isStudent ? `/api/student/notifications/${noti._id}/read` : `/api/notifications/${noti._id}/read`);
       await fetch(endpoint, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
@@ -112,16 +117,26 @@ export default function Header({
     }
   };
 
-  // Handle Delete Notification
+  // Handle Delete Notification permanently + toast
   const handleDeleteNoti = async (notiId, e) => {
     e.stopPropagation();
+    const targetNoti = notifications.find(n => n._id === notiId);
     setNotifications(prev => prev.filter(n => n._id !== notiId));
+    if (targetNoti && !targetNoti.is_read) {
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    }
     try {
-      const endpoint = isEmployer ? `/api/employer/notifications/${notiId}` : `/api/student/notifications/${notiId}`;
-      await fetch(endpoint, {
+      const endpoint = isEmployer
+        ? `/api/employer/notifications/${notiId}`
+        : (isStudent ? `/api/student/notifications/${notiId}` : `/api/notifications/${notiId}`);
+      const res = await fetch(endpoint, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      const data = await res.json();
+      if (data.success && onShowBanner) {
+        onShowBanner(data.message || 'Đã xóa thông báo thành công!', 'success');
+      }
     } catch (err) {
       console.warn('Error deleting noti:', err);
     }
@@ -243,7 +258,7 @@ export default function Header({
             ? 'bg-red-50 text-red-700 border-b border-red-200' 
             : 'bg-amber-50 text-amber-800 border-b border-amber-200'
         }`}>
-          <div className="flex items-center gap-2 w-full max-w-[1720px] mx-auto">
+          <div className="flex items-center gap-2 w-full max-w-full mx-auto">
             <AlertTriangle className={`w-4 h-4 shrink-0 ${employerApprovalStatus === 'rejected' ? 'text-red-600' : 'text-amber-600'}`} />
             <span>
               {employerApprovalStatus === 'rejected' ? (
@@ -318,7 +333,6 @@ export default function Header({
               onClick={isGuest ? () => onNavigateAuth && onNavigateAuth('login', 'employer') : onCreateJobClick}
               className="hidden lg:flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-sm sm:text-base font-bold shadow-sm cursor-pointer"
             >
-              <Plus className="w-4 h-4 text-slate-900" />
               <span>Đăng Tin Mới</span>
             </button>
           )}
@@ -489,19 +503,18 @@ export default function Header({
           )}
 
           {isGuest ? (
-            <div className="flex items-center gap-2">
-              
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <button
                 type="button"
                 onClick={() => onNavigateAuth && onNavigateAuth('login', isEmployer ? 'employer' : 'student')}
-                className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-sm sm:text-base font-bold cursor-pointer shadow-sm"
+                className="px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-xs sm:text-base font-bold cursor-pointer shadow-sm whitespace-nowrap"
               >
                 Đăng Nhập
               </button>
               <button
                 type="button"
                 onClick={() => onNavigateAuth && onNavigateAuth('register', isEmployer ? 'employer' : 'student')}
-                className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-sm sm:text-base font-bold cursor-pointer shadow-sm"
+                className="px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 border border-blue-600 text-white text-xs sm:text-base font-bold cursor-pointer shadow-sm whitespace-nowrap"
               >
                 {isEmployer ? 'Đăng Ký Doanh Nghiệp' : 'Đăng Ký Sinh Viên'}
               </button>

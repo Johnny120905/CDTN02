@@ -22,33 +22,50 @@ Dự án phục vụ 3 nhóm đối tượng người dùng (Sinh viên, Nhà tu
 
 ---
 
-## 2. NHẬN DIỆN THƯƠNG HIỆU & ĐẶC TẢ GIAO DIỆN DARK 4D ELECTRIC BLUE WEBSITE
+## 2. NHẬN DIỆN THƯƠNG HIỆU & ĐẶC TẢ GIAO DIỆN DIGITAL LIGHT DIMENSION (BẢNG MÀU 8 CỘT MATRIX)
 
 - **Tên thương hiệu:** `PARTIME.VN`
 - **Slogan:** `Việc Làm Linh Hoạt`
 - **Font chữ chuẩn hóa:** `Be Vietnam Pro` (Google Fonts) - tối ưu hiển thị tiếng Việt, hiện đại và thanh lịch.
-- **Phong cách thiết kế:** **Dark 4D Website** hiện đại: Tông màu chủ đạo là **Xanh dương (Electric Azure / Sky Blue / Deep Navy)** (`#030712`, `#0b1329`, `#2563eb`, `#38bdf8`), thẻ kính mờ cao cấp Glassmorphism (`backdrop-blur-xl border-blue-900/30`), chữ trắng tinh tế, sang trọng, tuyệt đối không sến súa.
-- **Canvas Không Gian Vũ Trụ 4D:** Bầu trời 650 ngôi sao phát sáng lấp lánh ngoài vũ trụ, vòng xoay 4D Hyper-Torus đa chiều và sóng biến dạng không-thời gian theo chuột.
-- **Logo 3D WebGL GLTF:** Tải trực tiếp mô hình `/meshy-3d-logo.glb` với hiệu ứng nổi bồng bềnh 4D, nghiêng theo chuột và hiển thị kèm nhận diện `PARTIME.VN` - `Việc Làm Linh Hoạt`.
-- **Hệ Thống Trạng Thái 4 Màu Chuẩn Hóa:**
-  - 🟡 **Vàng (Amber):** Chờ đợi (Pending / Waiting / Chờ duyệt / Chờ xử lý).
-  - 🔴 **Đỏ (Red):** Cảnh báo / Khóa / Từ chối / Ẩn tin vi phạm (Warning / Banned / Rejected / Hidden).
-  - 🟢 **Xanh lá (Emerald):** Hoạt động an toàn / Đã duyệt / Trúng tuyển (Active / Safe / Accepted / Resolved).
-  - 🟠 **Cam đỏ (Orange):** Đang xử lý / Phỏng vấn / Đang điều tra (Processing / Interviewing / Investigating).
+- **Phong cách thiết kế:** **Digital Light Dimension** 4D hiện đại: Tông nền khuếch tán ánh sáng mềm mại chống mỏi mắt (Anti-fatigue), kết hợp hài hòa điểm nhấn công nghệ xanh **Electric Blue / Deep Navy** (`#38BDF8`, `#2563EB`, `#1D4ED8`), thẻ kính mờ cao cấp Glassmorphism (`backdrop-blur-md`), chữ đen tương phản cao `#0F172A`, sang trọng và bảo vệ thị lực người dùng khi làm việc liên tục.
+
+### Bảng Tổng Hợp Chi Tiết Mã Màu 8 Cột Chuẩn Hóa (8 Columns Matrix):
+
+| Cột | Hạng Mục / Thành Phần | Màu Đỉnh (Top Hex) | Màu Giữa (Mid Hex) | Màu Đáy (Bottom Hex) | Tên Phối Thức / Hiệu Ứng | Công Thức CSS Linear-Gradient Chuẩn | Ứng Dụng Thực Tế & Vai Trò Giao Diện |
+| :---: | :--- | :---: | :---: | :---: | :--- | :--- | :--- |
+| **1** | **Background**<br>*(Nền Toàn Trang)* | `#FAF8FF`<br>*(Trắng ánh tím)* | `#F0F7FF`<br>*(Trắng băng)* | `#E2E7FF`<br>*(Xanh phấn dịu)* | **Pha Trắng Ánh Xanh** | `linear-gradient(135deg, #FAF8FF 0%, #F0F7FF 50%, #E2E7FF 100%)` | Nền tổng thể toàn bộ trang web; tạo cảm giác ánh sáng khuếch tán 4D mềm mại, chống mỏi mắt (Anti-fatigue). |
+| **2** | **Section phụ / Card**<br>*(Khung Form & Thẻ)* | `#EFF6FF`<br>*(Xanh sương)* | `#E2E7FF`<br>*(Xanh phấn)* | `#DBE1FF`<br>*(Xanh kính mờ)* | **Pha Xanh Kính Mờ** | `linear-gradient(180deg, #EFF6FF 0%, #E2E7FF 55%, #DBE1FF 100%)` | Nền khung form nhập liệu, thẻ công việc (Job Card), kết hợp `backdrop-blur-md`. Tiêu đề bên trong luôn dùng chữ đen `#0F172A`. |
+| **3** | **Heading**<br>*(Tiêu đề chính & Slogan)* | `#0F172A`<br>*(Đen mực sâu)* | `#1E3A8A`<br>*(Navy đậm)* | `#2563EB`<br>*(Electric Blue)* | **Đen Mực Pha Navy Ánh Kim** | `linear-gradient(90deg, #0F172A 0%, #1E3A8A 60%, #2563EB 100%)`<br>*(kèm bg-clip-text)* | • H1–H3 thông thường: Giữ đơn sắc `#0F172A` để dễ đọc.<br>• Slogan Hero / Banner 3D lớn: Dùng gradient ánh kim 3D sang trọng. |
+| **4** | **Text**<br>*(Nội dung văn bản)* | `#1E293B`<br>*(Dòng chính)* | `#334155`<br>*(Mô tả JD / Phụ)* | `#475569`<br>*(Gợi ý / Metadata)* | **Xám Than Đậm (Solid Hierarchy)** | *Không dùng gradient cho chữ nhỏ (Dùng solid colors phân cấp 3 bậc)* | Phân tầng thị giác rõ nét theo thứ bậc: Dòng chính (`#1E293B`), mô tả chi tiết (`#334155`), nhãn phụ/timestamp (`#475569`). |
+| **5** | **Button nền**<br>*(Nút bấm chính 3D)* | `#38BDF8`<br>*(Sky Cyan)* | `#2563EB`<br>*(Electric Blue)* | `#1D4ED8`<br>*(Deep Navy)* | **Pha Xanh Logo 3D** | `linear-gradient(135deg, #38BDF8 0%, #2563EB 50%, #1D4ED8 100%)` | Khớp 100% với màu khối mô hình Logo 3D (`meshy-3d-logo.glb`). Dùng cho các nút CTA then chốt: Đăng nhập, Nộp hồ sơ, Ứng tuyển. |
+| **6** | **Button / Text hover**<br>*(Trạng thái tương tác)* | `#2563EB`<br>*(Electric Blue)* | `#1D4ED8`<br>*(Deep Navy)* | `#003EA8`<br>*(Navy nhấn sâu)* | **Pha Navy Nhấn Sâu** | `linear-gradient(135deg, #2563EB 0%, #1D4ED8 60%, #003EA8 100%)` | Kích hoạt khi rê chuột vào nút bấm, kết hợp bóng đổ phát quang `box-shadow: 0 8px 24px rgba(56, 189, 248, 0.45)`, tạo độ lún/nổi 3D. |
+| **7** | **Chữ Button / Input**<br>*(Chữ nút & Ô nhập liệu)* | `#FFFFFF`<br>*(Trắng tinh khiết)* | `#FAF8FF`<br>*(Trắng ngọc)* | `#F8FAFC`<br>*(Trắng mờ nhẹ)* | **Trắng Tinh Khiết 100%** | `linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)` hoặc Solid `#FFFFFF` | • Chữ tương phản cao trên nền nút bấm màu đậm.<br>• Làm màu nền trắng tinh khiết cho ô Input, viền xám sáng `#CBD5E1`. |
+| **8** | **Stroke / Viền & State**<br>*(Đường viền & Trạng thái)* | `#BFDBFE`<br>*(Viền kính mờ)* | `#93C5FD`<br>*(Viền nổi bật)* | `#E2E8F0`<br>*(Viền chia tách)* | **Khung Kính Định Hình** | `border: 1px solid #BFDBFE`<br>State: `#10B981`, `#F59E0B`, `#EF4444` | Phân cách thẻ Card, bảng biểu; 3 màu trạng thái: Xanh lục Thành công (`#10B981`), Vàng Cảnh báo (`#F59E0B`), Đỏ Nguy hiểm (`#EF4444`). |
+
+- **Chuẩn Hóa 100% Icon Vector Lucide React:** Loại bỏ triệt để toàn bộ ký tự emoji (`☕`, `🛒`, `📚`, `📦`, `💻`, `🎪`, `🎉`, `✓`, `✕`, `🟢`, `⚪`, `🟡`, `🔴`, `⏳`, `⭐`, `💡`, `📞`, `⚠️`...) và icon AI vô nghĩa (`<Sparkles />`, `<Zap />`, `<Coffee />`). Toàn bộ hệ thống sử dụng vector icons chuẩn từ `lucide-react`.
+- **Tên Nút Bấm Chuyên Nghiệp:** Tuyệt đối không chứa từ ngữ chỉ màu sắc thô trong tên nút ("Phê duyệt", "Từ chối", không dùng "Phê duyệt (Xanh)").
+- **Cơ Chế Điều Hướng Bằng Logo 3D:** Loại bỏ toàn bộ các nút "Quay lại trang chủ" trong Admin Dashboard và "Quay lại trang" trong các màn hình Đăng nhập / Đăng ký / Quên mật khẩu. Người dùng bấm vào Logo 3D `PARTIME.VN` để trở về chế độ khách / trang chủ.
+- **Chế Độ Xem Trước Khách (Guest Preview Mode):** Bảo vệ an toàn dữ liệu cá nhân của Sinh viên và Doanh nghiệp khi chưa xác thực. Giao diện hiển thị khung lưới mẫu (Skeleton Grid), không làm lộ số liệu hay tin nhắn riêng tư. Mở khóa toàn diện tài khoản ngay sau khi đăng nhập hoặc đăng ký thành công.
+- **Trung Tâm Chỉ Huy Quản Trị Viên (Analytics Dashboard):**
+  - Bộ lọc thời gian tối ưu 2 cột đối xứng: Cột 1 "1. Chọn Năm" (2024, 2025, 2026), Cột 2 "2. Chọn Tháng (trong năm đã chọn)" (Tháng 1 đến Tháng 12).
+  - Dòng chọn khoảng ngày: `Từ ngày: [dd/mm/yyyy]` và `Đến ngày: [dd/mm/yyyy]` linh hoạt và chuẩn xác.
+  - Loại bỏ hoàn toàn dropdown trung gian chọn phạm vi và 4 nút chọn nhanh tuần ("Tuần 1", "Tuần 2", "Tuần 3", "Tuần 4").
+  - Chiến lược dữ liệu: Năm 2024–2025 tải bộ dữ liệu lịch sử chuẩn hóa (`historicalAnalyticsData.js`); Riêng năm 2026 đồng bộ trực tiếp 100% dữ liệu thực từ MongoDB Atlas (`users`, `jobs`, `applications`), tuyệt đối không dùng số liệu ảo giả.
+  - Khắc phục triệt để hiện tượng Line Chart giật màn hình khi rê chuột và Pie Chart đổi màu chữ trắng khi hover.
+- **Cơ Chế Xóa Vĩnh Viễn (Cascade Delete) & Toàn Vẹn CSDL:** Thao tác Thêm / Sửa / Xóa / Lọc được đồng bộ vĩnh viễn trên CSDL và UI, duy trì trạng thái khi F5 hoặc đăng nhập lại. Đã xóa vĩnh viễn tài khoản rác `eadeedc@gmail.com` (`user_student_486c9bf4`). Loại bỏ các tài khoản không có đuôi `@gmail.com` và xóa sạch các chuỗi mã kỹ thuật thô (`1.5.6`, `BR-NTD-05`, `FR 2.4.7`...) khỏi giao diện người dùng.
+- **Đồng Bộ Sidebar & Responsive Đa Thiết Bị:** Bổ sung nút mũi tên toggle thu gọn / mở rộng Sidebar, đồng bộ badge số liệu nhỏ gọn khớp 100% với nội dung maincontent; chống bể vỡ layout và chống gãy chữ khi co kéo cửa sổ nửa màn hình trên PC, Laptop, iPad và Mobile.
+- **Canvas Không Gian Vũ Trụ 4D & Logo 3D GLTF:** Tải trực tiếp mô hình `/meshy-3d-logo.glb` với hiệu ứng nổi bồng bềnh 4D, nghiêng theo chuột và hiển thị kèm nhận diện `PARTIME.VN` - `Việc Làm Linh Hoạt`.
 - **Giao Diện Màn Hình Xác Thực Độc Lập:** 
-  - Màn hình Đăng nhập ([`LoginScreen.jsx`](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/frontend/src/features/auth/LoginScreen.jsx)): **Loại bỏ Header và Footer**, loại bỏ đăng nhập mạng xã hội bên ngoài, kiểm tra mật khẩu tối thiểu 8 ký tự (chữ hoa, thường, số, ký tự đặc biệt). Quản trị viên nhập thông tin riêng bảo mật, hệ thống tự động ghi nhớ thông tin đăng nhập.
-  - Màn hình Đăng ký tài khoản ([`RegisterScreen.jsx`](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/frontend/src/features/auth/RegisterScreen.jsx)): **Loại bỏ Header và Footer**, hỗ trợ **kéo thả tệp tin trực tiếp (Drag & Drop)** từ máy tính bên ngoài vào khung tải Giấy phép kinh doanh (GPKD/MST); tích hợp chọn nhanh toàn bộ **24 quận huyện TP.HCM** và chi nhánh; cam kết 1 Email = 1 Role. Mật khẩu từ 8 ký tự.
-  - Màn hình Quên mật khẩu ([`ForgotPasswordScreen.jsx`](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/frontend/src/features/auth/ForgotPasswordScreen.jsx)): **Loại bỏ Header và Footer**, chia ngữ cảnh riêng cho Sinh viên (`Sinhvien@gmail.com`) và Doanh nghiệp (`Nhatuyendung@gmail.com`), 6 ô nhập OTP, đồng hồ đếm ngược 30 giây (`00:30`), thông báo mô phỏng Hộp thư đến (Email) kèm nút tự động điền mã OTP, con mắt ẩn/hiện mật khẩu ở cả 2 ô mật khẩu mới (tối thiểu 8 ký tự); cập nhật xong tự chuyển về Đăng nhập.
+  - Màn hình Đăng nhập ([`LoginScreen.jsx`](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/frontend/src/features/auth/LoginScreen.jsx)): Loại bỏ Header và Footer, loại bỏ đăng nhập mạng xã hội bên ngoài, kiểm tra mật khẩu tối thiểu 8 ký tự (chữ hoa, thường, số, ký tự đặc biệt). Quản trị viên đăng nhập bằng tài khoản tối cao bảo mật, hệ thống tự động ghi nhớ thông tin đăng nhập.
+  - Màn hình Đăng ký tài khoản ([`RegisterScreen.jsx`](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/frontend/src/features/auth/RegisterScreen.jsx)): Loại bỏ Header và Footer, hỗ trợ kéo thả tệp tin trực tiếp (Drag & Drop) vào khung tải GPKD; tích hợp chọn nhanh 24 quận huyện TP.HCM và chi nhánh; cam kết 1 Email = 1 Role.
+  - Màn hình Quên mật khẩu ([`ForgotPasswordScreen.jsx`](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/frontend/src/features/auth/ForgotPasswordScreen.jsx)): Loại bỏ Header và Footer, chia ngữ cảnh riêng cho Sinh viên và Doanh nghiệp, 6 ô nhập OTP, đồng hồ đếm ngược 10 phút (600s), nút tự động điền mã OTP (Hands-Free Auto-fill); cập nhật xong tự chuyển về Đăng nhập.
 - **Thanh Header Phân Hệ Đã Đăng Nhập:**
-  - **Bên trái:** Logo 3D + `PARTIME.VN` + `Việc Làm Linh Hoạt` (Click quay về Trang Chủ).
-  - **Bên phải:** Tên người dùng + Tên Công ty / Chi nhánh (nếu là Nhà tuyển dụng) + Vai trò + Badge trạng thái tự động (`🟢 Đang hoạt động` / `🟡 Tạm dừng` / `🔴 Ngưng hoạt động`) + Avatar Dropdown. Bấm vào icon xuất hiện menu: **Cập nhật tài khoản cá nhân & Đổi mật khẩu**, **Nút đỏ Hủy tài khoản** và **Đăng xuất**.
-- **Thanh Sidebar Điều Hướng & Độc Lập Màn Hình:**
-  - Loại bỏ hoàn toàn card danh tính thừa ở đáy sidebar trên cả 3 Role.
-  - Mỗi mục trong sidebar hiển thị 1 màn hình tính năng độc lập, các bảng dữ liệu có **màu nền đặc `bg-slate-900` với đường viền rõ nét (xóa bỏ hoàn toàn hiện tượng bảng trong suốt)**.
+  - Bên trái: Logo 3D + `PARTIME.VN` + `Việc Làm Linh Hoạt` (Click quay về Trang Chủ / Chế độ khách).
+  - Bên phải: Tên người dùng + Tên Công ty / Chi nhánh (nếu là Nhà tuyển dụng) + Vai trò + Badge trạng thái tự động + Avatar Dropdown (Cập nhật tài khoản cá nhân, Đổi mật khẩu, Hủy tài khoản và Đăng xuất).
 - **Hỗ Trợ Kéo Thả Tệp Tin & Hình Ảnh (Drag & Drop):** Hỗ trợ kéo thả trực tiếp tệp CV PDF của sinh viên, GPKD PDF của doanh nghiệp, Ảnh bìa và Logo doanh nghiệp từ máy tính ngoài vào trình duyệt mượt mà.
 - **Tích Hợp Đầy Đủ 24 Quận Huyện TP.HCM & Gợi Ý Chi Nhánh:** Dropdown tích hợp toàn bộ các quận, huyện, TP. Thủ Đức và các chi nhánh thực tế cùng toàn bộ vòng đời tin đăng.
-- **Giao Tiếp Thực Tế & WebRTC Video Call:** Nhắn tin thời gian thực; Cuộc gọi video mở webcam/microphone thực tế với nút Mute mic, Tắt cam, đếm thời lượng và Kết thúc gọi (đã loại bỏ khung phỏng vấn nhấp nháy).
-- **Loại Bỏ Hoàn Toàn Mã Kỹ Thuật (WBS, FR, BR, UC, US) & Breadcrumbs Khỏi Giao Diện.**
+- **Giao Tiếp Thực Tế & WebRTC Video Call:** Nhắn tin thời gian thực tự động lọc từ cấm; Cuộc gọi video mở webcam/microphone thực tế với nút Mute mic, Tắt cam, đếm thời lượng và Kết thúc gọi.
+- **Loại Bỏ Hoàn Toàn Mã Kỹ Thuật (WBS, FR, BR, UC, US) Khỏi Giao Diện.**
 - **Dữ Liệu Thời Gian Thực:** Tự động làm mới mỗi 10 giây; Autocomplete gợi ý hơn 34 ngành nghề part-time; Bộ lọc sắp xếp Mới nhất, Cũ nhất, Lương cao/thấp.
 
 ---
@@ -227,13 +244,13 @@ Nếu bạn muốn chỉnh sửa code giao diện với tính năng Hot-Reload t
    - Khi quên mật khẩu, người dùng nhập Email và nhận mã OTP 6 số (thời hạn 30 giây) được gửi thực tế về Email người dùng qua giao thức SMTP.
    - Mật khẩu toàn hệ thống bắt buộc từ 8 ký tự trở lên (gồm chữ hoa, chữ thường, số, ký tự đặc biệt).
    - **Tài khoản kiểm thử thực tế trên CSDL MongoDB Atlas:**
-     - 🎓 **Sinh viên:** `vuthelong@vlu.edu.vn` / `Long123!`
-     - 🏢 **Nhà tuyển dụng:** `huynhnguyenbaongoc2k5@gmail.com` / `Huynh120905!` (hoặc `Ngoc123!`)
-     - 🛡️ **Quản trị viên:** `lethithuyngan985@gmail.com` / `Le090805!`
+     - - **Sinh viên:** `vuthelong@vlu.edu.vn` / `Long123!`
+     - - **Nhà tuyển dụng:** `huynhnguyenbaongoc2k5@gmail.com` / `Huynh120905!` (hoặc `Ngoc123!`)
+     - - **Quản trị viên:** `lethithuyngan985@gmail.com` / `Le090805!`
 2. **Loại Bỏ Hoàn Toàn Hộp Thoại Trình Duyệt (Zero Browser Dialogs):**
    - Toàn bộ các hộp thoại `window.alert`, `window.confirm`, `window.prompt` (`127.0.0.1:8000 cho biết` hoặc `localhost:8002 cho biết`) đã được thay thế 100% bằng:
      - Hộp thoại nổi Dark 4D `<ConfirmDialog>` sang trọng cho các hành vi xóa hoặc cảnh báo nguy hiểm.
-     - Thanh Banner thông báo trạng thái gắn dưới Header (🟢 Xanh lá: Thành công; 🟡 Vàng: Đang tải/Chờ; 🔴 Đỏ: Cảnh báo).
+     - Thanh Banner thông báo trạng thái gắn dưới Header (Thành công (Emerald): Thành công; Đang tải/Chờ (Amber): Đang tải/Chờ; Cảnh báo/Lỗi (Rose): Cảnh báo).
 3. **Thanh Header & Dropdown Nền Đậm Đặc Opaque:**
    - Dropdown thông báo và dropdown tài khoản được thiết lập nền màu đậm đặc 100% (`#090f20`, opacity 1, `z-[9999]`), loại bỏ hoàn toàn hiện tượng trong suốt bị chìm nội dung.
    - Logo PARTIME.VN gắn link trang chủ trực tiếp, nhấp vào lập tức đưa người dùng trở về Trang chủ ở bất kỳ phân hệ nào.

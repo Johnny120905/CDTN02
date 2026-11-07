@@ -60,18 +60,18 @@ Trong bối cảnh nền kinh tế số và xu hướng lao động linh hoạt 
 
 Đề tài **"Nghiên cứu, phân tích và xây dựng nền tảng tuyển dụng việc làm linh hoạt cho sinh viên (PARTIME.VN)"** được thực hiện nhằm cung cấp một hệ sinh thái tuyển dụng minh bạch, tin cậy và chuyên biệt hóa 100% cho sinh viên. Hệ thống được thiết kế theo mô hình **Kiến trúc phân tầng Layered Clean Architecture** gồm 5 tầng độc lập, phân chia ranh giới mã nguồn nghiêm ngặt cho 3 thành viên nhằm ngăn chặn tuyệt đối xung đột khi làm việc nhóm trên Git. CSDL đám mây **MongoDB Atlas** dùng chung gồm 16 Collections chuẩn hóa, áp dụng nguyên tắc toàn vẹn **"1 Email thực cho đúng 1 Role duy nhất"**, cơ chế mã hóa mật khẩu một chiều Bcrypt và cấp phát định danh JWT có thời hạn.
 
-Về mặt công nghệ giao diện, nền tảng mang phong cách **Dark 4D Electric Blue** thời thượng với font chữ **Be Vietnam Pro**, biểu tượng **Logo 3D WebGL GLTF** tương tác đa chiều, không gian vũ trụ Three.js 650 ngôi sao chuyển động theo chuột, hệ thống **Zero Native Dialogs** loại bỏ 100% popup trình duyệt khó chịu, cùng quy trình ứng tuyển 4 chặng rõ ràng, tính năng xem/tải CV và Giấy phép kinh doanh (GPKD) PDF chuẩn kiểm định, hỗ trợ kéo thả tệp tin (Drag & Drop), nhắn tin thời gian thực tự động lọc từ khóa cấm và phỏng vấn trực tuyến qua **WebRTC Video Call**. Kết quả thử nghiệm trên 40 kịch bản kiểm thử đa tầng (Data - Backend - Frontend) chứng minh hệ thống vận hành ổn định, bảo mật cao và sẵn sàng đưa vào ứng dụng thực tế.
+Về mặt công nghệ giao diện, nền tảng mang phong cách **Digital Light Dimension** hiện đại với **Bảng màu 8 cột quang phổ chuẩn (8 Columns Matrix)** tối ưu công thái học chống mỏi mắt (Anti-fatigue), kết hợp hài hòa cùng điểm nhấn xanh công nghệ **Electric Blue / Deep Navy**, font chữ chuẩn tiếng Việt **Be Vietnam Pro**, biểu tượng **Logo 3D WebGL GLTF** (`/meshy-3d-logo.glb`) tương tác bồng bềnh đa chiều, chuẩn hóa **100% vector icon từ thư viện Lucide React** (bài trừ hoàn toàn emoji và icon AI vô nghĩa), hệ thống **Zero Native Dialogs** loại bỏ 100% popup trình duyệt phiền toái, cơ chế **Chế độ xem trước khách (Guest Preview Mode)** bảo vệ tuyệt đối số liệu cá nhân của Sinh viên và Doanh nghiệp khi chưa đăng nhập, **Trung tâm chỉ huy (Analytics Dashboard)** tối ưu bộ lọc 2 cột Năm - Tháng và chọn khoảng ngày kiểm tra chuẩn xác, kết hợp module dữ liệu thống kê lịch sử 2024-2025 và cam kết 100% CSDL thực tế cho năm 2026, cùng quy trình ứng tuyển 4 chặng rõ ràng, tính năng xem/tải CV và Giấy phép kinh doanh (GPKD) PDF chuẩn kiểm định, kéo thả tệp tin (Drag & Drop), nhắn tin thời gian thực tự động lọc từ khóa cấm, phỏng vấn trực tuyến qua **WebRTC Video Call** và cơ chế **Xóa vĩnh viễn (Cascade Delete)** đồng bộ toàn hệ thống. Kết quả thử nghiệm trên 40 kịch bản kiểm thử đa tầng (Data - Backend - Frontend) chứng minh hệ thống vận hành ổn định, bảo mật cao và sẵn sàng đưa vào ứng dụng thực tế.
 
-***Từ khóa:*** *Việc làm Sinh viên, Clean Architecture, Web 3D Three.js, MongoDB Atlas, WebRTC Video Call, 1 Email 1 Role.*
+***Từ khóa:*** *Việc làm Sinh viên, Clean Architecture, Digital Light Dimension, Web 3D GLTF, MongoDB Atlas, WebRTC Video Call, Guest Preview Mode, 1 Email 1 Role.*
 
 ### English Abstract:
 Amidst the rapid acceleration of the digital economy and the flexible gig workforce, the demand for part-time, seasonal, and internship employment among university students in metropolitan centers such as Ho Chi Minh City has become paramount. Nevertheless, informal recruitment groups on social media platforms present alarming hazards, including fraudulent advance-fee deposits, task scams, wage withholdings, and illicit multi-level marketing operations. Conversely, mainstream job boards predominantly cater to seasoned full-time professionals, lacking specialized features tailored to university class schedules, hourly shifts, and youth welfare safeguards.
 
 This graduation thesis project, entitled **"Research, Analysis, and Development of PARTIME.VN - A Flexible Employment Platform for University Students"**, is engineered to provide an authentic, secure, and specialized marketplace ecosystem. The system adheres strictly to the **Layered Clean Architecture** paradigm spanning five decoupled tiers, demarcating explicit code ownership for three team members to eliminate Git merge conflicts completely. A unified cloud-native **MongoDB Atlas** repository encompassing 16 standardized collections enforces a rigorous security invariant: **"One Real Email is Exclusively Bound to One Role"**, safeguarded by Bcrypt hashing and stateless JSON Web Tokens (JWT).
 
-In terms of user experience, the platform adopts an ultramodern **Dark 4D Electric Blue** visual identity powered by the **Be Vietnam Pro** typography, an interactive **WebGL GLTF 3D Brand Logo**, an ethereal Three.js cosmic canvas featuring 650 luminous stars with spacetime distortion waves, a **Zero Native Dialogs** architecture replacing annoying browser popups, a distinct 4-stage applicant tracking pipeline, standards-compliant PDF document previewers with drag-and-drop capabilities, real-time messaging with automated censorship of prohibited keywords, and peer-to-peer interview conferencing via **WebRTC Video Call**. Comprehensive evaluations across 40 multi-tier test scenarios confirm that PARTIME.VN delivers high reliability, robust security, and practical viability for real-world deployment.
+In terms of user interface and experience, the platform pioneers the **Digital Light Dimension** aesthetic governed by an ergonomic **8-Column Color Matrix** engineered for anti-fatigue prolonged usage, seamlessly accented with **Electric Blue and Deep Navy** hues, **Be Vietnam Pro** typography, an interactive floating **WebGL GLTF 3D Brand Logo**, and **100% standardized Lucide React vector icons** (strictly excluding all raw emojis and arbitrary AI decorative artifacts). The platform incorporates a **Zero Native Dialogs** architecture, an authenticated **Guest Preview Mode** safeguarding confidential personal and enterprise metrics until authorization, a streamlined **Analytics Command Center** featuring a 2-column Year-Month filter coupled with precise date-range pickers (harmonizing historical 2024–2025 analytics with a strict 100% real-database policy for 2026), a 4-stage applicant tracking pipeline, PDF document previewers with drag-and-drop support, real-time censored messaging, peer-to-peer **WebRTC Video Calls**, and synchronized **Cascade Delete** persistence across all three roles. Comprehensive evaluations across 40 multi-tier test scenarios confirm that PARTIME.VN delivers exceptional reliability, robust data integrity, and practical viability for real-world deployment.
 
-***Keywords:*** *Student Part-time Jobs, Clean Architecture, Web 3D Three.js, MongoDB Atlas, WebRTC Video Call, Role-Based Access Control.*
+***Keywords:*** *Student Part-time Jobs, Clean Architecture, Digital Light Dimension, WebGL 3D GLTF, MongoDB Atlas, WebRTC Video Call, Guest Preview Mode, Role-Based Access Control.*
 
 ---
 
@@ -116,14 +116,16 @@ Tuy nhiên, qua khảo sát thực tế sinh viên Đại học Văn Lang và c�
 Xuất phát từ những bất cập trên, việc nghiên cứu và xây dựng một nền tảng chuyên biệt mang tên **PARTIME.VN** – nền tảng việc làm linh hoạt dành riêng cho sinh viên với quy trình kiểm duyệt giấy phép kinh doanh nghiêm ngặt, cơ chế bảo vệ quyền lợi sinh viên và ứng dụng các kỹ thuật công nghệ tiên tiến là một đòi hỏi vô cùng cấp bách.
 
 ### 1.2. Mục Tiêu Của Đề Tài
-- **Mục tiêu tổng quát:** Xây dựng hoàn chỉnh nền tảng web ứng dụng tuyển dụng việc làm part-time dành riêng cho cộng đồng sinh viên, bảo đảm tính xác thực, an toàn dữ liệu, hiệu năng cao, trải nghiệm người dùng hiện đại với hiệu ứng đồ họa Web 3D và khả năng mở rộng linh hoạt theo mô hình Clean Architecture.
+- **Mục tiêu tổng quát:** Xây dựng hoàn chỉnh nền tảng web ứng dụng tuyển dụng việc làm part-time dành riêng cho cộng đồng sinh viên, bảo đảm tính xác thực, an toàn dữ liệu, hiệu năng cao, trải nghiệm người dùng hiện đại với hiệu ứng đồ họa Web 3D chuẩn công thái học chống mỏi mắt và khả năng mở rộng linh hoạt theo mô hình Clean Architecture.
 - **Mục tiêu cụ thể:**
   1. Thiết kế và cài đặt hệ thống Backend theo chuẩn **Layered Clean Architecture** gồm 5 tầng phân định rõ ràng ranh giới giữa 3 thành viên, không gây xung đột mã nguồn khi commit Git.
-  2. Thiết lập cơ sở dữ liệu **MongoDB Atlas Cloud `CDTN02_DB`** với 16 collections chuẩn hóa, ràng buộc chỉ mục độc nhất và kiểm soát toàn vẹn dữ liệu.
-  3. Thực thi nguyên tắc an toàn định danh tối cao: **"1 Email thực cho đúng 1 Role duy nhất"** (BR-AUTH-01) ở cả tầng Client, Middleware và Database.
-  4. Xây dựng giao diện **Dark 4D Electric Blue** độc đáo với Three.js 4D Canvas 650 ngôi sao, mô hình Logo 3D WebGL GLTF bồng bềnh, font chữ tiếng Việt chuẩn `Be Vietnam Pro`.
-  5. Hiện thực các tính năng chuyên sâu: Xác thực OTP 10 phút tự động điền (Hands-Free Auto-fill), trình xem/tải CV PDF chuẩn kiểm định, bộ lọc 34 ngành nghề & 24 quận huyện TP.HCM, quy trình ATS 4 chặng, bộ lọc từ khóa cấm trong chat và cuộc gọi phỏng vấn video trực tuyến **WebRTC**.
-  6. Xây dựng bộ kịch bản kiểm thử tự động toàn diện và kiểm thử giao diện bảo đảm chất lượng nghiệm thu đồ án tốt nghiệp loại Xuất sắc.
+  2. Thiết lập cơ sở dữ liệu **MongoDB Atlas Cloud `CDTN02_DB`** với 16 collections chuẩn hóa, ràng buộc chỉ mục độc nhất, hỗ trợ cơ chế xóa vĩnh viễn (Cascade Delete) và kiểm soát toàn vẹn dữ liệu.
+  3. Thực thi nguyên tắc an toàn định danh tối cao: **"1 Email thực cho đúng 1 Role duy nhất"** (BR-AUTH-01) ở cả tầng Client, Middleware và Database; tuyệt đối không tạo dữ liệu giả lập và loại bỏ các tài khoản rác không có định dạng `@gmail.com`.
+  4. Xây dựng giao diện phong cách **Digital Light Dimension** với **Bảng màu 8 cột chống mỏi mắt (Anti-fatigue)**, kết hợp Three.js 4D Canvas, mô hình Logo 3D WebGL GLTF bồng bềnh, chuẩn hóa 100% vector icon từ `lucide-react` (bài trừ hoàn toàn emoji và icon AI vô nghĩa), font chữ tiếng Việt chuẩn `Be Vietnam Pro`.
+  5. Xây dựng cơ chế **Chế độ xem trước khách (Guest Preview Mode)** bảo vệ an toàn thông tin cá nhân của Sinh viên và Doanh nghiệp khi chưa xác thực, chỉ mở khóa dữ liệu đầy đủ sau khi đăng nhập hoặc đăng ký thành công.
+  6. Xây dựng **Trung tâm chỉ huy (Analytics Dashboard)** với bộ lọc 2 cột trực quan (Chọn Năm -> Chọn Tháng) và khoảng ngày kiểm tra chuẩn xác, kết hợp module dữ liệu lịch sử 2024-2025 và cam kết 100% CSDL thực tế cho năm 2026.
+  7. Hiện thực các tính năng chuyên sâu: Xác thực OTP 10 phút tự động điền (Hands-Free Auto-fill), trình xem/tải CV PDF chuẩn kiểm định, bộ lọc 34 ngành nghề & 24 quận huyện TP.HCM, quy trình ATS 4 chặng, bộ lọc từ khóa cấm trong chat và cuộc gọi phỏng vấn video trực tuyến **WebRTC**.
+  8. Xây dựng bộ kịch bản kiểm thử tự động toàn diện và kiểm thử giao diện bảo đảm chất lượng nghiệm thu đồ án tốt nghiệp loại Xuất sắc.
 
 ### 1.3. Đối Tượng & Phạm Vi Nghiên Cứu
 - **Đối tượng nghiên cứu:**
@@ -188,10 +190,12 @@ Khác với cơ sở dữ liệu quan hệ truyền thống (RDBMS) đòi hỏi 
 2. **Hệ thống chỉ mục phong phú (Indexing):** Hỗ trợ Single Key Index (trên `email`), Compound Unique Index (trên `{student_id, job_id}` để chặn nộp trùng lặp hoặc lưu trùng lặp), và Text Index (tìm kiếm việc làm toàn văn theo chức danh).
 3. **Cơ chế dự phòng Local Fallback Store:** Đồ án tích hợp cơ chế Local Document Store tự động kích hoạt khi đường truyền Internet đến MongoDB Atlas bị gián đoạn, bảo đảm hệ thống luôn vận hành liên tục không bị sập máy chủ.
 
-### 2.3. Công Nghệ Đồ Họa WebGL & Three.js 4D Canvas
-Thay vì sử dụng các hình ảnh tĩnh nhàm chán, PARTIME.VN tiên phong ứng dụng công nghệ đồ họa 3D tương tác trực tiếp trên trình duyệt bằng thư viện **Three.js** kết hợp chuẩn **WebGL**:
+### 2.3. Công Nghệ Đồ Họa WebGL, Three.js 4D Canvas & Bảng Màu Digital Light Dimension
+Thay vì sử dụng các hình ảnh tĩnh nhàm chán hoặc tông màu tối dễ gây mỏi mắt, PARTIME.VN tiên phong ứng dụng phong cách **Digital Light Dimension** với hiệu ứng đồ họa 3D tương tác trực tiếp trên trình duyệt bằng thư viện **Three.js** kết hợp chuẩn **WebGL**:
+- **Bảng Màu 8 Cột Quang Phổ Chuẩn (8 Columns Matrix):** Toàn bộ giao diện tuân thủ nghiêm ngặt ma trận 8 cột màu sắc được phối hợp khoa học: Nền Canvas pha trắng ánh xanh chống mỏi mắt (`linear-gradient(135deg, #FAF8FF 0%, #F0F7FF 50%, #E2E7FF 100%)`), Section/Card xanh kính mờ (`#EFF6FF` -> `#E2E7FF` -> `#DBE1FF`), Heading đen mực pha navy ánh kim (`#0F172A` -> `#1E3A8A` -> `#2563EB`), hệ thống phân tầng chữ Solid 3 cấp (`#1E293B`, `#334155`, `#475569`), nút bấm 3D đồng điệu mô hình GLTF (`#38BDF8` -> `#2563EB` -> `#1D4ED8`), hiệu ứng hover navy phát quang, ô input trắng tinh khiết và viền stroke chuẩn công thái học.
 - **Canvas Không gian Vũ trụ 4D:** Dựng cảnh 650 ngôi sao quang học hình tròn phát sáng với hiệu ứng chuyển động chiều không-thời gian thứ 4 ($w$-axis phase oscillation), tạo nên những gợn sóng biến dạng không-thời gian mềm mại uốn lượn theo vị trí con trỏ chuột và cảm ứng tay.
 - **Logo 3D WebGL GLTF:** Tải trực tiếp tệp mô hình `/meshy-3d-logo.glb` với hiệu ứng bồng bềnh 4D, nghiêng đa trục và đổ bóng động theo ánh sáng môi trường, mang lại trải nghiệm thị giác đỉnh cao mà vẫn duy trì tốc độ khung hình mượt mà 60 FPS.
+- **Chuẩn Hóa Icon Vector Lucide React:** Loại bỏ 100% các ký tự emoji và icon AI vô nghĩa, đồng bộ toàn bộ hệ thống biểu tượng trực quan bằng các vector icon chuẩn mực từ thư viện `lucide-react`.
 
 ### 2.4. Công Nghệ Truyền Thông Thời Gian Thực (WebRTC & Socket.IO)
 - **WebRTC (Web Real-Time Communication):** Cho phép thiết lập luồng truyền phát âm thanh và video ngang hàng (Peer-to-Peer) độ phân giải cao (HD 1080p) giữa trình duyệt của Sinh viên và Nhà tuyển dụng mà không cần trung chuyển luồng video qua máy chủ trung gian. Điều này giúp tối ưu hóa tuyệt đối băng thông, bảo mật mã hóa đầu cuối (E2EE) và giảm thiểu độ trễ xuống dưới 200ms trong các buổi phỏng vấn online.
@@ -206,11 +210,11 @@ Thay vì sử dụng các hình ảnh tĩnh nhàm chán, PARTIME.VN tiên phong 
 Hệ thống bao gồm đầy đủ **28 cụm chức năng** phân bổ cân bằng cho 3 thành viên:
 
 #### A. Phân Hệ Sinh Viên (Vũ Thế Long - WBS 1.1 đến 1.10):
-- **WBS 1.1 - Đăng ký & Xác thực Sinh viên:** Form đăng ký SV, kiểm tra định dạng email và độ phức tạp mật khẩu $\ge 8$ ký tự, liên kết mã số sinh viên (MSSV) và trường đại học.
-- **WBS 1.2 - Đăng nhập & Đổi mật khẩu:** Cấp phát JWT token, chức năng "Ghi nhớ thông tin", quy trình quên mật khẩu với mã OTP 10 phút tự động điền.
+- **WBS 1.1 - Đăng ký & Xác thực Sinh viên:** Form đăng ký SV, kiểm tra định dạng email `@gmail.com` thực tế và độ phức tạp mật khẩu $\ge 8$ ký tự, liên kết mã số sinh viên (MSSV) và trường đại học.
+- **WBS 1.2 - Đăng nhập & Đổi mật khẩu:** Cấp phát JWT token, chức năng "Ghi nhớ thông tin", quy trình quên mật khẩu với mã OTP 10 phút tự động điền. Khi chưa đăng nhập, phân hệ hoạt động ở **Chế độ xem trước khách (Guest Preview Mode)** bảo vệ hoàn toàn thông tin cá nhân.
 - **WBS 1.3 - Quản lý Hồ sơ Cá nhân:** Chỉnh sửa thông tin liên lạc, chuyên ngành, số điện thoại chuẩn VN, liên kết mạng xã hội, bio giới thiệu.
 - **WBS 1.4 - Quản lý CV & Thư Giới Thiệu:** Tải lên tối đa 5 bản CV PDF $\le 10\text{MB}$ (hỗ trợ kéo thả Drag & Drop), cơ chế đặt duy nhất 1 CV làm mặc định (`is_default = true`), xem trước PDF toàn màn hình với `DocumentViewerModal`, tải file về máy tính.
-- **WBS 1.5 - Tìm Kiếm & Lọc Việc Làm Thông Minh:** Tìm kiếm từ khóa, gợi ý 34 ngành nghề part-time, lọc theo 24 quận huyện TP.HCM, lọc mức lương theo giờ, lọc ca làm việc phù hợp với lịch học.
+- **WBS 1.5 - Tìm Kiếm & Lọc Việc Làm Thông Minh:** Tìm kiếm từ khóa, danh mục ngành nghề part-time chuẩn hóa (không chứa emoji AI trang trí), lọc theo 24 quận huyện TP.HCM, lọc mức lương theo giờ, lọc ca làm việc phù hợp với lịch học.
 - **WBS 1.6 - Lưu Việc Làm (Bookmarks):** Lưu các tin tuyển dụng yêu thích vào danh sách riêng, cơ chế Unique Compound Index chặn lưu trùng.
 - **WBS 1.7 - Nộp Hồ Sơ Ứng Tuyển & Lưu Snapshot:** Chọn CV mặc định và thư giới thiệu, nộp hồ sơ, hệ thống chụp lại bản sao hồ sơ bất biến (`application_snapshot`), chặn nộp trùng vào cùng 1 việc.
 - **WBS 1.8 - Theo Dõi Tiến Độ Ứng Tuyển (Application Tracker):** Sơ đồ tiến trình 4 chặng rõ ràng (`Nộp hồ sơ` -> `NTD đã xem` -> `Phỏng vấn` -> `Trúng tuyển/Từ chối`), xem snapshot, chỉ cho phép hủy đơn khi trạng thái đang là `pending`.
@@ -219,10 +223,10 @@ Hệ thống bao gồm đầy đủ **28 cụm chức năng** phân bổ cân b�
 
 #### B. Phân Hệ Nhà Tuyển Dụng (Huỳnh Nguyễn Bảo Ngọc - WBS 2.1 đến 2.9):
 - **WBS 2.1 - Đăng ký & Định danh Doanh Nghiệp:** Đăng ký tài khoản NTD, nhập MST, tải lên Giấy phép kinh doanh (GPKD) PDF/Ảnh $\le 10\text{MB}$ bằng thao tác Kéo thả (Drag & Drop), chọn nhanh 24 quận huyện TP.HCM.
-- **WBS 2.2 - Xác thực Hồ sơ Pháp lý & GPKD:** Tiếp nhận trạng thái kiểm duyệt (`pending` -> `approved` / `rejected`), tài khoản chỉ được đăng tin công khai khi GPKD đã được phê duyệt.
+- **WBS 2.2 - Xác thực Hồ sơ Pháp lý & GPKD:** Tiếp nhận trạng thái kiểm duyệt (`pending` -> `approved` / `rejected`), tài khoản chỉ được đăng tin công khai khi GPKD đã được phê duyệt. Ở Chế độ khách, hệ thống hiển thị khung preview mẫu, ẩn hoàn toàn thông tin pháp lý nhạy cảm.
 - **WBS 2.3 - Quản lý Hồ sơ Doanh Nghiệp:** Cập nhật logo công ty, ảnh bìa, giới thiệu văn hóa doanh nghiệp, danh sách các chi nhánh tuyển dụng.
 - **WBS 2.4 - Studio Đăng Tin Tuyển Dụng:** Tạo tin việc làm với tiêu đề, danh mục ngành nghề, khu vực quận huyện, thiết lập ca làm việc linh hoạt. Bắt buộc kiểm tra logic lương: `salary_min <= salary_max`.
-- **WBS 2.5 - Quản lý Tin Đăng & Vòng Đời Việc Làm:** Xem danh sách tin, chỉnh sửa nội dung, tạm đóng tin khi đủ số lượng, mở lại tin hoặc xóa tin.
+- **WBS 2.5 - Quản lý Tin Đăng & Vòng Đời Việc Làm:** Xem danh sách tin, chỉnh sửa nội dung, tạm đóng tin khi đủ số lượng, mở lại tin hoặc xóa vĩnh viễn (Cascade Delete).
 - **WBS 2.6 - Hệ Thống ATS Quản Lý & Duyệt Ứng Viên:** Xem danh sách ứng viên nộp theo từng công việc, xem trước CV PDF ứng viên, chuyển trạng thái theo quy trình (`reviewed` -> `interview` -> `accepted` / `rejected`).
 - **WBS 2.7 - Lên Lịch Phỏng Vấn & Mời Phỏng Vấn Video:** Thiết lập thời gian, địa điểm hoặc kích hoạt phòng phỏng vấn trực tuyến WebRTC, gửi thông báo tự động đến sinh viên.
 - **WBS 2.8 - Đánh Giá Sinh Viên Sau Hoàn Thành:** Đánh giá năng lực, thái độ, tính đúng giờ của sinh viên (1-5 sao), áp dụng cơ chế Upsert chống lỗi trùng khóa CSDL.
@@ -230,8 +234,8 @@ Hệ thống bao gồm đầy đủ **28 cụm chức năng** phân bổ cân b�
 
 #### C. Phân Hệ Quản Trị Viên (Lê Thị Thuỳ Ngân - WBS 3.1 đến 3.9):
 - **WBS 3.1 - Đăng Nhập Cố Định & Bảo Mật Tuyệt Đối:** Sử dụng tài khoản quản trị tối cao định danh cố định (`lethithuyngan985@gmail.com`), ẩn hoàn toàn nút Đăng ký và Quên mật khẩu công khai để chống tấn công chiếm quyền.
-- **WBS 3.2 - Dashboard Phân Tích & Báo Cáo:** Xem biểu đồ tổng quan số lượng người dùng, tin đăng, đơn ứng tuyển kết nối thành công, xuất báo cáo tổng kết dạng Excel/CSV.
-- **WBS 3.3 - Quản Lý Người Dùng & Khóa Tài Khoản:** Xem danh sách toàn bộ Sinh viên và NTD, thực hiện Khóa tài khoản (`is_banned = true`) bắt buộc nhập lý do khóa chi tiết (`ban_reason`), mở khóa tài khoản.
+- **WBS 3.2 - Trung Tâm Chỉ Huy & Phân Tích Tăng Trưởng (Analytics Dashboard):** Bộ lọc thời gian tối ưu 2 cột trực quan (Cột 1: `1. Chọn Năm`, Cột 2: `2. Chọn Tháng`) kèm 2 ô chọn khoảng ngày `Từ ngày: [dd/mm/yyyy]` và `Đến ngày: [dd/mm/yyyy]`, loại bỏ các nút chọn tuần và dropdown phụ gây rối. Tích hợp module dữ liệu lịch sử chuẩn hóa 2024-2025 (`historicalAnalyticsData.js`) và cam kết 100% CSDL thực tế cho năm 2026. Biểu đồ Line Chart và Donut Chart chống giật rung, hover chữ đen rõ nét.
+- **WBS 3.3 - Quản Lý Người Dùng & Khóa Tài Khoản:** Xem danh sách toàn bộ Sinh viên và NTD, thực hiện Khóa tài khoản (`is_banned = true`) bắt buộc nhập lý do khóa chi tiết (`ban_reason`), mở khóa tài khoản; hỗ trợ xóa vĩnh viễn tài khoản rác (như `eadeedc@gmail.com`).
 - **WBS 3.4 - Kiểm Duyệt Doanh Nghiệp & Hồ Sơ GPKD:** Xem trực tiếp tệp GPKD qua `DocumentViewerModal`, phê duyệt (`approved`) hoặc từ chối (`rejected` kèm lý do).
 - **WBS 3.5 - Kiểm Duyệt Tin Tuyển Dụng Toàn Hệ Thống:** Kiểm tra tin đăng, thực hiện Ẩn tin vi phạm (`is_hidden = true`) đối với các tin lừa đảo, đa cấp; bảo đảm toàn vẹn dữ liệu trong CSDL phục vụ thanh tra.
 - **WBS 3.6 - Quản Lý Đánh Giá & Phản Hồi:** Kiểm duyệt các nhận xét tiêu cực, xóa bỏ các bình luận vu khống hoặc xúc phạm danh dự.
@@ -301,13 +305,13 @@ Nhằm mang lại trải nghiệm tối ưu và giải quyết bài toán quên 
 - Giao diện hiển thị đồng hồ đếm ngược trực quan dạng `mm:ss` kèm thanh màu chuyển đổi từ Xanh sang Vàng và Đỏ khi sắp hết thời gian.
 - Hệ thống tích hợp module gửi mail qua giao thức SMTP Brevo (`smtp-relay.brevo.com`) và banner mô phỏng kèm **nút "Tự động điền" (Hands-Free Auto-fill)**. Khi người dùng bấm nút này, 6 ô số tự động nhận diện và gõ từng ký tự với hiệu ứng typewriter mượt mà mà người dùng không cần chạm vào bàn phím.
 
-### 4.3. Hệ Thống Zero Native Dialogs & Banner Thông Báo 3 Màu
-Nhóm đã tiến hành một bước đột phá về trải nghiệm người dùng: **Loại bỏ 100% các hộp thoại mặc định xấu xí của trình duyệt** (`window.alert`, `window.confirm`, `window.prompt` gây hiện tượng thông báo cục bộ `localhost:8002 cho biết`):
-- Thay thế bằng Component Modal Dark 4D **`<ConfirmDialog>`** cao cấp với lớp nền mờ tối `backdrop-blur-md bg-black/85`, thiết kế chuyên biệt cho các hành vi xóa CV, hủy đơn, khóa tài khoản, từ chối GPKD.
-- Tích hợp **Thanh Banner Trạng Thái** gắn ngay dưới Header ở góc phải màn hình, tự động biến mất sau 5 giây với 3 ngữ cảnh chuẩn:
-  - 🟢 **Xanh lá:** Thông báo thao tác thành công ("Cập nhật hồ sơ thành công!").
-  - 🟡 **Vàng:** Thông báo trạng thái đang xử lý ("Đang lưu dữ liệu, vui lòng chờ...").
-  - 🔴 **Đỏ:** Cảnh báo dữ liệu không hợp lệ hoặc lỗi hệ thống.
+### 4.3. Hệ Thống Zero Native Dialogs & Banner Thông Báo 3 Ngữ Cảnh Chuẩn
+Nhóm đã tiến hành một bước đột phá về trải nghiệm người dùng: **Loại bỏ 100% các hộp thoại mặc định của trình duyệt** (`window.alert`, `window.confirm`, `window.prompt` gây hiện tượng thông báo cục bộ `localhost:8002 cho biết`):
+- Thay thế bằng Component Modal **`<ConfirmDialog>`** cao cấp với lớp nền mờ `backdrop-blur-md bg-slate-900/80` và khung card kính sáng bo góc tròn hiện đại, thiết kế chuyên biệt cho các hành vi xóa CV, hủy đơn, khóa tài khoản, từ chối GPKD.
+- Tích hợp **Thanh Banner Trạng Thái** gắn ngay dưới Header ở góc phải màn hình, tự động biến mất sau 5 giây với 3 ngữ cảnh chuẩn sử dụng vector icon Lucide React chuyên nghiệp (không dùng emoji thô):
+  - **Thành công (Emerald):** Icon `CheckCircle2`, thông báo thao tác thành công ("Cập nhật hồ sơ thành công!").
+  - **Đang xử lý (Amber):** Icon `Clock` / `AlertCircle`, thông báo trạng thái ("Đang lưu dữ liệu, vui lòng chờ...").
+  - **Cảnh báo / Lỗi (Rose/Red):** Icon `AlertTriangle` / `XCircle`, cảnh báo dữ liệu không hợp lệ hoặc lỗi hệ thống.
 
 ### 4.4. Trình Xem Tài Liệu Chuẩn Kiểm Định (DocumentViewerModal) & Hỗ Trợ Kéo Thả (Drag & Drop)
 - Hỗ trợ xem trực tiếp toàn màn hình file CV Sinh viên (.pdf) và Giấy phép kinh doanh (.pdf) thông qua modal nhúng iframe thực tế, kèm nút Tải về máy tính chuẩn chỉ phục vụ công tác thanh tra đồ án.
@@ -318,11 +322,21 @@ Nhóm đã tiến hành một bước đột phá về trải nghiệm người 
 - Nhóm đã cấu hình máy chủ Flask trong file `run.py` và `backend/server.py` đảm nhận vai trò **Unified Web Server**: vừa phục vụ các API RESTful `/api/...`, vừa phân phối trực tiếp gói giao diện Single Page Application (React Vite bundle trong `frontend/dist/index.html`) trên **cùng một cổng duy nhất `http://localhost:8002`**.
 - Cổng `8002` được phân định độc lập cho đề tài CDTN02, hoàn toàn không bị xung đột với đề tài CDTN01 (chạy cổng 8000). Người dùng chỉ cần click đúp vào file `run.bat` hoặc gõ `python run.py`, toàn bộ hệ thống tự động khởi chạy và trình duyệt tự động mở website.
 
-### 4.6. Đồng Bộ Đa Thiết Bị (PC, Laptop, iPad, Mobile)
-Giao diện được tối ưu hóa responsive theo tiêu chuẩn Mobile-First:
-- **PC & Laptop:** Hiển thị Sidebar cố định, bảng dữ liệu rộng rãi, Three.js 4D Canvas tương tác theo chuột.
-- **iPad / Tablet:** Sidebar chuyển thành ngăn kéo trượt (Drawer); bố cục chuyển thành 2 cột; 3D Logo hỗ trợ cảm ứng đa điểm.
+### 4.6. Đồng Bộ Đa Thiết Bị (PC, Laptop, iPad, Mobile) & Chống Gãy Chữ
+Giao diện được tối ưu hóa responsive theo tiêu chuẩn Mobile-First và chống hiện tượng vỡ layout khi co kéo màn hình:
+- **PC & Laptop:** Hiển thị Sidebar cố định hoặc thu gọn linh hoạt với nút mũi tên toggle, bảng dữ liệu rộng rãi, Three.js 4D Canvas tương tác theo chuột.
+- **iPad / Tablet:** Sidebar chuyển thành ngăn kéo trượt (Drawer); bố cục chuyển thành 2 cột; 3D Logo hỗ trợ cảm ứng đa điểm; các thẻ Card tự động co giãn không gãy chữ.
 - **Mobile Phone:** Sidebar ẩn hoàn toàn, xuất hiện thanh điều hướng đáy **Mobile Bottom Navigation Dock** tối ưu thao tác ngón tay cái; các bảng dữ liệu tự động có thanh cuộn ngang chống tràn viền.
+
+### 4.7. Chuẩn Hóa Chế Độ Xem Trước Khách (Guest Preview Mode) & Cơ Chế Điều Hướng Logo
+- **Bảo vệ toàn vẹn thông tin cá nhân:** Khi người dùng chưa đăng nhập hoặc chưa có tài khoản, cả phân hệ Sinh viên và Nhà tuyển dụng hoạt động ở **Chế độ xem trước khách (Guest Preview Mode)**. Toàn bộ thông tin cá nhân, hồ sơ doanh nghiệp nhạy cảm, GPKD và số liệu tương tác đều được ẩn giấu hoàn toàn, thay thế bằng khung lưới xem trước (Skeleton Placeholder Preview).
+- **Mở khóa dữ liệu sau xác thực:** Chỉ khi người dùng thực hiện Đăng ký hoặc Đăng nhập thành công, hệ thống mới cấp token định danh JWT và nạp dữ liệu thật từ CSDL về giao diện.
+- **Cơ chế điều hướng bằng Logo thương hiệu:** Loại bỏ hoàn toàn các nút "Quay lại trang chủ" / "Quay lại trang" trong Admin Dashboard và các màn hình xác thực (Đăng nhập, Đăng ký, Quên mật khẩu). Khi cần quay về trang chủ hoặc chế độ khách, người dùng chỉ cần nhấp chuột vào biểu tượng Logo 3D `PARTIME.VN`.
+
+### 4.8. Cơ Chế Xóa Vĩnh Viễn (Cascade Delete), Loại Bỏ Dữ Liệu Rác & Chuẩn Hóa Dữ Liệu Thực 100%
+- **Cơ chế Cascade Delete đồng bộ:** Mọi thao tác Xóa (xóa tài khoản, xóa tin tuyển dụng, xóa đơn ứng tuyển, xóa danh mục) đều được truyền trực tiếp xuống CSDL MongoDB, thực hiện xóa lan truyền các bản ghi phụ thuộc và đồng bộ ngay lập tức trên giao diện với thông báo xác nhận thành công. Trạng thái xóa được bảo toàn vĩnh viễn, không bị hoàn tác khi F5 hoặc đăng nhập lại.
+- **Xóa vĩnh viễn tài khoản rác theo yêu cầu:** Triệt tiêu hoàn toàn tài khoản `eadeedc@gmail.com` (`user_student_486c9bf4`) cùng toàn bộ dữ liệu phụ thuộc trong cơ sở dữ liệu `CDTN02_DB`.
+- **Chuẩn hóa dữ liệu thực tế 100%:** Cam kết năm 2026 sử dụng 100% dữ liệu thật từ hệ sinh thái, tuyệt đối không dùng số liệu ảo giả định; loại bỏ các tài khoản không có đuôi `@gmail.com`; lọc sạch các chuỗi mã số kỹ thuật thô (`1.5.6`, `BR-NTD-05`, `FR 2.4.7`...) khỏi giao diện người dùng để đảm bảo tính mỹ thuật và chuyên nghiệp.
 
 ---
 
@@ -360,7 +374,7 @@ Hệ thống đã trải qua quy trình kiểm thử toàn diện 3 tầng độ
 1. **Về mặt học thuật và kỹ thuật phần mềm:**
    - Chứng minh tính đúng đắn và hiệu quả vượt trội của mô hình **Layered Clean Architecture** trong việc phân tách trách nhiệm, tối ưu hóa quy trình làm việc nhóm cho 3 sinh viên, ngăn chặn hoàn toàn xung đột mã nguồn trên Git.
    - Ứng dụng thành công cơ sở dữ liệu phi quan hệ **MongoDB Atlas** với các kỹ thuật chỉ mục tối ưu, cơ chế chụp bản ghi bất biến (Snapshot) và cơ chế Upsert an toàn.
-   - Tiên phong ứng dụng đồ họa không gian **Web 3D Three.js và GLTF** trong lĩnh vực tuyển dụng, mang lại diện mạo **Dark 4D Electric Blue** sang trọng và cuốn hút.
+   - Tiên phong ứng dụng đồ họa không gian **Web 3D Three.js và GLTF** trong lĩnh vực tuyển dụng, mang lại diện mạo **Digital Light Dimension** hiện đại với bảng màu 8 cột chống mỏi mắt kết hợp điểm nhấn 3D sang trọng, cuốn hút.
 2. **Về mặt giá trị thực tiễn và xã hội:**
    - Xây dựng một nền tảng tuyển dụng sinh viên tin cậy, an toàn, bài trừ triệt để nạn lừa đảo đặt cọc, đa cấp nhờ quy trình kiểm duyệt giấy phép kinh doanh nghiêm ngặt và bộ lọc từ khóa cấm tự động trong chat.
    - Giúp sinh viên dễ dàng tìm kiếm các ca làm việc part-time linh hoạt, phù hợp với thời khóa biểu học tập tại trường mà không làm ảnh hưởng đến kết quả rèn luyện.

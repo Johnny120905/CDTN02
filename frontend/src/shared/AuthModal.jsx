@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, Lock, Mail, User, Phone, Building, GraduationCap, AlertCircle, 
-  CheckCircle2, Clock, Zap, Sparkles, KeyRound, ArrowRight, RefreshCw,
-  Smartphone, Laptop, Tablet, Monitor
+  CheckCircle2, Clock, KeyRound, ArrowRight, RefreshCw,
+  Smartphone, Laptop, Tablet, Monitor, Briefcase, ShieldCheck, Check
 } from 'lucide-react';
 
 export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
@@ -441,7 +441,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-lg transition-all"
                   title="Tự động điền không cần nhập tay"
                 >
-                  <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
+                  <KeyRound className="w-3.5 h-3.5 text-brand-600" />
                   <span>Tự động điền OTP</span>
                 </button>
               </div>
@@ -479,8 +479,9 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                 </label>
 
                 {receivedOtp && (
-                  <span className="text-emerald-700 font-medium">
-                    ✓ Đã nhận mã từ hệ thống
+                  <span className="text-emerald-700 font-medium flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5 shrink-0" />
+                    <span>Đã nhận mã từ hệ thống</span>
                   </span>
                 )}
               </div>
@@ -605,7 +606,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your.email@vlu.edu.vn"
+                  placeholder="sinhvien@gmail.com"
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:border-brand-500"
                 />
               </div>
@@ -692,23 +693,26 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
             <button
               type="button"
               onClick={() => handleQuickDemoLogin('student')}
-              className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-bold border border-emerald-200 transition-colors text-center"
+              className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-bold border border-emerald-200 transition-colors flex items-center justify-center gap-1"
             >
-              🎓 Sinh Viên
+              <GraduationCap className="w-3.5 h-3.5" />
+              <span>Sinh Viên</span>
             </button>
             <button
               type="button"
               onClick={() => handleQuickDemoLogin('employer')}
-              className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-xl text-xs font-bold border border-blue-200 transition-colors text-center"
+              className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-xl text-xs font-bold border border-blue-200 transition-colors flex items-center justify-center gap-1"
             >
-              💼 Tuyển Dụng
+              <Briefcase className="w-3.5 h-3.5" />
+              <span>Tuyển Dụng</span>
             </button>
             <button
               type="button"
               onClick={() => handleQuickDemoLogin('admin')}
-              className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold border border-slate-200 transition-colors text-center"
+              className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold border border-slate-200 transition-colors flex items-center justify-center gap-1"
             >
-              🛡️ Quản Trị
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Quản Trị</span>
             </button>
           </div>
         </div>

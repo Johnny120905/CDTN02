@@ -1,4 +1,4 @@
-﻿import smtplib
+import smtplib
 import os
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -81,14 +81,14 @@ def send_otp_email(recipient_email: str, otp_code: str, purpose: str = "forgot_p
                 </div>
 
                 <p class="warning">
-                    ⚠️ <b>Luu y bao mat:</b><br>
+                    <b>Luu y bao mat:</b><br>
                     • Ma xac thuc nay co hieu luc trong thoi gian ngan.<br>
                     • Tuyet doi khong chia se ma nay cho bat ky ai de bao ve tai khoan cua ban.<br>
                     • Neu ban khong yeu cau ma nay, vui long bo qua email nay.
                 </p>
             </div>
             <div class="footer">
-                © 2026 PARTIME.VN - De tai Chuyen de tot nghiep 2 (CDTN02) - DH Van Lang.<br>
+                © 2026 PARTIME.VN - Nen tang ket noi viec lam linh hoat danh cho sinh vien.<br>
                 Thu duoc gui tu dong, vui long khong phan hoi email nay.
             </div>
         </div>

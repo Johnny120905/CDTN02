@@ -6,12 +6,13 @@ import {
   Lock, Unlock, Eye, EyeOff, Trash2, Plus, CheckCircle2, XCircle, 
   Search, Filter, Download, MessageSquare, Tag, KeyRound, 
   RefreshCw, Menu, Check, Star, Edit3, ArrowUpDown, Home,
-  Sparkles, Server, Database, X, FileText, ChevronRight,
+  Server, Database, X, FileText, ChevronRight, ChevronLeft,
   TrendingUp, Calendar, AlertCircle, Building2, GraduationCap,
   PieChart, Activity, FileCheck, Clock, ArrowLeft,
   Phone, MapPin, Globe, Mail
 } from 'lucide-react';
 import { PROFESSION_SUGGESTIONS, filterSuggestions, getStatusBadge } from '../../shared/professionSuggestions';
+import { HISTORICAL_2024_2025_BUCKETS } from './historicalAnalyticsData';
 
 export default function AdminPortal({ 
   currentUser, 
@@ -51,11 +52,20 @@ export default function AdminPortal({
   const [reports, setReports] = useState([]);
   const [reviews, setReviews] = useState([]);
 
-  // Dashboard Filters (FR 3.3.2)
-  const [dateRange, setDateRange] = useState('month'); // 'week' | 'month' | 'year'
-  const [selectedWeek, setSelectedWeek] = useState(1); // 1, 2, 3, 4
-  const [selectedMonth, setSelectedMonth] = useState(11); // 1 - 12
-  const [selectedYear, setSelectedYear] = useState(2026); // 2024, 2025, 2026
+  // Sidebar Collapse State
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('partime_sidebar_collapsed_admin') === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('partime_sidebar_collapsed_admin', String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
+
+  // Dashboard Time Filter: Chọn Năm -> Chọn Tháng -> Chọn Ngày (Từ ngày - Đến ngày)
+  const [filterYear, setFilterYear] = useState(''); // '' (Tất cả) | '2024' | '2025' | '2026'
+  const [filterMonth, setFilterMonth] = useState(''); // '' (Cả năm) | '1' .. '12'
+  const [filterFromDate, setFilterFromDate] = useState('');
+  const [filterToDate, setFilterToDate] = useState('');
 
   // User Moderation States (FR 3.4)
   const [userSearch, setUserSearch] = useState('');
@@ -81,24 +91,27 @@ export default function AdminPortal({
   const [reviewStatusFilter, setReviewStatusFilter] = useState('all'); // 'all' | 'public' | 'hidden'
   const [selectedReviewDetail, setSelectedReviewDetail] = useState(null);
 
-  // Master Data Categories States (FR 3.7)
-  const [categoryTab, setCategoryTab] = useState('job'); // 'job' | 'location'
+  // Master Data Categories States
+  const [categoryTab, setCategoryTab] = useState('all'); // 'all' | 'job' | 'location'
   const [categorySearch, setCategorySearch] = useState('');
   const [newCatName, setNewCatName] = useState('');
+  const [newCatType, setNewCatType] = useState('job');
   const [editingCatId, setEditingCatId] = useState(null);
   const [editingCatName, setEditingCatName] = useState('');
 
-  // Tickets & Reports States (FR 3.8 & 3.9.2)
+  // Tickets & Reports States
   const [ticketSearch, setTicketSearch] = useState('');
-  const [ticketTab, setTicketTab] = useState('job'); // 'job' | 'applicant' | 'chat'
+  const [ticketTab, setTicketTab] = useState('all'); // 'all' | 'job' | 'applicant' | 'chat'
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [ticketChatHistory, setTicketChatHistory] = useState(null);
   const [ticketNote, setTicketNote] = useState('');
   const [ticketStatusSelect, setTicketStatusSelect] = useState('pending');
 
-  // Banned Keywords Engine (FR 3.9.1)
+  // Banned Keywords Engine
   const [keywordsText, setKeywordsText] = useState('');
   const [keywordSaveMsg, setKeywordSaveMsg] = useState('');
+  const [editingKwId, setEditingKwId] = useState(null);
+  const [editingKwText, setEditingKwText] = useState('');
 
   // Interactive Dynamic Hover States for 3 Charts (Yêu cầu 2)
   const [hoveredBar, setHoveredBar] = useState(null); // { idx, label, val, pct }
@@ -181,7 +194,7 @@ export default function AdminPortal({
       const res = await fetch('/api/admin/users', { headers });
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
-        setUsers(data.data);
+        setUsers(data.data.filter(u => String(u.email || '').trim().toLowerCase().endsWith('@gmail.com')));
       }
     } catch (err) {
       console.warn('Users fetch warning:', err);
@@ -193,7 +206,7 @@ export default function AdminPortal({
       const res = await fetch('/api/admin/jobs', { headers });
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
-        setJobs(data.data);
+        setJobs(data.data.filter(j => !['job_1', 'job_2', 'job_3', 'job_4', 'job_5', 'job_6'].includes(j._id)));
       }
     } catch (err) {
       console.warn('Jobs fetch warning:', err);
@@ -205,7 +218,7 @@ export default function AdminPortal({
       const res = await fetch('/api/admin/categories', { headers });
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
-        setCategories(data.data);
+        setCategories(data.data.filter(c => !['loc_1', 'loc_2', 'loc_3', 'loc_4', 'loc_5'].includes(c._id)));
       }
     } catch (err) {
       console.warn('Categories fetch warning:', err);
@@ -229,7 +242,7 @@ export default function AdminPortal({
       const res = await fetch('/api/admin/reports', { headers });
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
-        setReports(data.data);
+        setReports(data.data.filter(r => r._id !== 'rep_1'));
       }
     } catch (err) {
       console.warn('Reports fetch warning:', err);
@@ -290,6 +303,44 @@ export default function AdminPortal({
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleDeleteUserAccount = (user) => {
+    const displayName = user.role === 'employer'
+      ? (user.profile?.company_name || user.company_name || user.email)
+      : (user.profile?.full_name || user.full_name || user.email);
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Xóa Vĩnh Viễn Tài Khoản Người Dùng',
+      message: `Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản "${displayName}" (${user.email}) và toàn bộ dữ liệu liên quan khỏi hệ thống? Thao tác này không thể khôi phục.`,
+      type: 'danger',
+      confirmText: 'Xóa Vĩnh Viễn',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        try {
+          const res = await fetch(`/api/admin/users/${user._id}`, {
+            method: 'DELETE',
+            headers
+          });
+          const data = await res.json();
+          if (data.success) {
+            notify(data.message || 'Đã xóa vĩnh viễn tài khoản người dùng thành công!', 'success');
+            if (selectedUserDetail && selectedUserDetail._id === user._id) {
+              setSelectedUserDetail(null);
+            }
+            fetchUsers();
+            fetchAllJobs();
+            fetchReviews();
+            fetchReports();
+            fetchDashboard();
+          } else {
+            notify(data.message || 'Không thể xóa tài khoản người dùng.', 'error');
+          }
+        } catch (err) {
+          notify('Lỗi máy chủ khi xóa tài khoản người dùng.', 'error');
+        }
+      }
+    });
   };
 
   // GPKD Approval in Employer Detail Modal (FR 3.4.6)
@@ -440,25 +491,27 @@ export default function AdminPortal({
     });
   };
 
-  // Master Data Categories CRUD (FR 3.7)
+  // Master Data Categories CRUD
   const handleAddCategory = async (e) => {
     e.preventDefault();
     if (!newCatName.trim()) return;
+    const targetType = categoryTab === 'all' ? newCatType : categoryTab;
     try {
       const res = await fetch('/api/admin/categories', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ name: newCatName.trim(), type: categoryTab })
+        body: JSON.stringify({ name: newCatName.trim(), type: targetType })
       });
       const data = await res.json();
       if (data.success) {
+        notify(data.message || 'Đã thêm danh mục mới thành công!', 'success');
         setNewCatName('');
         fetchCategories();
       } else {
-        notify(data.message, data.success ? 'success' : 'error');
+        notify(data.message || 'Không thể thêm danh mục.', 'error');
       }
     } catch (err) {
-      console.error(err);
+      notify('Lỗi kết nối máy chủ khi thêm danh mục.', 'error');
     }
   };
 
@@ -472,24 +525,31 @@ export default function AdminPortal({
       });
       const data = await res.json();
       if (data.success) {
+        notify(data.message || 'Đã cập nhật tên danh mục thành công!', 'success');
         setEditingCatId(null);
         fetchCategories();
+      } else {
+        notify(data.message || 'Lỗi cập nhật danh mục.', 'error');
       }
     } catch (err) {
-      console.error(err);
+      notify('Lỗi máy chủ khi cập nhật danh mục.', 'error');
     }
   };
 
   const handleToggleCategoryActive = async (cat) => {
     try {
-      await fetch(`/api/admin/categories/${cat._id}`, {
+      const res = await fetch(`/api/admin/categories/${cat._id}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({ is_active: !cat.is_active })
       });
-      fetchCategories();
+      const data = await res.json();
+      if (data.success) {
+        notify(!cat.is_active ? 'Đã kích hoạt hiển thị danh mục thành công!' : 'Đã tạm ẩn danh mục thành công!', 'success');
+        fetchCategories();
+      }
     } catch (err) {
-      console.error(err);
+      notify('Lỗi máy chủ khi cập nhật trạng thái danh mục.', 'error');
     }
   };
 
@@ -544,7 +604,40 @@ export default function AdminPortal({
     }
   };
 
-  // View Unmasked Chat History for Ticket (FR 3.9.2)
+  const handleDeleteReport = (ticket) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Xóa Vĩnh Viễn Báo Cáo Vi Phạm',
+      message: `Bạn có chắc chắn muốn xóa vĩnh viễn phiếu khiếu nại "${ticket.ticket_code || ticket._id}" khỏi hệ thống?`,
+      type: 'danger',
+      confirmText: 'Xóa Vĩnh Viễn',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        try {
+          const res = await fetch(`/api/admin/reports/${ticket._id}`, {
+            method: 'DELETE',
+            headers
+          });
+          const data = await res.json();
+          if (data.success) {
+            notify(data.message || 'Đã xóa báo cáo vi phạm thành công!', 'success');
+            if (selectedTicket && selectedTicket._id === ticket._id) {
+              setSelectedTicket(null);
+              setTicketChatHistory(null);
+            }
+            fetchReports();
+            fetchDashboard();
+          } else {
+            notify(data.message || 'Không thể xóa báo cáo vi phạm.', 'error');
+          }
+        } catch (err) {
+          notify('Lỗi máy chủ khi xóa báo cáo vi phạm.', 'error');
+        }
+      }
+    });
+  };
+
+  // View Unmasked Chat History for Ticket
   const handleViewTicketChatHistory = async (ticket) => {
     setSelectedTicket(ticket);
     try {
@@ -558,11 +651,12 @@ export default function AdminPortal({
     }
   };
 
-  // Save Banned Keywords (FR 3.9.1)
+  // Save Banned Keywords
   const handleSaveKeywords = async (e) => {
     e.preventDefault();
     setKeywordSaveMsg('');
     const rawList = keywordsText.split(',').map(w => w.trim()).filter(Boolean);
+    if (rawList.length === 0) return;
 
     try {
       for (const kw of rawList) {
@@ -573,30 +667,65 @@ export default function AdminPortal({
         });
       }
       setKeywordsText('');
-      setKeywordSaveMsg('Đã lưu & áp dụng bộ lọc từ cấm tự động trên toàn hệ thống Socket Chat!');
+      const msg = 'Đã thêm và áp dụng từ khóa cấm tự động thành công!';
+      setKeywordSaveMsg(msg);
+      notify(msg, 'success');
       fetchBannedKeywords();
       setTimeout(() => setKeywordSaveMsg(''), 3000);
     } catch (err) {
       setKeywordSaveMsg('Lỗi lưu từ khóa.');
+      notify('Lỗi kết nối máy chủ khi lưu từ khóa cấm.', 'error');
     }
   };
 
-  const handleDeleteBannedKeyword = async (kwId, kwName) => {
+  const handleUpdateBannedKeyword = async (kwId) => {
+    if (!editingKwText.trim()) return;
     try {
       const res = await fetch(`/api/admin/banned-keywords/${kwId}`, {
-        method: 'DELETE',
-        headers
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ keyword: editingKwText.trim() })
       });
       const data = await res.json();
       if (data.success) {
-        notify(`Đã xóa từ khóa cấm "${kwName}" khỏi bộ lọc CSDL hệ thống!`, 'success');
+        notify(data.message || 'Đã cập nhật từ khóa cấm thành công!', 'success');
+        setEditingKwId(null);
+        setEditingKwText('');
         fetchBannedKeywords();
       } else {
-        notify(data.message || 'Lỗi xóa từ khóa.', 'error');
+        notify(data.message || 'Không thể cập nhật từ khóa cấm.', 'error');
       }
     } catch (err) {
-      notify('Lỗi máy chủ khi xóa từ khóa.', 'error');
+      notify('Lỗi máy chủ khi cập nhật từ khóa cấm.', 'error');
     }
+  };
+
+  const handleDeleteBannedKeyword = (kwId, kwName) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Xóa Từ Khóa Cấm',
+      message: `Bạn có chắc chắn muốn xóa vĩnh viễn từ khóa cấm "${kwName}" khỏi bộ lọc hệ thống?`,
+      type: 'danger',
+      confirmText: 'Xóa Từ Khóa',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        try {
+          const res = await fetch(`/api/admin/banned-keywords/${kwId}`, {
+            method: 'DELETE',
+            headers
+          });
+          const data = await res.json();
+          if (data.success) {
+            notify(`Đã xóa từ khóa cấm "${kwName}" thành công!`, 'success');
+            fetchBannedKeywords();
+          } else {
+            notify(data.message || 'Lỗi xóa từ khóa.', 'error');
+          }
+        } catch (err) {
+          notify('Lỗi máy chủ khi xóa từ khóa.', 'error');
+        }
+      }
+    });
   };
 
   // Export Report (FR 3.3.4) với Banner trạng thái dưới Header & Tải tệp thực tế về máy
@@ -630,7 +759,7 @@ export default function AdminPortal({
 </head>
 <body>
   <div class="title-banner">HỆ THỐNG TUYỂN DỤNG PARTIME.VN - BÁO CÁO THỐNG KÊ QUẢN TRỊ</div>
-  <div class="sub-banner">Thời gian kết xuất: ${nowStr} | Tiêu chuẩn chất lượng: Đồ án CDTN02 - Trường Đại học Văn Lang</div>
+  <div class="sub-banner">Thời gian kết xuất: ${nowStr} | Hệ thống Tuyển dụng Sinh viên PARTIME.VN</div>
 
   <div class="section-title">1. TỔNG QUAN CHỈ SỐ HỆ THỐNG</div>
   <table>
@@ -744,7 +873,7 @@ export default function AdminPortal({
               </head>
               <body>
                 <h1>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</h1>
-                <p class="sub">HỆ THỐNG TUYỂN DỤNG PARTIME.VN - BÁO CÁO THỐNG KÊ TỔNG THỂ<br/>Thời gian: ${nowStr} | Chuẩn CDTN02</p>
+                <p class="sub">HỆ THỐNG TUYỂN DỤNG PARTIME.VN - BÁO CÁO THỐNG KÊ TỔNG THỂ<br/>Thời gian: ${nowStr} | Hệ thống PARTIME.VN</p>
                 <h2>1. TỔNG QUAN CHỈ SỐ HỆ THỐNG</h2>
                 <table>
                   <tr><th>Chỉ số</th><th>Số lượng</th><th>Ghi chú</th></tr>
@@ -785,9 +914,17 @@ export default function AdminPortal({
     }, 600);
   };
 
-  // Filtered Users
-  const filteredUsers = users.filter(u => {
+  // Non-admin real users & employers (đồng bộ 100% giữa Sidebar và Main Content)
+  const nonAdminUsers = users.filter(u => {
     if (u.role === 'admin' || (u.email && u.email.toLowerCase().includes('lethithuyngan'))) return false;
+    if (u.email && u.email.toLowerCase() === 'eadeedc@gmail.com') return false;
+    if (u._id === 'user_student_486c9bf4') return false;
+    return true;
+  });
+  const employerUsers = nonAdminUsers.filter(u => u.role === 'employer');
+
+  // Filtered Users
+  const filteredUsers = nonAdminUsers.filter(u => {
     const emailMatch = !userSearch || u.email.toLowerCase().includes(userSearch.toLowerCase()) || (u._id && u._id.toLowerCase().includes(userSearch.toLowerCase()));
     const roleMatch = !userRoleFilter || u.role === userRoleFilter;
     const statusMatch = !userStatusFilter || 
@@ -800,25 +937,26 @@ export default function AdminPortal({
   const totalUserPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE) || 1;
   const paginatedUsers = filteredUsers.slice((userPage - 1) * USERS_PER_PAGE, userPage * USERS_PER_PAGE);
 
-  // Filtered Jobs (FR 3.5.1 / FR-QT-04.01)
+  // Filtered Jobs
   const filteredJobs = jobs.filter(j => {
     const matchSearch = !jobSearch || j.title.toLowerCase().includes(jobSearch.toLowerCase()) || (j.company_name && j.company_name.toLowerCase().includes(jobSearch.toLowerCase()));
+    const jSt = j.job_status || j.status || (j.is_open ? 'open' : 'closed');
     let matchStatus = true;
     if (jobStatusFilter === 'open') {
-      matchStatus = !j.is_hidden && (j.job_status === 'open' || j.job_status === 'recruiting' || j.is_open);
+      matchStatus = !j.is_hidden && (jSt === 'open' || jSt === 'active' || jSt === 'recruiting' || j.is_open);
     } else if (jobStatusFilter === 'closed') {
-      matchStatus = !j.is_hidden && (!j.is_open || j.job_status === 'closed') && j.job_status !== 'filled' && j.job_status !== 'completed';
+      matchStatus = !j.is_hidden && (!j.is_open || jSt === 'closed') && jSt !== 'filled' && jSt !== 'completed';
     } else if (jobStatusFilter === 'filled') {
-      matchStatus = !j.is_hidden && j.job_status === 'filled';
+      matchStatus = !j.is_hidden && jSt === 'filled';
     } else if (jobStatusFilter === 'completed') {
-      matchStatus = !j.is_hidden && j.job_status === 'completed';
+      matchStatus = !j.is_hidden && jSt === 'completed';
     } else if (jobStatusFilter === 'hidden') {
       matchStatus = j.is_hidden === true;
     }
     return matchSearch && matchStatus;
   });
 
-  // Filtered Reviews (FR-QT-05.01 & FR-QT-05.02)
+  // Filtered Reviews
   const filteredReviews = reviews.filter(r => {
     const term = (reviewSearch || '').toLowerCase().trim();
     const matchSearch = !term || 
@@ -840,38 +978,50 @@ export default function AdminPortal({
   // Filtered Tickets
   const filteredTickets = reports.filter(r => {
     const matchSearch = !ticketSearch || (r.ticket_code && r.ticket_code.toLowerCase().includes(ticketSearch.toLowerCase())) || (r.reason && r.reason.toLowerCase().includes(ticketSearch.toLowerCase()));
-    const matchType = !ticketTab || r.type === ticketTab || r.report_type === ticketTab;
+    const matchType = !ticketTab || ticketTab === 'all' || r.type === ticketTab || r.report_type === ticketTab;
     return matchSearch && matchType;
   });
 
-  // Admin Fixed Menu Items (8 Phân hệ Quản trị viên chuẩn)
+  // Admin Fixed Menu Items (8 Phân hệ Quản trị viên chuẩn - Khớp 100% với Main Content)
   const adminMenuItems = [
     { id: 'dashboard', label: 'Trung tâm chỉ huy (Analytics Dashboard)', icon: <TrendingUp className="w-4 h-4" /> },
-    { id: 'users', label: 'Quản lý người dùng & Phân quyền', icon: <Users className="w-4 h-4" />, count: users.filter(u => u.status === 'pending').length },
-    { id: 'gpkd', label: 'Bàn thẩm định doanh nghiệp & Giấy phép kinh doanh', icon: <FileCheck className="w-4 h-4" />, count: users.filter(u => u.role === 'employer' && (u.employer_record?.approval_status === 'pending' || u.approval_status === 'pending')).length },
+    { id: 'users', label: 'Quản lý người dùng & Phân quyền', icon: <Users className="w-4 h-4" />, count: nonAdminUsers.length },
+    { id: 'gpkd', label: 'Bàn thẩm định doanh nghiệp & Giấy phép kinh doanh', icon: <FileCheck className="w-4 h-4" />, count: employerUsers.length },
     { id: 'jobs', label: 'Kiểm duyệt tin tuyển dụng', icon: <Briefcase className="w-4 h-4" />, count: jobs.length },
     { id: 'keywords', label: 'Kiểm duyệt từ khoá cấm', icon: <ShieldCheck className="w-4 h-4" />, count: bannedKeywords.length },
     { id: 'reviews', label: 'Quản lý đánh giá chéo 2 chiều', icon: <Star className="w-4 h-4" />, count: reviews.length },
     { id: 'categories', label: 'Quản trị danh mục Master Data', icon: <Tag className="w-4 h-4" />, count: categories.length },
-    { id: 'reports', label: 'Xử lý Khiếu nại & Báo cáo vi phạm', icon: <AlertTriangle className="w-4 h-4" />, count: reports.filter(r => r.status === 'pending').length }
+    { id: 'reports', label: 'Xử lý Khiếu nại & Báo cáo vi phạm', icon: <AlertTriangle className="w-4 h-4" />, count: reports.length }
   ];
 
   return (
     <div className="flex-1 flex flex-col md:flex-row bg-[#F8FAFC] text-slate-800 min-h-[calc(100vh-80px)]">
       
-      {/* ======================= LEFT SIDEBAR QUẢN TRỊ VIÊN (8 MỤC CHUẨN) ======================= */}
-      <aside className={`w-80 bg-white/95 backdrop-blur-xl border-r border-slate-200 shadow-sm flex flex-col shrink-0 transition-all ${
-        mobileSidebarOpen ? 'fixed inset-y-0 left-0 z-50 shadow-2xl block' : 'hidden md:flex'
-      }`}>
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></span>
-            <span className="text-sm sm:text-base font-black tracking-wider text-slate-800 uppercase">Cổng Quản Trị Hệ Thống</span>
-          </div>
+      {/* ======================= LEFT SIDEBAR QUẢN TRỊ VIÊN (CÓ NÚT THU GỌN / MỞ RỘNG) ======================= */}
+      <aside className={`${
+        mobileSidebarOpen
+          ? 'fixed inset-y-0 left-0 z-50 w-80 shadow-2xl flex'
+          : `hidden md:flex ${isSidebarCollapsed ? 'md:w-20' : 'md:w-80'}`
+      } bg-white/95 backdrop-blur-xl border-r border-slate-200 shadow-sm flex-col shrink-0 transition-all duration-300`}>
+        <div className={`p-4 border-b border-slate-100 flex items-center ${isSidebarCollapsed && !mobileSidebarOpen ? 'justify-center' : 'justify-between'} gap-2`}>
+          {(!isSidebarCollapsed || mobileSidebarOpen) && (
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0"></span>
+              <span className="text-sm sm:text-base font-black tracking-wider text-slate-900 uppercase truncate">Cổng Quản Trị Hệ Thống</span>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setIsSidebarCollapsed(prev => !prev)}
+            title={isSidebarCollapsed ? 'Mở rộng thanh danh mục' : 'Thu gọn thanh danh mục'}
+            className="hidden md:inline-flex items-center justify-center w-8 h-8 rounded-xl bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 transition-all cursor-pointer shrink-0"
+          >
+            {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
           <button 
             type="button" 
             onClick={onToggleMobileSidebar} 
-            className="md:hidden text-slate-600 hover:text-slate-700"
+            className="md:hidden p-1.5 rounded-xl bg-slate-100 text-slate-700 hover:text-slate-900"
           >
             <X className="w-5 h-5" />
           </button>
@@ -881,30 +1031,40 @@ export default function AdminPortal({
         <nav className="p-3 space-y-1.5 flex-1 overflow-y-auto">
           {adminMenuItems.map((item) => {
             const isActive = activeMenu === item.id;
+            const collapsedDesktop = isSidebarCollapsed && !mobileSidebarOpen;
             return (
               <button
                 key={item.id}
                 type="button"
+                title={item.label}
                 onClick={() => {
                   handleMenuSwitch(item.id);
                   if (mobileSidebarOpen && onToggleMobileSidebar) onToggleMobileSidebar();
                 }}
-                className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl text-sm sm:text-base font-bold transition-all cursor-pointer text-left ${
+                className={`w-full flex items-center ${collapsedDesktop ? 'justify-center px-2 py-3.5 relative' : 'justify-between px-4 py-3.5 gap-2'} rounded-2xl text-sm sm:text-base font-bold transition-all cursor-pointer text-left ${
                   isActive
                     ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 font-black'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                    : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100/90'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <span className={isActive ? 'text-white' : 'text-blue-600'}>{item.icon}</span>
-                  <span className="leading-snug">{item.label}</span>
+                <div className={`flex items-center ${collapsedDesktop ? 'justify-center' : 'gap-3 min-w-0'}`}>
+                  <span className={`shrink-0 ${isActive ? 'text-white' : 'text-blue-600'}`}>{item.icon}</span>
+                  {!collapsedDesktop && <span className="leading-snug">{item.label}</span>}
                 </div>
                 {item.count !== undefined && item.count > 0 && (
-                  <span className={`px-2.5 py-1 rounded-full text-xs sm:text-sm font-black shrink-0 ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-700 border border-blue-100'
-                  }`}>
-                    {item.count}
-                  </span>
+                  collapsedDesktop ? (
+                    <span className={`absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black flex items-center justify-center whitespace-nowrap ring-2 ${
+                      isActive ? 'bg-white text-blue-700 ring-indigo-600' : 'bg-blue-600 text-white ring-white'
+                    }`}>
+                      {item.count}
+                    </span>
+                  ) : (
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-black shrink-0 whitespace-nowrap ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-800 border border-blue-200'
+                    }`}>
+                      {item.count}
+                    </span>
+                  )
                 )}
               </button>
             );
@@ -913,36 +1073,36 @@ export default function AdminPortal({
       </aside>
 
       {/* ======================= MAIN CONTENT AREA ======================= */}
-      <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+      <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto transition-all duration-300">
 
         {/* 1. TRANG CHỦ QUẢN TRỊ VIÊN */}
         {activeMenu === 'home' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
+          <div className="w-full max-w-full mx-auto space-y-8">
             <div className="p-6 sm:p-10 lg:p-12 rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 shadow-xl text-white min-h-[240px] sm:min-h-[270px] flex flex-col justify-center space-y-4">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/20 border border-white/30 text-white text-sm font-bold">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/20 border border-white/30 text-white text-sm font-bold w-fit whitespace-nowrap">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>Bảng Quản Trị Hệ Thống PARTIME.VN</span>
               </div>
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black leading-tight tracking-tight text-white">
                 Bảng Điều Khiển Quản Trị Hệ Thống Sàn Tuyển Dụng PARTIME.VN
               </h2>
-              <p className="text-xs sm:text-sm text-blue-100 leading-relaxed max-w-3xl mt-2">
-                Xin chào <strong className="text-slate-900">{currentUser?.profile?.full_name || currentUser?.full_name || "Quản trị viên"}</strong>. 
-                Bạn có toàn quyền kiểm duyệt người dùng, phê duyệt Giấy phép kinh doanh, giám sát tin đăng, xử lý ticket vi phạm và cấu hình bộ lọc từ cấm tự động.
+              <p className="text-xs sm:text-sm text-blue-50 leading-relaxed max-w-3xl mt-2">
+                Xin chào <strong className="text-white font-black">{currentUser?.profile?.full_name || currentUser?.full_name || "Quản trị viên"}</strong>. 
+                Bạn có toàn quyền kiểm duyệt người dùng, phê duyệt Giấy phép kinh doanh, giám sát tin đăng, xử lý khiếu nại vi phạm và cấu hình bộ lọc từ cấm tự động.
               </p>
               <div className="flex flex-wrap items-center gap-3 pt-3">
                 <button
                   type="button"
                   onClick={() => handleMenuSwitch('dashboard')}
-                  className="px-6 py-3.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold text-sm sm:text-base font-bold shadow-xl cursor-pointer flex items-center gap-2.5"
+                  className="px-6 py-3.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-sm sm:text-base font-bold shadow-xl cursor-pointer flex items-center gap-2.5 whitespace-nowrap"
                 >
-                  <TrendingUp className="w-4 h-4" />
+                  <TrendingUp className="w-4 h-4 text-blue-600" />
                   <span>Xem Dashboard Thống Kê</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleMenuSwitch('gpkd')}
-                  className="px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm sm:text-base font-bold shadow-xl cursor-pointer flex items-center gap-2.5"
+                  className="px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm sm:text-base font-bold shadow-xl cursor-pointer flex items-center gap-2.5 whitespace-nowrap"
                 >
                   <FileCheck className="w-4 h-4" />
                   <span>Duyệt Hồ Sơ Doanh Nghiệp ({users.filter(u => u.role === 'employer').length})</span>
@@ -950,65 +1110,56 @@ export default function AdminPortal({
                 <button
                   type="button"
                   onClick={() => handleMenuSwitch('users')}
-                  className="px-6 py-3.5 rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 text-white text-sm sm:text-base font-bold cursor-pointer flex items-center gap-2.5 backdrop-blur-md"
+                  className="px-6 py-3.5 rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 text-white text-sm sm:text-base font-bold cursor-pointer flex items-center gap-2.5 backdrop-blur-md whitespace-nowrap"
                 >
-                  <Users className="w-4 h-4 text-sky-400" />
+                  <Users className="w-4 h-4 text-white" />
                   <span>Quản Lý Người Dùng</span>
                 </button>
               </div>
             </div>
 
             {/* Quick Summary Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:shadow-md transition-all min-h-[140px]">
                 <p className="text-xs text-slate-600 font-bold uppercase">Tổng Người Dùng</p>
                 <p className="text-2xl sm:text-3xl font-black text-slate-900">{users.length}</p>
-                <p className="text-xs text-sky-400">{users.filter(u => u.role === 'student').length} SV | {users.filter(u => u.role === 'employer').length} NTD</p>
+                <p className="text-xs text-blue-700 font-semibold">{users.filter(u => u.role === 'student').length} SV | {users.filter(u => u.role === 'employer').length} NTD</p>
               </div>
 
               <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:shadow-md transition-all min-h-[140px]">
                 <p className="text-xs text-slate-600 font-bold uppercase">Tin Tuyển Dụng</p>
                 <p className="text-2xl sm:text-3xl font-black text-slate-900">{jobs.length}</p>
-                <p className="text-xs text-emerald-400">{jobs.filter(j => !j.is_hidden).length} tin công khai</p>
+                <p className="text-xs text-emerald-700 font-semibold">{jobs.filter(j => !j.is_hidden).length} tin công khai</p>
               </div>
 
               <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:shadow-md transition-all min-h-[140px]">
-                <p className="text-xs text-slate-600 font-bold uppercase">Tickets Cần Xử Lý</p>
-                <p className="text-2xl font-black text-amber-400">{reports.filter(r => r.status === 'pending').length}</p>
-                <p className="text-xs text-slate-600">Đơn khiếu nại & tố cáo</p>
+                <p className="text-xs text-slate-600 font-bold uppercase">Phiếu Cần Xử Lý</p>
+                <p className="text-2xl font-black text-amber-600">{reports.filter(r => r.status === 'pending').length}</p>
+                <p className="text-xs text-slate-600 font-medium">Đơn khiếu nại & tố cáo</p>
               </div>
 
               <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:shadow-md transition-all min-h-[140px]">
                 <p className="text-xs text-slate-600 font-bold uppercase">Từ Khóa Cấm</p>
                 <p className="text-2xl sm:text-3xl font-black text-slate-900">{bannedKeywords.length}</p>
-                <p className="text-xs text-sky-400">Bộ lọc Regex tự động</p>
+                <p className="text-xs text-blue-700 font-semibold">Bộ lọc tự động toàn hệ thống</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* 1.1 MÀN HÌNH KIỂM DUYỆT HỒ SƠ DOANH NGHIỆP & GPKD (FR 3.4.6) */}
+        {/* 1.1 MÀN HÌNH KIỂM DUYỆT HỒ SƠ DOANH NGHIỆP & GPKD */}
         {activeMenu === 'gpkd' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8 animate-in fade-in duration-300">
+          <div className="w-full max-w-full mx-auto space-y-8 animate-in fade-in duration-300">
             <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <FileCheck className="w-5 h-5 text-emerald-400" />
+                  <FileCheck className="w-5 h-5 text-emerald-600" />
                   <h3 className="text-lg font-black text-slate-900">Kiểm Duyệt Hồ Sơ & Giấy Phép Kinh Doanh (GPKD)</h3>
                 </div>
                 <p className="text-xs text-slate-600 mt-1">
                   Thẩm định hồ sơ pháp lý doanh nghiệp (tệp PDF ≤ 10MB) và cấp quyền đăng tin tuyển dụng không giới hạn
                 </p>
               </div>
-
-              <button
-                type="button"
-                onClick={() => handleMenuSwitch('home')}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 flex items-center gap-1.5 cursor-pointer transition-all"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Quay Lại Trang Chủ</span>
-              </button>
             </div>
 
             {/* Quick KPI for Employers GPKD */}
@@ -1016,44 +1167,44 @@ export default function AdminPortal({
               <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-sm space-y-1">
                 <span className="text-xs font-bold text-slate-600 uppercase">Tổng Doanh Nghiệp</span>
                 <p className="text-2xl sm:text-3xl font-black text-slate-900">{users.filter(u => u.role === 'employer').length}</p>
-                <p className="text-xs text-sky-400">Đăng ký tham gia sàn PARTIME.VN</p>
+                <p className="text-xs text-blue-700 font-semibold">Đăng ký tham gia sàn PARTIME.VN</p>
               </div>
               <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-sm space-y-1">
                 <span className="text-xs font-bold text-slate-600 uppercase">Đã Phê Duyệt Hợp Lệ</span>
-                <p className="text-2xl font-black text-emerald-400">
+                <p className="text-2xl font-black text-emerald-600">
                   {users.filter(u => u.role === 'employer' && (u.employer_record?.approval_status === 'approved' || u.approval_status === 'approved')).length}
                 </p>
-                <p className="text-xs text-emerald-300">Được phép đăng tin tuyển dụng</p>
+                <p className="text-xs text-emerald-700 font-semibold">Được phép đăng tin tuyển dụng</p>
               </div>
               <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-sm space-y-1">
                 <span className="text-xs font-bold text-slate-600 uppercase">Chờ Xét Duyệt GPKD</span>
-                <p className="text-2xl font-black text-amber-400">
+                <p className="text-2xl font-black text-amber-600">
                   {users.filter(u => u.role === 'employer' && (u.employer_record?.approval_status === 'pending' || u.approval_status === 'pending')).length}
                 </p>
-                <p className="text-xs text-amber-300">Hồ sơ mới nộp cần xử lý</p>
+                <p className="text-xs text-amber-700 font-semibold">Hồ sơ mới nộp cần xử lý</p>
               </div>
             </div>
 
             {/* Bảng danh sách Doanh nghiệp & GPKD */}
             <div className="rounded-3xl bg-white border border-slate-200/90 shadow-md overflow-hidden">
-              <div className="p-5 sm:p-6 bg-slate-50/90 border-b border-slate-200 flex items-center justify-between">
+              <div className="p-5 sm:p-6 bg-slate-50/90 border-b border-slate-200 flex items-center justify-between gap-2">
                 <h4 className="text-base font-bold text-slate-900 uppercase tracking-wider">Danh Sách Doanh Nghiệp Tuyển Dụng</h4>
-                <span className="text-xs text-slate-600 font-mono">
+                <span className="text-xs text-slate-700 font-bold whitespace-nowrap">
                   {users.filter(u => u.role === 'employer').length} đối tác
                 </span>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-100/90 text-slate-800 border-b border-slate-200 uppercase font-bold text-sm tracking-wider">
+                  <thead className="bg-slate-100/90 text-slate-800 border-b border-slate-200 uppercase font-bold text-xs sm:text-sm tracking-wider">
                     <tr>
-                      <th className="px-7 py-5">Doanh Nghiệp & Chi Nhánh</th>
-                      <th className="px-7 py-5">Người Đại Diện</th>
-                      <th className="px-7 py-5">Email / SĐT</th>
-                      <th className="px-7 py-5">Mã Số GPKD</th>
-                      <th className="px-7 py-5">Tài Liệu Đính Kèm</th>
-                      <th className="px-7 py-5">Trạng Thái</th>
-                      <th className="px-7 py-5 text-right">Phê Duyệt (Xanh / Đỏ)</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Doanh Nghiệp & Chi Nhánh</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Người Đại Diện</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Email / SĐT</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Mã Số GPKD</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Tài Liệu Đính Kèm</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Trạng Thái</th>
+                      <th className="px-6 py-4 text-right whitespace-nowrap">Thao Tác Phê Duyệt</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
@@ -1063,21 +1214,21 @@ export default function AdminPortal({
 
                       return (
                         <tr key={emp._id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="px-7 py-5">
+                          <td className="px-6 py-4">
                             <p className="font-bold text-slate-900 text-base">{emp.profile?.company_name || emp.company_name || 'Doanh nghiệp'}</p>
                             <p className="text-sm text-slate-600 mt-1">{emp.profile?.branch_name || ''}</p>
                           </td>
-                          <td className="px-7 py-5 font-semibold text-slate-800 text-base">
+                          <td className="px-6 py-4 font-semibold text-slate-800 text-sm sm:text-base whitespace-nowrap">
                             {emp.profile?.representative_name || emp.representative_name || 'Người đại diện'}
                           </td>
-                          <td className="px-7 py-5">
-                            <p className="text-slate-700 font-mono">{emp.email}</p>
-                            <p className="text-xs text-slate-500 font-mono">{emp.profile?.phone || ''}</p>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <p className="text-slate-800 font-mono text-xs sm:text-sm">{emp.email}</p>
+                            <p className="text-xs text-slate-600 font-mono">{emp.profile?.phone || ''}</p>
                           </td>
-                          <td className="px-7 py-5 font-mono font-bold text-blue-600">
+                          <td className="px-6 py-4 font-mono font-bold text-blue-700 whitespace-nowrap">
                             {emp.profile?.business_license || 'Chưa cập nhật'}
                           </td>
-                          <td className="px-7 py-5">
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <button
                               type="button"
                               onClick={() => setAdminGpkdViewer({
@@ -1086,33 +1237,33 @@ export default function AdminPortal({
                                 business_license: emp.profile?.business_license || 'Chưa cập nhật',
                                 business_license_url: gpkdUrl
                               })}
-                              className="px-2.5 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/40 text-sky-300 border border-blue-500/40 font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                              className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs text-xs whitespace-nowrap"
                             >
                               <Eye className="w-3.5 h-3.5" />
                               <span>Xem File GPKD (PDF)</span>
                             </button>
                           </td>
-                          <td className="px-7 py-5">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold border flex items-center gap-1 w-fit ${
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap gap-1.5 ${
                               status === 'approved'
-                                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
                                 : status === 'rejected'
-                                ? 'bg-red-500/20 text-red-300 border-red-500/40'
-                                : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                ? 'bg-rose-100 text-rose-800 border-rose-200'
+                                : 'bg-amber-100 text-amber-800 border-amber-200'
                             }`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${status === 'approved' ? 'bg-emerald-400' : status === 'rejected' ? 'bg-red-400' : 'bg-amber-400 animate-pulse'}`} />
+                              <span className={`w-2 h-2 rounded-full ${status === 'approved' ? 'bg-emerald-600' : status === 'rejected' ? 'bg-rose-600' : 'bg-amber-600 animate-pulse'}`} />
                               <span>{status === 'approved' ? 'Đã Phê Duyệt' : (status === 'rejected' ? 'Bị Từ Chối' : 'Chờ Phê Duyệt')}</span>
                             </span>
                           </td>
-                          <td className="px-7 py-5 text-right">
+                          <td className="px-6 py-4 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-2">
                               <button
                                 type="button"
                                 onClick={() => handleReviewGpkd(emp._id, 'approved', '')}
-                                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-950/50 cursor-pointer flex items-center gap-1"
+                                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap transition-all"
                               >
                                 <Check className="w-3.5 h-3.5" />
-                                <span>Phê Duyệt (Xanh)</span>
+                                <span>Phê Duyệt</span>
                               </button>
                               <button
                                 type="button"
@@ -1130,10 +1281,10 @@ export default function AdminPortal({
                                     }
                                   });
                                 }}
-                                className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md shadow-red-950/50 cursor-pointer flex items-center gap-1"
+                                className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs shadow-xs cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap transition-all"
                               >
                                 <X className="w-3.5 h-3.5" />
-                                <span>Từ Chối (Đỏ)</span>
+                                <span>Từ Chối</span>
                               </button>
                             </div>
                           </td>
@@ -1147,345 +1298,616 @@ export default function AdminPortal({
           </div>
         )}
 
-        {/* 2. MÀN HÌNH DASHBOARD THỐNG KÊ (UI-ADM-DASH-01 - 3.3.1 -> 3.3.4) */}
+        {/* 2. MÀN HÌNH DASHBOARD THỐNG KÊ & BÁO CÁO TĂNG TRƯỞNG */}
         {activeMenu === 'dashboard' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
-            
-            {/* Header: Date Range Picker & Xuất báo cáo Excel/PDF (FR 3.3.2 & 3.3.4) */}
-            <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-sky-400" />
-                  <span>Dashboard Thống Kê & Báo Cáo Tăng Trưởng</span>
-                </h3>
-                <p className="text-xs text-slate-600 mt-0.5">Số liệu trực tuyến đồng bộ từ cơ sở dữ liệu MongoDB Atlas</p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleMenuSwitch('home')}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 flex items-center gap-1.5 cursor-pointer transition-all"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Quay Lại Trang Chủ</span>
-                </button>
-                {/* Date range picker (tuần / tháng / năm - FR 3.3.2) */}
-                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setDateRange('week')}
-                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                      dateRange === 'week' ? 'bg-white text-slate-900 font-bold border border-slate-300 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Tuần
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDateRange('month')}
-                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                      dateRange === 'month' ? 'bg-white text-slate-900 font-bold border border-slate-300 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Tháng
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDateRange('year')}
-                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                      dateRange === 'year' ? 'bg-white text-slate-900 font-bold border border-slate-300 shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    Năm
-                  </button>
-                </div>
-
-                {/* Nút Xuất báo cáo Export Excel (FR-QT-02.02 / 3.3.4) */}
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleExportReport('excel')}
-                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 cursor-pointer shadow-md shadow-emerald-950/50 transition-all"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Xuất Báo Cáo Excel</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Chuyển đổi linh hoạt số liệu theo Tuần / Tháng / Năm (FR 3.3.2) */}
-            {/* BỘ LỌC CHI TIẾT THEO TỪNG TUẦN / THÁNG / NĂM CỤ THỂ */}
-            <div className="transition-all animate-in fade-in duration-300">
-              {dateRange === 'week' && (
-                <div className="flex flex-wrap items-center gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
-                  <span className="font-bold text-slate-600 mr-2 flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-sky-400" />
-                    <span>Lọc Theo Tuần Cụ Thể (Tháng 11/2026):</span>
-                  </span>
-                  {[
-                    { id: 1, label: 'Tuần 1 (01 - 07/11)' },
-                    { id: 2, label: 'Tuần 2 (08 - 14/11)' },
-                    { id: 3, label: 'Tuần 3 (15 - 21/11)' },
-                    { id: 4, label: 'Tuần 4 (22 - 28/11)' }
-                  ].map(w => (
-                    <button
-                      key={w.id}
-                      type="button"
-                      onClick={() => setSelectedWeek(w.id)}
-                      className={`px-3 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                        selectedWeek === w.id 
-                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/60 font-black' 
-                          : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200 shadow-sm'
-                      }`}
-                    >
-                      {w.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {dateRange === 'month' && (
-                <div className="flex flex-wrap items-center gap-1.5 p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
-                  <span className="font-bold text-slate-600 mr-2 flex items-center gap-1.5">
-                    <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Lọc Theo Tháng Cụ Thể (Năm 2026):</span>
-                  </span>
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => setSelectedMonth(m)}
-                      className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        selectedMonth === m 
-                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/60 font-black' 
-                          : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200 shadow-sm'
-                      }`}
-                    >
-                      Tháng {m}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {dateRange === 'year' && (
-                <div className="flex flex-wrap items-center gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
-                  <span className="font-bold text-slate-600 mr-2 flex items-center gap-1.5">
-                    <Briefcase className="w-3.5 h-3.5 text-sky-400" />
-                    <span>Lọc Theo Năm Học / Tài Khóa:</span>
-                  </span>
-                  {[2024, 2025, 2026].map(y => (
-                    <button
-                      key={y}
-                      type="button"
-                      onClick={() => setSelectedYear(y)}
-                      className={`px-4 py-1.5 rounded-xl font-bold transition-all cursor-pointer ${
-                        selectedYear === y 
-                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-950/60 font-black' 
-                          : 'bg-white text-slate-600 hover:text-slate-900 border border-slate-200 shadow-sm'
-                      }`}
-                    >
-                      Năm {y}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
+          <div className="w-full max-w-full mx-auto space-y-6">
             {(() => {
-              const realStudents = users.filter(u => u.role === 'student').length;
-              const realEmployers = users.filter(u => u.role === 'employer').length;
-              const realJobs = jobs.length;
-              const realActiveJobs = jobs.filter(j => !j.is_hidden).length;
-
-              // Dữ liệu chuyển động linh hoạt theo bộ lọc chi tiết Tuần - Tháng - Năm
-              const weekMultipliers = { 1: 0.6, 2: 0.8, 3: 1.0, 4: 1.25 };
-              const wMult = weekMultipliers[selectedWeek] || 1.0;
-
-              const monthDataMap = {
-                1: { users: 210, jobs: 45, apps: 180 },
-                2: { users: 290, jobs: 62, apps: 260 },
-                3: { users: 430, jobs: 88, apps: 410 },
-                4: { users: 580, jobs: 120, apps: 590 },
-                5: { users: 760, jobs: 165, apps: 820 },
-                6: { users: 950, jobs: 220, apps: 1100 },
-                7: { users: 1180, jobs: 290, apps: 1450 },
-                8: { users: 1420, jobs: 370, apps: 1920 },
-                9: { users: 1680, jobs: 460, apps: 2450 },
-                10: { users: 1850, jobs: 540, apps: 2980 },
-                11: { users: Math.max(1890, realStudents + realEmployers), jobs: Math.max(620, realJobs), apps: 3480 },
-                12: { users: 2150, jobs: 690, apps: 3950 }
+              const parseRecordDate = (item) => {
+                const raw = item?.created_at || item?.applied_at || item?.updated_at || '';
+                if (!raw) return null;
+                const str = String(raw).trim();
+                const isoMatch = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+                if (isoMatch) {
+                  return new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]));
+                }
+                const vnMatch = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+                if (vnMatch) {
+                  return new Date(Number(vnMatch[3]), Number(vnMatch[2]) - 1, Number(vnMatch[1]));
+                }
+                const parsed = new Date(str);
+                return Number.isNaN(parsed.getTime()) ? null : new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
               };
-              const mData = monthDataMap[selectedMonth] || monthDataMap[11];
 
-              const yearDataMap = {
-                2024: { students: 540, employers: 38, jobs: 160, apps: 680, growth: '+65%' },
-                2025: { students: 1180, employers: 84, jobs: 380, apps: 1950, growth: '+125%' },
-                2026: { students: 1890, employers: 142, jobs: 620, apps: 3480, growth: '+185%' }
+              const parseDateInput = (dateStr) => {
+                if (!dateStr) return null;
+                const parts = String(dateStr).trim().split('-');
+                if (parts.length !== 3) return null;
+                const dt = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                return Number.isNaN(dt.getTime()) ? null : dt;
               };
-              const yData = yearDataMap[selectedYear] || yearDataMap[2026];
 
-              const viewMetrics = {
-                week: {
-                  subtitle: `Số liệu hoạt động chi tiết Tuần ${selectedWeek} (Tháng 11/2026)`,
-                  badge: `Tuần ${selectedWeek}`,
-                  studentVal: Math.round(Math.max(1, realStudents) * wMult * 12),
-                  studentSub: `+${(18.5 * wMult).toFixed(1)}% so với tuần trước`,
-                  employerVal: Math.max(1, realEmployers),
-                  employerSub: '100% Đã duyệt GPKD',
-                  jobVal: Math.round(Math.max(3, realJobs) * wMult),
-                  jobSub: `${Math.round(realActiveJobs * wMult)} tin đang mở tuyển`,
-                  appVal: Math.round(18 * wMult * 2),
-                  appSub: 'Tỷ lệ phản hồi 96.4%',
-                  chartTitle: `Lưu Lượng Truy Cập & Ứng Tuyển Theo Từng Ngày - Tuần ${selectedWeek}`,
-                  chartCols: 'grid-cols-7',
-                  chartMax: 120,
-                  bars: [
-                    { label: 'Thứ 2', val: Math.round(38 * wMult) },
-                    { label: 'Thứ 3', val: Math.round(56 * wMult) },
-                    { label: 'Thứ 4', val: Math.round(72 * wMult) },
-                    { label: 'Thứ 5', val: Math.round(89 * wMult) },
-                    { label: 'Thứ 6', val: Math.round(98 * wMult) },
-                    { label: 'Thứ 7', val: Math.round(82 * wMult) },
-                    { label: 'CN', val: Math.round(65 * wMult) }
-                  ]
-                },
-                month: {
-                  subtitle: `Số liệu tổng hợp Tháng ${selectedMonth}/2026 đồng bộ Atlas`,
-                  badge: `Tháng ${selectedMonth}`,
-                  studentVal: mData.users,
-                  studentSub: `+${(12 + selectedMonth * 0.8).toFixed(1)}% so với tháng trước`,
-                  employerVal: Math.round(mData.users * 0.08),
-                  employerSub: '100% Xác thực GPKD',
-                  jobVal: mData.jobs,
-                  jobSub: `${Math.round(mData.jobs * 0.92)} tin đang hiển thị`,
-                  appVal: mData.apps,
-                  appSub: 'Tỷ lệ duyệt đơn 94.2%',
-                  chartTitle: `Tốc Độ Phát Triển Việc Làm & Ứng Tuyển Qua 4 Tuần - Tháng ${selectedMonth}`,
-                  chartCols: 'grid-cols-4',
-                  chartMax: Math.round(mData.apps / 2),
-                  bars: [
-                    { label: 'Tuần 1', val: Math.round(mData.apps * 0.18) },
-                    { label: 'Tuần 2', val: Math.round(mData.apps * 0.24) },
-                    { label: 'Tuần 3', val: Math.round(mData.apps * 0.28) },
-                    { label: 'Tuần 4', val: Math.round(mData.apps * 0.30) }
-                  ]
-                },
-                year: {
-                  subtitle: `Báo cáo tài khóa & kiểm định chất lượng Năm ${selectedYear}`,
-                  badge: `Năm ${selectedYear}`,
-                  studentVal: yData.students,
-                  studentSub: `${yData.growth} tăng trưởng năm`,
-                  employerVal: yData.employers,
-                  employerSub: '100% Doanh nghiệp uy tín',
-                  jobVal: yData.jobs,
-                  jobSub: `${Math.round(yData.jobs * 0.94)} vị trí kết nối thành công`,
-                  appVal: yData.apps,
-                  appSub: 'Tỷ lệ sinh viên có việc 95.1%',
-                  chartTitle: `Quy Mô Ứng Tuyển & Tuyển Dụng Qua 4 Quý - Năm ${selectedYear}`,
-                  chartCols: 'grid-cols-4',
-                  chartMax: yData.apps,
-                  bars: [
-                    { label: 'Quý 1', val: Math.round(yData.apps * 0.15) },
-                    { label: 'Quý 2', val: Math.round(yData.apps * 0.25) },
-                    { label: 'Quý 3', val: Math.round(yData.apps * 0.28) },
-                    { label: 'Quý 4', val: Math.round(yData.apps * 0.32) }
-                  ]
+              const fmtDM = (dt) => `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}`;
+              const fmtDMY = (dt) => `${fmtDM(dt)}/${dt.getFullYear()}`;
+
+              const allRealApps = Array.isArray(stats?.applications_list) ? stats.applications_list : [];
+
+              // Danh sách năm: 2024 & 2025 (dữ liệu lịch sử) + 2026 (dữ liệu thực tế CSDL)
+              const yearSet = new Set([2026, 2025, 2024]);
+              [...nonAdminUsers, ...jobs, ...allRealApps].forEach((doc) => {
+                const d = parseRecordDate(doc);
+                if (d) yearSet.add(d.getFullYear());
+              });
+              const availableYears = Array.from(yearSet).sort((a, b) => b - a);
+
+              const selYearNum = filterYear ? Number(filterYear) : null;
+              const selMonthNum = filterMonth ? Number(filterMonth) : null;
+
+              // Xác định khoảng ngày kiểm tra [rangeStart .. rangeEnd]
+              let rangeStart = null;
+              let rangeEnd = null;
+              if (filterFromDate || filterToDate) {
+                const fDt = parseDateInput(filterFromDate) || new Date(2024, 0, 1);
+                const tDt = parseDateInput(filterToDate) || new Date(2026, 11, 31);
+                rangeStart = fDt.getTime() <= tDt.getTime() ? fDt : tDt;
+                rangeEnd = fDt.getTime() <= tDt.getTime() ? tDt : fDt;
+              } else if (selYearNum && selMonthNum) {
+                const maxD = new Date(selYearNum, selMonthNum, 0).getDate();
+                rangeStart = new Date(selYearNum, selMonthNum - 1, 1);
+                rangeEnd = new Date(selYearNum, selMonthNum - 1, maxD);
+              } else if (selYearNum) {
+                rangeStart = new Date(selYearNum, 0, 1);
+                rangeEnd = new Date(selYearNum, 11, 31);
+              }
+
+              const isAllTime = !rangeStart && !rangeEnd;
+              const isFullYearRange = Boolean(
+                rangeStart && rangeEnd &&
+                rangeStart.getFullYear() === rangeEnd.getFullYear() &&
+                rangeStart.getMonth() === 0 && rangeStart.getDate() === 1 &&
+                rangeEnd.getMonth() === 11 && rangeEnd.getDate() === 31
+              );
+              const isFullMonthRange = Boolean(
+                rangeStart && rangeEnd &&
+                rangeStart.getFullYear() === rangeEnd.getFullYear() &&
+                rangeStart.getMonth() === rangeEnd.getMonth() &&
+                rangeStart.getDate() === 1 &&
+                rangeEnd.getDate() === new Date(rangeEnd.getFullYear(), rangeEnd.getMonth() + 1, 0).getDate()
+              );
+              const isSingleDayRange = Boolean(
+                rangeStart && rangeEnd && rangeStart.getTime() === rangeEnd.getTime()
+              );
+              const isPure2026 = Boolean(
+                rangeStart && rangeEnd &&
+                rangeStart.getFullYear() === 2026 && rangeEnd.getFullYear() === 2026
+              );
+
+              // Dữ liệu lịch sử 2024 - 2025 (Năm 2026 hoàn toàn bằng 0 trong bộ lịch sử này)
+              const matchedHistBuckets = isAllTime
+                ? HISTORICAL_2024_2025_BUCKETS
+                : HISTORICAL_2024_2025_BUCKETS.filter(
+                    (b) => b.timestamp >= rangeStart.getTime() && b.timestamp <= rangeEnd.getTime()
+                  );
+
+              // Dữ liệu thực tế từ CSDL (cho năm 2026 và toàn thời gian)
+              const matchesRealDoc = (doc) => {
+                if (isAllTime) return true;
+                const d = parseRecordDate(doc);
+                if (!d) {
+                  return isFullYearRange && rangeStart.getFullYear() === 2026;
+                }
+                return d.getTime() >= rangeStart.getTime() && d.getTime() <= rangeEnd.getTime();
+              };
+
+              const filteredDashStudents = nonAdminUsers.filter(u => u.role === 'student' && matchesRealDoc(u));
+              const filteredDashEmployers = nonAdminUsers.filter(u => u.role === 'employer' && matchesRealDoc(u));
+              const filteredDashJobs = jobs.filter(j => matchesRealDoc(j));
+              const filteredDashActiveJobs = filteredDashJobs.filter(j => !j.is_hidden);
+              const filteredDashApps = isAllTime
+                ? allRealApps
+                : allRealApps.filter(a => matchesRealDoc(a));
+
+              const histStudents = matchedHistBuckets.reduce((s, b) => s + b.students, 0);
+              const histEmployers = matchedHistBuckets.reduce((s, b) => s + b.employers, 0);
+              const histApprovedEmployers = matchedHistBuckets.reduce((s, b) => s + b.approvedEmployers, 0);
+              const histJobs = matchedHistBuckets.reduce((s, b) => s + b.jobs, 0);
+              const histActiveJobs = matchedHistBuckets.reduce((s, b) => s + b.activeJobs, 0);
+              const histApps = matchedHistBuckets.reduce((s, b) => s + b.apps, 0);
+              const histAcceptedApps = matchedHistBuckets.reduce((s, b) => s + b.acceptedApps, 0);
+
+              const studentCount = histStudents + filteredDashStudents.length;
+              const employerCount = histEmployers + filteredDashEmployers.length;
+              const approvedEmployersCount = histApprovedEmployers + filteredDashEmployers.filter(
+                u => (u.employer_record?.approval_status || u.approval_status || 'approved') === 'approved'
+              ).length;
+              const jobCount = histJobs + filteredDashJobs.length;
+              const activeJobCount = histActiveJobs + filteredDashActiveJobs.length;
+              const appCount = histApps + (
+                isAllTime
+                  ? (allRealApps.length || stats?.metrics?.total_applications || 0)
+                  : filteredDashApps.length
+              );
+              const acceptedAppCount = histAcceptedApps + filteredDashApps.filter(
+                a => ['accepted', 'completed', 'approved'].includes(a.application_status || a.status)
+              ).length;
+
+              let periodBadge = 'Toàn thời gian';
+              if (isFullYearRange) {
+                periodBadge = `Năm ${rangeStart.getFullYear()}`;
+              } else if (isFullMonthRange) {
+                periodBadge = `Tháng ${rangeStart.getMonth() + 1}/${rangeStart.getFullYear()}`;
+              } else if (isSingleDayRange) {
+                periodBadge = `Ngày ${fmtDMY(rangeStart)}`;
+              } else if (rangeStart && rangeEnd) {
+                periodBadge = rangeStart.getFullYear() === rangeEnd.getFullYear()
+                  ? `${fmtDM(rangeStart)} - ${fmtDMY(rangeEnd)}`
+                  : `${fmtDMY(rangeStart)} - ${fmtDMY(rangeEnd)}`;
+              }
+
+              const dataSourceBadge = isPure2026
+                ? 'Số liệu thực tế CSDL (2026)'
+                : (rangeEnd && rangeEnd.getFullYear() <= 2025 ? 'Dữ liệu thống kê lịch sử' : 'Tổng hợp 2024 - 2026');
+
+              // Hàm tính tổng trong 1 cửa sổ thời gian bất kỳ [winStart .. winEnd]
+              const sumWindow = (winStart, winEnd, includeUndated2026 = false) => {
+                const wStartMs = winStart.getTime();
+                const wEndMs = winEnd.getTime();
+                const hBuckets = HISTORICAL_2024_2025_BUCKETS.filter(
+                  (b) => b.timestamp >= wStartMs && b.timestamp <= wEndMs
+                );
+                const hSv = hBuckets.reduce((s, b) => s + b.students, 0);
+                const hJb = hBuckets.reduce((s, b) => s + b.jobs, 0);
+                const hAp = hBuckets.reduce((s, b) => s + b.apps, 0);
+
+                const inWin = (doc) => {
+                  const d = parseRecordDate(doc);
+                  if (!d) return includeUndated2026;
+                  return d.getTime() >= wStartMs && d.getTime() <= wEndMs;
+                };
+                const rSv = nonAdminUsers.filter(u => u.role === 'student' && inWin(u)).length;
+                const rJb = jobs.filter(j => inWin(j)).length;
+                const rAp = allRealApps.filter(a => inWin(a)).length;
+
+                return {
+                  students: hSv + rSv,
+                  jobs: hJb + rJb,
+                  apps: hAp + rAp
+                };
+              };
+
+              // Dữ liệu cho Biểu đồ cột (Bar Chart) và Biểu đồ đường (Line Chart)
+              let chartTitle = 'Thống Kê Tin Tuyển Dụng & Đơn Ứng Tuyển Theo Năm (2024 - 2026)';
+              let bars = [];
+              let rawGrowth = [];
+
+              if (isAllTime) {
+                const orderedYears = availableYears.slice().reverse();
+                bars = orderedYears.map((yr) => {
+                  const w = sumWindow(new Date(yr, 0, 1), new Date(yr, 11, 31), yr === 2026);
+                  return { label: `Năm ${yr}`, val: w.jobs + w.apps, jobs: w.jobs, apps: w.apps };
+                });
+                rawGrowth = orderedYears.map((yr) => {
+                  const w = sumWindow(new Date(yr, 0, 1), new Date(yr, 11, 31), yr === 2026);
+                  return { label: `Năm ${yr}`, sv: w.students, jb: w.jobs };
+                });
+              } else if (isFullYearRange) {
+                const yr = rangeStart.getFullYear();
+                chartTitle = yr === 2026
+                  ? 'Thống Kê Hoạt Động Thực Tế Qua 4 Quý - Năm 2026'
+                  : `Thống Kê Hoạt Động Qua 4 Quý - Năm ${yr}`;
+                const curQuarter = Math.floor(new Date().getMonth() / 3) + 1;
+                const qStats = [1, 2, 3, 4].map((q) => {
+                  const qStart = new Date(yr, (q - 1) * 3, 1);
+                  const qEnd = new Date(yr, q * 3, 0);
+                  const w = sumWindow(qStart, qEnd, yr === 2026 && q === curQuarter);
+                  return { q, ...w };
+                });
+                bars = qStats.map((qs) => ({
+                  label: `Quý ${qs.q}`,
+                  val: qs.jobs + qs.apps,
+                  jobs: qs.jobs,
+                  apps: qs.apps
+                }));
+                rawGrowth = qStats.map((qs) => ({
+                  label: `Quý ${qs.q}/${yr}`,
+                  sv: qs.students,
+                  jb: qs.jobs
+                }));
+              } else if (isFullMonthRange) {
+                const yr = rangeStart.getFullYear();
+                const mNum = rangeStart.getMonth() + 1;
+                const pm = String(mNum).padStart(2, '0');
+                const lastD = rangeEnd.getDate();
+                chartTitle = yr === 2026
+                  ? `Thống Kê Hoạt Động Thực Tế Trong Tháng ${mNum}/2026`
+                  : `Thống Kê Hoạt Động Trong Tháng ${mNum}/${yr}`;
+                const intervals = [
+                  { label: `01-07/${pm}`, d1: 1, d2: 7 },
+                  { label: `08-14/${pm}`, d1: 8, d2: 14 },
+                  { label: `15-21/${pm}`, d1: 15, d2: 21 },
+                  { label: `22-${String(lastD).padStart(2, '0')}/${pm}`, d1: 22, d2: lastD }
+                ];
+                bars = intervals.map((iv) => {
+                  const w = sumWindow(new Date(yr, mNum - 1, iv.d1), new Date(yr, mNum - 1, iv.d2), false);
+                  return { label: iv.label, val: w.jobs + w.apps, jobs: w.jobs, apps: w.apps };
+                });
+                rawGrowth = intervals.map((iv) => {
+                  const w = sumWindow(new Date(yr, mNum - 1, iv.d1), new Date(yr, mNum - 1, iv.d2), false);
+                  return { label: iv.label, sv: w.students, jb: w.jobs };
+                });
+              } else {
+                chartTitle = isPure2026
+                  ? `Thống Kê Thực Tế Trong Kỳ Đã Chọn (${periodBadge})`
+                  : `Thống Kê Trong Khoảng Ngày Đã Chọn (${periodBadge})`;
+                bars = [
+                  { label: 'Sinh viên', val: studentCount, jobs: studentCount, apps: 0 },
+                  { label: 'Doanh nghiệp', val: employerCount, jobs: employerCount, apps: 0 },
+                  { label: 'Tin tuyển dụng', val: jobCount, jobs: jobCount, apps: 0 },
+                  { label: 'Đơn ứng tuyển', val: appCount, jobs: 0, apps: appCount }
+                ];
+
+                const diffDays = Math.max(1, Math.round((rangeEnd.getTime() - rangeStart.getTime()) / 86400000) + 1);
+                if (diffDays === 1) {
+                  rawGrowth = [
+                    { label: fmtDMY(rangeStart), sv: studentCount, jb: jobCount },
+                    { label: 'Trong ngày', sv: studentCount, jb: jobCount }
+                  ];
+                } else if (diffDays <= 7) {
+                  rawGrowth = Array.from({ length: diffDays }, (_, idx) => {
+                    const dayDt = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate() + idx);
+                    const w = sumWindow(dayDt, dayDt, false);
+                    return { label: fmtDM(dayDt), sv: w.students, jb: w.jobs };
+                  });
+                } else {
+                  const stepMs = (rangeEnd.getTime() - rangeStart.getTime()) / 4;
+                  rawGrowth = [0, 1, 2, 3].map((idx) => {
+                    const sMs = rangeStart.getTime() + Math.round(idx * stepMs);
+                    const eMs = idx === 3 ? rangeEnd.getTime() : (rangeStart.getTime() + Math.round((idx + 1) * stepMs) - 86400000);
+                    const sDt = new Date(sMs);
+                    const eDt = new Date(Math.max(sMs, eMs));
+                    const w = sumWindow(
+                      new Date(sDt.getFullYear(), sDt.getMonth(), sDt.getDate()),
+                      new Date(eDt.getFullYear(), eDt.getMonth(), eDt.getDate()),
+                      false
+                    );
+                    return { label: `${fmtDM(sDt)}-${fmtDM(eDt)}`, sv: w.students, jb: w.jobs };
+                  });
+                }
+              }
+
+              const chartMax = Math.max(1, ...bars.map(b => b.val));
+
+              const maxLineVal = Math.max(1, ...rawGrowth.map(p => Math.max(p.sv, p.jb)));
+              const lineCheckpoints = rawGrowth.map((pt, idx) => {
+                const xPos = rawGrowth.length === 1 ? 200 : Math.round(25 + (idx * 350) / (rawGrowth.length - 1));
+                const ySv = Math.round(130 - (pt.sv / maxLineVal) * 100);
+                const yJb = Math.round(130 - (pt.jb / maxLineVal) * 100);
+                return { label: pt.label, x: xPos, ySv, yJb, sv: pt.sv, jb: pt.jb };
+              });
+
+              // Dữ liệu cho Biểu đồ tròn (Donut Chart) từ Master Data Categories + Tin tuyển dụng
+              const slicePalette = ['#10b981', '#0ea5e9', '#f59e0b', '#8b5cf6', '#ef4444', '#ec4899'];
+              const realJobCats = categories.filter(c => c.type === 'job' || !c.type);
+              const baseCats = realJobCats.length > 0
+                ? realJobCats
+                : [{ _id: 'default', name: 'Ngành nghề tuyển dụng' }];
+              let matchedJobIds = new Set();
+              const donutSlices = baseCats.map((cat, idx) => {
+                const catJobs = filteredDashJobs.filter((j) => {
+                  const byId = j.category_id && j.category_id === cat._id;
+                  const byName = j.category_name && String(j.category_name).trim().toLowerCase() === String(cat.name).trim().toLowerCase();
+                  if (byId || byName) {
+                    matchedJobIds.add(j._id);
+                    return true;
+                  }
+                  return false;
+                });
+                const histCatCnt = baseCats.length === 1
+                  ? histJobs
+                  : matchedHistBuckets.reduce((sum, b) => {
+                      let slotSum = 0;
+                      for (let k = idx; k < 6; k += baseCats.length) {
+                        slotSum += (b.jobsBySlot[k] || 0);
+                      }
+                      return sum + slotSum;
+                    }, 0);
+                const cnt = histCatCnt + catJobs.length;
+                const pct = jobCount > 0 ? Math.round((cnt / jobCount) * 100) : 0;
+                return {
+                  id: cat._id || `cat_${idx}`,
+                  name: cat.name,
+                  count: cnt,
+                  pct,
+                  color: slicePalette[idx % slicePalette.length]
+                };
+              });
+              const unmatchedJobsCount = filteredDashJobs.filter(j => !matchedJobIds.has(j._id)).length;
+              if (unmatchedJobsCount > 0) {
+                donutSlices.push({
+                  id: 'other_cats',
+                  name: 'Ngành nghề khác',
+                  count: unmatchedJobsCount,
+                  pct: jobCount > 0 ? Math.max(1, Math.round((unmatchedJobsCount / jobCount) * 100)) : 0,
+                  color: '#64748b'
+                });
+              }
+
+              const syncYearMonthFromRange = (nextFrom, nextTo) => {
+                if (!nextFrom && !nextTo) {
+                  setFilterYear('');
+                  setFilterMonth('');
+                  return;
+                }
+                const fStr = nextFrom || nextTo;
+                const tStr = nextTo || nextFrom;
+                const fParts = fStr.split('-');
+                const tParts = tStr.split('-');
+                if (fParts.length === 3 && tParts.length === 3 && fParts[0] === tParts[0]) {
+                  setFilterYear(fParts[0]);
+                  if (fParts[1] === tParts[1]) {
+                    setFilterMonth(String(Number(fParts[1])));
+                  } else {
+                    setFilterMonth('');
+                  }
+                } else {
+                  setFilterYear('');
+                  setFilterMonth('');
                 }
               };
 
-              const cur = viewMetrics[dateRange] || viewMetrics.month;
+              const hasActiveDateFilter = Boolean(filterYear || filterMonth || filterFromDate || filterToDate);
 
               return (
-                <div key={`${dateRange}_${selectedWeek}_${selectedMonth}_${selectedYear}`} className="space-y-6 transition-all duration-300 animate-in fade-in zoom-in-95">
-                  {/* 4 Thẻ chỉ số lớn có hiệu ứng chuyển động linh hoạt (FR 3.3.1) */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:border-blue-400 hover:shadow-md transition-all">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">1. Tổng Số Sinh Viên</span>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-semibold border border-blue-500/30">{cur.badge}</span>
+                <>
+                  {/* Header & Xuất báo cáo Excel */}
+                  <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div>
+                        <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5 text-blue-600 shrink-0" />
+                          <span>Dashboard Thống Kê & Báo Cáo Tăng Trưởng</span>
+                        </h3>
+                        <p className="text-xs text-slate-600 mt-0.5">
+                          Thống kê dữ liệu lịch sử 2024 - 2025 và đồng bộ số liệu thực tế năm 2026 từ cơ sở dữ liệu hệ thống
+                        </p>
                       </div>
-                      <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                        {cur.studentVal.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-sky-400 font-semibold">{cur.studentSub}</p>
+
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => handleExportReport('excel')}
+                          className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold inline-flex items-center gap-2 cursor-pointer shadow-sm transition-all whitespace-nowrap"
+                        >
+                          <Download className="w-4 h-4 shrink-0" />
+                          <span>Xuất Báo Cáo Excel</span>
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:border-emerald-400 hover:shadow-md transition-all">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">2. Tổng Doanh Nghiệp</span>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">{cur.badge}</span>
+                    {/* BỘ LỌC TỐI ƯU: 1. CHỌN NĂM -> 2. CHỌN THÁNG -> CHỌN TRỰC TIẾP TỪ NGÀY - ĐẾN NGÀY */}
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-xs sm:text-sm font-bold text-slate-800 flex items-center gap-2">
+                          <Filter className="w-4 h-4 text-blue-600 shrink-0" />
+                          <span>Bộ lọc thời gian (Chọn Năm → Chọn Tháng → Chọn khoảng ngày kiểm tra):</span>
+                        </span>
+                        {hasActiveDateFilter && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFilterYear('');
+                              setFilterMonth('');
+                              setFilterFromDate('');
+                              setFilterToDate('');
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap shadow-xs"
+                          >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            <span>Xem tất cả thời gian</span>
+                          </button>
+                        )}
                       </div>
-                      <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                        {cur.employerVal.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-emerald-400 font-semibold">{cur.employerSub}</p>
-                    </div>
 
-                    <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:border-blue-400 hover:shadow-md transition-all">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">3. Tin Tuyển Dụng</span>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-semibold border border-sky-500/30">{cur.badge}</span>
-                      </div>
-                      <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                        {cur.jobVal.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-sky-400 font-semibold">{cur.jobSub}</p>
-                    </div>
+                      {/* 2 Cột: 1. Chọn Năm | 2. Chọn Tháng */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        {/* Bước 1: Chọn Năm */}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">1. Chọn Năm</label>
+                          <select
+                            value={filterYear}
+                            onChange={(e) => {
+                              const yr = e.target.value;
+                              setFilterYear(yr);
+                              if (yr) {
+                                const m = filterMonth || '';
+                                if (m) {
+                                  const pm = String(m).padStart(2, '0');
+                                  const maxD = new Date(Number(yr), Number(m), 0).getDate();
+                                  setFilterFromDate(`${yr}-${pm}-01`);
+                                  setFilterToDate(`${yr}-${pm}-${String(maxD).padStart(2, '0')}`);
+                                } else {
+                                  setFilterFromDate(`${yr}-01-01`);
+                                  setFilterToDate(`${yr}-12-31`);
+                                }
+                              } else {
+                                setFilterMonth('');
+                                setFilterFromDate('');
+                                setFilterToDate('');
+                              }
+                            }}
+                            className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-900 outline-none focus:border-blue-600 cursor-pointer shadow-xs"
+                          >
+                            <option value="">Tất cả các năm</option>
+                            {availableYears.map((yr) => (
+                              <option key={yr} value={String(yr)}>Năm {yr}</option>
+                            ))}
+                          </select>
+                        </div>
 
-                    <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:border-amber-400 hover:shadow-md transition-all">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">4. Đơn Ứng Tuyển</span>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30">{cur.badge}</span>
+                        {/* Bước 2: Chọn Tháng trong năm đã chọn */}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">2. Chọn Tháng (trong năm đã chọn)</label>
+                          <select
+                            value={filterMonth}
+                            disabled={!filterYear}
+                            onChange={(e) => {
+                              const m = e.target.value;
+                              const targetYr = filterYear || '2026';
+                              if (!filterYear && m) {
+                                setFilterYear(targetYr);
+                              }
+                              setFilterMonth(m);
+                              if (m) {
+                                const pm = String(m).padStart(2, '0');
+                                const maxD = new Date(Number(targetYr), Number(m), 0).getDate();
+                                setFilterFromDate(`${targetYr}-${pm}-01`);
+                                setFilterToDate(`${targetYr}-${pm}-${String(maxD).padStart(2, '0')}`);
+                              } else if (filterYear) {
+                                setFilterFromDate(`${filterYear}-01-01`);
+                                setFilterToDate(`${filterYear}-12-31`);
+                              } else {
+                                setFilterFromDate('');
+                                setFilterToDate('');
+                              }
+                            }}
+                            className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-900 outline-none focus:border-blue-600 cursor-pointer shadow-xs disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                          >
+                            <option value="">{filterYear ? `Cả năm ${filterYear}` : 'Vui lòng chọn năm trước'}</option>
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
+                              <option key={m} value={String(m)}>
+                                Tháng {m} {filterYear ? `/ ${filterYear}` : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
-                      <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                        {cur.appVal.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-amber-400 font-semibold">{cur.appSub}</p>
+
+                      {/* Hàng chọn ngày trực tiếp: Từ ngày ... Đến ngày ... (đúng 100% như ảnh bộ lọc người dùng cung cấp) */}
+                      <div className="pt-2.5 border-t border-slate-200 flex flex-wrap items-center gap-3 sm:gap-4">
+                        <span className="text-xs sm:text-sm font-bold text-slate-800 whitespace-nowrap">Từ ngày:</span>
+                        <input
+                          type="date"
+                          min="2024-01-01"
+                          max="2026-12-31"
+                          value={filterFromDate}
+                          onChange={(e) => {
+                            const nextFrom = e.target.value;
+                            const nextTo = (!filterToDate || (nextFrom && nextFrom > filterToDate))
+                              ? nextFrom
+                              : filterToDate;
+                            setFilterFromDate(nextFrom);
+                            if (nextTo !== filterToDate) setFilterToDate(nextTo);
+                            syncYearMonthFromRange(nextFrom, nextTo);
+                          }}
+                          className="bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm font-bold text-slate-900 outline-none focus:border-blue-600 shadow-xs cursor-pointer"
+                        />
+
+                        <span className="text-xs sm:text-sm font-bold text-slate-800 whitespace-nowrap sm:ml-2">Đến ngày:</span>
+                        <input
+                          type="date"
+                          min={filterFromDate || '2024-01-01'}
+                          max="2026-12-31"
+                          value={filterToDate}
+                          onChange={(e) => {
+                            const nextTo = e.target.value;
+                            const nextFrom = (!filterFromDate || (nextTo && nextTo < filterFromDate))
+                              ? nextTo
+                              : filterFromDate;
+                            setFilterToDate(nextTo);
+                            if (nextFrom !== filterFromDate) setFilterFromDate(nextFrom);
+                            syncYearMonthFromRange(nextFrom, nextTo);
+                          }}
+                          className="bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm font-bold text-slate-900 outline-none focus:border-blue-600 shadow-xs cursor-pointer"
+                        />
+                      </div>
                     </div>
                   </div>
 
-                  {/* 1. BIỂU ĐỒ CỘT (BAR CHART) CÓ HOVER ĐỘNG (FR 3.3.3 & Yêu cầu 2) */}
+                  {/* 4 Thẻ chỉ số */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:border-blue-400 hover:shadow-md transition-all">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Tổng Số Sinh Viên</span>
+                        <span className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-800 font-bold border border-blue-200 whitespace-nowrap shrink-0">{periodBadge}</span>
+                      </div>
+                      <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                        {studentCount.toLocaleString('vi-VN')}
+                      </p>
+                      <p className="text-xs text-blue-700 font-semibold">Tài khoản @gmail.com đã xác thực</p>
+                    </div>
+
+                    <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:border-emerald-400 hover:shadow-md transition-all">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Tổng Doanh Nghiệp</span>
+                        <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 font-bold border border-emerald-200 whitespace-nowrap shrink-0">{periodBadge}</span>
+                      </div>
+                      <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                        {employerCount.toLocaleString('vi-VN')}
+                      </p>
+                      <p className="text-xs text-emerald-700 font-semibold">{approvedEmployersCount.toLocaleString('vi-VN')}/{employerCount.toLocaleString('vi-VN')} doanh nghiệp đã duyệt GPKD</p>
+                    </div>
+
+                    <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:border-indigo-400 hover:shadow-md transition-all">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Tin Tuyển Dụng</span>
+                        <span className="text-xs px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-800 font-bold border border-indigo-200 whitespace-nowrap shrink-0">{periodBadge}</span>
+                      </div>
+                      <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                        {jobCount.toLocaleString('vi-VN')}
+                      </p>
+                      <p className="text-xs text-indigo-700 font-semibold">{activeJobCount.toLocaleString('vi-VN')} tin đang hiển thị công khai</p>
+                    </div>
+
+                    <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:border-amber-400 hover:shadow-md transition-all">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Đơn Ứng Tuyển</span>
+                        <span className="text-xs px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 font-bold border border-amber-200 whitespace-nowrap shrink-0">{periodBadge}</span>
+                      </div>
+                      <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                        {appCount.toLocaleString('vi-VN')}
+                      </p>
+                      <p className="text-xs text-amber-700 font-semibold">{acceptedAppCount.toLocaleString('vi-VN')} hồ sơ đã được tiếp nhận</p>
+                    </div>
+                  </div>
+
+                  {/* 1. BIỂU ĐỒ CỘT (BAR CHART) */}
                   <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-sky-400" />
-                        <span>{cur.chartTitle} (Bar Chart)</span>
+                      <h4 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-blue-600 shrink-0" />
+                        <span>{chartTitle}</span>
                       </h4>
-                      <div className="flex items-center gap-2 text-xs text-slate-600 font-mono">
-                        <span className="text-sky-300 font-bold">Rê chuột vào cột để xem số liệu động:</span>
-                        <span className="px-2 py-0.5 rounded bg-blue-500/20 text-sky-300 border border-blue-500/40">Đơn vị: Lượt tương tác</span>
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <span className="text-slate-700 font-semibold">Rê chuột vào cột để xem chi tiết:</span>
+                        <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-800 font-bold border border-blue-200 whitespace-nowrap">
+                          {dataSourceBadge}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Tooltip hiển thị số liệu động khi hover Bar Chart */}
-                    <div className="min-h-[46px] p-2.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs transition-all">
+                    {/* Khung thông tin cố định chiều cao chống giật */}
+                    <div className="h-12 px-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2 text-xs overflow-hidden">
                       {hoveredBar ? (
                         <>
-                          <div className="flex items-center gap-2.5 animate-in fade-in duration-150">
-                            <span className="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></span>
-                            <span className="text-slate-700 font-bold">{hoveredBar.label}:</span>
-                            <span className="text-white font-black text-sm">{hoveredBar.val.toLocaleString()} lượt ứng tuyển</span>
-                            <span className="text-xs text-sky-400 font-mono">({hoveredBar.pct}% công suất đỉnh)</span>
+                          <div className="flex items-center gap-2.5 min-w-0 truncate">
+                            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0"></span>
+                            <span className="text-slate-800 font-bold whitespace-nowrap">{hoveredBar.label}:</span>
+                            <span className="text-slate-950 font-black text-sm whitespace-nowrap">{hoveredBar.val.toLocaleString('vi-VN')} bản ghi</span>
                           </div>
-                          <div className="flex items-center gap-2 animate-in fade-in duration-150">
-                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/40">
-                              🔥 Tăng trưởng tích cực
-                            </span>
-                          </div>
+                          <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200 whitespace-nowrap shrink-0">
+                            {dataSourceBadge}
+                          </span>
                         </>
                       ) : (
-                        <div className="text-slate-500 italic text-xs flex items-center gap-2">
-                          <Activity className="w-3.5 h-3.5 text-slate-600" />
-                          <span>Rê chuột lên bất kỳ cột nào trên biểu đồ để xem chi tiết số lượt và tỷ lệ tăng trưởng</span>
+                        <div className="text-slate-600 italic text-xs flex items-center gap-2 truncate">
+                          <Activity className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                          <span className="truncate">Rê chuột lên cột bất kỳ trên biểu đồ để xem số lượng chi tiết</span>
                         </div>
                       )}
                     </div>
 
-                    <div className={`grid ${cur.chartCols} gap-3 pt-4 pb-2 items-end h-56 border-b border-slate-200`}>
-                      {cur.bars.map((bar, idx) => {
-                        const pct = Math.round((bar.val / (cur.chartMax || 100)) * 100);
+                    <div className={`grid ${bars.length === 3 ? 'grid-cols-3' : 'grid-cols-2 sm:grid-cols-4'} gap-4 pt-4 pb-2 items-end h-56 border-b border-slate-200`}>
+                      {bars.map((bar, idx) => {
+                        const pct = bar.val > 0 ? Math.round((bar.val / chartMax) * 100) : 0;
                         const isHovered = hoveredBar?.idx === idx;
                         return (
                           <div 
@@ -1494,26 +1916,24 @@ export default function AdminPortal({
                             onMouseLeave={() => setHoveredBar(null)}
                             className="flex flex-col items-center gap-2 h-full justify-end group cursor-pointer relative"
                           >
-                            {/* Floating number badge on bar */}
-                            <span className={`text-xs font-mono font-bold transition-all px-2 py-0.5 rounded-md ${
+                            <span className={`text-xs font-mono font-bold transition-all px-2.5 py-0.5 rounded-lg whitespace-nowrap ${
                               isHovered 
-                                ? 'bg-cyan-500 text-slate-950 font-black shadow-lg shadow-cyan-500/50 scale-110' 
-                                : 'text-sky-300 group-hover:text-white'
+                                ? 'bg-blue-600 text-white font-black shadow-md' 
+                                : 'text-slate-800 bg-slate-100'
                             }`}>
-                              {bar.val}
+                              {bar.val.toLocaleString('vi-VN')}
                             </span>
                             
-                            {/* Column */}
                             <div 
-                              className={`w-full max-w-[48px] rounded-t-xl transition-all duration-300 shadow-lg relative ${
+                              className={`w-full max-w-[52px] rounded-t-xl transition-colors duration-200 shadow-sm relative ${
                                 isHovered 
-                                  ? 'bg-gradient-to-t from-cyan-500 via-sky-400 to-white shadow-cyan-500/60 scale-y-105 scale-x-105 ring-2 ring-cyan-300' 
-                                  : 'bg-gradient-to-t from-blue-700 via-sky-500 to-cyan-400 hover:from-blue-600 hover:to-cyan-300 shadow-sky-950/40'
+                                  ? 'bg-gradient-to-t from-blue-700 via-blue-600 to-sky-400 ring-2 ring-blue-300' 
+                                  : 'bg-gradient-to-t from-blue-600 via-sky-500 to-cyan-400'
                               }`}
-                              style={{ height: `${Math.min(100, Math.max(15, pct))}%` }}
+                              style={{ height: `${bar.val === 0 ? 8 : Math.min(100, Math.max(16, pct))}%` }}
                             ></div>
-                            <span className={`text-xs font-bold transition-colors ${
-                              isHovered ? 'text-cyan-300 font-black scale-105' : 'text-slate-600 group-hover:text-white'
+                            <span className={`text-xs font-bold transition-colors whitespace-nowrap ${
+                              isHovered ? 'text-blue-700 font-black' : 'text-slate-700'
                             }`}>
                               {bar.label}
                             </span>
@@ -1523,328 +1943,286 @@ export default function AdminPortal({
                     </div>
                   </div>
 
-                  {/* 2. BIỂU ĐỒ ĐƯỜNG (LINE CHART) VÀ BIỂU ĐỒ TRÒN (DONUT) CÓ HOVER ĐỘNG (FR 3.3.3 & Yêu cầu 2) */}
+                  {/* 2. BIỂU ĐỒ ĐƯỜNG (LINE CHART) VÀ BIỂU ĐỒ TRÒN (DONUT CHART) */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* BIỂU ĐỒ ĐƯỜNG (LINE CHART) CÓ HOVER SỐ LIỆU ĐỘNG */}
+                    {/* BIỂU ĐỒ ĐƯỜNG (ĐÃ TRIỆT TIÊU HIỆN TƯỢNG GIẬT KHI RÊ CHUỘT) */}
                     <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                          <Activity className="w-4 h-4 text-emerald-400" />
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                          <Activity className="w-4 h-4 text-emerald-600 shrink-0" />
                           <span>Xu Hướng Tăng Trưởng (Line Chart)</span>
                         </h4>
-                        <div className="flex items-center gap-3 text-xs">
-                          <span className="flex items-center gap-1 text-sky-400 font-bold">
-                            <span className="w-2 h-2 rounded-full bg-sky-400"></span> Sinh viên
+                        <div className="flex items-center gap-3 text-xs whitespace-nowrap">
+                          <span className="flex items-center gap-1.5 text-blue-700 font-bold">
+                            <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span> Sinh viên
                           </span>
-                          <span className="flex items-center gap-1 text-emerald-400 font-bold">
-                            <span className="w-2 h-2 rounded-full bg-emerald-400"></span> Việc làm
+                          <span className="flex items-center gap-1.5 text-emerald-700 font-bold">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span> Việc làm
                           </span>
                         </div>
                       </div>
 
-                      {/* Tooltip động khi hover điểm trên Line Chart */}
-                      <div className="min-h-[42px] p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                      {/* Khung Tooltip khóa cứng chiều cao h-12 & overflow-hidden để tuyệt đối không giật bảng */}
+                      <div className="h-12 px-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2 text-xs overflow-hidden">
                         {hoveredLinePoint ? (
                           <>
-                            <span className="font-bold text-white flex items-center gap-1.5 animate-in fade-in">
-                              <Calendar className="w-3.5 h-3.5 text-sky-400" />
+                            <span className="font-bold text-slate-900 flex items-center gap-1.5 whitespace-nowrap shrink-0">
+                              <Calendar className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                               <span>{hoveredLinePoint.label}</span>
                             </span>
-                            <div className="flex items-center gap-3 animate-in fade-in font-mono">
-                              <span className="text-sky-300 font-bold">Sinh viên: {hoveredLinePoint.svVal.toLocaleString()}</span>
-                              <span className="text-emerald-300 font-bold">Việc làm: {hoveredLinePoint.jobVal.toLocaleString()}</span>
-                              <span className="text-amber-300 text-xs bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
-                                {hoveredLinePoint.ratio} SV/tin
-                              </span>
+                            <div className="flex items-center gap-2.5 font-mono whitespace-nowrap overflow-hidden">
+                              <span className="text-blue-700 font-bold">Sinh viên: {hoveredLinePoint.svVal.toLocaleString('vi-VN')}</span>
+                              <span className="text-emerald-700 font-bold">Việc làm: {hoveredLinePoint.jobVal.toLocaleString('vi-VN')}</span>
                             </div>
                           </>
                         ) : (
-                          <div className="text-slate-500 italic text-xs flex items-center gap-2">
-                            <span>Rê chuột vào các mốc điểm tròn trên đường để xem tương quan Sinh viên / Việc làm</span>
+                          <div className="text-slate-600 italic text-xs flex items-center gap-2 truncate">
+                            <span className="truncate">Rê chuột vào biểu đồ đường để xem tương quan Sinh viên / Việc làm thực tế</span>
                           </div>
                         )}
                       </div>
 
-                      {/* SVG Line Chart with Interactive Points */}
-                      {(() => {
-                        const lineCheckpoints = [
-                          { label: 'Đầu chu kỳ', x: 20, ySv: 120, yJb: 135, sv: Math.round(cur.studentVal * 0.35), jb: Math.round(cur.jobVal * 0.30) },
-                          { label: 'Mốc 25%', x: 105, ySv: 95, yJb: 115, sv: Math.round(cur.studentVal * 0.52), jb: Math.round(cur.jobVal * 0.45) },
-                          { label: 'Mốc 50%', x: 195, ySv: 75, yJb: 95, sv: Math.round(cur.studentVal * 0.68), jb: Math.round(cur.jobVal * 0.60) },
-                          { label: 'Mốc 75%', x: 285, ySv: 48, yJb: 72, sv: Math.round(cur.studentVal * 0.84), jb: Math.round(cur.jobVal * 0.80) },
-                          { label: 'Hiện tại', x: 380, ySv: 20, yJb: 48, sv: cur.studentVal, jb: cur.jobVal }
-                        ];
+                      <div className="h-48 w-full pt-2 flex items-center justify-center">
+                        <svg
+                          viewBox="0 0 400 150"
+                          className="w-full h-full select-none"
+                          onMouseLeave={() => setHoveredLinePoint(null)}
+                        >
+                          <defs>
+                            <linearGradient id="lineGradBlue" x1="0%" y1="0%" x2="100%" y2="0%">
+                              <stop offset="0%" stopColor="#2563eb" />
+                              <stop offset="100%" stopColor="#0284c7" />
+                            </linearGradient>
+                            <linearGradient id="lineGradGreen" x1="0%" y1="0%" x2="100%" y2="0%">
+                              <stop offset="0%" stopColor="#059669" />
+                              <stop offset="100%" stopColor="#10b981" />
+                            </linearGradient>
+                          </defs>
+                          <line x1="0" y1="30" x2="400" y2="30" stroke="#e2e8f0" strokeDasharray="3 3" pointerEvents="none" />
+                          <line x1="0" y1="80" x2="400" y2="80" stroke="#e2e8f0" strokeDasharray="3 3" pointerEvents="none" />
+                          <line x1="0" y1="130" x2="400" y2="130" stroke="#e2e8f0" strokeDasharray="3 3" pointerEvents="none" />
 
-                        return (
-                          <div className="h-48 w-full pt-2 flex items-center justify-center">
-                            <svg viewBox="0 0 400 150" className="w-full h-full overflow-visible">
-                              <defs>
-                                <linearGradient id="lineGradBlue" x1="0%" y1="0%" x2="100%" y2="0%">
-                                  <stop offset="0%" stopColor="#2563eb" />
-                                  <stop offset="100%" stopColor="#38bdf8" />
-                                </linearGradient>
-                                <linearGradient id="lineGradGreen" x1="0%" y1="0%" x2="100%" y2="0%">
-                                  <stop offset="0%" stopColor="#059669" />
-                                  <stop offset="100%" stopColor="#10b981" />
-                                </linearGradient>
-                              </defs>
-                              {/* Grid Lines */}
-                              <line x1="0" y1="30" x2="400" y2="30" stroke="#e2e8f0" strokeDasharray="3 3" />
-                              <line x1="0" y1="75" x2="400" y2="75" stroke="#e2e8f0" strokeDasharray="3 3" />
-                              <line x1="0" y1="120" x2="400" y2="120" stroke="#e2e8f0" strokeDasharray="3 3" />
+                          {hoveredLinePoint && lineCheckpoints[hoveredLinePoint.idx] && (
+                            <line 
+                              x1={lineCheckpoints[hoveredLinePoint.idx].x} 
+                              y1="15" 
+                              x2={lineCheckpoints[hoveredLinePoint.idx].x} 
+                              y2="138" 
+                              stroke="#2563eb" 
+                              strokeDasharray="3 3" 
+                              strokeWidth="1.5"
+                              pointerEvents="none"
+                            />
+                          )}
 
-                              {/* Hover Guide Line */}
-                              {hoveredLinePoint && (
-                                <line 
-                                  x1={lineCheckpoints[hoveredLinePoint.idx]?.x || 0} 
-                                  y1="10" 
-                                  x2={lineCheckpoints[hoveredLinePoint.idx]?.x || 0} 
-                                  y2="140" 
-                                  stroke="#38bdf8" 
-                                  strokeDasharray="2 2" 
-                                  strokeWidth="1.5" 
+                          <polyline
+                            fill="none"
+                            stroke="url(#lineGradBlue)"
+                            strokeWidth="3.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            points={lineCheckpoints.map(p => `${p.x},${p.ySv}`).join(' ')}
+                            pointerEvents="none"
+                          />
+                          <polyline
+                            fill="none"
+                            stroke="url(#lineGradGreen)"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            points={lineCheckpoints.map(p => `${p.x},${p.yJb}`).join(' ')}
+                            pointerEvents="none"
+                          />
+
+                          {lineCheckpoints.map((p, i) => {
+                            const isPtHovered = hoveredLinePoint?.idx === i;
+                            const colWidth = 400 / Math.max(1, lineCheckpoints.length);
+                            const colX = Math.max(0, p.x - colWidth / 2);
+                            return (
+                              <g key={`pt_${i}`}>
+                                <circle 
+                                  cx={p.x} 
+                                  cy={p.ySv} 
+                                  r={isPtHovered ? 6 : 4} 
+                                  fill={isPtHovered ? '#ffffff' : '#2563eb'} 
+                                  stroke={isPtHovered ? '#1d4ed8' : '#0f172a'} 
+                                  strokeWidth={isPtHovered ? 3 : 2}
+                                  pointerEvents="none"
                                 />
-                              )}
+                                <circle 
+                                  cx={p.x} 
+                                  cy={p.yJb} 
+                                  r={isPtHovered ? 6 : 4} 
+                                  fill={isPtHovered ? '#ffffff' : '#059669'} 
+                                  stroke={isPtHovered ? '#047857' : '#0f172a'} 
+                                  strokeWidth={isPtHovered ? 3 : 2}
+                                  pointerEvents="none"
+                                />
+                                {/* Cột vùng bắt chuột liền mạch suốt chiều cao SVG chống nhấp nháy tuyệt đối */}
+                                <rect
+                                  x={colX}
+                                  y="0"
+                                  width={colWidth}
+                                  height="150"
+                                  fill="transparent"
+                                  className="cursor-pointer"
+                                  onMouseEnter={() => setHoveredLinePoint({ idx: i, label: p.label, svVal: p.sv, jobVal: p.jb })}
+                                />
+                              </g>
+                            );
+                          })}
+                        </svg>
+                      </div>
 
-                              {/* Blue Line (Sinh viên) */}
-                              <polyline
-                                fill="none"
-                                stroke="url(#lineGradBlue)"
-                                strokeWidth="3.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                points={lineCheckpoints.map(p => `${p.x},${p.ySv}`).join(' ')}
-                              />
-                              {/* Points Blue with Dynamic Hover */}
-                              {lineCheckpoints.map((p, i) => {
-                                const isPtHovered = hoveredLinePoint?.idx === i;
-                                const ratio = (p.sv / Math.max(1, p.jb)).toFixed(1);
-                                return (
-                                  <circle 
-                                    key={`sv_${i}`} 
-                                    cx={p.x} 
-                                    cy={p.ySv} 
-                                    r={isPtHovered ? 7 : 4} 
-                                    fill={isPtHovered ? '#ffffff' : '#38bdf8'} 
-                                    stroke={isPtHovered ? '#0284c7' : '#0f172a'} 
-                                    strokeWidth={isPtHovered ? 3 : 2} 
-                                    className="cursor-pointer transition-all duration-200"
-                                    onMouseEnter={() => setHoveredLinePoint({ idx: i, label: p.label, svVal: p.sv, jobVal: p.jb, ratio })}
-                                    onMouseLeave={() => setHoveredLinePoint(null)}
-                                  />
-                                );
-                              })}
-
-                              {/* Green Line (Việc làm) */}
-                              <polyline
-                                fill="none"
-                                stroke="url(#lineGradGreen)"
-                                strokeWidth="3"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                points={lineCheckpoints.map(p => `${p.x},${p.yJb}`).join(' ')}
-                              />
-                              {/* Points Green with Dynamic Hover */}
-                              {lineCheckpoints.map((p, i) => {
-                                const isPtHovered = hoveredLinePoint?.idx === i;
-                                const ratio = (p.sv / Math.max(1, p.jb)).toFixed(1);
-                                return (
-                                  <circle 
-                                    key={`jb_${i}`} 
-                                    cx={p.x} 
-                                    cy={p.yJb} 
-                                    r={isPtHovered ? 6.5 : 3.5} 
-                                    fill={isPtHovered ? '#ffffff' : '#10b981'} 
-                                    stroke={isPtHovered ? '#047857' : '#0f172a'} 
-                                    strokeWidth={isPtHovered ? 3 : 2} 
-                                    className="cursor-pointer transition-all duration-200"
-                                    onMouseEnter={() => setHoveredLinePoint({ idx: i, label: p.label, svVal: p.sv, jobVal: p.jb, ratio })}
-                                    onMouseLeave={() => setHoveredLinePoint(null)}
-                                  />
-                                );
-                              })}
-                            </svg>
-                          </div>
-                        );
-                      })()}
-
-                      <div className="flex justify-between text-xs text-slate-500 font-mono pt-1 border-t border-slate-200">
-                        {['Đầu chu kỳ', 'Mốc 25%', 'Mốc 50%', 'Mốc 75%', 'Hiện tại'].map((lbl, idx) => (
+                      <div className="flex justify-between gap-1 text-xs text-slate-600 font-mono pt-2 border-t border-slate-200">
+                        {lineCheckpoints.map((pt, idx) => (
                           <span 
                             key={idx} 
-                            className={`cursor-pointer transition-colors ${
-                              hoveredLinePoint?.idx === idx ? 'text-sky-300 font-bold' : 'hover:text-slate-700'
+                            onMouseEnter={() => setHoveredLinePoint({ idx, label: pt.label, svVal: pt.sv, jobVal: pt.jb })}
+                            className={`cursor-pointer transition-colors whitespace-nowrap ${
+                              hoveredLinePoint?.idx === idx ? 'text-blue-700 font-bold' : 'hover:text-slate-900'
                             }`}
                           >
-                            {lbl}
+                            {pt.label}
                           </span>
                         ))}
                       </div>
                     </div>
 
-                    {/* BIỂU ĐỒ TRÒN (DONUT / PIE CHART) CÓ HOVER SỐ LIỆU ĐỘNG */}
-                    {(() => {
-                      const donutSlices = [
-                        { id: 'fnb', name: 'F&B, Barista', pct: 40, color: '#10b981', strokeClass: 'stroke-emerald-500', count: Math.round(cur.jobVal * 0.40), salary: '25.000 - 35.000đ/h', demand: 'Rất cao 🔥' },
-                        { id: 'retail', name: 'Bán lẻ, Thu ngân', pct: 30, color: '#0ea5e9', strokeClass: 'stroke-sky-500', count: Math.round(cur.jobVal * 0.30), salary: '24.000 - 32.000đ/h', demand: 'Cao' },
-                        { id: 'event', name: 'Sự kiện, Tiệc cưới', pct: 18, color: '#f59e0b', strokeClass: 'stroke-amber-500', count: Math.round(cur.jobVal * 0.18), salary: '28.000 - 45.000đ/h', demand: 'Trung bình' },
-                        { id: 'office', name: 'Gia sư, Văn phòng', pct: 12, color: '#a855f7', strokeClass: 'stroke-purple-500', count: Math.round(cur.jobVal * 0.12), salary: '30.000 - 50.000đ/h', demand: 'Ổn định' }
-                      ];
+                    {/* BIỂU ĐỒ TRÒN (DONUT CHART - CHỮ ĐEN RÕ NÉT KHI HOVER, KHÔNG GÃY DÒNG) */}
+                    <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                          <PieChart className="w-4 h-4 text-amber-500 shrink-0" />
+                          <span>Cơ Cấu Ngành Nghề (Donut Chart)</span>
+                        </h4>
+                        <span className="text-xs text-slate-700 font-bold font-mono whitespace-nowrap">Tổng: {jobCount} tin việc làm</span>
+                      </div>
 
-                      return (
-                        <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
-                          <div className="flex items-center justify-between">
-                            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                              <PieChart className="w-4 h-4 text-amber-400" />
-                              <span>Cơ Cấu Ngành Nghề (Donut Chart)</span>
-                            </h4>
-                            <span className="text-xs text-slate-600 font-mono">100% Việc làm ({cur.jobVal} tin)</span>
-                          </div>
-
-                          {/* Hover Detail Card */}
-                          <div className="min-h-[42px] p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
-                            {hoveredDonutSlice ? (
-                              <>
-                                <div className="flex items-center gap-2 animate-in fade-in">
-                                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: hoveredDonutSlice.color }}></span>
-                                  <span className="font-bold text-slate-900">{hoveredDonutSlice.name}:</span>
-                                  <span className="font-black text-sky-300 font-mono">{hoveredDonutSlice.count} việc ({hoveredDonutSlice.pct}%)</span>
-                                </div>
-                                <div className="text-xs text-slate-700 font-mono animate-in fade-in">
-                                  Lương: <strong className="text-emerald-400">{hoveredDonutSlice.salary}</strong>
-                                </div>
-                              </>
-                            ) : (
-                              <div className="text-slate-500 italic text-xs flex items-center gap-2">
-                                <span>Rê chuột vào từng lát cắt hoặc danh mục để xem chi tiết ngành nghề & mức lương</span>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex flex-col sm:flex-row items-center justify-around gap-6 pt-1">
-                            {/* SVG Donut */}
-                            <div className="relative w-40 h-40 shrink-0 flex items-center justify-center">
-                              <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                                {/* Segment 1: F&B 40% (Emerald) */}
-                                <circle 
-                                  cx="50" cy="50" r="38" fill="none" stroke="#10b981" 
-                                  strokeWidth={hoveredDonutSlice?.id === 'fnb' ? 18 : 14} 
-                                  strokeDasharray="95.5 238.7" strokeDashoffset="0"
-                                  className="cursor-pointer transition-all duration-200 hover:opacity-90"
-                                  onMouseEnter={() => setHoveredDonutSlice(donutSlices[0])}
-                                  onMouseLeave={() => setHoveredDonutSlice(null)}
-                                />
-                                {/* Segment 2: Bán lẻ 30% (Sky) */}
-                                <circle 
-                                  cx="50" cy="50" r="38" fill="none" stroke="#0ea5e9" 
-                                  strokeWidth={hoveredDonutSlice?.id === 'retail' ? 18 : 14} 
-                                  strokeDasharray="71.6 238.7" strokeDashoffset="-95.5"
-                                  className="cursor-pointer transition-all duration-200 hover:opacity-90"
-                                  onMouseEnter={() => setHoveredDonutSlice(donutSlices[1])}
-                                  onMouseLeave={() => setHoveredDonutSlice(null)}
-                                />
-                                {/* Segment 3: Phục vụ 18% (Amber) */}
-                                <circle 
-                                  cx="50" cy="50" r="38" fill="none" stroke="#f59e0b" 
-                                  strokeWidth={hoveredDonutSlice?.id === 'event' ? 18 : 14} 
-                                  strokeDasharray="43.0 238.7" strokeDashoffset="-167.1"
-                                  className="cursor-pointer transition-all duration-200 hover:opacity-90"
-                                  onMouseEnter={() => setHoveredDonutSlice(donutSlices[2])}
-                                  onMouseLeave={() => setHoveredDonutSlice(null)}
-                                />
-                                {/* Segment 4: Văn phòng & Khác 12% (Purple) */}
-                                <circle 
-                                  cx="50" cy="50" r="38" fill="none" stroke="#a855f7" 
-                                  strokeWidth={hoveredDonutSlice?.id === 'office' ? 18 : 14} 
-                                  strokeDasharray="28.6 238.7" strokeDashoffset="-210.1"
-                                  className="cursor-pointer transition-all duration-200 hover:opacity-90"
-                                  onMouseEnter={() => setHoveredDonutSlice(donutSlices[3])}
-                                  onMouseLeave={() => setHoveredDonutSlice(null)}
-                                />
-                              </svg>
-
-                              {/* Dynamic Center Label */}
-                              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-2 pointer-events-none">
-                                {hoveredDonutSlice ? (
-                                  <>
-                                    <span className="text-base font-black text-slate-900">{hoveredDonutSlice.pct}%</span>
-                                    <span className="text-xs font-bold text-sky-300 truncate max-w-[80px]">
-                                      {hoveredDonutSlice.count} việc
-                                    </span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <span className="text-xs font-black text-slate-900">4 Nhóm</span>
-                                    <span className="text-xs text-slate-600">Ngành nghề</span>
-                                  </>
-                                )}
-                              </div>
+                      <div className="h-12 px-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2 text-xs overflow-hidden">
+                        {hoveredDonutSlice ? (
+                          <>
+                            <div className="flex items-center gap-2 min-w-0 truncate">
+                              <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: hoveredDonutSlice.color }}></span>
+                              <span className="font-bold text-slate-900 truncate">{hoveredDonutSlice.name}:</span>
                             </div>
+                            <span className="font-black text-blue-700 font-mono whitespace-nowrap shrink-0">
+                              {hoveredDonutSlice.count} tin ({hoveredDonutSlice.pct}%)
+                            </span>
+                          </>
+                        ) : (
+                          <div className="text-slate-600 italic text-xs flex items-center gap-2 truncate">
+                            <span className="truncate">Rê chuột vào lát cắt hoặc tên danh mục để xem tỷ trọng việc làm</span>
+                          </div>
+                        )}
+                      </div>
 
-                            {/* Legends with Interactive Hover */}
-                            <div className="space-y-2 text-xs w-full max-w-[220px]">
-                              {donutSlices.map((slice) => {
-                                const isSliceHovered = hoveredDonutSlice?.id === slice.id;
+                      <div className="flex flex-col sm:flex-row items-center gap-6 pt-1">
+                        {/* SVG Donut */}
+                        <div className="relative w-36 h-36 sm:w-40 sm:h-40 shrink-0 flex items-center justify-center">
+                          <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                            <circle cx="50" cy="50" r="38" fill="none" stroke="#e2e8f0" strokeWidth="14" />
+                            {(() => {
+                              const circumference = 2 * Math.PI * 38;
+                              let accumulated = 0;
+                              return donutSlices.filter(s => s.count > 0).map((slice) => {
+                                const segLen = (slice.count / Math.max(1, jobCount)) * circumference;
+                                const offset = -accumulated;
+                                accumulated += segLen;
+                                const isActiveSlice = hoveredDonutSlice?.id === slice.id;
                                 return (
-                                  <div 
-                                    key={slice.id} 
+                                  <circle
+                                    key={slice.id}
+                                    cx="50"
+                                    cy="50"
+                                    r="38"
+                                    fill="none"
+                                    stroke={slice.color}
+                                    strokeWidth={isActiveSlice ? 17 : 14}
+                                    strokeDasharray={`${segLen} ${circumference}`}
+                                    strokeDashoffset={offset}
+                                    className="cursor-pointer transition-all duration-200"
                                     onMouseEnter={() => setHoveredDonutSlice(slice)}
                                     onMouseLeave={() => setHoveredDonutSlice(null)}
-                                    className={`flex items-center justify-between p-2 rounded-xl transition-all cursor-pointer border ${
-                                      isSliceHovered 
-                                        ? 'bg-slate-800 border-sky-500/50 shadow-md scale-102' 
-                                        : 'bg-transparent border-transparent hover:bg-slate-50/80'
-                                    }`}
-                                  >
-                                    <span className={`flex items-center gap-2 font-medium ${
-                                      isSliceHovered ? 'text-white font-bold' : 'text-slate-700'
-                                    }`}>
-                                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: slice.color }}></span>
-                                      <span>{slice.name}</span>
-                                    </span>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-xs text-slate-600 font-mono">({slice.count} tin)</span>
-                                      <strong className="font-mono font-bold" style={{ color: slice.color }}>{slice.pct}%</strong>
-                                    </div>
-                                  </div>
+                                  />
                                 );
-                              })}
-                            </div>
+                              });
+                            })()}
+                          </svg>
+
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-2 pointer-events-none">
+                            {hoveredDonutSlice ? (
+                              <>
+                                <span className="text-base font-black text-slate-900 whitespace-nowrap">{hoveredDonutSlice.pct}%</span>
+                                <span className="text-xs font-bold text-blue-700 whitespace-nowrap">
+                                  {hoveredDonutSlice.count} tin
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-xs font-black text-slate-900 whitespace-nowrap">{donutSlices.length} Nhóm</span>
+                                <span className="text-xs text-slate-600 whitespace-nowrap">Ngành nghề</span>
+                              </>
+                            )}
                           </div>
                         </div>
-                      );
-                    })()}
+
+                        {/* Danh mục ngành nghề bên cạnh: Chữ đen đậm khi hover, không xuống dòng xấu */}
+                        <div className="space-y-1.5 text-xs flex-1 min-w-0 w-full">
+                          {donutSlices.map((slice) => {
+                            const isSliceHovered = hoveredDonutSlice?.id === slice.id;
+                            return (
+                              <div 
+                                key={slice.id} 
+                                onMouseEnter={() => setHoveredDonutSlice(slice)}
+                                onMouseLeave={() => setHoveredDonutSlice(null)}
+                                className={`flex items-center justify-between gap-3 px-3 py-2 rounded-xl transition-all cursor-pointer border ${
+                                  isSliceHovered 
+                                    ? 'bg-blue-50 border-blue-300 shadow-xs' 
+                                    : 'bg-transparent border-transparent hover:bg-slate-50'
+                                }`}
+                              >
+                                <span className={`flex items-center gap-2 min-w-0 ${
+                                  isSliceHovered ? 'text-slate-950 font-black' : 'text-slate-800 font-semibold'
+                                }`}>
+                                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: slice.color }}></span>
+                                  <span className="truncate">{slice.name}</span>
+                                </span>
+                                <div className="flex items-center gap-2 shrink-0 whitespace-nowrap">
+                                  <span className={`text-xs font-mono whitespace-nowrap ${isSliceHovered ? 'text-slate-900 font-bold' : 'text-slate-600'}`}>
+                                    ({slice.count} tin)
+                                  </span>
+                                  <strong className="font-mono font-bold whitespace-nowrap" style={{ color: slice.color }}>
+                                    {slice.pct}%
+                                  </strong>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </>
               );
             })()}
-
           </div>
         )}
 
-        {/* 3. MÀN HÌNH QUẢN LÝ & PHÊ DUYỆT NGƯỜI DÙNG (UI-ADM-USER-01 -> 03 - 3.4.1 -> 3.4.6) */}
+        {/* 3. MÀN HÌNH QUẢN LÝ & PHÊ DUYỆT NGƯỜI DÙNG */}
         {activeMenu === 'users' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
+          <div className="w-full max-w-full mx-auto space-y-8">
             
             {/* Thanh tìm kiếm & lọc */}
             <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-3">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-sky-400" />
-                    <span>Quản Lý & Phê Duyệt Người Dùng</span>
+                    <Users className="w-5 h-5 text-blue-600" />
+                    <span>Quản Lý & Phê Duyệt Người Dùng ({filteredUsers.length}/{nonAdminUsers.length} tài khoản)</span>
                   </h3>
-                  <p className="text-xs text-slate-600 mt-0.5">Kiểm soát tài khoản Sinh viên, Doanh nghiệp và duyệt GPKD</p>
+                  <p className="text-xs text-slate-600 mt-0.5">Kiểm soát tài khoản Sinh viên, Doanh nghiệp (@gmail.com) và duyệt GPKD</p>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleMenuSwitch('home')}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold border border-slate-200 flex items-center gap-1.5 cursor-pointer transition-all"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Quay Lại Trang Chủ</span>
-                </button>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
@@ -1881,18 +2259,18 @@ export default function AdminPortal({
               </div>
             </div>
 
-            {/* Bảng danh sách người dùng (15 dòng/trang - FR 3.4.3) */}
+            {/* Bảng danh sách người dùng */}
             <div className="rounded-3xl bg-white border border-slate-200/90 shadow-md overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-100/90 text-slate-800 border-b border-slate-200 uppercase font-bold text-sm tracking-wider">
+                  <thead className="bg-slate-100/90 text-slate-800 border-b border-slate-200 uppercase font-bold text-xs sm:text-sm tracking-wider">
                     <tr>
-                      <th className="px-7 py-5">Email / ID</th>
-                      <th className="px-7 py-5">Họ Tên / Doanh Nghiệp</th>
-                      <th className="px-7 py-5">Vai Trò</th>
-                      <th className="px-7 py-5">Trạng Thái GPKD (NTD)</th>
-                      <th className="px-7 py-5">Trạng Thái Khóa</th>
-                      <th className="px-7 py-5 text-right">Hành Động</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Email / ID</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Họ Tên / Doanh Nghiệp</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Vai Trò</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Trạng Thái GPKD (NTD)</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Trạng Thái Khóa</th>
+                      <th className="px-6 py-4 text-right whitespace-nowrap">Thao Tác</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
@@ -1906,12 +2284,12 @@ export default function AdminPortal({
                           onClick={() => setSelectedUserDetail(u)}
                           className="hover:bg-slate-50/80 cursor-pointer transition-colors"
                         >
-                          <td className="px-7 py-5">
+                          <td className="px-6 py-4">
                             <p className="font-bold text-slate-900 text-base hover:text-blue-600">{u.email}</p>
                             <p className="text-xs text-slate-500 font-mono mt-0.5">{u._id}</p>
                           </td>
 
-                          <td className="px-7 py-5">
+                          <td className="px-6 py-4">
                             {isEmp ? (
                               <div>
                                 <p className="font-bold text-slate-900">{u.profile?.company_name || u.company_name || 'Doanh nghiệp'}</p>
@@ -1925,59 +2303,71 @@ export default function AdminPortal({
                             )}
                           </td>
 
-                          <td className="px-7 py-5">
-                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
-                              u.role === 'employer' ? 'bg-sky-500/20 text-sky-300 border-sky-500/40' : 'bg-blue-500/20 text-sky-300 border-blue-500/40'
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${
+                              u.role === 'employer' ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-indigo-100 text-indigo-800 border-indigo-200'
                             }`}>
                               {u.role === 'employer' ? 'Nhà Tuyển Dụng' : 'Sinh Viên'}
                             </span>
                           </td>
 
-                          <td className="px-7 py-5">
+                          <td className="px-6 py-4 whitespace-nowrap">
                             {isEmp ? (
-                              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
-                                empApproval === 'approved' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${
+                                empApproval === 'approved' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-amber-100 text-amber-800 border-amber-200'
                               }`}>
-                                {empApproval === 'approved' ? '✓ Đã duyệt GPKD' : '⏳ Chờ duyệt GPKD'}
+                                {empApproval === 'approved' ? 'Đã duyệt GPKD' : 'Chờ duyệt GPKD'}
                               </span>
                             ) : (
-                              <span className="text-slate-600 text-xs">Không áp dụng</span>
+                              <span className="text-slate-500 text-xs font-medium">Không áp dụng</span>
                             )}
                           </td>
 
-                          <td className="px-7 py-5">
-                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
-                              u.is_banned ? 'bg-red-500/20 text-red-300 border-red-500/40' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${
+                              u.is_banned ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-emerald-100 text-emerald-800 border-emerald-200'
                             }`}>
-                              {u.is_banned ? '🔴 Bị Khóa' : '🟢 Hoạt Động'}
+                              {u.is_banned ? 'Bị Khóa' : 'Hoạt Động'}
                             </span>
                           </td>
 
-                          {/* Hành động: Icon Ổ khóa (khóa/mở khóa is_banned) (FR 3.4.5) */}
-                          <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
-                            {u.is_banned ? (
+                          <td className="px-6 py-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-2">
+                              {u.is_banned ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleUnbanUser(u._id)}
+                                  className="px-3.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap shadow-xs"
+                                  title="Mở khóa tài khoản"
+                                >
+                                  <Unlock className="w-3.5 h-3.5" />
+                                  <span>Mở Khóa</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setBanModalUser(u);
+                                    setBanReason('');
+                                  }}
+                                  className="px-3.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap shadow-xs"
+                                  title="Khóa tài khoản vi phạm"
+                                >
+                                  <Lock className="w-3.5 h-3.5" />
+                                  <span>Khóa</span>
+                                </button>
+                              )}
+
                               <button
                                 type="button"
-                                onClick={() => handleUnbanUser(u._id)}
-                                className="px-3 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ml-auto"
-                                title="Mở khóa tài khoản"
+                                onClick={() => handleDeleteUserAccount(u)}
+                                className="px-3.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-200 text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap shadow-xs"
+                                title="Xóa vĩnh viễn tài khoản người dùng"
                               >
-                                <Unlock className="w-3.5 h-3.5" />
-                                <span>Mở Khóa</span>
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Xóa</span>
                               </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setBanModalUser(u);
-                                  setBanReason('');
-                                }}
-                                className="p-2 rounded-xl bg-slate-800 hover:bg-red-950 text-slate-600 hover:text-red-400 border border-slate-700 transition-all cursor-pointer ml-auto"
-                                title="Khóa tài khoản vi phạm"
-                              >
-                                <Lock className="w-3.5 h-3.5" />
-                              </button>
-                            )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -1989,13 +2379,13 @@ export default function AdminPortal({
               {/* Phân trang 15 dòng */}
               {totalUserPages > 1 && (
                 <div className="p-4 border-t border-slate-200 flex items-center justify-between text-xs">
-                  <span className="text-slate-500">Trang {userPage} / {totalUserPages}</span>
+                  <span className="text-slate-600 font-semibold">Trang {userPage} / {totalUserPages}</span>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       disabled={userPage === 1}
                       onClick={() => setUserPage(p => Math.max(1, p - 1))}
-                      className="px-3 py-1 rounded-lg bg-slate-800 disabled:opacity-40"
+                      className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 cursor-pointer"
                     >
                       Trước
                     </button>
@@ -2003,7 +2393,7 @@ export default function AdminPortal({
                       type="button"
                       disabled={userPage === totalUserPages}
                       onClick={() => setUserPage(p => Math.min(totalUserPages, p + 1))}
-                      className="px-3 py-1 rounded-lg bg-slate-800 disabled:opacity-40"
+                      className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 cursor-pointer"
                     >
                       Sau
                     </button>
@@ -2015,20 +2405,20 @@ export default function AdminPortal({
           </div>
         )}
 
-        {/* 4. MÀN HÌNH QUẢN LÝ TIN TUYỂN DỤNG TOÀN HỆ THỐNG (UI-ADM-JOB-01 -> 02 - 3.5.1 -> 3.5.6) */}
+        {/* 4. MÀN HÌNH QUẢN LÝ TIN TUYỂN DỤNG TOÀN HỆ THỐNG */}
         {activeMenu === 'jobs' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
-            <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="w-full max-w-full mx-auto space-y-8">
+            <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                  <Briefcase className="w-5 h-5 text-sky-400" />
+                  <Briefcase className="w-5 h-5 text-blue-600" />
                   <span>Quản Lý Tin Tuyển Dụng Toàn Hệ Thống</span>
                 </h3>
                 <p className="text-xs text-slate-600 mt-0.5">Kiểm duyệt, ẩn tin vi phạm hoặc xóa cứng tin chưa có người nộp</p>
               </div>
 
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <div className="relative flex-1 sm:w-64">
+              <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-64 min-w-[200px]">
                   <Search className="w-3.5 h-3.5 text-slate-600 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
@@ -2058,71 +2448,77 @@ export default function AdminPortal({
             <div className="rounded-3xl bg-white border border-slate-200/90 shadow-md overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-100/90 text-slate-800 border-b border-slate-200 uppercase font-bold text-sm tracking-wider">
+                  <thead className="bg-slate-100/90 text-slate-800 border-b border-slate-200 uppercase font-bold text-xs sm:text-sm tracking-wider">
                     <tr>
-                      <th className="px-7 py-5">Tiêu Đề Công Việc</th>
-                      <th className="px-7 py-5">Doanh Nghiệp</th>
-                      <th className="px-7 py-5">Mức Lương</th>
-                      <th className="px-7 py-5">Trạng Thái Vận Hành</th>
-                      <th className="px-7 py-5">Trạng Thái Kiểm Duyệt</th>
-                      <th className="px-7 py-5 text-right">Hành Động</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Tiêu Đề Công Việc</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Doanh Nghiệp</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Mức Lương</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Trạng Thái Vận Hành</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Trạng Thái Kiểm Duyệt</th>
+                      <th className="px-6 py-4 text-right whitespace-nowrap">Thao Tác</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
-                    {filteredJobs.map((job) => (
+                    {filteredJobs.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-6 py-12 text-center text-slate-500 text-sm">
+                          Chưa có tin tuyển dụng thực tế nào khớp điều kiện tìm kiếm.
+                        </td>
+                      </tr>
+                    ) : filteredJobs.map((job) => (
                       <tr 
                         key={job._id}
                         onClick={() => setSelectedJobDetail(job)}
                         className="hover:bg-slate-50/80 cursor-pointer transition-colors"
                       >
-                        <td className="px-7 py-5">
+                        <td className="px-6 py-4">
                           <p className="font-bold text-slate-900 text-base hover:text-blue-600">{job.title}</p>
                           <p className="text-xs text-slate-500 font-mono mt-0.5">{job._id}</p>
                         </td>
 
-                        <td className="px-7 py-5 font-semibold text-emerald-700">
+                        <td className="px-6 py-4 font-semibold text-emerald-700 whitespace-nowrap">
                           {job.company_name}
                         </td>
 
-                        <td className="px-7 py-5 font-mono font-bold text-blue-600">
+                        <td className="px-6 py-4 font-mono font-bold text-blue-700 whitespace-nowrap">
                           {job.is_negotiable ? 'Thỏa thuận' : `${job.salary_min?.toLocaleString()}đ - ${job.salary_max?.toLocaleString()}đ`}
                         </td>
 
-                        <td className="px-7 py-5">
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${
                             job.job_status === 'open' || job.is_open
-                              ? 'bg-blue-500/20 text-sky-300 border-blue-500/40'
+                              ? 'bg-blue-100 text-blue-800 border-blue-200'
                               : (job.job_status === 'filled'
-                                ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
+                                ? 'bg-purple-100 text-purple-800 border-purple-200'
                                 : (job.job_status === 'completed'
-                                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                                  : 'bg-slate-700/50 text-slate-600 border-slate-600'))
+                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                  : 'bg-slate-100 text-slate-700 border-slate-300'))
                           }`}>
                             {job.job_status === 'open' || job.is_open ? 'Đang tuyển' : (job.job_status === 'filled' ? 'Đã nhận người' : (job.job_status === 'completed' ? 'Hoàn thành' : 'Tạm đóng'))}
                           </span>
                         </td>
 
-                        <td className="px-7 py-5">
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${
                             job.is_hidden 
-                              ? 'bg-red-500/20 text-red-300 border-red-500/40' 
-                              : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                              ? 'bg-rose-100 text-rose-800 border-rose-200' 
+                              : 'bg-emerald-100 text-emerald-800 border-emerald-200'
                           }`}>
-                            {job.is_hidden ? '🔴 Đã Ẩn (Vi phạm)' : '🟢 Công Khai'}
+                            {job.is_hidden ? 'Đã Ẩn (Vi phạm)' : 'Công Khai'}
                           </span>
                         </td>
 
-                        {/* Hành động: Icon Con mắt gạch chéo (ẩn/bỏ ẩn 3.5.5) & Icon Thùng rác (xóa cứng 3.5.6) */}
-                        <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
+                        <td className="px-6 py-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-2">
                             {job.is_hidden ? (
                               <button
                                 type="button"
                                 onClick={() => handleUnhideJob(job._id)}
-                                className="p-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40"
+                                className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold cursor-pointer transition-all inline-flex items-center gap-1.5 whitespace-nowrap shadow-xs"
                                 title="Bỏ ẩn tin"
                               >
-                                <Eye className="w-4 h-4" />
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>Hiện</span>
                               </button>
                             ) : (
                               <button
@@ -2131,20 +2527,22 @@ export default function AdminPortal({
                                   setHideJobModal(job);
                                   setHideReason('');
                                 }}
-                                className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-950 text-slate-600 hover:text-red-400 border border-slate-700"
-                                title="Ẩn tin vi phạm (tự động rút tin khỏi SV)"
+                                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-800 border border-slate-300 hover:border-amber-300 text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap shadow-xs"
+                                title="Ẩn tin vi phạm"
                               >
-                                <EyeOff className="w-4 h-4" />
+                                <EyeOff className="w-3.5 h-3.5" />
+                                <span>Ẩn</span>
                               </button>
                             )}
 
                             <button
                               type="button"
                               onClick={() => handleDeleteJobAdmin(job._id)}
-                              className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30"
+                              className="px-3.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 hover:text-rose-900 text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap shadow-xs"
                               title="Xóa vĩnh viễn tin chưa có đơn"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Xóa</span>
                             </button>
                           </div>
                         </td>
@@ -2158,20 +2556,20 @@ export default function AdminPortal({
           </div>
         )}
 
-        {/* 5. MÀN HÌNH QUẢN LÝ ĐÁNH GIÁ CHÉO (UI-ADM-REV-01 -> 02 - 3.6.1 -> 3.6.6) */}
+        {/* 5. MÀN HÌNH QUẢN LÝ ĐÁNH GIÁ CHÉO */}
         {activeMenu === 'reviews' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
-            <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="w-full max-w-full mx-auto space-y-8">
+            <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                  <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                  <Star className="w-5 h-5 text-amber-500 fill-amber-400" />
                   <span>Quản Lý Đánh Giá Chéo</span>
                 </h3>
                 <p className="text-xs text-slate-600 mt-0.5">Kiểm duyệt các bài đánh giá của Sinh viên & Doanh nghiệp</p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                <div className="relative flex-1 sm:w-72">
+                <div className="relative flex-1 sm:w-72 min-w-[200px]">
                   <Search className="w-3.5 h-3.5 text-slate-600 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
@@ -2198,68 +2596,75 @@ export default function AdminPortal({
             <div className="rounded-3xl bg-white border border-slate-200/90 shadow-md overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-100/90 text-slate-800 border-b border-slate-200 uppercase font-bold text-sm tracking-wider">
+                  <thead className="bg-slate-100/90 text-slate-800 border-b border-slate-200 uppercase font-bold text-xs sm:text-sm tracking-wider">
                     <tr>
-                      <th className="px-7 py-5">Người Đánh Giá</th>
-                      <th className="px-7 py-5">Điểm Sao</th>
-                      <th className="px-7 py-5">Nội Dung Nhận Xét</th>
-                      <th className="px-7 py-5">Trạng Thái</th>
-                      <th className="px-7 py-5 text-right">Hành Động</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Người Đánh Giá</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Điểm Sao</th>
+                      <th className="px-6 py-4">Nội Dung Nhận Xét</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Trạng Thái</th>
+                      <th className="px-6 py-4 text-right whitespace-nowrap">Thao Tác</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
-                    {filteredReviews.map((rev) => (
+                    {filteredReviews.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-6 py-12 text-center text-slate-500 text-sm">
+                          Chưa có bài đánh giá nào trong danh mục này.
+                        </td>
+                      </tr>
+                    ) : filteredReviews.map((rev) => (
                       <tr 
                         key={rev._id}
                         onClick={() => setSelectedReviewDetail(rev)}
                         className="hover:bg-slate-50/80 cursor-pointer transition-colors"
                       >
-                        <td className="px-7 py-5 font-bold text-slate-900 text-base">
+                        <td className="px-6 py-4 font-bold text-slate-900 text-base whitespace-nowrap">
                           {rev.reviewer_name || 'Người đánh giá'}
                         </td>
 
-                        <td className="px-7 py-5">
-                          <div className="flex items-center text-yellow-400">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center text-amber-500">
                             {[1, 2, 3, 4, 5].map(s => (
-                              <Star key={s} className={`w-3.5 h-3.5 ${s <= rev.rating ? 'fill-yellow-400' : 'text-slate-700'}`} />
+                              <Star key={s} className={`w-3.5 h-3.5 ${s <= rev.rating ? 'fill-amber-400 text-amber-500' : 'text-slate-300'}`} />
                             ))}
-                            <span className="ml-1 text-xs font-bold">({rev.rating})</span>
+                            <span className="ml-1.5 text-xs font-bold text-slate-800">({rev.rating})</span>
                           </div>
                         </td>
 
-                        <td className="px-7 py-5 text-slate-700 max-w-md truncate">
+                        <td className="px-6 py-4 text-slate-700 max-w-md truncate">
                           "{rev.comment}"
                         </td>
 
-                        <td className="px-7 py-5">
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
-                            rev.is_hidden ? 'bg-red-500/20 text-red-300 border-red-500/40' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${
+                            rev.is_hidden ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-emerald-100 text-emerald-800 border-emerald-200'
                           }`}>
-                            {rev.is_hidden ? '🔴 Đã Ẩn' : '🟢 Hiển Thị'}
+                            {rev.is_hidden ? 'Đã Ẩn' : 'Hiển Thị'}
                           </span>
                         </td>
 
-                        {/* Hành động: Toggle Ẩn/Hiện (3.6.5) & Thùng rác xóa (3.6.6) */}
-                        <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
+                        <td className="px-6 py-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-2">
                             <button
                               type="button"
                               onClick={() => handleToggleHideReview(rev._id)}
-                              className={`p-1.5 rounded-lg border ${
-                                rev.is_hidden ? 'bg-emerald-600/20 text-emerald-300 border-emerald-500/40' : 'bg-slate-800 text-slate-600 border-slate-700'
+                              className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap shadow-xs ${
+                                rev.is_hidden ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-amber-50 hover:text-amber-800 hover:border-amber-300'
                               }`}
-                              title="Toggle Ẩn / Hiện đánh giá"
+                              title="Ẩn / Hiện đánh giá"
                             >
                               {rev.is_hidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                              <span>{rev.is_hidden ? 'Hiện' : 'Ẩn'}</span>
                             </button>
 
                             <button
                               type="button"
                               onClick={() => handleDeleteReview(rev._id)}
-                              className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30"
-                              title="Xóa đánh giá vi phạm (tự tính lại rating)"
+                              className="px-3.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 hover:text-rose-900 text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap shadow-xs"
+                              title="Xóa đánh giá vi phạm"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
+                              <span>Xóa</span>
                             </button>
                           </div>
                         </td>
@@ -2273,232 +2678,277 @@ export default function AdminPortal({
           </div>
         )}
 
-        {/* 6. MÀN HÌNH QUẢN LÝ DANH MỤC GỐC - MASTER DATA (UI-ADM-MAS-01 -> 02 - 3.7.1 -> 3.7.6) */}
+        {/* 6. MÀN HÌNH QUẢN LÝ DANH MỤC GỐC - MASTER DATA (ĐỒNG BỘ SỐ LIỆU THẬT) */}
         {activeMenu === 'categories' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
+          <div className="w-full max-w-full mx-auto space-y-6">
             
-            <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
               <div>
                 <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                  <Tag className="w-5 h-5 text-sky-400" />
-                  <span>Quản Lý Danh Mục Gốc (Master Data)</span>
+                  <Tag className="w-5 h-5 text-blue-600" />
+                  <span>Quản Lý Danh Mục Gốc (Master Data) — Tổng: {categories.length} danh mục</span>
                 </h3>
-                <p className="text-xs text-slate-600 mt-0.5">Thiết lập dữ liệu danh mục Ngành nghề & Địa điểm làm việc</p>
+                <p className="text-xs text-slate-600 mt-0.5">Thiết lập dữ liệu danh mục Ngành nghề & Địa điểm làm việc thực tế trên hệ thống</p>
               </div>
 
-              {/* 2 Tabs: Tab Ngành nghề & Tab Địa điểm (FR 3.7.1) */}
-              <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 text-xs">
+              {/* 3 Tabs đồng bộ chính xác với tổng số lượng thực tế */}
+              <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setCategoryTab('all')}
+                  className={`px-3.5 py-2 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    categoryTab === 'all' ? 'bg-white text-slate-900 border border-slate-300 shadow-sm' : 'text-slate-700 hover:text-slate-950'
+                  }`}
+                >
+                  Tất Cả ({categories.length})
+                </button>
                 <button
                   type="button"
                   onClick={() => setCategoryTab('job')}
-                  className={`px-4 py-2 rounded-xl font-bold transition-all cursor-pointer ${
-                    categoryTab === 'job' ? 'bg-white text-slate-900 font-bold border border-slate-300 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                  className={`px-3.5 py-2 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    categoryTab === 'job' ? 'bg-white text-slate-900 border border-slate-300 shadow-sm' : 'text-slate-700 hover:text-slate-950'
                   }`}
                 >
-                  Tab Ngành Nghề ({categories.filter(c => c.type === 'job' || !c.type).length})
+                  Ngành Nghề ({categories.filter(c => c.type !== 'location').length})
                 </button>
                 <button
                   type="button"
                   onClick={() => setCategoryTab('location')}
-                  className={`px-4 py-2 rounded-xl font-bold transition-all cursor-pointer ${
-                    categoryTab === 'location' ? 'bg-white text-slate-900 font-bold border border-slate-300 shadow-sm' : 'text-slate-600 hover:text-slate-900'
+                  className={`px-3.5 py-2 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    categoryTab === 'location' ? 'bg-white text-slate-900 border border-slate-300 shadow-sm' : 'text-slate-700 hover:text-slate-950'
                   }`}
                 >
-                  Tab Địa Điểm ({categories.filter(c => c.type === 'location').length})
+                  Địa Điểm ({categories.filter(c => c.type === 'location').length})
                 </button>
               </div>
             </div>
 
-            {/* Ô tìm kiếm danh mục (FR-QT-06.01) */}
+            {/* Ô tìm kiếm danh mục */}
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-600 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-600 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={categorySearch}
                 onChange={(e) => setCategorySearch(e.target.value)}
-                placeholder={`Tìm kiếm danh mục ${categoryTab === 'job' ? 'ngành nghề' : 'địa điểm'} theo tên...`}
-                className="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-500 shadow-sm"
+                placeholder="Tìm kiếm danh mục theo tên..."
+                className="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 shadow-sm"
               />
             </div>
 
-            {/* Form thêm danh mục mới - Nhập và nhấn Enter tự động thêm (FR-QT-06.02) */}
-            <form onSubmit={handleAddCategory} className="p-3.5 rounded-2xl bg-white border border-slate-200 flex items-center gap-2.5 shadow-sm">
+            {/* Form thêm danh mục mới */}
+            <form onSubmit={handleAddCategory} className="p-3.5 rounded-2xl bg-white border border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shadow-sm">
+              {categoryTab === 'all' && (
+                <select
+                  value={newCatType}
+                  onChange={(e) => setNewCatType(e.target.value)}
+                  className="bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm font-bold text-slate-900 outline-none focus:border-blue-500 cursor-pointer shrink-0"
+                >
+                  <option value="job">Loại: Ngành Nghề</option>
+                  <option value="location">Loại: Địa Điểm</option>
+                </select>
+              )}
               <input
                 type="text"
                 required
                 value={newCatName}
                 onChange={(e) => setNewCatName(e.target.value)}
-                placeholder={`Nhập tên ${categoryTab === 'job' ? 'ngành nghề mới' : 'địa điểm mới'} và nhấn Enter để thêm tự động...`}
+                placeholder={`Nhập tên ${(categoryTab === 'location' || (categoryTab === 'all' && newCatType === 'location')) ? 'địa điểm mới' : 'ngành nghề mới'} và nhấn Enter...`}
                 className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-500"
               />
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-md shrink-0"
+                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold transition-all cursor-pointer inline-flex items-center justify-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap"
               >
                 <Plus className="w-4 h-4" />
-                <span>+ Thêm Danh Mục</span>
+                <span>Thêm Danh Mục</span>
               </button>
             </form>
 
-            {/* Bảng danh sách danh mục (FR 3.7.2 - 3.7.6) */}
+            {/* Bảng danh sách danh mục */}
             <div className="rounded-3xl bg-white border border-slate-200/90 shadow-md overflow-hidden">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-100/90 text-slate-800 border-b border-slate-200 uppercase font-bold text-sm tracking-wider">
-                  <tr>
-                    <th className="px-7 py-5">Tên Danh Mục (Inline Edit)</th>
-                    <th className="px-7 py-5">Loại Danh Mục</th>
-                    <th className="px-7 py-5">Ẩn/Hiện (is_active)</th>
-                    <th className="px-7 py-5 text-right">Thao Tác</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {categories
-                    .filter(c => categoryTab === 'job' ? (c.type === 'job' || !c.type) : (c.type === 'location'))
-                    .filter(c => !categorySearch.trim() || c.name.toLowerCase().includes(categorySearch.toLowerCase().trim()))
-                    .map((cat) => (
-                    <tr key={cat._id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-7 py-5">
-                        {editingCatId === cat._id ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              value={editingCatName}
-                              onChange={(e) => setEditingCatName(e.target.value)}
-                              className="bg-white border border-blue-500 rounded-lg px-2 py-1 text-xs text-slate-800"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => handleUpdateCategoryInline(cat._id)}
-                              className="px-2 py-1 rounded bg-white hover:bg-slate-100 border border-slate-300 text-slate-900 font-bold text-xs shadow-sm"
-                            >
-                              Lưu
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingCatId(null)}
-                              className="p-1 rounded bg-slate-700 text-slate-700 text-xs"
-                            >
-                              Hủy
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-900 text-base">{cat.name}</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingCatId(cat._id);
-                                setEditingCatName(cat.name);
-                              }}
-                              className="text-slate-500 hover:text-sky-400"
-                              title="Chỉnh sửa tên danh mục"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="px-7 py-5 text-slate-600 capitalize">
-                        {cat.type === 'location' ? 'Địa Điểm' : 'Ngành Nghề'}
-                      </td>
-
-                      {/* Nút gạt Toggle ẩn/hiện is_active (3.7.5) */}
-                      <td className="px-7 py-5">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleCategoryActive(cat)}
-                          className={`px-3 py-1 rounded-full text-xs font-bold border transition-all ${
-                            cat.is_active ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' : 'bg-slate-800 text-slate-500 border-slate-700'
-                          }`}
-                        >
-                          {cat.is_active ? '🟢 Đang Áp Dụng' : '⚪ Ẩn Danh Mục'}
-                        </button>
-                      </td>
-
-                      {/* Icon Thùng rác xóa nếu chưa phát sinh khóa ngoại (3.7.6) */}
-                      <td className="px-7 py-5 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteCategory(cat._id)}
-                          className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30"
-                          title="Xóa danh mục (ràng buộc khóa ngoại)"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-100/90 text-slate-800 border-b border-slate-200 uppercase font-bold text-xs sm:text-sm tracking-wider">
+                    <tr>
+                      <th className="px-6 py-4 whitespace-nowrap">STT</th>
+                      <th className="px-6 py-4">Tên Danh Mục</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Loại Danh Mục</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Trạng Thái Hiển Thị</th>
+                      <th className="px-6 py-4 text-right whitespace-nowrap">Thao Tác</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 bg-white">
+                    {(() => {
+                      const visibleCats = categories
+                        .filter(c => categoryTab === 'all' ? true : (categoryTab === 'job' ? c.type !== 'location' : c.type === 'location'))
+                        .filter(c => !categorySearch.trim() || c.name.toLowerCase().includes(categorySearch.toLowerCase().trim()));
+
+                      if (visibleCats.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={5} className="px-6 py-10 text-center text-slate-500 text-sm">
+                              Chưa có danh mục nào trong phân nhóm này.
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return visibleCats.map((cat, idx) => (
+                        <tr key={cat._id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="px-6 py-4 font-mono font-bold text-slate-600 whitespace-nowrap">
+                            {idx + 1}
+                          </td>
+                          <td className="px-6 py-4">
+                            {editingCatId === cat._id ? (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={editingCatName}
+                                  onChange={(e) => setEditingCatName(e.target.value)}
+                                  className="bg-white border border-blue-500 rounded-lg px-3 py-1.5 text-sm text-slate-900 outline-none"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateCategoryInline(cat._id)}
+                                  className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs cursor-pointer whitespace-nowrap"
+                                >
+                                  Lưu
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingCatId(null)}
+                                  className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold text-xs cursor-pointer whitespace-nowrap"
+                                >
+                                  Hủy
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-slate-900 text-base">{cat.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingCatId(cat._id);
+                                    setEditingCatName(cat.name);
+                                  }}
+                                  className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 cursor-pointer transition-colors"
+                                  title="Chỉnh sửa tên danh mục"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+
+                          <td className="px-6 py-4 text-slate-700 font-semibold whitespace-nowrap">
+                            {cat.type === 'location' ? 'Địa Điểm' : 'Ngành Nghề'}
+                          </td>
+
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleCategoryActive(cat)}
+                              className={`px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer whitespace-nowrap ${
+                                cat.is_active ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100' : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
+                              }`}
+                            >
+                              {cat.is_active ? 'Đang Áp Dụng' : 'Tạm Ẩn'}
+                            </button>
+                          </td>
+
+                          <td className="px-6 py-4 text-right whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCategory(cat._id)}
+                              className="px-3.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 hover:text-rose-900 text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap shadow-xs"
+                              title="Xóa danh mục"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Xóa</span>
+                            </button>
+                          </td>
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
           </div>
         )}
 
-        {/* 7. MÀN HÌNH QUẢN LÝ BÁO CÁO VI PHẠM - TICKETS (UI-ADM-REP-01 -> 03 - 3.8.1 -> 3.8.4 & 3.9.2) */}
+        {/* 7. MÀN HÌNH QUẢN LÝ BÁO CÁO VI PHẠM */}
         {activeMenu === 'reports' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
+          <div className="w-full max-w-full mx-auto space-y-8">
             
-            <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
               <div>
                 <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-amber-400" />
-                  <span>Quản Lý Báo Cáo Vi Phạm</span>
+                  <AlertTriangle className="w-5 h-5 text-amber-500" />
+                  <span>Quản Lý Báo Cáo Vi Phạm — Tổng: {reports.length} phiếu</span>
                 </h3>
                 <p className="text-xs text-slate-600 mt-0.5">Tiếp nhận và xử lý đơn khiếu nại từ Sinh viên và Doanh nghiệp</p>
               </div>
 
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <div className="relative flex-1 sm:w-56">
+              <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                <div className="relative flex-1 sm:w-56 min-w-[190px]">
                   <Search className="w-3.5 h-3.5 text-slate-600 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={ticketSearch}
                     onChange={(e) => setTicketSearch(e.target.value)}
-                    placeholder="Tìm mã ticket TK-2026..."
-                    className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-white outline-none focus:border-blue-500 font-mono"
+                    placeholder="Tìm mã phiếu hoặc lý do..."
+                    className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-slate-900 outline-none focus:border-blue-500"
                   />
                 </div>
 
-                {/* 3 Tab phân loại: Tin tuyển dụng, Ứng viên, Hội thoại (FR 3.8.2) */}
-                <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200 text-xs">
+                <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setTicketTab('all')}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
+                      ticketTab === 'all' ? 'bg-white text-slate-900 border border-slate-300 shadow-sm' : 'text-slate-700 hover:text-slate-950'
+                    }`}
+                  >
+                    Tất Cả ({reports.length})
+                  </button>
                   <button
                     type="button"
                     onClick={() => setTicketTab('job')}
-                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                      ticketTab === 'job' ? 'bg-white text-slate-900 font-bold border border-slate-300 shadow-sm' : 'text-slate-600 hover:text-white'
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
+                      ticketTab === 'job' ? 'bg-white text-slate-900 border border-slate-300 shadow-sm' : 'text-slate-700 hover:text-slate-950'
                     }`}
                   >
-                    Tin Tuyển Dụng
+                    Tin Tuyển Dụng ({reports.filter(r => (r.type || r.report_type) === 'job').length})
                   </button>
                   <button
                     type="button"
                     onClick={() => setTicketTab('applicant')}
-                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                      ticketTab === 'applicant' ? 'bg-white text-slate-900 font-bold border border-slate-300 shadow-sm' : 'text-slate-600 hover:text-white'
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
+                      ticketTab === 'applicant' ? 'bg-white text-slate-900 border border-slate-300 shadow-sm' : 'text-slate-700 hover:text-slate-950'
                     }`}
                   >
-                    Ứng Viên
+                    Ứng Viên ({reports.filter(r => (r.type || r.report_type) === 'applicant').length})
                   </button>
                   <button
                     type="button"
                     onClick={() => setTicketTab('chat')}
-                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-                      ticketTab === 'chat' ? 'bg-white text-slate-900 font-bold border border-slate-300 shadow-sm' : 'text-slate-600 hover:text-white'
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
+                      ticketTab === 'chat' ? 'bg-white text-slate-900 border border-slate-300 shadow-sm' : 'text-slate-700 hover:text-slate-950'
                     }`}
                   >
-                    Hội Thoại Chat
+                    Hội Thoại Chat ({reports.filter(r => (r.type || r.report_type) === 'chat').length})
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Danh sách Tickets */}
+            {/* Danh sách Báo cáo */}
             <div className="space-y-3">
               {filteredTickets.length === 0 ? (
-                <div className="p-12 text-center rounded-3xl bg-slate-50 border border-slate-200 text-xs text-slate-500">
-                  Không có ticket vi phạm nào trong danh mục này.
+                <div className="p-12 text-center rounded-3xl bg-white border border-slate-200 text-sm text-slate-600 shadow-xs">
+                  Hiện không có báo cáo vi phạm nào trong danh mục này.
                 </div>
               ) : (
                 filteredTickets.map((ticket) => (
@@ -2511,43 +2961,42 @@ export default function AdminPortal({
                     }}
                     className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm"
                   >
-                    <div className="space-y-1.5 flex-1">
+                    <div className="space-y-1.5 flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="px-2 py-0.5 rounded-md bg-blue-500/20 text-sky-300 font-mono font-bold text-xs">
-                          {ticket.ticket_code || 'TK-2026-001'}
+                        <span className="px-2.5 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200 font-mono font-bold text-xs whitespace-nowrap">
+                          {ticket.ticket_code || ticket._id}
                         </span>
-                        <span className="text-xs font-bold text-white">{ticket.target_title}</span>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${
+                        <span className="text-sm font-bold text-slate-900">{ticket.target_title}</span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border whitespace-nowrap ${
                           ticket.status === 'resolved'
-                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
                             : (ticket.status === 'investigating'
-                              ? 'bg-blue-500/20 text-sky-300 border-blue-500/40'
+                              ? 'bg-blue-100 text-blue-800 border-blue-200'
                               : (ticket.status === 'dismissed'
-                                ? 'bg-red-500/20 text-red-300 border-red-500/40'
-                                : 'bg-amber-500/20 text-amber-300 border-amber-500/40'))
+                                ? 'bg-rose-100 text-rose-800 border-rose-200'
+                                : 'bg-amber-100 text-amber-800 border-amber-200'))
                         }`}>
                           {ticket.status === 'resolved'
-                            ? '✓ Đã giải quyết'
+                            ? 'Đã giải quyết'
                             : (ticket.status === 'investigating'
-                              ? '🔍 Đang điều tra'
-                              : (ticket.status === 'dismissed' ? '✕ Bị bác bỏ' : '⏳ Chờ xử lý'))}
+                              ? 'Đang điều tra'
+                              : (ticket.status === 'dismissed' ? 'Bị bác bỏ' : 'Chờ xử lý'))}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-700">
+                      <p className="text-xs sm:text-sm text-slate-800">
                         <strong>Lý do:</strong> {ticket.reason}
                       </p>
-                      <p className="text-xs text-slate-500">
-                        Người gửi: <strong className="text-slate-700">{ticket.reporter_name}</strong> • Ngày gửi: {ticket.created_at}
+                      <p className="text-xs text-slate-600">
+                        Người gửi: <strong className="text-slate-800">{ticket.reporter_name}</strong> • Ngày gửi: {ticket.created_at}
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-                      {/* Nếu là báo cáo Hội thoại -> Nút "Xem lịch sử Chat gốc (Unmasked)" (FR 3.9.2) */}
+                    <div className="flex flex-wrap items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                       {(ticket.type === 'chat' || ticket.report_type === 'chat') && (
                         <button
                           type="button"
                           onClick={() => handleViewTicketChatHistory(ticket)}
-                          className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-400 text-xs font-bold border border-slate-700 cursor-pointer flex items-center gap-1.5"
+                          className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-slate-300 cursor-pointer inline-flex items-center gap-1.5 transition-colors whitespace-nowrap"
                         >
                           <Eye className="w-3.5 h-3.5" />
                           <span>Xem Chat Gốc</span>
@@ -2561,10 +3010,20 @@ export default function AdminPortal({
                           setTicketStatusSelect(ticket.status || 'pending');
                           setTicketNote(ticket.admin_note || '');
                         }}
-                        className="px-3.5 py-2 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 text-sky-300 border border-blue-500/40 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap"
                       >
                         <FileText className="w-3.5 h-3.5" />
                         <span>Xem Chi Tiết & Xử Lý</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteReport(ticket)}
+                        className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 hover:text-rose-900 text-xs font-bold shadow-xs transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap"
+                        title="Xóa báo cáo vi phạm"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Xóa</span>
                       </button>
                     </div>
                   </div>
@@ -2575,17 +3034,17 @@ export default function AdminPortal({
           </div>
         )}
 
-        {/* 8. MÀN HÌNH CÀI ĐẶT BỘ LỌC TỪ KHÓA CẤM (UI-ADM-SYS-01 - 3.9.1) */}
+        {/* 8. MÀN HÌNH CÀI ĐẶT BỘ LỌC TỪ KHÓA CẤM */}
         {activeMenu === 'keywords' && (
-          <div className="w-full max-w-[1720px] mx-auto space-y-8">
+          <div className="w-full max-w-full mx-auto space-y-8">
             <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-5">
               <div>
                 <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-sky-400" />
+                  <ShieldCheck className="w-5 h-5 text-blue-600" />
                   <span>Cài Đặt Bộ Lọc Từ Khóa Cấm Toàn Hệ Thống</span>
                 </h3>
                 <p className="text-xs text-slate-600 mt-0.5">
-                  Các từ ngữ trong danh sách này sẽ được Regex tự động che thành *** trên toàn bộ tin nhắn Socket Chat giữa Sinh viên và Nhà tuyển dụng.
+                  Các từ ngữ trong danh sách này sẽ được tự động che thành *** trên toàn bộ tin nhắn trò chuyện giữa Sinh viên và Nhà tuyển dụng.
                 </p>
               </div>
 
@@ -2595,7 +3054,7 @@ export default function AdminPortal({
                     Danh Sách Từ Khóa Cấm / Lừa Đảo (Phân tách bằng dấu phẩy) *
                   </label>
                   <textarea
-                    rows={6}
+                    rows={5}
                     required
                     value={keywordsText}
                     onChange={(e) => setKeywordsText(e.target.value)}
@@ -2605,8 +3064,8 @@ export default function AdminPortal({
                 </div>
 
                 {keywordSaveMsg && (
-                  <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 text-xs flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-semibold text-xs flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
                     <span>{keywordSaveMsg}</span>
                   </div>
                 )}
@@ -2614,7 +3073,7 @@ export default function AdminPortal({
                 <div className="flex items-center justify-end gap-3 pt-2">
                   <button
                     type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold text-xs font-bold shadow-lg shadow-blue-950/60 cursor-pointer flex items-center gap-2"
+                    className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-sm cursor-pointer inline-flex items-center gap-2 whitespace-nowrap"
                   >
                     <Check className="w-4 h-4" />
                     <span>Lưu & Áp Dụng Bộ Lọc Ngay</span>
@@ -2622,14 +3081,14 @@ export default function AdminPortal({
                 </div>
               </form>
 
-              {/* BẢNG THỐNG KÊ TỪ KHÓA CẤM ĐANG ÁP DỤNG TRONG CSDL VỚI NÚT XÓA (FR 3.9.1) */}
+              {/* BẢNG THỐNG KÊ TỪ KHÓA CẤM ĐANG ÁP DỤNG TRONG CSDL */}
               <div className="pt-6 border-t border-slate-200 space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
                     <span>Bảng Thống Kê Từ Khóa Cấm Đang Hoạt Động ({bannedKeywords.length})</span>
                   </h4>
-                  <span className="text-xs text-slate-600">Tự động chặn & ẩn ký tự trên Socket Chat</span>
+                  <span className="text-xs text-slate-600">Tự động chặn & ẩn ký tự trên hệ thống Chat</span>
                 </div>
 
                 {bannedKeywords.length === 0 ? (
@@ -2642,38 +3101,79 @@ export default function AdminPortal({
                       <table className="w-full text-left text-sm">
                         <thead className="bg-slate-100/90 border-b border-slate-200 text-slate-800 font-bold uppercase text-sm tracking-wider">
                           <tr>
-                            <th className="py-3 px-4 w-12 text-center">STT</th>
-                            <th className="py-3 px-4">Từ Khóa / Cụm Từ Cấm</th>
-                            <th className="py-3 px-4">Mức Độ Cảnh Báo</th>
-                            <th className="py-3 px-4">Ngày Cập Nhật</th>
-                            <th className="py-3 px-4 text-center w-24">Thao Tác</th>
+                            <th className="py-3.5 px-4 whitespace-nowrap min-w-[70px] text-center">STT</th>
+                            <th className="py-3.5 px-4 min-w-[200px]">Từ Khóa / Cụm Từ Cấm</th>
+                            <th className="py-3.5 px-4 whitespace-nowrap min-w-[170px]">Mức Độ Cảnh Báo</th>
+                            <th className="py-3.5 px-4 whitespace-nowrap min-w-[150px]">Ngày Cập Nhật</th>
+                            <th className="py-3.5 px-4 text-center whitespace-nowrap min-w-[110px]">Thao Tác</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
                           {bannedKeywords.map((item, idx) => (
                             <tr key={item._id || idx} className="hover:bg-slate-50 transition-colors">
-                              <td className="py-3 px-4 text-center font-mono text-slate-500 font-bold">
+                              <td className="py-3.5 px-4 text-center font-mono text-slate-500 font-bold whitespace-nowrap">
                                 {idx + 1}
                               </td>
-                              <td className="py-3 px-4 font-mono font-bold text-white">
-                                <span className="px-2.5 py-1 rounded-lg bg-red-950/60 border border-red-500/40 text-red-300">
-                                  {item.keyword}
-                                </span>
+                              <td className="py-3.5 px-4 font-mono font-bold">
+                                {editingKwId === item._id ? (
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="text"
+                                      value={editingKwText}
+                                      onChange={(e) => setEditingKwText(e.target.value)}
+                                      className="bg-white border border-blue-500 rounded-lg px-3 py-1.5 text-sm text-slate-900 outline-none font-mono"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUpdateBannedKeyword(item._id)}
+                                      className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs cursor-pointer whitespace-nowrap"
+                                    >
+                                      Lưu
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingKwId(null);
+                                        setEditingKwText('');
+                                      }}
+                                      className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold text-xs cursor-pointer whitespace-nowrap"
+                                    >
+                                      Hủy
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2">
+                                    <span className="inline-block px-3 py-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-bold">
+                                      {item.keyword}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingKwId(item._id);
+                                        setEditingKwText(item.keyword);
+                                      }}
+                                      className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 cursor-pointer transition-colors"
+                                      title="Chỉnh sửa từ khóa cấm"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                )}
                               </td>
-                              <td className="py-3 px-4">
-                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">
-                                  <AlertTriangle className="w-3 h-3 text-amber-400" />
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                                   <span>Lừa đảo / Nhạy cảm</span>
                                 </span>
                               </td>
-                              <td className="py-3 px-4 font-mono text-xs text-slate-600">
+                              <td className="py-3.5 px-4 font-mono text-xs text-slate-600 whitespace-nowrap">
                                 {item.created_at || 'Mặc định hệ thống'}
                               </td>
-                              <td className="py-3 px-4 text-center">
+                              <td className="py-3.5 px-4 text-center whitespace-nowrap">
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteBannedKeyword(item._id, item.keyword)}
-                                  className="px-3 py-1.5 rounded-xl bg-red-600/20 hover:bg-red-600/40 border border-red-500/40 text-red-300 hover:text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 mx-auto"
+                                  className="px-3.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 hover:text-rose-900 text-xs font-bold transition-all cursor-pointer inline-flex items-center justify-center gap-1.5 mx-auto shadow-xs whitespace-nowrap"
                                   title={`Xóa từ cấm "${item.keyword}"`}
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -2694,13 +3194,13 @@ export default function AdminPortal({
 
       </main>
 
-      {/* ======================= MODAL CHI TIẾT USER & DUYỆT GPKD (UI-ADM-USER-02 & 03 / FR-QT-03.01) ======================= */}
+      {/* ======================= MODAL CHI TIẾT USER & DUYỆT GPKD ======================= */}
       {selectedUserDetail && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto text-slate-800">
             <div className="flex items-start justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-sky-400 font-black text-lg">
+                <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700 font-black text-lg">
                   {selectedUserDetail.role === 'employer' ? <Building2 className="w-6 h-6" /> : <GraduationCap className="w-6 h-6" />}
                 </div>
                 <div>
@@ -2709,13 +3209,13 @@ export default function AdminPortal({
                       ? (selectedUserDetail.profile?.company_name || 'Hồ Sơ Doanh Nghiệp')
                       : (selectedUserDetail.profile?.full_name || selectedUserDetail.full_name || 'Hồ Sơ Sinh Viên')}
                   </h3>
-                  <p className="text-xs text-sky-400 font-mono mt-0.5">{selectedUserDetail.email}</p>
+                  <p className="text-xs text-blue-700 font-mono font-semibold mt-0.5">{selectedUserDetail.email}</p>
                 </div>
               </div>
               <button 
                 type="button" 
                 onClick={() => setSelectedUserDetail(null)} 
-                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2725,102 +3225,102 @@ export default function AdminPortal({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                 <span className="text-slate-600 block mb-0.5 text-xs">Vai Trò:</span>
-                <span className="font-bold text-slate-900 capitalize">{selectedUserDetail.role === 'employer' ? 'Nhà Tuyển Dụng' : 'Sinh Viên'}</span>
+                <span className="font-bold text-slate-900">{selectedUserDetail.role === 'employer' ? 'Nhà Tuyển Dụng' : 'Sinh Viên'}</span>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                 <span className="text-slate-600 block mb-0.5 text-xs">Mã ID:</span>
-                <span className="font-mono text-slate-700 truncate block">{selectedUserDetail._id}</span>
+                <span className="font-mono text-slate-800 font-semibold truncate block">{selectedUserDetail._id}</span>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                 <span className="text-slate-600 block mb-0.5 text-xs">Trạng Thái:</span>
-                <span className={`font-bold ${selectedUserDetail.is_banned ? 'text-red-400' : 'text-emerald-400'}`}>
+                <span className={`font-bold ${selectedUserDetail.is_banned ? 'text-rose-700' : 'text-emerald-700'}`}>
                   {selectedUserDetail.is_banned ? 'Bị Khóa' : 'Hoạt Động'}
                 </span>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                 <span className="text-slate-600 block mb-0.5 text-xs">Đánh Giá:</span>
-                <span className="font-bold text-yellow-400 flex items-center gap-1">
-                  <Star className="w-3.5 h-3.5 fill-yellow-400" />
+                <span className="font-bold text-amber-600 flex items-center gap-1">
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
                   {selectedUserDetail.rating_avg || 5.0}/5
                 </span>
               </div>
             </div>
 
-            {/* CHI TIẾT CHO SINH VIÊN (FR-QT-03.01) */}
+            {/* CHI TIẾT CHO SINH VIÊN */}
             {selectedUserDetail.role === 'student' && (
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
-                <h4 className="text-xs font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
+                <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wider flex items-center gap-1.5">
                   <GraduationCap className="w-4 h-4" />
                   <span>Thông Tin Học Vấn & Cá Nhân Sinh Viên</span>
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <div>
-                    <span className="text-slate-600 block text-xs">Họ và tên:</span>
-                    <span className="font-bold text-white text-sm">{selectedUserDetail.profile?.full_name || selectedUserDetail.full_name || 'Chưa cập nhật'}</span>
+                    <span className="text-slate-500 block text-xs">Họ và tên:</span>
+                    <span className="font-bold text-slate-900 text-sm">{selectedUserDetail.profile?.full_name || selectedUserDetail.full_name || 'Chưa cập nhật'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-600 block text-xs">Mã số sinh viên (MSSV):</span>
-                    <span className="font-mono font-bold text-sky-300">{selectedUserDetail.profile?.mssv || selectedUserDetail.mssv || 'Chưa cập nhật'}</span>
+                    <span className="text-slate-500 block text-xs">Mã số sinh viên (MSSV):</span>
+                    <span className="font-mono font-bold text-blue-700 text-sm">{selectedUserDetail.profile?.mssv || selectedUserDetail.mssv || 'Chưa cập nhật'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-600 block text-xs">Trường Đại học:</span>
-                    <span className="text-slate-200 font-medium">{selectedUserDetail.profile?.university || 'Chưa cập nhật'}</span>
+                    <span className="text-slate-500 block text-xs">Trường Đại học:</span>
+                    <span className="text-slate-800 font-medium text-xs sm:text-sm">{selectedUserDetail.profile?.university || 'Chưa cập nhật'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-600 block text-xs">Chuyên ngành:</span>
-                    <span className="text-slate-200 font-medium">{selectedUserDetail.profile?.major || 'Chưa cập nhật'}</span>
+                    <span className="text-slate-500 block text-xs">Chuyên ngành:</span>
+                    <span className="text-slate-800 font-medium text-xs sm:text-sm">{selectedUserDetail.profile?.major || 'Chưa cập nhật'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-600 block text-xs">Số điện thoại:</span>
-                    <span className="text-slate-200 font-medium">{selectedUserDetail.profile?.phone || 'Chưa cập nhật'}</span>
+                    <span className="text-slate-500 block text-xs">Số điện thoại:</span>
+                    <span className="text-slate-800 font-mono font-medium text-xs sm:text-sm">{selectedUserDetail.profile?.phone || 'Chưa cập nhật'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-600 block text-xs">Kỹ năng nổi bật:</span>
-                    <span className="text-slate-200 font-medium">{selectedUserDetail.profile?.skills || 'Chưa cập nhật'}</span>
+                    <span className="text-slate-500 block text-xs">Kỹ năng nổi bật:</span>
+                    <span className="text-slate-800 font-medium text-xs sm:text-sm">{selectedUserDetail.profile?.skills || 'Chưa cập nhật'}</span>
                   </div>
                 </div>
                 {selectedUserDetail.profile?.bio && (
                   <div className="pt-2 border-t border-slate-200/80">
-                    <span className="text-slate-600 block text-xs">Giới thiệu bản thân:</span>
+                    <span className="text-slate-500 block text-xs">Giới thiệu bản thân:</span>
                     <p className="text-slate-700 italic mt-0.5">{selectedUserDetail.profile?.bio}</p>
                   </div>
                 )}
               </div>
             )}
 
-            {/* CHI TIẾT CHO NHÀ TUYỂN DỤNG (FR-QT-03.01 & FR-QT-03.02) */}
+            {/* CHI TIẾT CHO NHÀ TUYỂN DỤNG */}
             {selectedUserDetail.role === 'employer' && (
               <div className="space-y-4">
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
-                  <h4 className="text-xs font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
+                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
+                  <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wider flex items-center gap-1.5">
                     <Building2 className="w-4 h-4" />
                     <span>Hồ Sơ Doanh Nghiệp Tuyển Dụng</span>
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div>
-                      <span className="text-slate-600 block text-xs">Tên Công ty / Thương hiệu:</span>
-                      <span className="font-bold text-white text-sm">{selectedUserDetail.profile?.company_name || selectedUserDetail.company_name || 'Doanh nghiệp'}</span>
+                      <span className="text-slate-500 block text-xs">Tên Công ty / Thương hiệu:</span>
+                      <span className="font-bold text-slate-900 text-sm">{selectedUserDetail.profile?.company_name || selectedUserDetail.company_name || 'Doanh nghiệp'}</span>
                     </div>
                     <div>
-                      <span className="text-slate-600 block text-xs">Người đại diện:</span>
-                      <span className="text-slate-200 font-medium">{selectedUserDetail.profile?.representative_name || selectedUserDetail.representative_name || 'Người đại diện'}</span>
+                      <span className="text-slate-500 block text-xs">Người đại diện:</span>
+                      <span className="text-slate-800 font-medium text-xs sm:text-sm">{selectedUserDetail.profile?.representative_name || selectedUserDetail.representative_name || 'Người đại diện'}</span>
                     </div>
                     <div>
-                      <span className="text-slate-600 block text-xs">Mã số thuế (MST):</span>
-                      <span className="font-mono font-bold text-sky-300">{selectedUserDetail.profile?.business_license || 'Chưa cập nhật'}</span>
+                      <span className="text-slate-500 block text-xs">Mã số thuế (MST):</span>
+                      <span className="font-mono font-bold text-blue-700 text-sm">{selectedUserDetail.profile?.business_license || 'Chưa cập nhật'}</span>
                     </div>
                     <div>
-                      <span className="text-slate-600 block text-xs">Số điện thoại:</span>
-                      <span className="text-slate-200 font-medium">{selectedUserDetail.profile?.phone || 'Chưa cập nhật'}</span>
+                      <span className="text-slate-500 block text-xs">Số điện thoại:</span>
+                      <span className="text-slate-800 font-mono font-medium text-xs sm:text-sm">{selectedUserDetail.profile?.phone || 'Chưa cập nhật'}</span>
                     </div>
                     <div>
-                      <span className="text-slate-600 block text-xs">Địa chỉ trụ sở / chi nhánh:</span>
-                      <span className="text-slate-200 font-medium">{selectedUserDetail.profile?.address || 'Chưa cập nhật'}</span>
+                      <span className="text-slate-500 block text-xs">Địa chỉ trụ sở / chi nhánh:</span>
+                      <span className="text-slate-800 font-medium text-xs sm:text-sm">{selectedUserDetail.profile?.address || 'Chưa cập nhật'}</span>
                     </div>
                     <div>
-                      <span className="text-slate-600 block text-xs">Trang web doanh nghiệp:</span>
+                      <span className="text-slate-500 block text-xs">Trang web doanh nghiệp:</span>
                       {selectedUserDetail.profile?.website ? (
-                        <a href={selectedUserDetail.profile.website} target="_blank" rel="noreferrer" className="text-sky-400 hover:underline">
+                        <a href={selectedUserDetail.profile.website} target="_blank" rel="noreferrer" className="text-blue-700 font-semibold hover:underline">
                           {selectedUserDetail.profile.website}
                         </a>
                       ) : (
@@ -2830,40 +3330,40 @@ export default function AdminPortal({
                   </div>
                 </div>
 
-                {/* KHU VỰC PHÊ DUYỆT GPKD (FR 3.4.6 & FR-QT-03.02) */}
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                {/* KHU VỰC PHÊ DUYỆT GPKD */}
+                <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                   <div className="flex items-center justify-between">
                     <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-                      <FileCheck className="w-4 h-4 text-emerald-400" />
+                      <FileCheck className="w-4 h-4 text-emerald-600" />
                       <span>Giấy Phép Kinh Doanh (GPKD)</span>
                     </h4>
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${
                       selectedUserDetail.employer_record?.approval_status === 'approved'
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
                         : (selectedUserDetail.employer_record?.approval_status === 'rejected'
-                          ? 'bg-red-500/20 text-red-300 border-red-500/40'
-                          : 'bg-amber-500/20 text-amber-300 border-amber-500/40')
+                          ? 'bg-rose-100 text-rose-800 border-rose-200'
+                          : 'bg-amber-100 text-amber-800 border-amber-200')
                     }`}>
                       {selectedUserDetail.employer_record?.approval_status === 'approved'
-                        ? '✓ Đã Phê Duyệt'
+                        ? 'Đã Phê Duyệt'
                         : (selectedUserDetail.employer_record?.approval_status === 'rejected'
-                          ? '✕ Bị Từ Chối'
-                          : '⏳ Chờ Duyệt')}
+                          ? 'Bị Từ Chối'
+                          : 'Chờ Duyệt')}
                     </span>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-6 h-6 text-red-400" />
-                      <div>
-                        <p className="font-bold text-slate-900">{selectedUserDetail.profile?.business_license_url ? selectedUserDetail.profile.business_license_url.split('/').pop() : 'Chưa có tệp GPKD'}</p>
+                  <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileText className="w-6 h-6 text-rose-600 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-900 truncate">{selectedUserDetail.profile?.business_license_url ? selectedUserDetail.profile.business_license_url.split('/').pop() : 'Chưa có tệp GPKD'}</p>
                         <p className="text-xs text-slate-600">Tài liệu pháp lý đã tải lên hệ thống</p>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => setAdminGpkdViewer(selectedUserDetail)}
-                      className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-900 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+                      className="px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap shrink-0"
                     >
                       <Eye className="w-3.5 h-3.5" />
                       <span>Xem Bản In GPKD</span>
@@ -2871,26 +3371,27 @@ export default function AdminPortal({
                   </div>
 
                   {selectedUserDetail.employer_record?.reject_reason && (
-                    <div className="p-2.5 rounded-xl bg-red-950/60 border border-red-500/40 text-xs text-red-300">
+                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800">
                       <strong>Lý do từ chối trước đó:</strong> {selectedUserDetail.employer_record.reject_reason}
                     </div>
                   )}
 
-                  {/* 2 Nút "Duyệt" (Xanh) và "Từ chối" (Đỏ) */}
                   <div className="flex items-center justify-end gap-3 pt-2">
                     <button
                       type="button"
                       onClick={() => handleReviewEmployerGpkd(selectedUserDetail._id, 'rejected')}
-                      className="px-5 py-2 rounded-xl bg-red-600/30 hover:bg-red-600/50 text-red-300 border border-red-500/40 text-xs font-bold shadow-md cursor-pointer transition-colors"
+                      className="px-5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold shadow-xs cursor-pointer transition-colors whitespace-nowrap inline-flex items-center gap-1.5"
                     >
-                      ✕ Từ Chối GPKD
+                      <XCircle className="w-3.5 h-3.5" />
+                      <span>Từ Chối GPKD</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => handleReviewEmployerGpkd(selectedUserDetail._id, 'approved')}
-                      className="px-6 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black shadow-md cursor-pointer transition-colors"
+                      className="px-6 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-sm cursor-pointer transition-colors whitespace-nowrap inline-flex items-center gap-1.5"
                     >
-                      ✓ Phê Duyệt GPKD
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Phê Duyệt GPKD</span>
                     </button>
                   </div>
                 </div>
@@ -2902,24 +3403,24 @@ export default function AdminPortal({
 
       {/* ======================= MODAL TỪ CHỐI GPKD KÈM LÝ DO ======================= */}
       {gpkdRejectModal && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white border border-red-200 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white border border-rose-200 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2 text-red-400">
+              <div className="flex items-center gap-2 text-rose-600">
                 <AlertTriangle className="w-5 h-5" />
-                <h3 className="text-sm font-black text-white">Từ Chối Phê Duyệt GPKD</h3>
+                <h3 className="text-base font-black text-slate-900">Từ Chối Phê Duyệt GPKD</h3>
               </div>
               <button 
                 type="button" 
                 onClick={() => setGpkdRejectModal(null)} 
-                className="text-slate-600 hover:text-white"
+                className="p-1 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-700">
-              Doanh nghiệp: <strong className="text-white">{gpkdRejectModal.companyName}</strong>
+            <p className="text-xs sm:text-sm text-slate-700">
+              Doanh nghiệp: <strong className="text-slate-900">{gpkdRejectModal.companyName}</strong>
             </p>
 
             <form
@@ -2931,7 +3432,7 @@ export default function AdminPortal({
               className="space-y-3"
             >
               <div>
-                <label className="block text-sm sm:text-base font-bold text-slate-800 mb-1">
+                <label className="block text-sm font-bold text-slate-800 mb-1">
                   Nhập lý do từ chối phê duyệt (gửi thông báo trực tiếp cho NTD) *
                 </label>
                 <textarea
@@ -2940,7 +3441,7 @@ export default function AdminPortal({
                   value={gpkdRejectModal.reason}
                   onChange={(e) => setGpkdRejectModal(prev => ({ ...prev, reason: e.target.value }))}
                   placeholder="Ví dụ: Giấy phép kinh doanh bị mờ, hết hạn hoặc thông tin không trùng khớp..."
-                  className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs text-white outline-none focus:border-red-500"
+                  className="w-full bg-white border border-slate-300 rounded-xl p-3 text-sm text-slate-900 outline-none focus:border-rose-500"
                 />
               </div>
 
@@ -2948,13 +3449,13 @@ export default function AdminPortal({
                 <button
                   type="button"
                   onClick={() => setGpkdRejectModal(null)}
-                  className="px-4 py-2 text-xs text-slate-600 hover:text-white"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-md cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm cursor-pointer"
                 >
                   Xác Nhận Từ Chối
                 </button>
@@ -2964,22 +3465,22 @@ export default function AdminPortal({
         </div>
       )}
 
-      {/* ======================= MODAL XEM CHI TIẾT TIN TUYỂN DỤNG (FR-QT-04.02) ======================= */}
+      {/* ======================= MODAL XEM CHI TIẾT TIN TUYỂN DỤNG ======================= */}
       {selectedJobDetail && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto text-slate-800">
             <div className="flex items-start justify-between pb-3 border-b border-slate-200">
               <div>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/20 text-sky-300 border border-blue-500/40">
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
                   {selectedJobDetail.category_name || selectedJobDetail.category_id || 'Ngành nghề'}
                 </span>
                 <h3 className="text-base font-black text-slate-900 mt-1.5">{selectedJobDetail.title}</h3>
-                <p className="text-xs text-emerald-400 font-bold mt-0.5">{selectedJobDetail.company_name}</p>
+                <p className="text-xs text-emerald-700 font-bold mt-0.5">{selectedJobDetail.company_name}</p>
               </div>
               <button 
                 type="button" 
                 onClick={() => setSelectedJobDetail(null)} 
-                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -2988,13 +3489,13 @@ export default function AdminPortal({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                 <span className="text-slate-600 block text-xs mb-0.5">Mức Lương:</span>
-                <span className="font-bold text-sky-400 font-mono">
+                <span className="font-bold text-blue-700 font-mono">
                   {selectedJobDetail.is_negotiable ? 'Thỏa thuận' : `${selectedJobDetail.salary_min?.toLocaleString()}đ - ${selectedJobDetail.salary_max?.toLocaleString()}đ`}
                 </span>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                 <span className="text-slate-600 block text-xs mb-0.5">Địa Điểm:</span>
-                <span className="font-medium text-slate-200 truncate block">{selectedJobDetail.location || 'TP.HCM'}</span>
+                <span className="font-semibold text-slate-900 truncate block">{selectedJobDetail.location || 'TP.HCM'}</span>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                 <span className="text-slate-600 block text-xs mb-0.5">Trạng Thái Vận Hành:</span>
@@ -3004,38 +3505,38 @@ export default function AdminPortal({
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                 <span className="text-slate-600 block text-xs mb-0.5">Kiểm Duyệt:</span>
-                <span className={`font-bold ${selectedJobDetail.is_hidden ? 'text-red-400' : 'text-emerald-400'}`}>
+                <span className={`font-bold ${selectedJobDetail.is_hidden ? 'text-rose-700' : 'text-emerald-700'}`}>
                   {selectedJobDetail.is_hidden ? 'Bị Ẩn (Vi phạm)' : 'Công Khai'}
                 </span>
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs sm:text-sm">
               <div>
-                <span className="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-1">Mô tả công việc:</span>
-                <p className="text-slate-200 leading-relaxed whitespace-pre-wrap">{selectedJobDetail.description || 'Không có mô tả chi tiết.'}</p>
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">Mô tả công việc:</span>
+                <p className="text-slate-800 leading-relaxed whitespace-pre-wrap">{selectedJobDetail.description || 'Không có mô tả chi tiết.'}</p>
               </div>
               {selectedJobDetail.requirements && (
                 <div className="pt-2 border-t border-slate-200/80">
-                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-1">Yêu cầu ứng viên:</span>
-                  <p className="text-slate-200 leading-relaxed whitespace-pre-wrap">{selectedJobDetail.requirements}</p>
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">Yêu cầu ứng viên:</span>
+                  <p className="text-slate-800 leading-relaxed whitespace-pre-wrap">{selectedJobDetail.requirements}</p>
                 </div>
               )}
               {selectedJobDetail.benefits && (
                 <div className="pt-2 border-t border-slate-200/80">
-                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-1">Quyền lợi:</span>
-                  <p className="text-slate-200 leading-relaxed whitespace-pre-wrap">{selectedJobDetail.benefits}</p>
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">Quyền lợi:</span>
+                  <p className="text-slate-800 leading-relaxed whitespace-pre-wrap">{selectedJobDetail.benefits}</p>
                 </div>
               )}
               {selectedJobDetail.hidden_reason && (
-                <div className="p-2.5 rounded-xl bg-red-950/60 border border-red-500/40 text-xs text-red-300">
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800">
                   <strong>Lý do bị ẩn:</strong> {selectedJobDetail.hidden_reason}
                 </div>
               )}
             </div>
 
             <div className="flex items-center justify-between pt-2">
-              <span className="text-xs text-slate-500 font-mono">Mã tin: {selectedJobDetail._id}</span>
+              <span className="text-xs text-slate-600 font-mono">Mã tin: {selectedJobDetail._id}</span>
               <div className="flex items-center gap-2">
                 {selectedJobDetail.is_hidden ? (
                   <button
@@ -3044,7 +3545,7 @@ export default function AdminPortal({
                       await handleUnhideJob(selectedJobDetail._id);
                       setSelectedJobDetail(prev => ({ ...prev, is_hidden: false, hidden_reason: '' }));
                     }}
-                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-md cursor-pointer flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap"
                   >
                     <Eye className="w-3.5 h-3.5" />
                     <span>Khôi Phục Hiển Thị</span>
@@ -3056,7 +3557,7 @@ export default function AdminPortal({
                       setHideJobModal(selectedJobDetail);
                       setHideReason('');
                     }}
-                    className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-md cursor-pointer flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap"
                   >
                     <EyeOff className="w-3.5 h-3.5" />
                     <span>Ẩn Tin Vi Phạm</span>
@@ -3068,61 +3569,61 @@ export default function AdminPortal({
         </div>
       )}
 
-      {/* ======================= MODAL XEM CHI TIẾT NỘI DUNG ĐÁNH GIÁ (FR-QT-05.03) ======================= */}
+      {/* ======================= MODAL XEM CHI TIẾT NỘI DUNG ĐÁNH GIÁ ======================= */}
       {selectedReviewDetail && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-5 shadow-2xl">
             <div className="flex items-start justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2.5">
-                <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                <Star className="w-5 h-5 text-amber-500 fill-amber-400" />
                 <h3 className="text-base font-black text-slate-900">Chi Tiết Bài Đánh Giá</h3>
               </div>
               <button 
                 type="button" 
                 onClick={() => setSelectedReviewDetail(null)} 
-                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
                 <span className="text-slate-600 block text-xs mb-0.5">Người Đánh Giá:</span>
-                <span className="font-bold text-white text-sm">{selectedReviewDetail.reviewer_name || selectedReviewDetail.user_name || 'Người dùng'}</span>
-                <span className="text-xs text-slate-500 block mt-0.5">{selectedReviewDetail.created_at || 'Thời gian gửi'}</span>
+                <span className="font-bold text-slate-900 text-sm">{selectedReviewDetail.reviewer_name || selectedReviewDetail.user_name || 'Người dùng'}</span>
+                <span className="text-xs text-slate-600 block mt-0.5">{selectedReviewDetail.created_at || 'Thời gian gửi'}</span>
               </div>
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
                 <span className="text-slate-600 block text-xs mb-0.5">Đối Tượng Được Đánh Giá:</span>
-                <span className="font-bold text-sky-300 text-sm">{selectedReviewDetail.target_name || selectedReviewDetail.student_name || 'Đối tác'}</span>
-                <span className="text-xs text-slate-500 block mt-0.5">{selectedReviewDetail.job_title || 'Công việc bán thời gian'}</span>
+                <span className="font-bold text-blue-700 text-sm">{selectedReviewDetail.target_name || selectedReviewDetail.student_name || 'Đối tác'}</span>
+                <span className="text-xs text-slate-600 block mt-0.5">{selectedReviewDetail.job_title || 'Công việc bán thời gian'}</span>
               </div>
             </div>
 
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">Điểm đánh giá:</span>
-                <div className="flex items-center text-yellow-400 gap-1">
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Điểm đánh giá:</span>
+                <div className="flex items-center text-amber-500 gap-1">
                   {[1, 2, 3, 4, 5].map(s => (
-                    <Star key={s} className={`w-4 h-4 ${s <= (selectedReviewDetail.rating || 5) ? 'fill-yellow-400' : 'text-slate-700'}`} />
+                    <Star key={s} className={`w-4 h-4 ${s <= (selectedReviewDetail.rating || 5) ? 'fill-amber-400 text-amber-500' : 'text-slate-300'}`} />
                   ))}
-                  <span className="font-bold text-xs text-white ml-1">({selectedReviewDetail.rating || 5}/5 sao)</span>
+                  <span className="font-bold text-xs text-slate-900 ml-1">({selectedReviewDetail.rating || 5}/5 sao)</span>
                 </div>
               </div>
 
               <div>
-                <span className="text-xs font-bold text-slate-600 uppercase tracking-wide block mb-1">Toàn bộ văn bản nhận xét:</span>
-                <p className="text-slate-200 text-xs leading-relaxed bg-slate-50 p-3.5 rounded-xl border border-slate-200 whitespace-pre-wrap">
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-wide block mb-1">Toàn bộ văn bản nhận xét:</span>
+                <p className="text-slate-800 text-xs sm:text-sm leading-relaxed bg-white p-3.5 rounded-xl border border-slate-200 whitespace-pre-wrap">
                   "{selectedReviewDetail.comment}"
                 </p>
               </div>
 
               <div className="flex items-center justify-between pt-2 border-t border-slate-200/80 text-xs">
-                <span className="text-slate-600">Trạng thái hiển thị:</span>
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
-                  selectedReviewDetail.is_hidden ? 'bg-red-500/20 text-red-300 border-red-500/40' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                <span className="text-slate-600 font-semibold">Trạng thái hiển thị:</span>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border whitespace-nowrap ${
+                  selectedReviewDetail.is_hidden ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-emerald-100 text-emerald-800 border-emerald-200'
                 }`}>
-                  {selectedReviewDetail.is_hidden ? '🔴 Đã Ẩn Do Vi Phạm' : '🟢 Công Khai'}
+                  {selectedReviewDetail.is_hidden ? 'Đã Ẩn Do Vi Phạm' : 'Công Khai'}
                 </span>
               </div>
             </div>
@@ -3134,35 +3635,36 @@ export default function AdminPortal({
                   await handleToggleHideReview(selectedReviewDetail._id);
                   setSelectedReviewDetail(prev => ({ ...prev, is_hidden: !prev.is_hidden }));
                 }}
-                className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap inline-flex items-center gap-1.5 ${
                   selectedReviewDetail.is_hidden
-                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                    : 'bg-red-600 hover:bg-red-500 text-white'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    : 'bg-rose-600 hover:bg-rose-700 text-white'
                 }`}
               >
-                {selectedReviewDetail.is_hidden ? '✓ Khôi Phục Hiển Thị Công Khai' : '✕ Ẩn Đánh Giá Vi Phạm'}
+                {selectedReviewDetail.is_hidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                <span>{selectedReviewDetail.is_hidden ? 'Khôi Phục Hiển Thị Công Khai' : 'Ẩn Đánh Giá Vi Phạm'}</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ======================= MODAL XEM CHI TIẾT BÁO CÁO VI PHẠM & CẬP NHẬT TRẠNG THÁI (FR-QT-07.01 & 07.02) ======================= */}
+      {/* ======================= MODAL XEM CHI TIẾT BÁO CÁO VI PHẠM & CẬP NHẬT TRẠNG THÁI ======================= */}
       {selectedTicket && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto text-slate-800">
             <div className="flex items-start justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2.5">
-                <AlertTriangle className="w-5 h-5 text-amber-400" />
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
                 <div>
                   <h3 className="text-base font-black text-slate-900">Chi Tiết Phiếu Khiếu Nại / Báo Cáo Vi Phạm</h3>
-                  <p className="text-xs text-sky-400 font-mono mt-0.5">{selectedTicket.ticket_code || selectedTicket._id}</p>
+                  <p className="text-xs text-blue-700 font-mono font-semibold mt-0.5">{selectedTicket.ticket_code || selectedTicket._id}</p>
                 </div>
               </div>
               <button 
                 type="button" 
                 onClick={() => setSelectedTicket(null)} 
-                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -3171,42 +3673,41 @@ export default function AdminPortal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
                 <span className="text-slate-600 block text-xs">Người Khiếu Nại (Báo Cáo):</span>
-                <span className="font-bold text-white text-sm">{selectedTicket.reporter_name || 'Người dùng'}</span>
-                <span className="text-xs text-slate-600 block">{selectedTicket.reporter_email || selectedTicket.reporter_id}</span>
+                <span className="font-bold text-slate-900 text-sm">{selectedTicket.reporter_name || 'Người dùng'}</span>
+                <span className="text-xs text-slate-700 block">{selectedTicket.reporter_email || selectedTicket.reporter_id}</span>
                 <span className="text-xs text-slate-500 font-mono block">Ngày gửi: {selectedTicket.created_at}</span>
               </div>
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
                 <span className="text-slate-600 block text-xs">Đối Tượng Bị Báo Cáo:</span>
-                <span className="font-bold text-red-300 text-sm">{selectedTicket.target_title || 'Đối tượng vi phạm'}</span>
-                <span className="text-xs text-slate-600 block font-mono">Mã đối tượng: {selectedTicket.target_id}</span>
-                <span className="text-xs text-slate-500 block capitalize">Loại vi phạm: {selectedTicket.type || selectedTicket.report_type || 'Vi phạm'}</span>
+                <span className="font-bold text-rose-700 text-sm">{selectedTicket.target_title || 'Đối tượng vi phạm'}</span>
+                <span className="text-xs text-slate-700 block font-mono">Mã đối tượng: {selectedTicket.target_id}</span>
+                <span className="text-xs text-slate-600 block">Loại vi phạm: {selectedTicket.type || selectedTicket.report_type || 'Vi phạm'}</span>
               </div>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs sm:text-sm">
               <div>
-                <span className="text-xs font-bold text-slate-600 uppercase tracking-wide block mb-1">Lý do khiếu nại:</span>
-                <p className="text-white font-semibold leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-wide block mb-1">Lý do khiếu nại:</span>
+                <p className="text-slate-900 font-semibold leading-relaxed bg-white p-3 rounded-xl border border-slate-200">
                   {selectedTicket.reason}
                 </p>
               </div>
 
-              {/* BẰNG CHỨNG ĐỐI CHIẾU TRỰC TIẾP (FR-QT-07.01) */}
               <div className="pt-2 border-t border-slate-200/80">
-                <span className="text-xs font-bold text-slate-600 uppercase tracking-wide block mb-2">Bằng chứng liên quan đối chiếu:</span>
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-wide block mb-2">Bằng chứng liên quan đối chiếu:</span>
                 <div className="flex flex-wrap items-center gap-3">
                   {(selectedTicket.type === 'chat' || selectedTicket.report_type === 'chat') && (
                     <button
                       type="button"
                       onClick={() => handleViewTicketChatHistory(selectedTicket)}
-                      className="px-4 py-2 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 text-slate-900 font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+                      className="px-4 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap"
                     >
                       <Eye className="w-3.5 h-3.5" />
-                      <span>Xem Lịch Sử Trò Chuyện Gốc (Unmasked)</span>
+                      <span>Xem Lịch Sử Trò Chuyện Gốc</span>
                     </button>
                   )}
                   {selectedTicket.evidence && (
-                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 w-full">
+                    <div className="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 w-full">
                       <strong>Bằng chứng đính kèm:</strong> {selectedTicket.evidence}
                     </div>
                   )}
@@ -3214,7 +3715,7 @@ export default function AdminPortal({
               </div>
             </div>
 
-            {/* FORM CẬP NHẬT TRẠNG THÁI XỬ LÝ BÁO CÁO (FR-QT-07.02) */}
+            {/* FORM CẬP NHẬT TRẠNG THÁI XỬ LÝ BÁO CÁO */}
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
@@ -3222,34 +3723,34 @@ export default function AdminPortal({
               }}
               className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs"
             >
-              <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-sky-400" />
+              <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-blue-600" />
                 <span>Cập Nhật Tiến Độ & Trạng Thái Xử Lý Khiếu Nại</span>
               </h4>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-600 mb-1 font-bold">Chuyển trạng thái xử lý *</label>
+                  <label className="block text-slate-700 mb-1 font-bold">Chuyển trạng thái xử lý *</label>
                   <select
                     value={ticketStatusSelect}
                     onChange={(e) => setTicketStatusSelect(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-blue-500 cursor-pointer font-bold"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-900 outline-none focus:border-blue-500 cursor-pointer font-bold"
                   >
-                    <option value="pending">⏳ Chờ xử lý (Pending)</option>
-                    <option value="investigating">🔍 Đang điều tra (Investigating)</option>
-                    <option value="resolved">✓ Đã giải quyết (Resolved)</option>
-                    <option value="dismissed">✕ Bị bác bỏ (Dismissed)</option>
+                    <option value="pending">Chờ xử lý</option>
+                    <option value="investigating">Đang điều tra</option>
+                    <option value="resolved">Đã giải quyết</option>
+                    <option value="dismissed">Bị bác bỏ</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-slate-600 mb-1 font-bold">Ghi chú của Quản trị viên (gửi kèm thông báo)</label>
+                  <label className="block text-slate-700 mb-1 font-bold">Ghi chú của Quản trị viên (gửi kèm thông báo)</label>
                   <input
                     type="text"
                     value={ticketNote}
                     onChange={(e) => setTicketNote(e.target.value)}
                     placeholder="Nhập ghi chú xử lý gửi người báo cáo..."
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-blue-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-900 outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
@@ -3257,7 +3758,7 @@ export default function AdminPortal({
               <div className="flex items-center justify-end pt-2">
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold font-bold shadow-lg shadow-blue-950/60 cursor-pointer flex items-center gap-1.5"
+                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-sm cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap"
                 >
                   <Check className="w-4 h-4" />
                   <span>Lưu Trạng Thái & Gửi Thông Báo Kết Quả</span>
@@ -3268,39 +3769,44 @@ export default function AdminPortal({
         </div>
       )}
 
-      {/* ======================= MODAL XEM LỊCH SỬ CHAT GỐC (UNMASKED) (UI-ADM-REP-03 - 3.9.2) ======================= */}
+      {/* ======================= MODAL XEM LỊCH SỬ CHAT GỐC ======================= */}
       {ticketChatHistory && (
-        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full h-[80vh] flex flex-col shadow-2xl overflow-hidden">
-            <div className="p-5 sm:p-6 bg-slate-50/90 border-b border-slate-200 flex items-center justify-between">
+            <div className="p-5 sm:p-6 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
               <div>
-                <h3 className="text-xs font-bold text-white uppercase">
-                  Bằng Chứng: Lịch Sử Chat Gốc Nguyên Bản (Unmasked)
+                <h3 className="text-sm font-black text-slate-900 uppercase">
+                  Bằng Chứng: Lịch Sử Chat Gốc Nguyên Bản
                 </h3>
-                <p className="text-xs text-sky-400">Trích xuất tin nhắn trực tiếp không bị che dấu ***</p>
+                <p className="text-xs text-blue-700 font-semibold mt-0.5">Trích xuất tin nhắn trực tiếp từ cơ sở dữ liệu hệ thống</p>
               </div>
               <button 
                 type="button" 
                 onClick={() => setTicketChatHistory(null)} 
-                className="text-slate-600 hover:text-white"
+                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50">
-              {ticketChatHistory.map((m, idx) => (
-                <div key={idx} className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs space-y-1">
+              {ticketChatHistory.length === 0 ? (
+                <div className="p-10 text-center text-xs sm:text-sm text-slate-600">
+                  Chưa ghi nhận lịch sử tin nhắn liên quan đến phiếu báo cáo này.
+                </div>
+              ) : ticketChatHistory.map((m, idx) => (
+                <div key={idx} className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs sm:text-sm space-y-1 shadow-xs">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-sky-400">{m.sender || m.sender_name}</span>
+                    <span className="font-bold text-blue-700">{m.sender || m.sender_name}</span>
                     <span className="text-xs text-slate-500 font-mono">{m.created_at}</span>
                   </div>
-                  <p className={`text-slate-200 ${m.is_banned_keyword ? 'text-red-400 font-bold bg-red-950/40 p-2 rounded' : ''}`}>
+                  <p className={`text-slate-900 ${m.is_banned_keyword ? 'text-rose-800 font-bold bg-rose-50 border border-rose-200 p-2 rounded-lg' : ''}`}>
                     {m.content}
                   </p>
                   {m.is_banned_keyword && (
-                    <span className="text-xs text-red-300 font-bold">
-                      ⚠️ Phát hiện từ cấm vi phạm: "{m.content}"
+                    <span className="text-xs text-rose-700 font-bold flex items-center gap-1 mt-1">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      <span>Phát hiện từ cấm vi phạm: "{m.content}"</span>
                     </span>
                   )}
                 </div>
@@ -3310,32 +3816,32 @@ export default function AdminPortal({
         </div>
       )}
 
-      {/* ======================= MODAL KHÓA USER (FR 3.4.5) ======================= */}
+      {/* ======================= MODAL KHÓA USER ======================= */}
       {banModalUser && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white border border-red-200 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white border border-rose-200 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2 text-red-400">
+              <div className="flex items-center gap-2 text-rose-600">
                 <Lock className="w-5 h-5" />
-                <h3 className="text-sm font-black text-white">Khóa Tài Khoản Người Dùng</h3>
+                <h3 className="text-base font-black text-slate-900">Khóa Tài Khoản Người Dùng</h3>
               </div>
               <button 
                 type="button" 
                 onClick={() => setBanModalUser(null)} 
-                className="text-slate-600 hover:text-white"
+                className="p-1 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-700">
-              Khóa tài khoản: <strong className="text-white">{banModalUser.email}</strong>
+            <p className="text-xs sm:text-sm text-slate-700">
+              Khóa tài khoản: <strong className="text-slate-900">{banModalUser.email}</strong>
             </p>
 
             <form onSubmit={handleBanUserSubmit} className="space-y-3">
               <div>
-                <label className="block text-sm sm:text-base font-bold text-slate-800 mb-1">
-                  Nhập lý do khóa tài khoản (is_banned) *
+                <label className="block text-sm font-bold text-slate-800 mb-1">
+                  Nhập lý do khóa tài khoản *
                 </label>
                 <textarea
                   required
@@ -3343,7 +3849,7 @@ export default function AdminPortal({
                   value={banReason}
                   onChange={(e) => setBanReason(e.target.value)}
                   placeholder="Vi phạm quy định bảo mật hoặc bị báo cáo lừa đảo..."
-                  className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs text-white outline-none focus:border-red-500"
+                  className="w-full bg-white border border-slate-300 rounded-xl p-3 text-sm text-slate-900 outline-none focus:border-rose-500"
                 />
               </div>
 
@@ -3351,13 +3857,13 @@ export default function AdminPortal({
                 <button
                   type="button"
                   onClick={() => setBanModalUser(null)}
-                  className="px-4 py-2 text-xs text-slate-600 hover:text-white"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-md cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm cursor-pointer"
                 >
                   Xác Nhận Khóa
                 </button>
@@ -3367,32 +3873,32 @@ export default function AdminPortal({
         </div>
       )}
 
-      {/* ======================= MODAL ẨN TIN TUYỂN DỤNG (FR 3.5.5) ======================= */}
+      {/* ======================= MODAL ẨN TIN TUYỂN DỤNG ======================= */}
       {hideJobModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white border border-red-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white border border-rose-200 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2 text-amber-400">
+              <div className="flex items-center gap-2 text-amber-600">
                 <EyeOff className="w-5 h-5" />
-                <h3 className="text-sm font-black text-white">Ẩn Tin Tuyển Dụng Vi Phạm</h3>
+                <h3 className="text-base font-black text-slate-900">Ẩn Tin Tuyển Dụng Vi Phạm</h3>
               </div>
               <button 
                 type="button" 
                 onClick={() => setHideJobModal(null)} 
-                className="text-slate-600 hover:text-white"
+                className="p-1 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-700">
-              Công việc: <strong className="text-white">{hideJobModal.title}</strong>
+            <p className="text-xs sm:text-sm text-slate-700">
+              Công việc: <strong className="text-slate-900">{hideJobModal.title}</strong>
             </p>
 
             <form onSubmit={handleHideJobSubmit} className="space-y-3">
               <div>
-                <label className="block text-sm sm:text-base font-bold text-slate-800 mb-1">
-                  Nhập lý do ẩn tin (tin sẽ bị tự động rút khỏi trang tìm kiếm của Sinh viên) *
+                <label className="block text-sm font-bold text-slate-800 mb-1">
+                  Nhập lý do ẩn tin (tin sẽ tự động rút khỏi trang tìm kiếm của Sinh viên) *
                 </label>
                 <textarea
                   required
@@ -3400,7 +3906,7 @@ export default function AdminPortal({
                   value={hideReason}
                   onChange={(e) => setHideReason(e.target.value)}
                   placeholder="Tin đăng có dấu hiệu thu phí cọc..."
-                  className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs text-white outline-none focus:border-red-500"
+                  className="w-full bg-white border border-slate-300 rounded-xl p-3 text-sm text-slate-900 outline-none focus:border-rose-500"
                 />
               </div>
 
@@ -3408,13 +3914,13 @@ export default function AdminPortal({
                 <button
                   type="button"
                   onClick={() => setHideJobModal(null)}
-                  className="px-4 py-2 text-xs text-slate-600 hover:text-white"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow-md cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm cursor-pointer"
                 >
                   Xác Nhận Ẩn Tin
                 </button>

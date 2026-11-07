@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import BrandLogo from '../../shared/BrandLogo';
 import { 
-  ShieldCheck, Lock, Mail, Eye, EyeOff, Sparkles, ArrowRight, 
+  ShieldCheck, Lock, Mail, Eye, EyeOff, ArrowRight, 
   CheckCircle2, AlertCircle, KeyRound, Server, ChevronLeft
 } from 'lucide-react';
 
@@ -120,35 +120,23 @@ export default function AdminLoginScreen({ onAuthSuccess, onNavigate }) {
     }
   };
 
-  const handleFillDemo = () => {
-    setEmail('lethithuyngan985@gmail.com');
-    setPassword('Le090805!');
-    setSecurityCode('999888');
-    setErrorMsg('');
-  };
-
   return (
     <div className="min-h-screen bg-canvas-dimension text-slate-900 font-sans selection:bg-blue-600 selection:text-white flex flex-col justify-center items-center p-4 relative">
-      
-      {/* Back to public site button */}
-      <div className="absolute top-6 left-6">
-        <button
-          onClick={() => {
-            if (window.history && window.history.pushState) window.history.pushState({}, '', '/');
-            onNavigate('landing', 'student');
-          }}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/80 hover:bg-white text-xs font-semibold text-slate-700 shadow-sm border border-slate-200 transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          <span>Về trang chủ Sinh viên</span>
-        </button>
-      </div>
-
       <div className="w-full max-w-xl">
         
-        {/* Brand Header */}
+        {/* Brand Header - Bấm vào logo để quay lại trang xem chế độ khách */}
         <div className="flex flex-col items-center mb-6">
-          <BrandLogo size="lg" />
+          <button
+            type="button"
+            onClick={() => {
+              if (window.history && window.history.pushState) window.history.pushState({}, '', '/student');
+              if (onNavigate) onNavigate('landing', 'student');
+            }}
+            className="cursor-pointer hover:opacity-90 transition-opacity focus:outline-none"
+            title="Nhấn vào logo để quay lại trang xem chế độ khách"
+          >
+            <BrandLogo size="lg" />
+          </button>
           <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 border border-blue-200 text-blue-800 text-xs font-bold shadow-sm">
             <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
             <span>CỔNG QUẢN TRỊ VIÊN HỆ THỐNG</span>

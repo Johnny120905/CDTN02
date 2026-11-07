@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import BrandLogo from '../../shared/BrandLogo';
 import { 
-  User, Lock, Mail, Eye, EyeOff, Sparkles, ArrowRight, ArrowLeft, 
+  User, Lock, Mail, Eye, EyeOff, ArrowRight, ArrowLeft, 
   ShieldCheck, CheckCircle2, AlertCircle, ChevronRight, Check, ChevronLeft,
   Briefcase, GraduationCap
 } from 'lucide-react';
@@ -141,7 +141,7 @@ export default function LoginScreen({ onAuthSuccess, onNavigate, initialRole, lo
             }
           };
         }
-        if (role === 'student' && (cleanEmail === 'vuthelong1009@gmail.com' || cleanEmail === 'vuthelong@vlu.edu.vn') && cleanPassword === 'Long123!') {
+        if (role === 'student' && cleanEmail === 'vuthelong1009@gmail.com' && cleanPassword === 'Long123!') {
           return {
             id: 'user_student_long',
             email: cleanEmail,
@@ -171,7 +171,7 @@ export default function LoginScreen({ onAuthSuccess, onNavigate, initialRole, lo
       setErrorMsg(data.message || 'Email hoặc mật khẩu không chính xác.');
     } catch (err) {
       // Local fallback
-      if (role === 'student' && (cleanEmail === 'vuthelong1009@gmail.com' || cleanEmail === 'vuthelong@vlu.edu.vn') && cleanPassword === 'Long123!') {
+      if (role === 'student' && cleanEmail === 'vuthelong1009@gmail.com' && cleanPassword === 'Long123!') {
         const stu = {
           id: 'user_student_long',
           email: cleanEmail,
@@ -207,43 +207,24 @@ export default function LoginScreen({ onAuthSuccess, onNavigate, initialRole, lo
     }
   };
 
-  const handleFillDemoStudent = () => {
-    setRole('student');
-    setEmail('vuthelong1009@gmail.com');
-    setPassword('Long123!');
-    setErrorMsg('');
-  };
-
-  const handleFillDemoEmployer = () => {
-    setRole('employer');
-    setEmail('huynhnguyenbaongoc2k5@gmail.com');
-    setPassword('Huynh120905!');
-    setErrorMsg('');
-  };
-
   return (
     <div className="min-h-screen bg-canvas-dimension text-slate-900 font-sans selection:bg-blue-600 selection:text-white flex flex-col justify-center items-center p-4 relative">
-      
-      {/* Top back button */}
-      <div className="absolute top-6 left-6">
-        <button
-          onClick={() => {
-            const landingPath = role === 'employer' ? '/employer' : '/student';
-            if (window.history && window.history.pushState) window.history.pushState({}, '', landingPath);
-            onNavigate('landing', role);
-          }}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/90 hover:bg-white text-xs font-semibold text-slate-700 shadow-sm border border-slate-200 transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          <span>Về trang chủ {role === 'employer' ? 'Nhà tuyển dụng' : 'Sinh viên'}</span>
-        </button>
-      </div>
-
       <div className="w-full max-w-xl">
         
-        {/* Brand Header */}
+        {/* Brand Header - Bấm vào logo để quay lại trang xem chế độ khách */}
         <div className="flex flex-col items-center mb-6">
-          <BrandLogo size="lg" />
+          <button
+            type="button"
+            onClick={() => {
+              const landingPath = role === 'employer' ? '/employer' : '/student';
+              if (window.history && window.history.pushState) window.history.pushState({}, '', landingPath);
+              onNavigate('landing', role);
+            }}
+            className="cursor-pointer hover:opacity-90 transition-opacity focus:outline-none"
+            title="Nhấn vào logo để quay lại trang xem chế độ khách"
+          >
+            <BrandLogo size="lg" />
+          </button>
         </div>
 
         {/* Card */}
@@ -261,7 +242,8 @@ export default function LoginScreen({ onAuthSuccess, onNavigate, initialRole, lo
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <span>🎓 Sinh Viên</span>
+                <GraduationCap className="w-4 h-4" />
+                <span>Sinh Viên</span>
               </button>
               <button
                 type="button"
@@ -272,7 +254,8 @@ export default function LoginScreen({ onAuthSuccess, onNavigate, initialRole, lo
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <span>💼 Doanh Nghiệp</span>
+                <Briefcase className="w-4 h-4" />
+                <span>Doanh Nghiệp</span>
               </button>
             </div>
           ) : (

@@ -831,3 +831,162 @@ un.py.
   - Build Frontend: `npm run build` đạt `✓ built in 5.05s`, tạo đầy đủ bundle `dist/index.html`.
   - Kiểm thử Backend: `server.py` khởi chạy thành công, kết nối an toàn với MongoDB Atlas `CDTN02_DB` và hỗ trợ fallback lưu trữ linh hoạt.
   - Kiểm thử Hợp nhất: Lệnh `python run.py` và click `run.bat` tự động phục vụ trọn vẹn cả giao diện Web 3D lẫn API trên cùng một địa chỉ `http://localhost:8002`.
+
+---
+
+### Giai Đoạn 25: Chuyển Đổi Sang Bảng Màu 8 Cột Digital Light Dimension (Chống Mỏi Mắt)
+*Thời gian: 05/11/2026 - 06/11/2026*  
+*Người thực hiện: Vũ Thế Long, Huỳnh Nguyễn Bảo Ngọc, Lê Thị Thuỳ Ngân*
+
+- **Mục tiêu & Động lực:**  
+  Chuyển dịch nhận diện thị giác sang phong cách **Digital Light Dimension** hiện đại với bảng màu 8 cột quang phổ chuẩn (8 Columns Matrix), tối ưu công thái học chống mỏi mắt (Anti-fatigue) khi làm việc lâu, đồng thời giữ nguyên vẹn điểm nhấn xanh công nghệ 3D (Electric Blue / Navy).
+
+- **Chi tiết bảng màu 8 cột chuẩn hóa:**
+  1. **Cột 1 - Nền Canvas Toàn Trang (Background):** Phối thức Pha Trắng Ánh Xanh `linear-gradient(135deg, #FAF8FF 0%, #F0F7FF 50%, #E2E7FF 100%)`. Khuếch tán ánh sáng mềm mại, bảo vệ thị lực.
+  2. **Cột 2 - Section Phụ / Thẻ Card:** Phối thức Pha Xanh Kính Mờ `linear-gradient(180deg, #EFF6FF 0%, #E2E7FF 55%, #DBE1FF 100%)` kết hợp `backdrop-blur-md`. Tiêu đề bên trong dùng màu đen mực `#0F172A`.
+  3. **Cột 3 - Tiêu Đề Chính & Slogan (Heading):** H1-H3 dùng đơn sắc `#0F172A`; Banner/Slogan 3D dùng gradient Đen Mực Pha Navy Ánh Kim `linear-gradient(90deg, #0F172A 0%, #1E3A8A 60%, #2563EB 100%)` với `bg-clip-text`.
+  4. **Cột 4 - Nội Dung Văn Bản (Text Hierarchy):** Phân cấp 3 bậc solid colors: Dòng chính `#1E293B`, mô tả phụ/JD `#334155`, nhãn metadata/timestamp `#475569`. Tuyệt đối không dùng gradient cho chữ nhỏ.
+  5. **Cột 5 - Nút Bấm Chính 3D (Button Background):** Phối thức Pha Xanh Logo 3D `linear-gradient(135deg, #38BDF8 0%, #2563EB 50%, #1D4ED8 100%)` khớp 100% với màu khối mô hình Logo 3D WebGL GLTF (`/meshy-3d-logo.glb`).
+  6. **Cột 6 - Nút Bấm / Tương Tác Hover:** Pha Navy Nhấn Sâu `linear-gradient(135deg, #2563EB 0%, #1D4ED8 60%, #003EA8 100%)` kết hợp đổ bóng phát quang `box-shadow: 0 8px 24px rgba(56, 189, 248, 0.45)`.
+  7. **Cột 7 - Chữ Nút & Ô Nhập Liệu (Input & Button Text):** Chữ trên nút dùng Trắng Tinh Khiết 100% `#FFFFFF`; ô input dùng nền trắng sáng `#FFFFFF` / `#F8FAFC` với viền xám dịu `#CBD5E1`.
+  8. **Cột 8 - Đường Viền & Trạng Thái (Stroke & State):** Viền kính mờ `#BFDBFE` / `#93C5FD`, viền chia tách `#E2E8F0`; chuẩn hóa 3 màu nghiệp vụ: Thành công `#10B981`, Cảnh báo/Chờ `#F59E0B`, Nguy hiểm/Khóa/Từ chối `#EF4444`.
+
+- **Danh sách file thêm mới / chỉnh sửa:**
+  - `frontend/src/features/student/StudentPortal.jsx`
+  - `frontend/src/features/employer/EmployerPortal.jsx`
+  - `frontend/src/features/admin/AdminPortal.jsx`
+  - `frontend/src/features/auth/LoginScreen.jsx`
+  - `frontend/src/features/auth/RegisterScreen.jsx`
+  - `frontend/src/features/auth/ForgotPasswordScreen.jsx`
+  - `frontend/src/features/landing/PublicLandingPage.jsx`
+
+---
+
+### Giai Đoạn 26: Chuẩn Hóa Chế Độ Xem Trước Khách (Guest Preview Mode) Cho Cả 3 Phân Hệ
+*Thời gian: 06/11/2026*  
+*Người thực hiện: Vũ Thế Long, Huỳnh Nguyễn Bảo Ngọc*
+
+- **Mục tiêu & Yêu cầu:**  
+  1. Bảo vệ toàn diện dữ liệu cá nhân của người dùng: Khi khách vãng lai chưa đăng nhập hoặc chưa đăng ký tài khoản, giao diện phân hệ Sinh viên và Nhà tuyển dụng hoạt động ở **Chế độ khách (Guest Preview Mode)**.
+  2. Tuyệt đối không hiển thị số liệu cá nhân, thông tin doanh nghiệp cụ thể, GPKD thực tế, CV cá nhân hay tin nhắn riêng tư ở chế độ khách. Thay vào đó, hiển thị khung mẫu lưới (Skeleton Grid / Placeholder Preview) kèm thông báo rõ ràng: *"Chế độ khách - Chưa đăng nhập tài khoản. Đăng nhập hoặc đăng ký tài khoản để cập nhật hồ sơ chính thức"*.
+  3. Khi người dùng thực hiện Đăng ký hoặc Đăng nhập thành công, hệ thống mở khóa toàn diện tài khoản, liên kết số liệu thật từ CSDL và cung cấp đầy đủ chức năng quản trị.
+  4. Loại bỏ hoàn toàn các nút "Quay lại trang chủ" / "Quay lại trang" trong Admin Dashboard và các trang xác thực (Đăng nhập, Đăng ký, Quên mật khẩu). Chuẩn hóa cơ chế quay lại trang: Người dùng click vào Logo thương hiệu `PARTIME.VN` để chuyển mượt mà về chế độ khách / trang chủ.
+
+- **Danh sách file chỉnh sửa:**
+  - `frontend/src/features/employer/EmployerPortal.jsx`
+  - `frontend/src/features/student/StudentPortal.jsx`
+  - `frontend/src/features/admin/AdminPortal.jsx`
+  - `frontend/src/features/auth/LoginScreen.jsx`
+  - `frontend/src/features/auth/RegisterScreen.jsx`
+  - `frontend/src/features/auth/ForgotPasswordScreen.jsx`
+
+---
+
+### Giai Đoạn 27: Triệt Tiêu Hiện Tượng Giật Rung & Lỗi Màu Chữ Biểu Đồ Dashboard
+*Thời gian: 06/11/2026*  
+*Người thực hiện: Lê Thị Thuỳ Ngân*
+
+- **Mục tiêu & Kết quả xử lý:**  
+  1. **Khắc phục Line Chart giật mạnh khi rê chuột:** Cố định chiều cao và chiều rộng của thẻ bọc biểu đồ (`min-h-[280px]` và `w-full overflow-hidden`), áp dụng cơ chế throttling cho sự kiện mouse hover và tối ưu re-render, loại bỏ triệt để hiện tượng giật rung trang web khi xem chi tiết biến động.
+  2. **Khắc phục lỗi màu chữ Pie Chart / Donut Chart:** Xử lý hiện tượng hover làm chữ biến thành màu trắng trên nền sáng gây mất nội dung. Thiết lập màu chữ cố định đen mực `#0F172A` với độ tương phản cao, phủ lớp nền tooltip đặc `#FFFFFF` có viền `#E2E8F0` và đổ bóng rõ nét, đảm bảo đọc rõ 100% dữ liệu tỷ lệ ngành nghề.
+  3. **Xử lý triệt để lỗi màn hình trắng / Error Boundary:** Khắc phục lỗi `Đã xảy ra sự cố hiển thị` bằng việc bổ sung kiểm tra nullish an toàn (`?.`) cho các mảng dữ liệu thống kê, phòng vệ trước tình huống CSDL chưa có dữ liệu ở một số mốc thời gian.
+
+- **Danh sách file chỉnh sửa:**
+  - `frontend/src/features/admin/AdminPortal.jsx`
+  - `frontend/src/components/common/ErrorBoundary.jsx`
+
+---
+
+### Giai Đoạn 28: Thiết Lập Cơ Chế Xóa Vĩnh Viễn (Cascade Delete) Đồng Bộ 3 Phân Hệ & Dọn Dẹp Tài Khoản Rác
+*Thời gian: 06/11/2026 - 07/11/2026*  
+*Người thực hiện: Vũ Thế Long, Huỳnh Nguyễn Bảo Ngọc, Lê Thị Thuỳ Ngân*
+
+- **Mục tiêu & Kết quả xử lý:**  
+  1. **Cơ chế Xóa Vĩnh Viễn Đồng Bộ (Cascade Delete Persistence):** Mọi thao tác Thêm, Sửa, Xóa, Lọc của người dùng ở cả 3 phân hệ (Sinh viên, Nhà tuyển dụng, Quản trị viên) được gửi trực tiếp xuống Backend API và CSDL MongoDB. Khi xác nhận xóa, hệ thống lập tức hiển thị thông báo "Xóa thành công", xóa bản ghi vĩnh viễn khỏi CSDL và cập nhật state. Khi người dùng F5 hoặc đăng xuất đăng nhập lại, dữ liệu đã xóa tuyệt đối không xuất hiện trở lại.
+  2. **Xóa vĩnh viễn tài khoản rác theo yêu cầu:**
+     - Xóa hoàn toàn tài khoản `eadeedc@gmail.com` (User ID: `user_student_486c9bf4`, Sinh viên trường Đại học Mở TP.HCM - OU).
+     - Kích hoạt xóa lan truyền (Cascade Delete) toàn bộ hồ sơ `student_profiles`, đơn ứng tuyển trong `applications`, bookmarks, CV đính kèm và tin nhắn liên quan trong CSDL MongoDB Atlas `CDTN02_DB` và Local Storage.
+  3. **Làm sạch số liệu và loại bỏ mã kỹ thuật thô:**
+     - Loại bỏ các tài khoản giả lập không có định dạng `@gmail.com` thực tế.
+     - Lọc bỏ 100% các chuỗi mã kỹ thuật thô khỏi giao diện người dùng như `1.5.6`, `1.5.7`, `2.3.1`, `3.6.1`, `BR-NTD-05`, `FR 2.4.7`... Đảm bảo trải nghiệm chuyên nghiệp, thân thiện.
+
+- **Danh sách file chỉnh sửa:**
+  - `backend/src/api/admin/admin_routes.py`
+  - `backend/src/services/admin_service.py`
+  - `backend/src/repositories/user_repo.py`
+  - `frontend/src/features/admin/AdminPortal.jsx`
+  - `frontend/src/features/student/StudentPortal.jsx`
+  - `frontend/src/features/employer/EmployerPortal.jsx`
+
+---
+
+### Giai Đoạn 29: Tối Ưu Hóa Bộ Lọc Thời Gian Analytics Dashboard Quản Trị Viên
+*Thời gian: 07/11/2026*  
+*Người thực hiện: Lê Thị Thuỳ Ngân*
+
+- **Mục tiêu & Kết quả xử lý:**  
+  1. **Đơn giản hóa bộ lọc thời gian trực quan theo đúng logic quản trị:**
+     - Dòng 1 gồm 2 cột đối xứng:
+       - Cột 1: `1. Chọn Năm` (Dropdown cho phép chọn năm 2024, 2025, 2026).
+       - Cột 2: `2. Chọn Tháng (trong năm đã chọn)` (Dropdown chọn từ Tháng 1 đến Tháng 12).
+     - Dòng 2 chứa bộ chọn khoảng ngày:
+       - `Từ ngày: [dd/mm/yyyy]` và `Đến ngày: [dd/mm/yyyy]` (Input date native dễ sử dụng, cho phép kiểm tra từ ngày bất kỳ đến ngày bất kỳ hoặc 1 ngày duy nhất).
+  2. **Loại bỏ thành phần thừa gây rối:**
+     - Loại bỏ hoàn toàn dropdown trung gian chọn phạm vi (`Từ ngày ... đến ngày ... (Theo tuần / khoảng ngày)`).
+     - Loại bỏ hoàn toàn 4 nút chọn nhanh tuần (`Tuần 1 (01-07)`, `Tuần 2 (08-14)`, `Tuần 3 (15-21)`, `Tuần 4 (22-31)`).
+  3. Tự động tính toán lại toàn bộ chỉ số KPI (Sinh viên, Doanh nghiệp, Tin tuyển dụng, Đơn ứng tuyển), biểu đồ Bar Chart tuần, Line Chart xu hướng và Donut Chart phân bố ngành nghề ngay khi người dùng thay đổi Năm, Tháng hoặc Khoảng ngày.
+
+- **Danh sách file chỉnh sửa:**
+  - `frontend/src/features/admin/AdminPortal.jsx`
+
+---
+
+### Giai Đoạn 30: Module Dữ Liệu Thống Kê Lịch Sử 2024-2025 & Cam Kết 2026 100% CSDL Thực Tế
+*Thời gian: 07/11/2026*  
+*Người thực hiện: Lê Thị Thuỳ Ngân*
+
+- **Mục tiêu & Cơ chế triển khai:**  
+  1. **Module Dữ liệu Lịch sử (`historicalAnalyticsData.js`):** Xây dựng module dữ liệu thống kê lịch sử chuẩn hóa cho 24 tháng thuộc giai đoạn 2024 và 2025. Dữ liệu mô tả sự tăng trưởng ổn định theo từng tháng và từng tuần về số lượng việc làm, lượt sinh viên và tỷ lệ duyệt đơn, hỗ trợ công tác phân tích xu hướng dài hạn của ban quản trị.
+  2. **Cam kết 100% CSDL Thực Tế cho Năm 2026:**
+     - Khi bộ lọc chọn năm **2026**, hệ thống lập tức ngắt bỏ toàn bộ dữ liệu mẫu, truy vấn 100% số liệu thực tế được đồng bộ trực tuyến từ cơ sở dữ liệu MongoDB Atlas (`users`, `jobs`, `applications`).
+     - Tuyệt đối không sử dụng dữ liệu ảo, giả định cho năm 2026. Số liệu hiển thị phản ánh chân thực số lượng sinh viên thật, doanh nghiệp thật, tin đăng và đơn ứng tuyển đang tồn tại trong hệ thống.
+
+- **Danh sách file thêm mới / chỉnh sửa:**
+  - `frontend/src/features/admin/historicalAnalyticsData.js` (Thêm mới)
+  - `frontend/src/features/admin/AdminPortal.jsx`
+
+---
+
+### Giai Đoạn 31: Rà Soát Triệt Để & Loại Bỏ 100% Emoji & AI Decorative Icons
+*Thời gian: 07/11/2026*  
+*Người thực hiện: Vũ Thế Long, Huỳnh Nguyễn Bảo Ngọc, Lê Thị Thuỳ Ngân*
+
+- **Mục tiêu & Kết quả xử lý:**  
+  1. **Bài trừ toàn bộ Emoji & AI Decorative Icons vô nghĩa:**
+     - Loại bỏ triệt để 100% các ký tự emoji rải rác trên giao diện như: `☕`, `🛒`, `📚`, `📦`, `💻`, `🎪`, `🎉`, `✓`, `✕`, `🟢`, `⚪`, `🟡`, `🔴`, `⏳`, `⭐`, `💡`, `📞`, `⚠️`...
+     - Loại bỏ các icon trang trí do AI tự tạo vô nghĩa như `<Sparkles />`, `<Zap />`, `<Coffee />`.
+     - Chuẩn hóa 100% hệ thống icon sang các vector icon ngữ nghĩa chuẩn từ thư viện chuyên nghiệp **`lucide-react`** (`Briefcase`, `GraduationCap`, `Building2`, `Users`, `FileText`, `CheckCircle2`, `XCircle`, `AlertCircle`, `Calendar`, `Clock`, `ArrowRight`, `Search`, `Filter`, `Trash2`, `Edit3`...).
+  2. **Loại bỏ tên màu sắc thô trong nút bấm:**
+     - Loại bỏ từ ngữ màu sắc thô (`Xanh`, `Đỏ`, `Tím`, `Vàng`) trong tên các nút bấm (ví dụ: Nút "Phê duyệt" chỉ cần để nền xanh là người dùng hiểu, không ghi "Phê duyệt (Xanh)").
+  3. **Đồng bộ Sidebar & Tối ưu Responsive Đa Thiết Bị:**
+     - Thêm nút mũi tên toggle thu gọn / mở rộng Sidebar tiện lợi.
+     - Đồng bộ khung badge số liệu nhỏ gọn, đồng nhất vị trí trên cả 3 role, khớp chuẩn xác với nội dung bên trong maincontent.
+     - Xử lý triệt để hiện tượng gãy chữ xuống dòng, tối ưu bố cục tự thích ứng (Responsive Layout) trên Mobile, iPad, Laptop và PC, ngay cả khi thu nhỏ cửa sổ hoặc chia đôi màn hình (half-screen).
+
+- **Danh sách file chỉnh sửa:**
+  - `frontend/src/features/student/StudentPortal.jsx`
+  - `frontend/src/features/employer/EmployerPortal.jsx`
+  - `frontend/src/features/admin/AdminPortal.jsx`
+  - `frontend/src/features/auth/LoginScreen.jsx`
+  - `frontend/src/features/auth/RegisterScreen.jsx`
+  - `frontend/src/features/auth/AuthModal.jsx`
+  - `frontend/src/features/auth/ForgotPasswordScreen.jsx`
+  - `frontend/src/features/landing/HeroLanding.jsx`
+  - `frontend/src/features/landing/PublicLandingPage.jsx`
+  - `backend/src/api/common/common_routes.py`
+  - `backend/src/services/email_service.py`
+
+- **Kết quả nghiệm thu tổng thể:**
+  - Tự động quét kiểm tra: **0 Emoji** và **0 AI decorative icons** trên toàn bộ mã nguồn Frontend và Backend.
+  - Kiểm thử Backend: `python -m unittest discover -s ./test` đạt **9/9 tests pass (100%)**.
+  - Kiểm thử Frontend Build: `npm run build` hoàn thành với **0 lỗi, 0 cảnh báo**, bundle `dist/` sẵn sàng triển khai trên cổng `http://localhost:8002`.

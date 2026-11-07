@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import HeroLogo3D from '../canvas3d/HeroLogo3D';
 import { 
   Search, MapPin, DollarSign, Clock, CheckCircle2, Bookmark, 
-  Sparkles, ArrowRight, ShieldCheck, Zap, Users, GraduationCap, Briefcase 
+  ArrowRight, ShieldCheck, Users, GraduationCap, Briefcase 
 } from 'lucide-react';
 
 export default function HeroLanding({ onOpenAuth, onSelectRole }) {
@@ -33,7 +33,7 @@ export default function HeroLanding({ onOpenAuth, onSelectRole }) {
             {/* Left Content (7 Cols) */}
             <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold shadow-sm">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                 <span>Nền tảng việc làm Part-time #1 Sinh viên Việt Nam</span>
               </div>
 

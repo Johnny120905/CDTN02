@@ -3,7 +3,7 @@ import BrandLogo from './BrandLogo';
 import HeroLogo3D from '../canvas3d/HeroLogo3D';
 import { 
   Search, MapPin, DollarSign, Clock, CheckCircle2, Bookmark, 
-  Sparkles, ArrowRight, ShieldCheck, Zap, Users, GraduationCap, 
+  ArrowRight, ShieldCheck, Users, GraduationCap, 
   Briefcase, Eye, ChevronRight, Building, Award, Star, Phone, 
   Mail, FileText, Check, X, ArrowUpRight, Filter, AlertCircle
 } from 'lucide-react';
@@ -258,7 +258,7 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
               {/* Audience Specific Pill Tag */}
               {audienceMode === 'candidate' ? (
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-950/80 border border-blue-500/30 text-blue-300 text-xs font-bold shadow-lg">
-                  <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
                   <span>Nền tảng việc làm Part-time #1 dành cho Sinh viên</span>
                 </div>
               ) : (
@@ -365,7 +365,7 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
                       onClick={handlePostJobClick}
                       className="flex-1 py-3 px-6 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold text-sm rounded-2xl shadow-xl shadow-amber-950/50 flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5 cursor-pointer"
                     >
-                      <Zap className="w-4 h-4" />
+                      <Briefcase className="w-4 h-4" />
                       <span>Đăng Tin Tuyển Dụng Ngay</span>
                     </button>
                     <button
@@ -474,11 +474,11 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
         <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-none text-xs">
           {[
             { id: 'all', label: 'Tất cả ngành nghề' },
-            { id: 'F&B', label: '☕ F&B / Pha chế / Phục vụ' },
-            { id: 'Bán lẻ', label: '🛒 Bán lẻ / Thu ngân' },
-            { id: 'Gia sư', label: '📚 Gia sư / Giáo dục' },
-            { id: 'Công nghệ', label: '💻 Công nghệ thông tin' },
-            { id: 'Văn phòng', label: '📝 Văn phòng / Marketing' }
+            { id: 'F&B', label: 'F&B / Pha chế / Phục vụ' },
+            { id: 'Bán lẻ', label: 'Bán lẻ / Thu ngân' },
+            { id: 'Gia sư', label: 'Gia sư / Giáo dục' },
+            { id: 'Công nghệ', label: 'Công nghệ thông tin' },
+            { id: 'Văn phòng', label: 'Văn phòng / Marketing' }
           ].map((cat) => (
             <button
               key={cat.id}
@@ -587,7 +587,7 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
-              <Zap className="w-6 h-6 text-amber-400 mb-2" />
+              <Clock className="w-6 h-6 text-amber-400 mb-2" />
               <h4 className="text-sm font-bold text-slate-200 mb-1">Đăng tin 60 giây</h4>
               <p className="text-xs text-slate-400">Thiết lập mức lương theo giờ và khung ca làm việc dễ dàng.</p>
             </div>
@@ -703,9 +703,6 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
             <p className="text-slate-500 leading-relaxed">
               PARTIME.VN là nền tảng kết nối việc làm bán thời gian thông minh dành cho sinh viên Việt Nam, giải quyết bài toán lịch học và việc làm minh bạch.
             </p>
-            <p className="text-xs text-slate-600">
-              Đề tài Chuyên đề tốt nghiệp 2 (CDTN02) - ĐH Văn Lang.
-            </p>
           </div>
 
           <div>
@@ -740,7 +737,7 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 mt-8 border-t border-slate-900 text-center text-slate-600">
-          © 2026 PARTIME.VN - Tất cả quyền được bảo lưu. Phát triển bởi nhóm sinh viên CDTN02.
+          © 2026 PARTIME.VN - Tất cả quyền được bảo lưu.
         </div>
       </footer>
 

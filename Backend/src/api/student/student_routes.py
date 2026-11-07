@@ -1,3 +1,4 @@
+import os
 import time
 import uuid
 from flask import Blueprint, request, jsonify
@@ -43,10 +44,16 @@ def update_profile():
         "university": data.get("university", stu.get("university")),
         "major": data.get("major", stu.get("major"))
     }
+    for extra_key in ["free_schedule", "skills", "address", "bio", "avatar_url"]:
+        if extra_key in data:
+            update_fields[extra_key] = data[extra_key]
+
     db_manager.get_collection("student_profiles").update_one(
         {"_id": stu["_id"]},
         {"$set": update_fields}
     )
+    if "full_name" in data:
+        db_manager.get_collection("users").update_one({"_id": user["_id"]}, {"$set": {"full_name": data["full_name"]}})
     stu.update(update_fields)
     return jsonify({"success": True, "message": "Cập nhật hồ sơ thành công!", "data": stu})
 
@@ -299,7 +306,16 @@ def list_my_applications():
     user = request.current_user
     stu = get_student_profile(user["_id"])
     app_col = db_manager.get_collection("applications")
+    job_col = db_manager.get_collection("jobs")
     apps = list(app_col.find({"student_id": stu["_id"]}).sort("applied_at", -1))
+    for a in apps:
+        job = job_col.find_one({"_id": a.get("job_id")})
+        if job:
+            a.setdefault("work_time", job.get("work_time") or job.get("shift_schedule") or "Ca linh hoạt")
+            a.setdefault("location", job.get("location") or job.get("address") or "TP. Hồ Chí Minh")
+            a.setdefault("salary_min", job.get("salary_min"))
+            a.setdefault("salary_max", job.get("salary_max"))
+            a.setdefault("is_negotiable", job.get("is_negotiable", False))
     return jsonify({"success": True, "data": apps})
 
 @student_bp.route("/applications/<app_id>/cancel", methods=["PUT"])
@@ -340,10 +356,64 @@ def cancel_application(app_id):
         if remaining_accepted == 0:
             job_col.update_one(
                 {"_id": app.get("job_id"), "status": {"$in": ["filled", "Đã nhận người"]}},
-                {"$set": {"status": "open"}}
+                {"$set": {"status": "open", "job_status": "open", "is_open": True}}
             )
 
-    return jsonify({"success": True, "message": "Đã hủy đơn ứng tuyển thành công."})
+    return jsonify({"success": True, "message": "Đã hủy đơn ứng tuyển thành công!"})
+
+@student_bp.route("/applications/<app_id>/shift-status", methods=["PUT"])
+@role_required("student")
+def update_shift_status(app_id):
+    user = request.current_user
+    stu = get_student_profile(user["_id"])
+    data = request.get_json() or {}
+    shift_status = str(data.get("shift_status", "upcoming")).strip()
+    if shift_status not in ["upcoming", "in_progress", "completed", "cancelled"]:
+        return jsonify({"success": False, "message": "Trạng thái ca làm không hợp lệ."}), 400
+
+    app_col = db_manager.get_collection("applications")
+    app = app_col.find_one({"_id": app_id, "student_id": stu["_id"]})
+    if not app:
+        return jsonify({"success": False, "message": "Không tìm thấy ca làm việc."}), 404
+
+    app_col.update_one(
+        {"_id": app_id},
+        {"$set": {"shift_status": shift_status, "shift_updated_at": time.strftime("%Y-%m-%d %H:%M:%S")}}
+    )
+    msg_map = {
+        "in_progress": "Đã nhận ca làm việc thành công!",
+        "completed": "Đã xác nhận hoàn thành ca làm việc!",
+        "cancelled": "Đã hủy ca làm việc thành công!",
+        "upcoming": "Đã cập nhật trạng thái ca làm việc!"
+    }
+    return jsonify({"success": True, "shift_status": shift_status, "message": msg_map.get(shift_status, "Đã cập nhật trạng thái ca làm!")})
+
+@student_bp.route("/applications/<app_id>", methods=["DELETE"])
+@role_required("student")
+def delete_my_application(app_id):
+    user = request.current_user
+    stu = get_student_profile(user["_id"])
+    app_col = db_manager.get_collection("applications")
+    app = app_col.find_one({"_id": app_id, "student_id": stu["_id"]})
+    if not app:
+        return jsonify({"success": False, "message": "Không tìm thấy đơn ứng tuyển cần xóa."}), 404
+
+    prev_status = app.get("application_status")
+    job_id = app.get("job_id")
+    app_col.delete_one({"_id": app_id})
+
+    if prev_status in ["accepted", "Đã duyệt"] and job_id:
+        remaining_accepted = app_col.count_documents({
+            "job_id": job_id,
+            "application_status": {"$in": ["accepted", "Đã duyệt"]}
+        })
+        if remaining_accepted == 0:
+            db_manager.get_collection("jobs").update_one(
+                {"_id": job_id, "status": {"$in": ["filled", "Đã nhận người"]}},
+                {"$set": {"status": "open", "job_status": "open", "is_open": True}}
+            )
+
+    return jsonify({"success": True, "message": "Đã xóa đơn ứng tuyển thành công!"})
 
 # 5. Reviews (FR 1.7)
 @student_bp.route("/reviews", methods=["POST"])
@@ -449,7 +519,19 @@ def update_review(rev_id):
         {"_id": rev_id},
         {"$set": {"rating": rating, "comment": comment, "updated_at": time.strftime("%Y-%m-%d %H:%M:%S")}}
     )
-    return jsonify({"success": True, "message": "Đã cập nhật nội dung đánh giá."})
+    return jsonify({"success": True, "message": "Đã cập nhật nội dung đánh giá thành công!"})
+
+@student_bp.route("/reviews/<rev_id>", methods=["DELETE"])
+@role_required("student")
+def delete_my_review(rev_id):
+    user = request.current_user
+    rev_col = db_manager.get_collection("reviews")
+    rev = rev_col.find_one({"_id": rev_id, "reviewer_id": user["_id"]})
+    if not rev:
+        return jsonify({"success": False, "message": "Không tìm thấy đánh giá cần xóa."}), 404
+
+    rev_col.delete_one({"_id": rev_id})
+    return jsonify({"success": True, "message": "Đã xóa đánh giá thành công!"})
 
 # 6. Cover Letters (FR 1.3.3, 1.3.4, 1.3.5)
 @student_bp.route("/cover-letters", methods=["GET"])
