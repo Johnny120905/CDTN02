@@ -925,7 +925,10 @@ export default function AdminPortal({
 
   // Filtered Users
   const filteredUsers = nonAdminUsers.filter(u => {
-    const emailMatch = !userSearch || u.email.toLowerCase().includes(userSearch.toLowerCase()) || (u._id && u._id.toLowerCase().includes(userSearch.toLowerCase()));
+    const sTerm = (userSearch || '').trim().toLowerCase();
+    const emailMatch = !sTerm ||
+      ((u.email || '').toLowerCase().includes(sTerm)) ||
+      ((u._id || '').toLowerCase().includes(sTerm));
     const roleMatch = !userRoleFilter || u.role === userRoleFilter;
     const statusMatch = !userStatusFilter || 
       (userStatusFilter === 'banned' && u.is_banned) || 
@@ -939,7 +942,10 @@ export default function AdminPortal({
 
   // Filtered Jobs
   const filteredJobs = jobs.filter(j => {
-    const matchSearch = !jobSearch || j.title.toLowerCase().includes(jobSearch.toLowerCase()) || (j.company_name && j.company_name.toLowerCase().includes(jobSearch.toLowerCase()));
+    const sTerm = (jobSearch || '').trim().toLowerCase();
+    const matchSearch = !sTerm ||
+      ((j.title || '').toLowerCase().includes(sTerm)) ||
+      ((j.company_name || '').toLowerCase().includes(sTerm));
     const jSt = j.job_status || j.status || (j.is_open ? 'open' : 'closed');
     let matchStatus = true;
     if (jobStatusFilter === 'open') {
@@ -990,7 +996,7 @@ export default function AdminPortal({
     { id: 'jobs', label: 'Kiểm duyệt tin tuyển dụng', icon: <Briefcase className="w-4 h-4" />, count: jobs.length },
     { id: 'keywords', label: 'Kiểm duyệt từ khoá cấm', icon: <ShieldCheck className="w-4 h-4" />, count: bannedKeywords.length },
     { id: 'reviews', label: 'Quản lý đánh giá chéo 2 chiều', icon: <Star className="w-4 h-4" />, count: reviews.length },
-    { id: 'categories', label: 'Quản trị danh mục Master Data', icon: <Tag className="w-4 h-4" />, count: categories.length },
+    { id: 'categories', label: 'Quản trị danh mục Master Data', icon: <Tag className="w-4 h-4" />, count: categories.filter(c => c.type !== 'location').length },
     { id: 'reports', label: 'Xử lý Khiếu nại & Báo cáo vi phạm', icon: <AlertTriangle className="w-4 h-4" />, count: reports.length }
   ];
 
@@ -1041,30 +1047,29 @@ export default function AdminPortal({
                   handleMenuSwitch(item.id);
                   if (mobileSidebarOpen && onToggleMobileSidebar) onToggleMobileSidebar();
                 }}
-                className={`w-full flex items-center ${collapsedDesktop ? 'justify-center px-2 py-3.5 relative' : 'justify-between px-4 py-3.5 gap-2'} rounded-2xl text-sm sm:text-base font-bold transition-all cursor-pointer text-left ${
+                className={`w-full flex items-center ${collapsedDesktop ? 'justify-center px-2 py-3' : 'justify-between px-4 py-3 gap-2'} rounded-2xl text-sm sm:text-base font-bold transition-all cursor-pointer text-left ${
                   isActive
                     ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 font-black'
                     : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100/90'
                 }`}
               >
-                <div className={`flex items-center ${collapsedDesktop ? 'justify-center' : 'gap-3 min-w-0'}`}>
+                <div className={`relative flex items-center ${collapsedDesktop ? 'justify-center' : 'gap-3 min-w-0'}`}>
                   <span className={`shrink-0 ${isActive ? 'text-white' : 'text-blue-600'}`}>{item.icon}</span>
-                  {!collapsedDesktop && <span className="leading-snug">{item.label}</span>}
-                </div>
-                {item.count !== undefined && item.count > 0 && (
-                  collapsedDesktop ? (
-                    <span className={`absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black flex items-center justify-center whitespace-nowrap ring-2 ${
+                  {collapsedDesktop && item.count !== undefined && item.count > 0 && (
+                    <span className={`absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black flex items-center justify-center whitespace-nowrap ring-2 shadow-xs ${
                       isActive ? 'bg-white text-blue-700 ring-indigo-600' : 'bg-blue-600 text-white ring-white'
                     }`}>
-                      {item.count}
+                      {item.count > 99 ? '99+' : item.count}
                     </span>
-                  ) : (
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-black shrink-0 whitespace-nowrap ${
-                      isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-800 border border-blue-200'
-                    }`}>
-                      {item.count}
-                    </span>
-                  )
+                  )}
+                  {!collapsedDesktop && <span className="leading-snug">{item.label}</span>}
+                </div>
+                {!collapsedDesktop && item.count !== undefined && item.count > 0 && (
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-black shrink-0 whitespace-nowrap ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-800 border border-blue-200'
+                  }`}>
+                    {item.count}
+                  </span>
                 )}
               </button>
             );
@@ -1821,6 +1826,26 @@ export default function AdminPortal({
                       </div>
                     </div>
                   </div>
+
+                  {isPure2026 && !isFullYearRange && studentCount === 0 && jobCount === 0 && (
+                    <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Khoảng thời gian này trong năm 2026 chưa có bản ghi mới trong CSDL. Bạn có thể chọn <strong>Tháng 11</strong> hoặc bấm nút để xem dữ liệu thực tế cả năm.</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilterMonth('');
+                          setFilterFromDate('2026-01-01');
+                          setFilterToDate('2026-12-31');
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold whitespace-nowrap cursor-pointer transition-all shrink-0"
+                      >
+                        Xem Cả Năm 2026
+                      </button>
+                    </div>
+                  )}
 
                   {/* 4 Thẻ chỉ số */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">

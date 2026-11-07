@@ -15,7 +15,7 @@ import AdminPortal from './features/admin/AdminPortal';
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, showDetails: false };
   }
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
@@ -23,6 +23,19 @@ class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     console.error('App ErrorBoundary caught exception:', error, errorInfo);
   }
+  handleResetSession = () => {
+    try {
+      localStorage.removeItem('partime_user');
+      localStorage.removeItem('partime_token');
+      localStorage.removeItem('partime_active_menu_student');
+      localStorage.removeItem('partime_active_menu_employer');
+      localStorage.removeItem('partime_active_menu_admin');
+    } catch (e) {
+      // ignore
+    }
+    this.setState({ hasError: false, error: null });
+    window.location.href = '/';
+  };
   render() {
     if (this.state.hasError) {
       return (
@@ -33,7 +46,7 @@ class ErrorBoundary extends React.Component {
             </div>
             <h2 className="text-xl font-bold text-slate-900">Đã xảy ra sự cố hiển thị</h2>
             <p className="text-xs text-slate-600 leading-relaxed">
-              Hệ thống đã tự động bảo vệ giao diện. Bạn có thể bấm nút bên dưới để tải lại trang hoặc quay lại trang chủ.
+              Hệ thống đã tự động bảo vệ giao diện. Bạn có thể bấm nút bên dưới để tải lại trang hoặc khôi phục dữ liệu phiên làm việc.
             </p>
             <div className="pt-2 flex flex-col sm:flex-row gap-2 justify-center">
               <button
@@ -48,15 +61,29 @@ class ErrorBoundary extends React.Component {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  this.setState({ hasError: false });
-                  window.location.href = '/';
-                }}
+                onClick={this.handleResetSession}
                 className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 cursor-pointer"
+                title="Khôi phục trạng thái chuẩn khi gặp lỗi cache hoặc tài khoản cũ"
               >
-                Về Trang Chủ
+                Đặt lại phiên & Về Trang Chủ
               </button>
             </div>
+            {this.state.error && (
+              <div className="pt-2 text-left">
+                <button
+                  type="button"
+                  onClick={() => this.setState(prev => ({ showDetails: !prev.showDetails }))}
+                  className="text-[11px] text-slate-400 hover:text-slate-600 underline cursor-pointer"
+                >
+                  {this.state.showDetails ? 'Ẩn chi tiết kỹ thuật' : 'Xem chi tiết lỗi kỹ thuật'}
+                </button>
+                {this.state.showDetails && (
+                  <pre className="mt-2 p-2 bg-slate-50 border border-slate-200 rounded-lg text-[10px] text-rose-600 overflow-x-auto font-mono whitespace-pre-wrap">
+                    {String(this.state.error?.message || this.state.error)}
+                  </pre>
+                )}
+              </div>
+            )}
           </div>
         </div>
       );

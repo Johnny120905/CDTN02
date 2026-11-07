@@ -35,5 +35,7 @@ Thumbs.db
 # Scratch and temporary scripts
 scratch/
 scratch_*
+local_db_store.json
+Backend/local_db_store.json
 
 

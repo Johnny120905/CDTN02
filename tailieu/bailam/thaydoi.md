@@ -990,3 +990,36 @@ un.py.
   - Tự động quét kiểm tra: **0 Emoji** và **0 AI decorative icons** trên toàn bộ mã nguồn Frontend và Backend.
   - Kiểm thử Backend: `python -m unittest discover -s ./test` đạt **9/9 tests pass (100%)**.
   - Kiểm thử Frontend Build: `npm run build` hoàn thành với **0 lỗi, 0 cảnh báo**, bundle `dist/` sẵn sàng triển khai trên cổng `http://localhost:8002`.
+
+---
+
+## 32. GIAI ĐOẠN 32: ĐỒNG BỘ TOÀN DIỆN 10 VẤN ĐỀ VISUAL THEO 10 HÌNH ẢNH THỰC TẾ & MA TRẬN 53 TÍNH NĂNG WBS VÀO TÀI LIỆU
+**Thời gian:** 07/11/2026 - Phiên hoàn thiện đặc tả và kiểm thử nâng cao  
+**Nội dung thực hiện chi tiết đối chiếu theo 10 phản hồi hình ảnh:**
+1. **Giải Quyết Sự Cố Hiển Thị & Nâng Cấp Error Boundary (Hình 1):**
+   - Phân tích nguyên nhân lỗi hiển thị: do một số thao tác chuỗi `.toLowerCase()` trên các trường rỗng hoặc dữ liệu phiên làm việc cũ không tương thích.
+   - Bổ sung toán tử an toàn `(field || '').toLowerCase()` trên toàn bộ các bộ lọc tìm kiếm và bảng dữ liệu (`StudentPortal.jsx`, `EmployerPortal.jsx`, `AdminPortal.jsx`).
+   - Nâng cấp `ErrorBoundary` trong `App.jsx`: bổ sung nút **"Đặt lại phiên & Về Trang Chủ"** (tự động xóa cache LocalStorage lỗi) và khung hiển thị chi tiết kỹ thuật cho lập trình viên/kiểm thử viên, đảm bảo người dùng không bao giờ bị kẹt trên màn hình sự cố.
+2. **Khắc Phục Độ Tương Phản Nút Bấm "Xem Chi Tiết & Xử Lý" (Hình 2):**
+   - Thay thế mã màu chữ xanh cyan trên nền xanh nhạt bằng chuẩn mực: Chữ trắng đậm nét trên nền xanh dương điện `bg-blue-600 hover:bg-blue-700 text-white font-bold`, độ tương phản đạt chuẩn WCAG AAA.
+3. **Chuẩn Hóa Độ Tương Phản Thống Kê & Nhãn Biểu Đồ Cột Bar Chart (Hình 3):**
+   - Điều chỉnh toàn bộ văn bản phụ trên biểu đồ sang chữ xám đậm `text-slate-700 font-semibold`, huy hiệu dữ liệu nền xanh nhạt viền nổi `bg-blue-50 text-blue-800 border-blue-200`, chống mỏi mắt và tuyệt đối không trùng màu nền.
+4. **Căn Chỉnh Định Vị Huy Hiệu Số Lượng Trên Sidebar Thu Gọn Sinh Viên (Hình 4):**
+   - Thay vì neo vào cạnh ngoài cùng của nút bấm, huy hiệu số được neo trực tiếp vào vùng chứa biểu tượng (`relative` $\rightarrow$ `absolute -top-1.5 -right-2.5`).
+   - Huy hiệu có kích thước chuẩn tròn $18\text{px} \times 18\text{px}$, chữ trắng nền xanh `bg-blue-600 text-white ring-2 ring-white`, số liệu khớp 100% với số lượng thực tế trong nội dung chính.
+5. **Đồng Bộ Huy Hiệu Sidebar Thu Gọn Nhà Tuyển Dụng & Quản Trị Viên (Hình 5):**
+   - Áp dụng cấu trúc định vị và bảng màu đồng bộ 100% giữa cả 3 role (Sinh viên, Nhà tuyển dụng, Quản trị viên), tạo sự nhất quán giao diện toàn hệ thống.
+6. **Loại Bỏ Dropdown Tuần & Nút Bấm Chọn Nhanh Tuần 1-4 (Hình 6 & Hình 8):**
+   - Loại bỏ hoàn toàn dropdown phụ thứ 3 ("3. Chọn Ngày / Khoảng ngày kiểm tra") và 4 nút chọn nhanh ("Tuần 1", "Tuần 2", "Tuần 3", "Tuần 4") gây rối mắt và thừa thao tác.
+7. **Tối Ưu Hóa Bộ Lọc Thời Gian Chuẩn Mực 2 Hàng (Hình 7 & Hình 9):**
+   - Hàng 1: `1. Chọn Năm` (Năm 2024, 2025, 2026) $\rightarrow$ `2. Chọn Tháng (trong năm đã chọn)` (Tháng 1 đến Tháng 12).
+   - Hàng 2: `Từ ngày: [input date]` $\rightarrow$ `Đến ngày: [input date]`. Tự động điền ngày đầu và ngày cuối tháng khi chọn tháng, hỗ trợ tùy chỉnh khoảng ngày linh hoạt.
+8. **Chuẩn Hóa Dữ Liệu Lịch Sử 2024-2025 & Số Liệu Thực Tế 2026:**
+   - Năm 2024 và 2025 nạp dữ liệu thống kê lịch sử chuẩn hóa (`historicalAnalyticsData.js`).
+   - Năm 2026 cam kết 100% dữ liệu thực từ CSDL, bổ sung thông báo hướng dẫn người dùng khi chọn tháng chưa phát sinh dữ liệu trong năm 2026.
+9. **Loại Bỏ 100% Icon AI & Emoji Rác (Hình 10):**
+   - Xóa bỏ toàn bộ các ký tự emoji (☕, 🛒, 📚, 📦, 💻, 🎪) trong các nhãn ngành nghề phổ biến.
+   - Thay thế bằng các vector icon chuẩn mực từ thư viện `lucide-react` (`Coffee`, `ShoppingCart`, `GraduationCap`, `Package`, `Laptop`, `PartyPopper`), đảm bảo thẩm mỹ chuyên nghiệp và đạt chuẩn website đại học.
+10. **Chuẩn Hóa Số Lượng Master Data & Lập Bảng Ma Trận 53 Tính Năng WBS Vui Lòng Vào `noidung.md`:**
+    - Khẳng định số lượng Master Data chuẩn là **6 danh mục ngành nghề**, loại bỏ các danh mục địa điểm thừa.
+    - Cập nhật toàn diện Mục 3.1 của `tailieu/bailam/noidung.md` với bảng tổng hợp số lượng và 4 bảng ma trận chi tiết cho từng phân hệ, liệt kê đầy đủ 53 Tính năng - Chức năng tương ứng với mã số WBS02.

@@ -1326,9 +1326,12 @@ export default function EmployerPortal({
 
   // Filter Jobs Table (Đang tuyển, Tạm đóng, Đã nhận người, Hoàn thành)
   const filteredJobs = myJobs.filter(j => {
-    const matchesSearch = !jobSearch || 
-      j.title.toLowerCase().includes(jobSearch.toLowerCase()) || 
-      (j.description && j.description.toLowerCase().includes(jobSearch.toLowerCase()));
+    const jTitle = (j.title || '').toLowerCase();
+    const jDesc = (j.description || '').toLowerCase();
+    const sSearch = (jobSearch || '').trim().toLowerCase();
+    const matchesSearch = !sSearch || 
+      jTitle.includes(sSearch) || 
+      jDesc.includes(sSearch);
     const jSt = j.job_status || j.status;
     const matchesStatus = !jobStatusFilter || 
       (jobStatusFilter === 'open' && (jSt === 'open' || (j.is_open && jSt !== 'filled' && jSt !== 'completed'))) || 
@@ -1438,30 +1441,29 @@ export default function EmployerPortal({
                   }
                   if (mobileSidebarOpen && onToggleMobileSidebar) onToggleMobileSidebar();
                 }}
-                className={`w-full flex items-center ${collapsedDesktop ? 'justify-center px-2 py-3.5 relative' : 'justify-between px-4 py-3.5 gap-2'} rounded-2xl text-sm sm:text-base font-bold transition-all cursor-pointer text-left ${
+                className={`w-full flex items-center ${collapsedDesktop ? 'justify-center px-2 py-3' : 'justify-between px-4 py-3 gap-2'} rounded-2xl text-sm sm:text-base font-bold transition-all cursor-pointer text-left ${
                   isActive
                     ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/25 font-black'
                     : 'text-slate-700 hover:text-slate-950 hover:bg-slate-100/90'
                 }`}
               >
-                <div className={`flex items-center ${collapsedDesktop ? 'justify-center' : 'gap-3 min-w-0'}`}>
+                <div className={`relative flex items-center ${collapsedDesktop ? 'justify-center' : 'gap-3 min-w-0'}`}>
                   <span className={`shrink-0 ${isActive ? 'text-white' : 'text-blue-600'}`}>{item.icon}</span>
-                  {!collapsedDesktop && <span className="leading-snug">{item.label}</span>}
-                </div>
-                {item.count !== undefined && item.count > 0 && (
-                  collapsedDesktop ? (
-                    <span className={`absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black flex items-center justify-center whitespace-nowrap ring-2 ${
+                  {collapsedDesktop && item.count !== undefined && item.count > 0 && (
+                    <span className={`absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black flex items-center justify-center whitespace-nowrap ring-2 shadow-xs ${
                       isActive ? 'bg-white text-blue-700 ring-indigo-600' : 'bg-blue-600 text-white ring-white'
                     }`}>
-                      {item.count}
+                      {item.count > 99 ? '99+' : item.count}
                     </span>
-                  ) : (
-                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-black shrink-0 whitespace-nowrap ${
-                      isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-800 border border-blue-200'
-                    }`}>
-                      {item.count}
-                    </span>
-                  )
+                  )}
+                  {!collapsedDesktop && <span className="leading-snug">{item.label}</span>}
+                </div>
+                {!collapsedDesktop && item.count !== undefined && item.count > 0 && (
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-black shrink-0 whitespace-nowrap ${
+                    isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-800 border border-blue-200'
+                  }`}>
+                    {item.count}
+                  </span>
                 )}
               </button>
             );

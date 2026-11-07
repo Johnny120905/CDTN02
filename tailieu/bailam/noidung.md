@@ -205,46 +205,105 @@ Thay vì sử dụng các hình ảnh tĩnh nhàm chán hoặc tông màu tối 
 
 ## CHƯƠNG 3: PHÂN TÍCH YÊU CẦU & THIẾT KẾ KIẾN TRÚC HỆ THỐNG
 
-### 3.1. Danh Mục Phân Rã Chức Năng Chi Tiết (WBS02)
+### 3.1. Danh Mục Phân Rã Tính Năng - Chức Năng Chi Tiết Hệ Thống (Ma Trận WBS02)
 
-Hệ thống bao gồm đầy đủ **28 cụm chức năng** phân bổ cân bằng cho 3 thành viên:
+Toàn bộ hệ thống nền tảng tuyển dụng việc làm linh hoạt **PARTIME.VN (CDTN02)** được kiến trúc và chuẩn hóa thành **53 Tính năng - Chức năng nghiệp vụ**, phân bổ khoa học và cân bằng theo sơ đồ phân rã công việc **WBS02** cho 3 thành viên phát triển và khối nền tảng dùng chung:
 
-#### A. Phân Hệ Sinh Viên (Vũ Thế Long - WBS 1.1 đến 1.10):
-- **WBS 1.1 - Đăng ký & Xác thực Sinh viên:** Form đăng ký SV, kiểm tra định dạng email `@gmail.com` thực tế và độ phức tạp mật khẩu $\ge 8$ ký tự, liên kết mã số sinh viên (MSSV) và trường đại học.
-- **WBS 1.2 - Đăng nhập & Đổi mật khẩu:** Cấp phát JWT token, chức năng "Ghi nhớ thông tin", quy trình quên mật khẩu với mã OTP 10 phút tự động điền. Khi chưa đăng nhập, phân hệ hoạt động ở **Chế độ xem trước khách (Guest Preview Mode)** bảo vệ hoàn toàn thông tin cá nhân.
-- **WBS 1.3 - Quản lý Hồ sơ Cá nhân:** Chỉnh sửa thông tin liên lạc, chuyên ngành, số điện thoại chuẩn VN, liên kết mạng xã hội, bio giới thiệu.
-- **WBS 1.4 - Quản lý CV & Thư Giới Thiệu:** Tải lên tối đa 5 bản CV PDF $\le 10\text{MB}$ (hỗ trợ kéo thả Drag & Drop), cơ chế đặt duy nhất 1 CV làm mặc định (`is_default = true`), xem trước PDF toàn màn hình với `DocumentViewerModal`, tải file về máy tính.
-- **WBS 1.5 - Tìm Kiếm & Lọc Việc Làm Thông Minh:** Tìm kiếm từ khóa, danh mục ngành nghề part-time chuẩn hóa (không chứa emoji AI trang trí), lọc theo 24 quận huyện TP.HCM, lọc mức lương theo giờ, lọc ca làm việc phù hợp với lịch học.
-- **WBS 1.6 - Lưu Việc Làm (Bookmarks):** Lưu các tin tuyển dụng yêu thích vào danh sách riêng, cơ chế Unique Compound Index chặn lưu trùng.
-- **WBS 1.7 - Nộp Hồ Sơ Ứng Tuyển & Lưu Snapshot:** Chọn CV mặc định và thư giới thiệu, nộp hồ sơ, hệ thống chụp lại bản sao hồ sơ bất biến (`application_snapshot`), chặn nộp trùng vào cùng 1 việc.
-- **WBS 1.8 - Theo Dõi Tiến Độ Ứng Tuyển (Application Tracker):** Sơ đồ tiến trình 4 chặng rõ ràng (`Nộp hồ sơ` -> `NTD đã xem` -> `Phỏng vấn` -> `Trúng tuyển/Từ chối`), xem snapshot, chỉ cho phép hủy đơn khi trạng thái đang là `pending`.
-- **WBS 1.9 - Đánh Giá Nhà Tuyển Dụng:** Gửi đánh giá 1-5 sao và nhận xét khi đơn ứng tuyển đạt trạng thái trúng tuyển (`accepted`), mỗi công việc chỉ được đánh giá 1 lần.
-- **WBS 1.10 - Nhắn Tin Realtime & Phỏng Vấn WebRTC:** Chat trực tuyến với doanh nghiệp, đính kèm tệp tin, tự động kiểm duyệt từ cấm, tham gia cuộc gọi phỏng vấn video trực tiếp trên trình duyệt.
-
-#### B. Phân Hệ Nhà Tuyển Dụng (Huỳnh Nguyễn Bảo Ngọc - WBS 2.1 đến 2.9):
-- **WBS 2.1 - Đăng ký & Định danh Doanh Nghiệp:** Đăng ký tài khoản NTD, nhập MST, tải lên Giấy phép kinh doanh (GPKD) PDF/Ảnh $\le 10\text{MB}$ bằng thao tác Kéo thả (Drag & Drop), chọn nhanh 24 quận huyện TP.HCM.
-- **WBS 2.2 - Xác thực Hồ sơ Pháp lý & GPKD:** Tiếp nhận trạng thái kiểm duyệt (`pending` -> `approved` / `rejected`), tài khoản chỉ được đăng tin công khai khi GPKD đã được phê duyệt. Ở Chế độ khách, hệ thống hiển thị khung preview mẫu, ẩn hoàn toàn thông tin pháp lý nhạy cảm.
-- **WBS 2.3 - Quản lý Hồ sơ Doanh Nghiệp:** Cập nhật logo công ty, ảnh bìa, giới thiệu văn hóa doanh nghiệp, danh sách các chi nhánh tuyển dụng.
-- **WBS 2.4 - Studio Đăng Tin Tuyển Dụng:** Tạo tin việc làm với tiêu đề, danh mục ngành nghề, khu vực quận huyện, thiết lập ca làm việc linh hoạt. Bắt buộc kiểm tra logic lương: `salary_min <= salary_max`.
-- **WBS 2.5 - Quản lý Tin Đăng & Vòng Đời Việc Làm:** Xem danh sách tin, chỉnh sửa nội dung, tạm đóng tin khi đủ số lượng, mở lại tin hoặc xóa vĩnh viễn (Cascade Delete).
-- **WBS 2.6 - Hệ Thống ATS Quản Lý & Duyệt Ứng Viên:** Xem danh sách ứng viên nộp theo từng công việc, xem trước CV PDF ứng viên, chuyển trạng thái theo quy trình (`reviewed` -> `interview` -> `accepted` / `rejected`).
-- **WBS 2.7 - Lên Lịch Phỏng Vấn & Mời Phỏng Vấn Video:** Thiết lập thời gian, địa điểm hoặc kích hoạt phòng phỏng vấn trực tuyến WebRTC, gửi thông báo tự động đến sinh viên.
-- **WBS 2.8 - Đánh Giá Sinh Viên Sau Hoàn Thành:** Đánh giá năng lực, thái độ, tính đúng giờ của sinh viên (1-5 sao), áp dụng cơ chế Upsert chống lỗi trùng khóa CSDL.
-- **WBS 2.9 - Phòng Chat & Đàm Phán Nhân Sự:** Trao đổi điều kiện làm việc, gửi tệp tài liệu, kiểm duyệt từ ngữ văn minh trong giao tiếp.
-
-#### C. Phân Hệ Quản Trị Viên (Lê Thị Thuỳ Ngân - WBS 3.1 đến 3.9):
-- **WBS 3.1 - Đăng Nhập Cố Định & Bảo Mật Tuyệt Đối:** Sử dụng tài khoản quản trị tối cao định danh cố định (`lethithuyngan985@gmail.com`), ẩn hoàn toàn nút Đăng ký và Quên mật khẩu công khai để chống tấn công chiếm quyền.
-- **WBS 3.2 - Trung Tâm Chỉ Huy & Phân Tích Tăng Trưởng (Analytics Dashboard):** Bộ lọc thời gian tối ưu 2 cột trực quan (Cột 1: `1. Chọn Năm`, Cột 2: `2. Chọn Tháng`) kèm 2 ô chọn khoảng ngày `Từ ngày: [dd/mm/yyyy]` và `Đến ngày: [dd/mm/yyyy]`, loại bỏ các nút chọn tuần và dropdown phụ gây rối. Tích hợp module dữ liệu lịch sử chuẩn hóa 2024-2025 (`historicalAnalyticsData.js`) và cam kết 100% CSDL thực tế cho năm 2026. Biểu đồ Line Chart và Donut Chart chống giật rung, hover chữ đen rõ nét.
-- **WBS 3.3 - Quản Lý Người Dùng & Khóa Tài Khoản:** Xem danh sách toàn bộ Sinh viên và NTD, thực hiện Khóa tài khoản (`is_banned = true`) bắt buộc nhập lý do khóa chi tiết (`ban_reason`), mở khóa tài khoản; hỗ trợ xóa vĩnh viễn tài khoản rác (như `eadeedc@gmail.com`).
-- **WBS 3.4 - Kiểm Duyệt Doanh Nghiệp & Hồ Sơ GPKD:** Xem trực tiếp tệp GPKD qua `DocumentViewerModal`, phê duyệt (`approved`) hoặc từ chối (`rejected` kèm lý do).
-- **WBS 3.5 - Kiểm Duyệt Tin Tuyển Dụng Toàn Hệ Thống:** Kiểm tra tin đăng, thực hiện Ẩn tin vi phạm (`is_hidden = true`) đối với các tin lừa đảo, đa cấp; bảo đảm toàn vẹn dữ liệu trong CSDL phục vụ thanh tra.
-- **WBS 3.6 - Quản Lý Đánh Giá & Phản Hồi:** Kiểm duyệt các nhận xét tiêu cực, xóa bỏ các bình luận vu khống hoặc xúc phạm danh dự.
-- **WBS 3.7 - Quản Trị Master Data Danh Mục Ngành Nghề:** Thêm, sửa danh mục; thực thi ràng buộc Chặn xóa cứng (Restrict Hard-Delete) nếu đang có tin tuyển dụng tham chiếu đến danh mục đó.
-- **WBS 3.8 - Bàn Xử Lý Báo Cáo Vi Phạm (Reports Desk):** Tiếp nhận khiếu nại từ người dùng, điều tra và đưa ra biện pháp xử lý thích đáng.
-- **WBS 3.9 - Quản Trị Bộ Lọc Từ Khóa Cấm (Banned Keywords):** Thêm mới từ cấm, kích hoạt/hủy kích hoạt và hỗ trợ xóa bỏ từ cấm theo thời gian thực trên giao diện.
+#### Bảng 3.1: Tổng Hợp Số Lượng Tính Năng - Chức Năng Theo Từng Phân Hệ
+| STT | Phân Hệ Nghiệp Vụ | Thành Viên Phụ Trách | Số Lượng FR Gốc | Số Lượng Bổ Sung Mở Rộng | Tổng Số Chức Năng | Tỷ Trọng Đóng Góp |
+|:---:|:---|:---|:---:|:---:|:---:|:---:|
+| 1 | **Phân Hệ Sinh Viên (Student)** | Vũ Thế Long | 10 Chức năng | 05 Chức năng | **15 Chức năng** | 28.3% |
+| 2 | **Phân Hệ Nhà Tuyển Dụng (Employer)** | Huỳnh Nguyễn Bảo Ngọc | 09 Chức năng | 05 Chức năng | **14 Chức năng** | 26.4% |
+| 3 | **Phân Hệ Quản Trị Viên (Admin)** | Lê Thị Thuỳ Ngân | 09 Chức năng | 05 Chức năng | **14 Chức năng** | 26.4% |
+| 4 | **Phân Hệ Xác Thực & Nền Tảng Dùng Chung** | Cả nhóm (Long - Ngọc - Ngân) | 05 Chức năng | 05 Chức năng | **10 Chức năng** | 18.9% |
+| **TỔNG** | **TOÀN BỘ HỆ THỐNG PARTIME.VN** | **Đội Ngũ Đồ Án CDTN02** | **33 Chức năng** | **20 Chức năng** | **53 Chức Năng** | **100.0%** |
 
 ---
 
+#### A. Bảng Ma Trận Tính Năng - Chức Năng Phân Hệ Sinh Viên (Vũ Thế Long - 15 Chức Năng)
+Phân hệ Sinh viên chịu trách nhiệm toàn bộ hành trình trải nghiệm của người tìm việc, từ lúc xem việc làm ở Chế độ khách, nộp đơn ứng tuyển, quản lý CV trực tuyến, nhận ca làm việc, đánh giá doanh nghiệp và phỏng vấn trực tiếp WebRTC:
+
+| Mã WBS | Mã FR/BR | Tên Tính Năng - Chức Năng | Phân Loại Nghiệp Vụ | Giao Diện Màn Hình | Mô Tả Nghiệp Vụ & Ràng Buộc Kỹ Thuật | Người Phụ Trách |
+|:---|:---|:---|:---:|:---|:---|:---:|
+| **WBS 1.1** | FR 1.1 | Đăng Ký Tài Khoản Sinh Viên | `[FR GỐC]` | `StudentRegisterScreen` | Bắt buộc email thật đuôi `@gmail.com`, mật khẩu $\ge 8$ ký tự, liên kết mã số sinh viên (MSSV) 10 số và trường ĐH tại TP.HCM. Chặn tạo tài khoản trùng email. | Vũ Thế Long |
+| **WBS 1.2** | FR 1.2 | Đăng Nhập & Cấp Quyền Phiên Làm Việc | `[FR GỐC]` | `StudentLoginScreen` | Xác thực bcrypt, cấp mã định danh JWT Token thời hạn 24 giờ. Cơ chế ghi nhớ tài khoản an toàn qua LocalStorage. | Vũ Thế Long |
+| **WBS 1.3** | FR 1.3 | Quản Lý Hồ Sơ Cá Nhân Sinh Viên | `[FR GỐC]` | `StudentProfileCVTab` | Cập nhật số điện thoại thật 10 chữ số đầu số Việt Nam, trường đại học, niên khóa, tiểu sử bản thân và kỹ năng nổi bật. | Vũ Thế Long |
+| **WBS 1.4** | FR 1.4 | Quản Lý Kho Hồ Sơ CV & Đặt CV Mặc Định | `[FR GỐC]` | `StudentCVManagementTab` | Cho phép tải lên tối đa 5 tệp CV PDF $\le 10$MB bằng Kéo thả (Drag & Drop), cơ chế đặt duy nhất 1 CV làm mặc định (`is_default=true`), tải về máy tính và xem trước PDF toàn màn hình. | Vũ Thế Long |
+| **WBS 1.5** | FR 1.5 | Tìm Kiếm & Bộ Lọc Đa Tiêu Chí Thông Minh | `[FR GỐC]` | `StudentJobsTab` | Tìm kiếm từ khóa theo thời gian thực (Realtime Debounce), lọc theo 6 nhóm ngành Master Data, lọc theo 24 quận huyện TP.HCM, lọc mức lương theo giờ và khung ca làm việc. | Vũ Thế Long |
+| **WBS 1.6** | FR 1.6 | Lưu Việc Làm Yêu Thích (Bookmarks) | `[FR GỐC]` | `StudentSavedJobsTab` | Lưu và bỏ lưu tin tuyển dụng yêu thích, biểu tượng trái tim đổi màu tương tác, cơ chế Unique Compound Index (`student_id` + `job_id`) loại bỏ hoàn toàn khả năng lưu trùng. | Vũ Thế Long |
+| **WBS 1.7** | FR 1.7 | Nộp Đơn Ứng Tuyển & Lưu Snapshot Bất Biến | `[FR GỐC]` | `StudentApplyModal` | Chọn CV mặc định và thư giới thiệu (Cover Letter), nộp hồ sơ, hệ thống tạo bản sao lưu đóng băng thông tin (`application_snapshot`), chặn nộp trùng vào cùng 1 tin đăng. | Vũ Thế Long |
+| **WBS 1.8** | FR 1.8 | Theo Dõi Tiến Độ Ứng Tuyển (Application Tracker) | `[FR GỐC]` | `StudentApplicationsTab` | Sơ đồ tiến trình trực quan 4 bước (`Đã nộp` $ightarrow$ `NTD đã xem` $ightarrow$ `Mời phỏng vấn` $ightarrow$ `Trúng tuyển/Từ chối`). Chỉ cho phép người dùng hủy đơn khi trạng thái đang là `pending`. | Vũ Thế Long |
+| **WBS 1.9** | FR 1.9 | Đánh Giá Doanh Nghiệp Sau Hoàn Thành Ca Làm | `[FR GỐC]` | `StudentReviewsTab` | Gửi đánh giá 1-5 sao kèm nhận xét chi tiết sau khi đơn được doanh nghiệp phê duyệt trúng tuyển (`accepted`), cơ chế kiểm tra chặn đánh giá lặp lại cho cùng 1 công việc. | Vũ Thế Long |
+| **WBS 1.10** | FR 1.10 | Nhắn Tin Trực Tuyến & Phỏng Vấn Video WebRTC | `[FR GỐC]` | `StudentChatTab` / `VideoCallModal` | Phòng chat trực tuyến với Nhà tuyển dụng, gửi tệp đính kèm, kiểm duyệt từ khóa cấm realtime và đàm thoại video Call HD WebRTC trực tiếp trên trình duyệt web. | Vũ Thế Long |
+| **WBS 1.E1** | E-STU-01 | Chế Độ Xem Trước Khách (Guest Preview Mode) | `[BỔ SUNG MỚI]` | `StudentPortal (Guest)` | Cho phép người dùng chưa đăng nhập tự do duyệt tin, tra cứu việc làm với đầy đủ 9 danh mục trên Sidebar; tự động chuyển hướng đăng nhập có bảo toàn ngữ cảnh khi bấm thao tác riêng tư. | Vũ Thế Long |
+| **WBS 1.E2** | E-STU-02 | Trình Xem Trước Tài Liệu Số (Document Viewer) | `[BỔ SUNG MỚI]` | `DocumentViewerModal` | Xem trực tiếp tệp CV PDF toàn màn hình, xoay trang, phóng to thu nhỏ, in ấn và tải về máy mà không cần mở tab trình duyệt ngoài. | Vũ Thế Long |
+| **WBS 1.E3** | E-STU-03 | Lịch Trình Ca Làm & Quản Lý Lịch Rảnh Sinh Viên | `[BỔ SUNG MỚI]` | `StudentShiftsTab` | Ma trận thời khóa biểu 7 ngày $	imes$ 3 ca (Sáng, Chiều, Tối). Tự động đối chiếu ca rảnh của sinh viên với yêu cầu ca làm của việc làm để gợi ý mức độ tương thích. | Vũ Thế Long |
+| **WBS 1.E4** | E-STU-04 | Thu Gọn / Mở Rộng Thanh Danh Mục (Collapsible Sidebar) | `[BỔ SUNG MỚI]` | `StudentSidebar` | Nút mũi tên thu gọn sidebar thành thanh icon 80px, huy hiệu đếm số lượng định vị chính xác góc trên biểu tượng, tự động kéo giãn không gian làm việc chính ra toàn màn hình. | Vũ Thế Long |
+| **WBS 1.E5** | E-STU-05 | Khôi Phục Mật Khẩu Tự Động Với Mã Xác Thực OTP | `[BỔ SUNG MỚI]` | `ForgotPasswordScreen` | Nhập email `@gmail.com` thật, gửi mã OTP ngẫu nhiên 6 chữ số có hiệu lực 10 phút, kiểm tra tính hợp lệ và cho phép thiết lập mật khẩu mới an toàn. | Vũ Thế Long |
+
+---
+
+#### B. Bảng Ma Trận Tính Năng - Chức Năng Phân Hệ Nhà Tuyển Dụng (Huỳnh Nguyễn Bảo Ngọc - 14 Chức Năng)
+Phân hệ Nhà tuyển dụng cung cấp bộ công cụ toàn diện cho doanh nghiệp đăng tin tuyển dụng, xác thực hồ sơ pháp lý, lọc và quản lý hồ sơ ứng viên theo quy trình ATS chuẩn hóa, xếp lịch phỏng vấn và đánh giá sinh viên:
+
+| Mã WBS | Mã FR/BR | Tên Tính Năng - Chức Năng | Phân Loại Nghiệp Vụ | Giao Diện Màn Hình | Mô Tả Nghiệp Vụ & Ràng Buộc Kỹ Thuật | Người Phụ Trách |
+|:---|:---|:---|:---:|:---|:---|:---:|
+| **WBS 2.1** | FR 2.1 | Đăng Ký Tài Khoản Doanh Nghiệp & Tải Lên GPKD | `[FR GỐC]` | `EmployerRegisterScreen` | Đăng ký tài khoản NTD, nhập MST chuẩn 10-13 chữ số, tải lên tệp Giấy phép kinh doanh (GPKD) PDF/Ảnh $\le 10$MB bằng thao tác Kéo thả, chọn quận huyện hoạt động tại TP.HCM. | Huỳnh Nguyễn Bảo Ngọc |
+| **WBS 2.2** | FR 2.2 | Xác Thực Hồ Sơ Pháp Lý & Kiểm Soát Quyền Đăng Tin | `[FR GỐC]` | `EmployerCompanyTab` | Tiếp nhận trạng thái thẩm định từ Quản trị viên (`pending` $ightarrow$ `approved`/`rejected`). Chỉ cho phép đăng tin tuyển dụng công khai khi GPKD đã được duyệt hợp lệ. | Huỳnh Nguyễn Bảo Ngọc |
+| **WBS 2.3** | FR 2.3 | Quản Lý Hồ Sơ Thương Hiệu & Chi Nhánh Tuyển Dụng | `[FR GỐC]` | `EmployerProfileTab` | Cập nhật ảnh đại diện logo, ảnh bìa công ty, mô tả môi trường làm việc, quy mô nhân sự, địa chỉ trụ sở chính và danh sách các chi nhánh tại TP.HCM. | Huỳnh Nguyễn Bảo Ngọc |
+| **WBS 2.4** | FR 2.4 | Studio Đăng Tin Tuyển Dụng Việc Làm Linh Hoạt | `[FR GỐC]` | `EmployerPostJobTab` | Biểu mẫu tạo việc làm với tiêu đề, danh mục Master Data, số lượng cần tuyển, phân ca làm việc, địa điểm làm việc cụ thể; bắt buộc kiểm tra ràng buộc lương: `salary_min` $\le$ `salary_max`. | Huỳnh Nguyễn Bảo Ngọc |
+| **WBS 2.5** | FR 2.5 | Quản Lý Danh Sách & Vòng Đời Tin Đăng Tuyển | `[FR GỐC]` | `EmployerManageJobsTab` | Theo dõi toàn bộ tin đăng của công ty, hỗ trợ tìm kiếm, lọc theo trạng thái (`open`, `closed`, `filled`), chỉnh sửa nội dung, tạm đóng tin, mở lại tin hoặc xóa vĩnh viễn (Cascade Delete). | Huỳnh Nguyễn Bảo Ngọc |
+| **WBS 2.6** | FR 2.6 | Hệ Thống ATS Quản Lý & Sàng Lọc Hồ Sơ Ứng Viên | `[FR GỐC]` | `EmployerCandidatesTab` | Xem hồ sơ ứng viên theo từng vị trí việc làm, xem trực tiếp CV PDF ứng viên bằng `DocumentViewerModal`, chuyển trạng thái ứng viên theo quy trình (`reviewed` $ightarrow$ `interview` $ightarrow$ `accepted`/`rejected`). | Huỳnh Nguyễn Bảo Ngọc |
+| **WBS 2.7** | FR 2.7 | Lập Lịch Phỏng Vấn Trực Tuyến & Mời Phỏng Vấn Video | `[FR GỐC]` | `EmployerInterviewTab` | Thiết lập thời gian, địa điểm hoặc kích hoạt phòng phỏng vấn trực tuyến WebRTC, hệ thống gửi thông báo tự động tới tài khoản sinh viên được mời. | Huỳnh Nguyễn Bảo Ngọc |
+| **WBS 2.8** | FR 2.8 | Đánh Giá & Xếp Hạng Sinh Viên Sau Ca Làm | `[FR GỐC]` | `EmployerRatingsTab` | Chấm điểm kỹ năng, thái độ, tính chuyên cần (1-5 sao) kèm nhận xét chi tiết sau ca làm, áp dụng cơ chế Upsert chống phát sinh bản ghi trùng lặp trong cơ sở dữ liệu. | Huỳnh Nguyễn Bảo Ngọc |
+| **WBS 2.9** | FR 2.9 | Kênh Đàm Phán Nhân Sự & Tin Nhắn Trực Tiếp | `[FR GỐC]` | `EmployerChatTab` | Kênh hội thoại 1-1 với ứng viên sinh viên, chia sẻ tài liệu công việc, tự động kiểm duyệt ngôn từ văn minh và chặn nội dung lừa đảo. | Huỳnh Nguyễn Bảo Ngọc |
+| **WBS 2.E1** | E-EMP-01 | Chế Độ Khách Tham Quan Dành Riêng Cho Doanh Nghiệp | `[BỔ SUNG MỚI]` | `EmployerPortal (Guest)` | Doanh nghiệp chưa đăng nhập được duyệt giao diện bàn làm việc mẫu với đầy đủ 9 danh mục Sidebar, ẩn hoàn toàn thông tin bảo mật và kích hoạt form đăng ký/đăng nhập chuẩn role. | Huỳnh Nguyễn Bảo Ngọc |
+| **WBS 2.E2** | E-EMP-02 | Thẩm Định Văn Bản Pháp Lý Doanh Nghiệp Trực Tuyến | `[BỔ SUNG MỚI]` | `DocumentViewerModal (GPKD)` | Hiển thị chi tiết Giấy phép đăng ký kinh doanh dạng PDF/Ảnh kỹ thuật số với đầy đủ MST, tên đại diện pháp luật, địa chỉ đăng ký phục vụ thanh tra. | Huỳnh Nguyễn Bảo Ngọc |
+| **WBS 2.E3** | E-EMP-03 | Quản Lý Hợp Đồng & Thỏa Thuận Ca Làm Việc Số | `[BỔ SUNG MỚI]` | `EmployerContractsTab` | Quản lý danh sách sinh viên đã trúng tuyển nhận việc, tạo phiếu ca làm việc, xác nhận hoàn thành công việc và chuyển trạng thái kết thúc hợp đồng theo ca. | Huỳnh Nguyễn Bảo Ngọc |
+| **WBS 2.E4** | E-EMP-04 | Thu Gọn / Mở Rộng Thanh Danh Mục Bàn Làm Việc | `[BỔ SUNG MỚI]` | `EmployerSidebar` | Nút mũi tên thu gọn sidebar thành thanh icon 80px, căn chỉnh huy hiệu số ứng viên mới ngay trên góc icon, tối ưu hóa giao diện làm việc trên màn hình laptop và tablet. | Huỳnh Nguyễn Bảo Ngọc |
+| **WBS 2.E5** | E-EMP-05 | Quản Lý Thông Báo Tuyển Dụng & Ứng Viên Mới Realtime | `[BỔ SUNG MỚI]` | `HeaderNotificationDropdown` | Nhận thông báo tức thì khi có sinh viên nộp hồ sơ mới hoặc xác nhận lịch phỏng vấn, tự động đánh dấu đã đọc khi rê chuột. | Huỳnh Nguyễn Bảo Ngọc |
+
+---
+
+#### C. Bảng Ma Trận Tính Năng - Chức Năng Phân Hệ Quản Trị Viên (Lê Thị Thuỳ Ngân - 14 Chức Năng)
+Phân hệ Quản trị viên chịu trách nhiệm kiểm soát toàn bộ tính an toàn, bảo mật, minh bạch của dữ liệu hệ thống, phân tích tăng trưởng kinh doanh, thẩm định tính hợp pháp của doanh nghiệp và kiểm duyệt nội dung vi phạm:
+
+| Mã WBS | Mã FR/BR | Tên Tính Năng - Chức Năng | Phân Loại Nghiệp Vụ | Giao Diện Màn Hình | Mô Tả Nghiệp Vụ & Ràng Buộc Kỹ Thuật | Người Phụ Trách |
+|:---|:---|:---|:---:|:---|:---|:---:|
+| **WBS 3.1** | FR 3.1 | Đăng Nhập Quản Trị Cố Định & Bảo Mật Tuyệt Đối | `[FR GỐC]` | `AdminLoginScreen` | Sử dụng tài khoản quản trị hệ thống định danh cố định (`lethithuyngan985@gmail.com`), ẩn hoàn toàn nút Đăng ký và Quên mật khẩu công khai nhằm triệt tiêu bề mặt tấn công. | Lê Thị Thuỳ Ngân |
+| **WBS 3.2** | FR 3.2 | Trung Tâm Chỉ Huy & Báo Cáo Tăng Trưởng (Analytics Dashboard) | `[FR GỐC]` | `AdminAnalyticsTab` | Bộ lọc thời gian tối ưu 2 tầng chuẩn mực: Tầng 1 chọn Năm (2024, 2025, 2026), Tầng 2 chọn Tháng, kết hợp 2 ô chọn ngày trực tiếp `Từ ngày: [dd/mm/yyyy]` và `Đến ngày: [dd/mm/yyyy]`. Năm 2024-2025 nạp dữ liệu thống kê lịch sử chuẩn hóa (`historicalAnalyticsData.js`), năm 2026 cam kết 100% dữ liệu thực từ CSDL. Biểu đồ Bar Chart & Line Chart chống rung giật, rê chuột hiển thị thông tin rõ nét. | Lê Thị Thuỳ Ngân |
+| **WBS 3.3** | FR 3.3 | Quản Lý Người Dùng & Phân Quyền Khóa Tài Khoản | `[FR GỐC]` | `AdminUsersTab` | Quản lý toàn bộ danh sách tài khoản Sinh viên và Doanh nghiệp thật (bắt buộc đuôi `@gmail.com`). Khóa tài khoản vi phạm (`is_banned=true`) bắt buộc nhập lý do chi tiết (`ban_reason`), mở khóa và xóa vĩnh viễn tài khoản rác (như `eadeedc@gmail.com`). | Lê Thị Thuỳ Ngân |
+| **WBS 3.4** | FR 3.4 | Bàn Thẩm Định Doanh Nghiệp & Giấy Phép Kinh Doanh (GPKD) | `[FR GỐC]` | `AdminGpkdTab` | Kiểm tra tính xác thực của GPKD tải lên qua `DocumentViewerModal`, phê duyệt tài khoản (`approved`) hoặc từ chối (`rejected`) bắt buộc ghi rõ nguyên nhân vi phạm pháp lý. | Lê Thị Thuỳ Ngân |
+| **WBS 3.5** | FR 3.5 | Kiểm Duyệt Tin Tuyển Dụng & Ẩn Tin Vi Phạm | `[FR GỐC]` | `AdminJobsTab` | Rà soát toàn bộ tin đăng tuyển trên hệ thống, thực hiện thao tác Ẩn tin vi phạm (`is_hidden=true`) đối với các tin có dấu hiệu đa cấp, thu phí cọc; bảo toàn tính vẹn toàn của dữ liệu phục vụ đối soát. | Lê Thị Thuỳ Ngân |
+| **WBS 3.6** | FR 3.6 | Quản Trị Đánh Giá Chéo 2 Chiều & Xóa Nhận Xét Tiêu Cực | `[FR GỐC]` | `AdminReviewsTab` | Kiểm soát đánh giá giữa Sinh viên và NTD, xóa bỏ các nội dung bôi nhọ, xúc phạm danh dự hoặc chứa thông tin sai sự thật; hỗ trợ xem chi tiết nội dung đầy đủ bằng modal pop-up. | Lê Thị Thuỳ Ngân |
+| **WBS 3.7** | FR 3.7 | Quản Trị Danh Mục Gốc Master Data Chuẩn Hóa | `[FR GỐC]` | `AdminCategoriesTab` | Hiển thị chính xác **6 danh mục ngành nghề Master Data** chuẩn, hỗ trợ thêm mới, chỉnh sửa tên danh mục; thực thi ràng buộc Chặn xóa cứng (Restrict Hard-Delete) nếu đang có tin tuyển dụng sử dụng danh mục. | Lê Thị Thuỳ Ngân |
+| **WBS 3.8** | FR 3.8 | Bàn Tiếp Nhận & Xử Lý Khiếu Nại Báo Cáo Vi Phạm (Reports Desk) | `[FR GỐC]` | `AdminReportsTab` | Tiếp nhận ticket khiếu nại từ người dùng theo 3 phân loại (`job`, `applicant`, `chat`), điều tra nội dung báo cáo, ghi chú hướng xử lý và đóng ticket. Nút xem chi tiết thiết kế chữ trắng nền xanh độ tương phản cao. | Lê Thị Thuỳ Ngân |
+| **WBS 3.9** | FR 3.9 | Quản Trị Bộ Lọc Từ Khóa Cấm Hệ Thống (Banned Keywords) | `[FR GỐC]` | `AdminKeywordsTab` | Thêm mới từ cấm độc hại (lừa đảo, cọc tiền, telegram lôi kéo), kích hoạt/hủy kích hoạt và hỗ trợ xóa bỏ từ cấm tức thì khỏi bộ lọc chat và tin đăng. | Lê Thị Thuỳ Ngân |
+| **WBS 3.E1** | E-ADM-01 | Xuất Báo Cáo Thống Kê Dữ Liệu Excel / CSV Chuyên Nghiệp | `[BỔ SUNG MỚI]` | `AdminExportModal` | Cho phép Quản trị viên tải về toàn bộ báo cáo tăng trưởng, danh sách người dùng, báo cáo tài chính việc làm dưới dạng bảng tính Excel chuẩn UTF-8 có dấu tiếng Việt. | Lê Thị Thuỳ Ngân |
+| **WBS 3.E2** | E-ADM-02 | Công Cụ Dọn Dẹp Dữ Liệu Rác & Xóa Vĩnh Viễn Tài Khoản Giả Lập | `[BỔ SUNG MỚI]` | `AdminUserCascadeTool` | Cơ chế Cascade Delete xóa sạch tận gốc toàn bộ dữ liệu phụ thuộc (tin đăng, đơn ứng tuyển, CV, lịch sử chat) của tài khoản vi phạm để không bao giờ phục hồi lại khi F5. | Lê Thị Thuỳ Ngân |
+| **WBS 3.E3** | E-ADM-03 | Thu Gọn / Mở Rộng Thanh Danh Mục Cổng Quản Trị | `[BỔ SUNG MỚI]` | `AdminSidebar` | Nút mũi tên thu gọn sidebar thành thanh icon 80px, hiển thị huy hiệu số lượng chờ duyệt chuẩn xác góc trên icon, tối ưu không gian kiểm duyệt dữ liệu lớn. | Lê Thị Thuỳ Ngân |
+| **WBS 3.E4** | E-ADM-04 | Hộp Thoại Xác Nhận An Toàn Tùy Biến (Custom Confirm Dialog) | `[BỔ SUNG MỚI]` | `ConfirmDialog` | Thay thế hoàn toàn hộp thoại `window.confirm` và `alert` mặc định của trình duyệt bằng modal thiết kế giao diện Digital Light Dimension cao cấp, chống chặn pop-up. | Lê Thị Thuỳ Ngân |
+| **WBS 3.E5** | E-ADM-05 | Nhật Ký Thao Tác Quản Trị & Thông Báo Quản Hệ Thống | `[BỔ SUNG MỚI]` | `AdminSystemBanner` | Thanh thông báo màu động trên đầu màn hình (Thành công, Cảnh báo, Đang xử lý) phản hồi lập tức mọi thao tác duyệt, ẩn tin hoặc cập nhật từ khóa cấm. | Lê Thị Thuỳ Ngân |
+
+---
+
+#### D. Bảng Ma Trận Tính Năng - Chức Năng Xác Thực & Nền Tảng Dùng Chung (Toàn Nhóm - 10 Chức Năng)
+Khối nền tảng dùng chung bảo đảm hạ tầng kỹ thuật, điều hướng định tuyến, giao diện chuẩn công thái học và tính liên lạc thời gian thực cho toàn bộ 3 role trên website:
+
+| Mã WBS | Mã FR/BR | Tên Tính Năng - Chức Năng | Phân Loại Nghiệp Vụ | Giao Diện Màn Hình | Mô Tả Nghiệp Vụ & Ràng Buộc Kỹ Thuật | Người Phụ Trách |
+|:---|:---|:---|:---:|:---|:---|:---:|
+| **WBS 0.1** | FR 0.1 | Phân Quyền Vai Trò & Phễu Điều Hướng Người Dùng (Role-Based Routing) | `[FR GỐC]` | `App.jsx` | Tự động nhận diện vai trò người dùng (Sinh viên, NTD, Quản trị viên), phân luồng đến đúng phân hệ tương ứng theo URL (`/student`, `/employer`, `/admin`) hoặc theo port riêng biệt. | Cả nhóm |
+| **WBS 0.2** | FR 0.2 | Hệ Thống Mã Hóa & Bảo Vệ Phiên Làm Việc (JWT & Bcrypt) | `[FR GỐC]` | Backend Security | Mã hóa mật khẩu người dùng với thuật toán Bcrypt salt rounds, cấp phát token JWT có chữ ký số bí mật, tự động giải mã và bảo vệ các endpoint API quan trọng. | Cả nhóm |
+| **WBS 0.3** | FR 0.3 | Thanh Điều Hướng Header Đa Nhiệm & Nhận Diện Trạng Thái | `[FR GỐC]` | `Header.jsx` | Hiển thị thông tin người dùng đang đăng nhập, nút chuyển chế độ, chuông thông báo có đếm số lượng chưa đọc, ô tìm kiếm nhanh và nút quay về trang chủ qua Logo thương hiệu. | Cả nhóm |
+| **WBS 0.4** | FR 0.4 | Chân Trang Footer Đồng Bộ Thông Tin Liên Hệ & Pháp Lý | `[FR GỐC]` | `Footer.jsx` | Cung cấp thông tin bản quyền Đồ án CDTN02 Trường Đại học Văn Lang, liên kết mạng xã hội, điều khoản sử dụng, chính sách bảo mật và danh sách liên kết nhanh 9 mục. | Cả nhóm |
+| **WBS 0.5** | FR 0.5 | Cổng Xác Thực Chung Cho Khách Tham Quan (Auth Modal) | `[FR GỐC]` | `AuthModal.jsx` | Hộp thoại đăng nhập/đăng ký nhanh bật lên ngay trên trang khi người dùng chưa đăng nhập bấm vào các nút yêu cầu quyền hạn (như Ứng tuyển, Lưu việc, Đăng tin). | Cả nhóm |
+| **WBS 0.E1** | E-AUTH-01 | Giao Diện Ánh Sáng Số Digital Light Dimension (Bảng Màu 8 Cột Matrix) | `[BỔ SUNG MỚI]` | `index.css` / Toàn bộ trang | Ma trận 8 cột màu sắc khoa học: Nền Canvas pha trắng ánh xanh dịu mắt, Card kính mờ xanh nhạt, Chữ đen mực tương phản cao, Nút bấm 3D xanh dương điện và viền sáng công nghệ. Chấm dứt hoàn toàn chữ nhỏ, mờ hay trùng màu nền. | Cả nhóm |
+| **WBS 0.E2** | E-AUTH-02 | Logo 3D WebGL Tương Tác & Biểu Tượng Vector Lucide Chuẩn | `[BỔ SUNG MỚI]` | `MeshyLogo3D` / Lucide Icons | Tải mô hình 3D `/meshy-3d-logo.glb` với hiệu ứng bồng bềnh WebGL 60 FPS; loại bỏ 100% ký tự emoji và icon AI vô nghĩa, thay thế bằng vector SVG chuẩn từ thư viện `lucide-react`. | Cả nhóm |
+| **WBS 0.E3** | E-AUTH-03 | Lớp Bảo Vệ Giao Diện Đa Tầng (Resilient Error Boundary) | `[BỔ SUNG MỚI]` | `ErrorBoundary` | Tự động bắt mọi ngoại lệ JavaScript phát sinh trong quá trình render, hiển thị màn hình bảo vệ thân thiện kèm nút bấm "Tải lại trang" và "Đặt lại phiên làm việc" để tự khôi phục nhanh. | Cả nhóm |
+| **WBS 0.E4** | E-AUTH-04 | Thiết Kế Đáp Ứng Đa Thiết Bị Không Bể Form (Responsive Layout) | `[BỔ SUNG MỚI]` | Toàn bộ giao diện | Tự động thích ứng co giãn hoàn hảo trên Điện thoại (Mobile), Máy tính bảng (iPad), Laptop và Màn hình máy tính để bàn (PC), hỗ trợ chế độ chia nửa màn hình mà không bao giờ bị gãy chữ hay vỡ khung. | Cả nhóm |
+| **WBS 0.E5** | E-AUTH-05 | Kiến Trúc Một Cổng Thống Nhất Đa Luồng (Unified Localhost Runner) | `[BỔ SUNG MỚI]` | `run.py` / `server.py` | Cho phép chạy đồng thời cả Frontend React Vite và Backend Flask trên duy nhất một địa chỉ `http://localhost:8002`, đồng thời hỗ trợ chế độ 3 cổng độc lập (`run_separate_roles.bat`) phục vụ hội đồng chấm thi. | Cả nhóm |
+
+---
 ### 3.2. Mô Hình Dữ Liệu Thực Thể (ERD - 16 Collections MongoDB Atlas)
 
 Cơ sở dữ liệu được tổ chức khoa học trên cụm máy chủ đám mây MongoDB Atlas trong cơ sở dữ liệu `CDTN02_DB`:
