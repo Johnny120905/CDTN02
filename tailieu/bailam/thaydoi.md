@@ -1023,3 +1023,21 @@ un.py.
 10. **Chuẩn Hóa Số Lượng Master Data & Lập Bảng Ma Trận 53 Tính Năng WBS Vui Lòng Vào `noidung.md`:**
     - Khẳng định số lượng Master Data chuẩn là **6 danh mục ngành nghề**, loại bỏ các danh mục địa điểm thừa.
     - Cập nhật toàn diện Mục 3.1 của `tailieu/bailam/noidung.md` với bảng tổng hợp số lượng và 4 bảng ma trận chi tiết cho từng phân hệ, liệt kê đầy đủ 53 Tính năng - Chức năng tương ứng với mã số WBS02.
+
+---
+
+## 33. GIAI ĐOẠN 33: BỔ SUNG MA TRẬN BỘ LỌC TỐI ƯU QUY MÔ TOÀN QUỐC CHO 3 ROLES & LẬP FILE ĐẶC TẢ NHAPTONGHOPBS.XLSX
+**Thời gian:** 09/11/2026  
+**Thành phần:** `tailieu/bailam/`  
+**Nội dung thực hiện chi tiết:**
+1. **Khảo sát & Đối soát Bộ lọc Thực tế Toàn quốc (63 Tỉnh/Thành):**
+   - Rà soát toàn bộ giao diện từ Chế độ xem trước (Guest Preview Mode) đến Giao diện đã đăng nhập của 3 Roles (Sinh viên, Nhà tuyển dụng, Quản trị viên).
+   - Bổ sung các bộ lọc đặc thù: Lọc Bán kính quanh các Cụm trường Đại học toàn quốc, Mức lương theo giờ 4 Vùng (NĐ 38/2022 & NĐ 74/2024), Hình thức chi trả (sau ca/theo tuần/theo tháng), Đặc quyền sinh viên (bao cơm, đóng mộc thực tập, nghỉ thi), Phân loại On-site / Remote.
+   - Phân hệ NTD: Bổ sung bộ lọc ứng viên theo Ca làm việc đăng ký (Shift Matching Filter), Lọc theo Trường Đại học gần cửa hàng, Độ trùng khớp lịch rảnh, Quản lý tin theo Chi nhánh chuỗi.
+   - Phân hệ Quản trị viên: Bổ sung bộ lọc Cảnh báo vi phạm Luật Lao động (lương dưới mức tối thiểu vùng, ca > 8h, thu tiền cọc), Bổ sung bộ lọc trạng thái xử lý 4 nấc (Chờ xử lý, Đang điều tra, Đã giải quyết, Bị bác bỏ) tại TabSlide Hội thoại chat và các ticket báo cáo.
+2. **Khởi Tạo File Đặc Tả Excel Mới `tailieu/bailam/NhapTongHopbs.xlsx`:**
+   - Thiết lập chuẩn mực 3 Sheet độc lập: `Sinh viên`, `Nhà tuyển dụng`, `Quản trị viên`.
+   - Chuẩn hóa 7 cột theo chuẩn `NhapTongHop.xlsx`, áp dụng bộ font `Times New Roman` 11pt, căn chỉnh Wrap Text, viền bảng và màu sắc tiêu đề chuyên nghiệp.
+   - Đánh mã WBS (FR-ID) tịnh tiến tăng dần chính xác từ mã lớn nhất của từng Module (FR-SV-05.09+, FR-NTD-04.09+, FR-QTV-04.09+...).
+3. **Đồng Bộ Dữ Liệu `NhapTongHop.xlsx`:**
+   - Đồng bộ cập nhật sheet `Bosungboloc` trong `NhapTongHop.xlsx`.
