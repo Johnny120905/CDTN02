@@ -26,8 +26,10 @@ import {
   createPeerConnection,
   closePeerConnection,
   getLocalMediaStream,
-  stopMediaStream
+  stopMediaStream,
+  isSameChatList
 } from '../../shared/webrtcSocketService';
+import CallMediaLayer from '../../shared/CallMediaLayer';
 
 export default function StudentPortal({
   currentUser,
@@ -208,6 +210,23 @@ export default function StudentPortal({
   const remoteStreamRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const pendingIceCandidatesRef = useRef([]);
+  const callActiveRef = useRef(false); // true khi đang trong cuộc gọi (đổ chuông hoặc đã kết nối)
+  const callRoomIdRef = useRef(null);  // room của cuộc gọi hiện tại
+
+  // Gắn lại luồng Video local/remote vào thẻ <video> sau mỗi lần render
+  // (thẻ video bị mount/unmount khi đổi trạng thái gọi hoặc bật/tắt camera)
+  useEffect(() => {
+    const lv = localVideoRef.current;
+    if (lv && localStreamRef.current && lv.srcObject !== localStreamRef.current) {
+      lv.srcObject = localStreamRef.current;
+    }
+    const rv = remoteVideoRef.current;
+    if (rv && remoteStreamRef.current && rv.srcObject !== remoteStreamRef.current) {
+      rv.srcObject = remoteStreamRef.current;
+      const p = rv.play && rv.play();
+      if (p && p.catch) p.catch(() => {});
+    }
+  });
 
   // Chat State (Khởi tạo rỗng, tự động tải lịch sử thực tế từ CSDL)
   const [chatMessages, setChatMessages] = useState([]);
@@ -239,6 +258,12 @@ export default function StudentPortal({
 
   const handleMenuSwitch = (menuId) => {
     setActiveMenu(menuId);
+    if (menuId === 'jobs' || menuId === 'saved_jobs') fetchJobs();
+    else if (menuId === 'applications' || menuId === 'my_shifts') fetchApplications();
+    else if (menuId === 'profile_cv') fetchResumes();
+    else if (menuId === 'student_profile') fetchProfile();
+    else if (menuId === 'reviews') fetchReviews();
+    else if (menuId === 'chat') fetchChatMessages();
     if (onSectionChange) onSectionChange(sectionTitleMap[menuId] || 'Trang chủ');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -265,11 +290,9 @@ export default function StudentPortal({
     }
   }, [requestedMenu]);
 
-  // Initial & Auto-Refresh Data (every 8s)
+  // Tải dữ liệu ban đầu khi đăng nhập (Không chạy setInterval ngầm để tránh lag giật web)
   useEffect(() => {
     fetchAllData();
-    const interval = setInterval(fetchAllData, 8000);
-    return () => clearInterval(interval);
   }, [token, isGuestMode, currentUser]);
 
   // Reset toàn bộ dữ liệu nội bộ sinh viên khi đăng xuất hoặc ở chế độ khách
@@ -301,7 +324,6 @@ export default function StudentPortal({
       fetchResumes();
       fetchReviews();
       fetchProfile();
-      fetchChatMessages();
     } else if (isGuestMode || !currentUser) {
       setBookmarkedIds(new Set());
       setSavedJobs([]);
@@ -315,10 +337,11 @@ export default function StudentPortal({
   };
 
   // Socket.IO Room Joining & WebRTC P2P Signaling Listeners (FR 1.10.4)
+  const currentRoomKey = getRoomId(); // chuỗi ổn định -> effect không chạy lại khi object selectedContact đổi tham chiếu
   useEffect(() => {
     if (!token) return;
     const socket = getSocket();
-    const currentRoomId = getRoomId();
+    const currentRoomId = currentRoomKey;
     const stuId = currentUser?._id || currentUser?.id || 'student';
     if (currentRoomId) {
       socket.emit('join-room', {
@@ -329,7 +352,7 @@ export default function StudentPortal({
     }
 
     const onIncomingCall = (data) => {
-      if (data.caller_role === 'employer' && !isVideoCalling) {
+      if (data.caller_role === 'employer' && !callActiveRef.current) {
         setIncomingCall(data);
         setCallType(data.call_type || 'video');
       }
@@ -366,13 +389,22 @@ export default function StudentPortal({
     };
 
     const onCallEnded = () => {
+      // Người gọi huỷ khi đang đổ chuông -> tắt popup cuộc gọi đến
+      setIncomingCall(null);
+      if (!callActiveRef.current) return; // Không có cuộc gọi đang diễn ra -> bỏ qua (tránh lặp vô hạn)
       handleEndCall(false);
       if (onShowBanner) onShowBanner('Nhà tuyển dụng đã kết thúc cuộc gọi.', 'success');
     };
 
     const onCallRejected = () => {
+      if (!callActiveRef.current) return;
       handleEndCall(false);
       if (onShowBanner) onShowBanner('Nhà tuyển dụng đã từ chối cuộc gọi.', 'error');
+    };
+
+    const onNewChatMessage = (msg) => {
+      if (!msg) return;
+      setChatMessages(prev => (prev.some(m => m._id === msg._id) ? prev : [...prev, msg]));
     };
 
     socket.on('incoming-call', onIncomingCall);
@@ -380,44 +412,45 @@ export default function StudentPortal({
     socket.on('receive-candidate', onReceiveCandidate);
     socket.on('call-ended', onCallEnded);
     socket.on('call-rejected', onCallRejected);
+    socket.on('new-chat-message', onNewChatMessage);
 
-    // Fallback polling phụ trợ (mỗi 3 giây)
-    const pollInterval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/chat/call/status?room_id=${currentRoomId}`, { headers });
-        const data = await res.json();
-        if (data.success && data.call) {
-          const call = data.call;
-          if (call.status === 'ringing' && call.target_role === 'student' && !isVideoCalling && !incomingCall) {
-            setIncomingCall(call);
-          } else if (callStatus === 'calling' && call.status === 'connected') {
-            setCallStatus('connected');
-          } else if (isVideoCalling && (call.status === 'ended' || call.status === 'declined')) {
-            handleEndCall(false);
-          }
-        }
-      } catch (e) { }
-    }, 3000);
-
+    // KHÔNG polling lặp /api/chat/call/status hay /api/chat/messages nữa:
+    // toàn bộ tín hiệu cuộc gọi và tin nhắn đi qua Socket.IO thời gian thực,
+    // chỉ phát sinh request khi người dùng bấm nút gọi / nhấc máy / kết thúc hoặc gửi tin nhắn.
     return () => {
-      clearInterval(pollInterval);
       socket.off('incoming-call', onIncomingCall);
       socket.off('answer-made', onAnswerMade);
       socket.off('receive-candidate', onReceiveCandidate);
       socket.off('call-ended', onCallEnded);
       socket.off('call-rejected', onCallRejected);
+      socket.off('new-chat-message', onNewChatMessage);
     };
-  }, [token, isVideoCalling, callStatus, incomingCall, selectedContact, currentUser]);
+  }, [token, isVideoCalling, currentRoomKey, currentUser?._id]);
 
-  // Periodic poll for chat messages when activeMenu === 'chat'
+  // Kiểm tra cuộc gọi đến dự phòng (3s - chỉ kiểm tra khi rảnh, đọc nhanh từ RAM máy chủ để chắc chắn 100% hiện popup bắt máy)
+  useEffect(() => {
+    if (!token || isVideoCalling || incomingCall) return;
+    const checkCallStatus = async () => {
+      try {
+        const res = await fetch(`/api/chat/call/status?room_id=${getRoomId()}`, { headers });
+        const data = await res.json();
+        if (data.success && data.call && data.call.status === 'ringing') {
+          if (data.call.caller_role === 'employer' && !callActiveRef.current) {
+            setIncomingCall(data.call);
+            setCallType(data.call.call_type || 'video');
+          }
+        }
+      } catch (e) {}
+    };
+    const timer = setInterval(checkCallStatus, 3000);
+    return () => clearInterval(timer);
+  }, [token, isVideoCalling, incomingCall]);
+
+  // Chỉ tải tin nhắn khi người dùng vào menu Chat hoặc đổi liên hệ (Không polling lặp để tránh lag web)
   useEffect(() => {
     if (!token || activeMenu !== 'chat') return;
     fetchChatMessages(selectedContact);
-    const chatPoll = setInterval(() => {
-      fetchChatMessages(selectedContact);
-    }, 2000);
-    return () => clearInterval(chatPoll);
-  }, [token, activeMenu, selectedContact]);
+  }, [token, activeMenu, currentRoomKey]);
 
   // WebRTC Call Timer & Media Toggle Handlers
   useEffect(() => {
@@ -457,6 +490,10 @@ export default function StudentPortal({
 
     const socket = getSocket();
     const currentRoomId = getRoomId();
+    callActiveRef.current = true;
+    callRoomIdRef.current = currentRoomId;
+    setIsMuted(false);
+    setIsCameraOff(false);
 
     try {
       const stream = await getLocalMediaStream(type);
@@ -514,6 +551,7 @@ export default function StudentPortal({
       if (onShowBanner) onShowBanner(`Đang đổ chuông cuộc gọi ${type === 'video' ? 'Video' : 'Thoại'} tới Doanh nghiệp...`, 'loading');
     } catch (e) {
       console.warn('[WebRTC Call Error]', e);
+      await handleEndCall(false, true);
       notify('Không thể truy cập Camera/Micro.', 'error');
     }
   };
@@ -523,9 +561,30 @@ export default function StudentPortal({
     const socket = getSocket();
     const currentRoomId = incomingCall.room_id || getRoomId();
     const type = incomingCall.call_type || 'video';
+    callActiveRef.current = true;
+    callRoomIdRef.current = currentRoomId;
+
+    // Chuyển sang màn hình Tin nhắn & chọn đúng doanh nghiệp đang gọi để hiện đủ nút Mic / Camera / Kết thúc
+    const callerContact = contacts.find(c => currentRoomId.startsWith(`room_emp_${c.employer_id || c.id}_stu_`));
+    if (callerContact) {
+      setSelectedContact(callerContact);
+    } else if (!selectedContact && contacts.length > 0) {
+      setSelectedContact(contacts[0]);
+    } else if (!selectedContact) {
+      setSelectedContact({
+        id: incomingCall.caller_id || 'emp_partner',
+        employer_id: incomingCall.caller_id,
+        name: incomingCall.caller_name || 'Doanh nghiệp',
+        online: true,
+        subtitle: 'Nhà tuyển dụng'
+      });
+    }
+    setActiveMenu('chat');
 
     setCallType(type);
     setIncomingCall(null);
+    setIsMuted(false);
+    setIsCameraOff(false);
     setIsVideoCalling(true);
     setCallStatus('connected');
     setHasRemoteVideo(false);
@@ -582,7 +641,8 @@ export default function StudentPortal({
       if (onShowBanner) onShowBanner('Đã kết nối cuộc gọi phỏng vấn thành công!', 'success');
     } catch (e) {
       console.warn('[WebRTC Answer Error]', e);
-      notify('Lỗi kết nối WebRTC.', 'error');
+      await handleEndCall(true, true);
+      notify('Lỗi kết nối WebRTC hoặc không truy cập được Camera/Micro.', 'error');
     }
   };
 
@@ -602,11 +662,18 @@ export default function StudentPortal({
     if (onShowBanner) onShowBanner('Đã từ chối cuộc gọi.', 'error');
   };
 
-  const handleEndCall = async (notifyBackend = true) => {
+  const handleEndCall = async (notifyBackend = true, silent = false) => {
     const socket = getSocket();
-    const currentRoomId = getRoomId();
+    const currentRoomId = callRoomIdRef.current || getRoomId();
 
-    socket.emit('end-call', { room_id: currentRoomId });
+    // Chỉ phát tín hiệu 'end-call' khi CHÍNH MÌNH bấm kết thúc.
+    // (Nếu phát lại khi nhận 'call-ended' sẽ tạo vòng lặp vô hạn giữa 2 máy -> gọi liên tục & giật khung chat)
+    if (notifyBackend && callActiveRef.current) {
+      socket.emit('end-call', { room_id: currentRoomId });
+    }
+    const wasActive = callActiveRef.current;
+    callActiveRef.current = false;
+    callRoomIdRef.current = null;
 
     if (peerConnectionRef.current) {
       closePeerConnection(peerConnectionRef.current);
@@ -617,10 +684,15 @@ export default function StudentPortal({
       localStreamRef.current = null;
     }
     remoteStreamRef.current = null;
+    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     pendingIceCandidatesRef.current = [];
     setHasRemoteVideo(false);
+    setIncomingCall(null);
+    setIsMuted(false);
+    setIsCameraOff(false);
 
-    if (notifyBackend) {
+    if (notifyBackend && wasActive) {
       try {
         await fetch('/api/chat/call/end', {
           method: 'POST',
@@ -632,11 +704,13 @@ export default function StudentPortal({
     setIsVideoCalling(false);
     setCallStatus('idle');
     setCallDuration(0);
-    if (onShowBanner) {
-      onShowBanner(null);
-      setTimeout(() => onShowBanner('Cuộc gọi đã kết thúc.', 'success', 2500), 50);
+    if (wasActive && !silent) {
+      if (onShowBanner) {
+        onShowBanner(null);
+        setTimeout(() => onShowBanner('Cuộc gọi đã kết thúc.', 'success', 2500), 50);
+      }
+      fetchChatMessages();
     }
-    fetchChatMessages();
   };
 
   // API Calls
@@ -788,13 +862,11 @@ export default function StudentPortal({
       const res = await fetch(`/api/chat/messages?room_id=${roomId}`, { headers });
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
-        setChatMessages(data.data);
-      } else {
-        setChatMessages([]);
+        // Chỉ cập nhật khi tin nhắn thực sự thay đổi -> không re-render/giật khung chat
+        setChatMessages(prev => (isSameChatList(prev, data.data) ? prev : data.data));
       }
     } catch (err) {
       console.warn('Chat message fetch fallback:', err);
-      setChatMessages([]);
     }
   };
 
@@ -3844,7 +3916,7 @@ export default function StudentPortal({
 
         {/* 7. MÀN HÌNH CHAT CHI TIẾT & GỌI VIDEO WEBRTC (UI-SV-CHAT-02, UI-SV-CALL-01 - 1.8 & 1.10) */}
         {activeMenu === 'chat' && (
-          <div className="w-full max-w-full mx-auto h-[calc(100vh-140px)] flex flex-col rounded-3xl bg-white border border-slate-200/80 shadow-sm overflow-hidden">
+          <div className="w-full max-w-full mx-auto h-[calc(100vh-160px)] min-h-[520px] flex flex-col rounded-3xl bg-white border border-slate-200/80 shadow-sm overflow-hidden">
             {isGuestMode ? (
               <div className="flex-1 flex flex-col p-4 sm:p-6 space-y-6 overflow-y-auto">
                 
@@ -4000,9 +4072,21 @@ export default function StudentPortal({
 
             {/* MÀN HÌNH GỌI TRỰC TUYẾN 2 CHIỀU (UI-SV-CALL-01) */}
             {isVideoCalling ? (
-              <div className="flex-1 bg-black relative flex flex-col items-center justify-center p-4">
+              <div className="flex-1 min-h-0 bg-black relative flex flex-col items-center justify-center p-3 sm:p-4">
                 {/* Khung hình chính cuộc gọi */}
-                <div className="w-full h-full max-w-4xl max-h-[70vh] rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center relative overflow-hidden shadow-2xl">
+                <div className="w-full flex-1 min-h-0 max-w-4xl rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center relative overflow-hidden shadow-2xl">
+                  {/* Badge thông tin & thời lượng cuộc gọi nổi ở góc trên */}
+                  <div className="absolute top-4 left-4 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/80 backdrop-blur-md border border-white/10 text-white text-xs shadow-lg font-medium">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span className="font-mono font-bold text-emerald-300">
+                      {callStatus === 'calling' ? 'Đang đổ chuông...' : `${Math.floor(callDuration / 60)}:${(callDuration % 60).toString().padStart(2, '0')}`}
+                    </span>
+                    <span className="text-slate-400">|</span>
+                    <span className="text-slate-200 truncate max-w-[200px]">
+                      {callType === 'video' ? 'Phỏng vấn Video' : 'Cuộc gọi Thoại'}: {selectedContact?.name || 'Doanh nghiệp'}
+                    </span>
+                  </div>
+
                   {callStatus === 'calling' ? (
                     <div className="text-center space-y-4">
                       <div className="relative mx-auto w-24 h-24 flex items-center justify-center">
@@ -4023,7 +4107,8 @@ export default function StudentPortal({
                         ref={remoteVideoRef}
                         autoPlay
                         playsInline
-                        className={`w-full h-full object-cover ${callType === 'video' && hasRemoteVideo ? 'block' : 'hidden'}`}
+                        muted
+                        className={`absolute inset-0 w-full h-full object-cover ${callType === 'video' && hasRemoteVideo ? 'block' : 'hidden'}`}
                       />
                       {(!hasRemoteVideo || callType === 'audio') && (
                         <div className="text-center space-y-3">
@@ -4043,54 +4128,68 @@ export default function StudentPortal({
                   )}
 
                   {/* Khung hình camera phụ nếu là cuộc gọi Video */}
-                  {callType === 'video' && !isCameraOff && (
-                    <div className="absolute bottom-4 right-4 w-44 h-32 rounded-2xl bg-slate-950 border-2 border-sky-400/80 overflow-hidden shadow-2xl">
-                      <video
-                        ref={localVideoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className="w-full h-full object-cover"
-                      />
-                      <span className="absolute bottom-1 left-2 text-xs font-bold text-white bg-black/60 px-1 rounded">
-                        Bạn ({currentUser?.profile?.full_name || currentUser?.full_name || 'Tôi'})
-                      </span>
+                  {callType === 'video' && (
+                    <div className="absolute bottom-4 right-4 w-36 sm:w-44 h-24 sm:h-32 rounded-2xl bg-slate-950 border-2 border-sky-400/80 overflow-hidden shadow-2xl z-20 flex items-center justify-center">
+                      {!isCameraOff ? (
+                        <>
+                          <video
+                            ref={localVideoRef}
+                            autoPlay
+                            playsInline
+                            muted
+                            className="w-full h-full object-cover"
+                          />
+                          <span className="absolute bottom-1 left-2 text-[11px] font-bold text-white bg-black/60 px-1.5 py-0.5 rounded backdrop-blur-xs">
+                            Bạn ({currentUser?.profile?.full_name || currentUser?.full_name || 'Tôi'})
+                          </span>
+                        </>
+                      ) : (
+                        <div className="text-center p-2 text-slate-400">
+                          <CameraOff className="w-5 h-5 mx-auto text-rose-400 mb-1" />
+                          <span className="text-[10px] font-bold block text-slate-300">Camera đã tắt</span>
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
 
-                {/* Các nút điều khiển cuộc gọi: Mic, Camera (nếu video), Cúp máy */}
-                <div className="flex items-center gap-4 mt-4">
-                  <button
-                    type="button"
-                    onClick={() => setIsMuted(!isMuted)}
-                    className={`p-3.5 rounded-full cursor-pointer transition-all ${isMuted ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'
-                      }`}
-                    title={isMuted ? 'Bật Mic' : 'Tắt Mic'}
-                  >
-                    {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                  </button>
-
-                  {callType === 'video' && (
+                  {/* THANH ĐIỀU KHIỂN NỔI ĐÈ TRỰC TIẾP LÊN MÀN HÌNH GỌI (LUÔN HIỂN THỊ CẢ NGƯỜI GỌI & NGƯỜI NGHE) */}
+                  <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 px-5 py-2.5 rounded-full bg-slate-950/90 backdrop-blur-md border border-white/20 shadow-2xl">
+                    {/* Nút Mic */}
                     <button
                       type="button"
-                      onClick={() => setIsCameraOff(!isCameraOff)}
-                      className={`p-3.5 rounded-full cursor-pointer transition-all ${isCameraOff ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'
-                        }`}
-                      title={isCameraOff ? 'Mở Camera' : 'Tắt Camera'}
+                      onClick={() => setIsMuted(!isMuted)}
+                      className={`p-3 rounded-full cursor-pointer transition-all shadow-md flex items-center justify-center ${
+                        isMuted ? 'bg-rose-600 text-white animate-pulse' : 'bg-slate-800 text-slate-200 hover:bg-slate-700 hover:scale-105'
+                      }`}
+                      title={isMuted ? 'Bật Mic (Micro đang tắt)' : 'Tắt Mic (Micro đang bật)'}
                     >
-                      {isCameraOff ? <CameraOff className="w-5 h-5" /> : <Camera className="w-5 h-5" />}
+                      {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
                     </button>
-                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => handleEndCall(true)}
-                    className="p-3.5 rounded-full bg-red-600 hover:bg-red-500 text-white cursor-pointer shadow-lg shadow-red-950/60"
-                    title="Kết thúc cuộc gọi"
-                  >
-                    <Phone className="w-5 h-5 rotate-[135deg]" />
-                  </button>
+                    {/* Nút Camera (nếu là cuộc gọi Video) */}
+                    {callType === 'video' && (
+                      <button
+                        type="button"
+                        onClick={() => setIsCameraOff(!isCameraOff)}
+                        className={`p-3 rounded-full cursor-pointer transition-all shadow-md flex items-center justify-center ${
+                          isCameraOff ? 'bg-rose-600 text-white animate-pulse' : 'bg-slate-800 text-slate-200 hover:bg-slate-700 hover:scale-105'
+                        }`}
+                        title={isCameraOff ? 'Mở Camera (Camera đang tắt)' : 'Tắt Camera (Camera đang bật)'}
+                      >
+                        {isCameraOff ? <CameraOff className="w-5 h-5" /> : <Camera className="w-5 h-5" />}
+                      </button>
+                    )}
+
+                    {/* Nút Kết Thúc Cuộc Gọi (Cúp Máy) */}
+                    <button
+                      type="button"
+                      onClick={() => handleEndCall(true)}
+                      className="p-3 rounded-full bg-rose-600 hover:bg-rose-500 text-white cursor-pointer shadow-lg shadow-rose-950/80 transition-all hover:scale-105 flex items-center justify-center"
+                      title="Kết thúc cuộc gọi"
+                    >
+                      <Phone className="w-5 h-5 rotate-[135deg]" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -4505,6 +4604,22 @@ export default function StudentPortal({
           fileUrl: previewCvPdf?.file_url
         }}
         onDownloadSuccess={(msg) => onShowBanner && onShowBanner(msg, 'success')}
+      />
+
+      {/* Lớp media cuộc gọi: luôn phát âm thanh đối phương + thanh điều khiển nổi khi đang gọi mà không ở màn Chat */}
+      <CallMediaLayer
+        isVideoCalling={isVideoCalling}
+        callType={callType}
+        callStatus={callStatus}
+        isMuted={isMuted}
+        isCameraOff={isCameraOff}
+        callDuration={callDuration}
+        remoteStreamRef={remoteStreamRef}
+        showFloatingControls={activeMenu !== 'chat'}
+        onToggleMic={() => setIsMuted(m => !m)}
+        onToggleCamera={() => setIsCameraOff(c => !c)}
+        onEndCall={() => handleEndCall(true)}
+        onOpenChat={() => setActiveMenu('chat')}
       />
 
       {/* ======================= MODAL CUỘC GỌI ĐẾN (INCOMING CALL POPUP) ======================= */}

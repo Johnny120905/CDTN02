@@ -306,6 +306,15 @@ def send_message():
 
     db_manager.get_collection("messages").insert_one(new_msg)
     
+    # Phát tin nhắn mới theo thời gian thực qua WebSocket tới phòng chat
+    try:
+        from src.core.socket_service import socketio
+        socketio.emit("new-chat-message", new_msg, room=room_id)
+        if raw_room_id != room_id:
+            socketio.emit("new-chat-message", new_msg, room=raw_room_id)
+    except Exception as e:
+        pass
+    
     # Tự động đẩy thông báo thời gian thực cho đối tác bên kia cuộc trò chuyện (FR 1.9 & 2.8)
     try:
         users_col = db_manager.get_collection("users")
@@ -395,6 +404,22 @@ def initiate_call():
         ACTIVE_CALL_SESSIONS[raw_room_id] = call_session
 
     # Đẩy thông báo chuông gọi đến đích danh người nhận
+    try:
+        from src.core.socket_service import socketio
+        socketio.emit("incoming-call", {
+            "room_id": room_id,
+            "raw_room_id": raw_room_id,
+            "caller_name": caller_name,
+            "caller_role": caller_role,
+            "caller_id": user["_id"],
+            "target_role": target_role,
+            "target_user_id": target_user_id,
+            "call_type": call_type,
+            "status": "ringing"
+        }, broadcast=True)
+    except Exception:
+        pass
+
     try:
         users_col = db_manager.get_collection("users")
         target_user = None
@@ -521,7 +546,7 @@ def respond_call():
         call_session["status"] = "declined"
         call_session["ended_at"] = time.time()
         try:
-            db_manager.get_collection("messages").insert_one({
+            call_msg = {
                 "_id": f"msg_call_{uuid.uuid4().hex[:8]}",
                 "room_id": call_session.get("room_id", room_id),
                 "sender_id": call_session.get("caller_id"),
@@ -533,7 +558,13 @@ def respond_call():
                 "type": "call_record",
                 "call_status": "missed",
                 "created_at": time.strftime("%H:%M")
-            })
+            }
+            db_manager.get_collection("messages").insert_one(call_msg)
+            try:
+                from src.core.socket_service import socketio
+                socketio.emit("new-chat-message", call_msg, room=call_session.get("room_id", room_id))
+            except Exception:
+                pass
         except Exception:
             pass
         
@@ -562,7 +593,7 @@ def end_call():
         duration_str = f"{duration // 60}:{duration % 60:02d}"
         
         try:
-            db_manager.get_collection("messages").insert_one({
+            call_msg = {
                 "_id": f"msg_call_{uuid.uuid4().hex[:8]}",
                 "room_id": call_session.get("room_id", room_id),
                 "sender_id": user["_id"],
@@ -576,7 +607,13 @@ def end_call():
                 "duration": duration,
                 "duration_str": duration_str,
                 "created_at": time.strftime("%H:%M")
-            })
+            }
+            db_manager.get_collection("messages").insert_one(call_msg)
+            try:
+                from src.core.socket_service import socketio
+                socketio.emit("new-chat-message", call_msg, room=call_session.get("room_id", room_id))
+            except Exception:
+                pass
         except Exception as e:
             print(f"[Call End Error] {e}")
         

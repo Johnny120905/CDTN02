@@ -125,3 +125,24 @@ export const stopMediaStream = (stream) => {
   }
 };
 
+
+// So sánh nhanh 2 danh sách tin nhắn để tránh setState/re-render khi dữ liệu không đổi (chống giật khung chat)
+export const isSameChatList = (a, b) => {
+  if (a === b) return true;
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    const x = a[i];
+    const y = b[i];
+    if (
+      x._id !== y._id ||
+      x.content !== y.content ||
+      x.is_read !== y.is_read ||
+      x.call_status !== y.call_status ||
+      x.duration !== y.duration ||
+      x.is_flagged !== y.is_flagged
+    ) {
+      return false;
+    }
+  }
+  return true;
+};

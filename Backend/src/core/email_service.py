@@ -39,7 +39,12 @@ def send_otp_email(recipient_email: str, otp_code: str, purpose: str = "forgot_p
         print("[Brevo Email Warning] Missing BREVO_SMTP_LOGIN or BREVO_SMTP_KEY in environment.")
         return False
 
-    purpose_text = "Đặt lại mật khẩu" if purpose == "forgot_password" else "Xác thực tài khoản"
+    if purpose == "register":
+        purpose_text = "Đăng ký tài khoản"
+    elif purpose == "forgot_password":
+        purpose_text = "Đặt lại mật khẩu"
+    else:
+        purpose_text = "Xác thực tài khoản"
 
     msg = MIMEMultipart("alternative")
     msg["From"] = f"{sender_name} <{sender_email}>"

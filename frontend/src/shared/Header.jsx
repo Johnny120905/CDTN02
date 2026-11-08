@@ -1,17 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import BrandLogo from './BrandLogo';
-import { 
-  LogOut, UserCheck, ChevronDown, User, ShieldCheck, 
+import {
+  LogOut, UserCheck, ChevronDown, User, ShieldCheck,
   GraduationCap, Briefcase, Settings, Trash2, AlertTriangle, X,
   Search, Bell, MessageSquare, Plus, Menu, ExternalLink,
   CheckCircle2, Clock, ChevronRight, AlertCircle, Building2
 } from 'lucide-react';
 import { getStatusBadge } from './professionSuggestions';
 
-export default function Header({ 
-  currentUser, 
-  onLogout, 
-  onOpenAccountModal, 
+export default function Header({
+  currentUser,
+  onLogout,
+  onOpenAccountModal,
   onGoHome,
   onNavigateMenu,
   onToggleSidebar,
@@ -43,32 +43,32 @@ export default function Header({
   const isAdmin = role === 'admin';
 
   // Identity naming
-  const representativeName = currentUser?.profile?.representative_name || 
-                            currentUser?.profile?.full_name || 
-                            currentUser?.full_name || 
-                            'Người đại diện';
-                            
-  const companyName = currentUser?.profile?.company_name || 
-                      currentUser?.company_name || 
-                      (isEmployer ? 'Doanh nghiệp' : '');
-                      
-  const branchName = currentUser?.profile?.branch_name || 
-                     currentUser?.profile?.address || 
-                     '';
+  const representativeName = currentUser?.profile?.representative_name ||
+    currentUser?.profile?.full_name ||
+    currentUser?.full_name ||
+    'Người đại diện';
 
-  const studentName = currentUser?.profile?.full_name || 
-                      currentUser?.full_name || 
-                      'Sinh viên';
+  const companyName = currentUser?.profile?.company_name ||
+    currentUser?.company_name ||
+    (isEmployer ? 'Doanh nghiệp' : '');
 
-  const adminName = currentUser?.profile?.full_name || 
-                    'Ban Quản Trị';
+  const branchName = currentUser?.profile?.branch_name ||
+    currentUser?.profile?.address ||
+    '';
+
+  const studentName = currentUser?.profile?.full_name ||
+    currentUser?.full_name ||
+    'Sinh viên';
+
+  const adminName = currentUser?.profile?.full_name ||
+    'Ban Quản Trị';
 
   const userStatus = currentUser?.profile?.status || currentUser?.status || 'active';
   const statusBadge = getStatusBadge(userStatus);
 
-  const employerApprovalStatus = currentUser?.employer_record?.approval_status || 
-                                currentUser?.approval_status || 
-                                'approved';
+  const employerApprovalStatus = currentUser?.employer_record?.approval_status ||
+    currentUser?.approval_status ||
+    'approved';
 
   // Fetch notifications according to role
   const fetchNotifications = async () => {
@@ -94,7 +94,7 @@ export default function Header({
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 8000);
+    const interval = setInterval(fetchNotifications, 60000); // 1 lần mỗi phút
     return () => clearInterval(interval);
   }, [token, role]);
 
@@ -253,14 +253,13 @@ export default function Header({
 
   return (
     <div className="sticky top-0 z-40 w-full flex flex-col shadow-sm">
-      
+
       {/* 1. BANNER CẢNH BÁO GPKD DÀNH CHO NHÀ TUYỂN DỤNG */}
       {isEmployer && employerApprovalStatus !== 'approved' && (
-        <div className={`w-full py-2 px-4 flex items-center justify-between text-xs font-semibold ${
-          employerApprovalStatus === 'rejected' 
-            ? 'bg-red-50 text-red-700 border-b border-red-200' 
+        <div className={`w-full py-2 px-4 flex items-center justify-between text-xs font-semibold ${employerApprovalStatus === 'rejected'
+            ? 'bg-red-50 text-red-700 border-b border-red-200'
             : 'bg-amber-50 text-amber-800 border-b border-amber-200'
-        }`}>
+          }`}>
           <div className="flex items-center gap-2 w-full max-w-full mx-auto">
             <AlertTriangle className={`w-4 h-4 shrink-0 ${employerApprovalStatus === 'rejected' ? 'text-red-600' : 'text-amber-600'}`} />
             <span>
@@ -276,7 +275,7 @@ export default function Header({
 
       {/* 2. THANH HEADER CHÍNH (LIGHT GLASS DIMENSION) */}
       <header className="w-full glass-header-dimension text-slate-800 h-20 px-4 sm:px-8 flex items-center justify-between">
-        
+
         {/* ===================== CỤM TRÁI ===================== */}
         <div className="flex items-center gap-3 sm:gap-4 shrink-0">
           <button
@@ -395,11 +394,10 @@ export default function Header({
                           key={n._id}
                           onClick={() => handleNotiClick(n)}
                           onMouseEnter={() => handleNotiHover(n)}
-                          className={`p-3.5 transition-all group flex items-start justify-between gap-3 cursor-pointer ${
-                            !n.is_read 
-                              ? 'bg-blue-50/70 border-l-4 border-l-blue-600 hover:bg-blue-100/60' 
+                          className={`p-3.5 transition-all group flex items-start justify-between gap-3 cursor-pointer ${!n.is_read
+                              ? 'bg-blue-50/70 border-l-4 border-l-blue-600 hover:bg-blue-100/60'
                               : 'hover:bg-slate-50'
-                          }`}
+                            }`}
                         >
                           <div className="flex items-start gap-2.5 flex-1 min-w-0">
                             <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${!n.is_read ? 'bg-blue-600 ring-2 ring-blue-200' : 'bg-slate-300'}`}></span>
@@ -481,20 +479,18 @@ export default function Header({
 
               {/* Trạng thái hoạt động tự động */}
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border flex items-center gap-1 ${
-                  (currentUser?.is_banned || userStatus === 'inactive' || userStatus === 'cancelled')
+                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border flex items-center gap-1 ${(currentUser?.is_banned || userStatus === 'inactive' || userStatus === 'cancelled')
                     ? 'bg-red-50 text-red-700 border-red-200'
                     : (userStatus === 'paused'
                       ? 'bg-amber-50 text-amber-700 border-amber-200'
                       : 'bg-emerald-50 text-emerald-700 border-emerald-200')
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${
-                    (currentUser?.is_banned || userStatus === 'inactive' || userStatus === 'cancelled')
+                  }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${(currentUser?.is_banned || userStatus === 'inactive' || userStatus === 'cancelled')
                       ? 'bg-red-500'
                       : (userStatus === 'paused'
                         ? 'bg-amber-500'
                         : 'bg-emerald-500 animate-pulse')
-                  }`} />
+                    }`} />
                   <span>
                     {(currentUser?.is_banned || userStatus === 'inactive' || userStatus === 'cancelled')
                       ? 'Ngưng hoạt động'
@@ -539,7 +535,7 @@ export default function Header({
               {/* DROPDOWN MENU NỘI DUNG */}
               {dropdownOpen && (
                 <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl border border-slate-200 shadow-2xl py-2 z-[99999] bg-white text-slate-800 animate-in fade-in duration-200">
-                  
+
                   {/* Thông tin tài khoản */}
                   <div className="px-4 py-3 border-b border-slate-100 bg-slate-50 mx-2 rounded-xl mb-1.5">
                     {isEmployer ? (
@@ -556,18 +552,16 @@ export default function Header({
                       <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${roleConfig.badgeColor}`}>
                         {roleConfig.title}
                       </span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border flex items-center gap-1 ${
-                        (currentUser?.is_banned || userStatus === 'inactive' || userStatus === 'cancelled')
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border flex items-center gap-1 ${(currentUser?.is_banned || userStatus === 'inactive' || userStatus === 'cancelled')
                           ? 'bg-red-50 text-red-700 border-red-200'
                           : (userStatus === 'paused'
                             ? 'bg-amber-50 text-amber-700 border-amber-200'
                             : 'bg-emerald-50 text-emerald-700 border-emerald-200')
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          (currentUser?.is_banned || userStatus === 'inactive' || userStatus === 'cancelled')
+                        }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${(currentUser?.is_banned || userStatus === 'inactive' || userStatus === 'cancelled')
                             ? 'bg-red-500'
                             : (userStatus === 'paused' ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse')
-                        }`} />
+                          }`} />
                         <span>
                           {(currentUser?.is_banned || userStatus === 'inactive' || userStatus === 'cancelled')
                             ? 'Ngưng hoạt động'
@@ -579,7 +573,7 @@ export default function Header({
 
                   {/* Các nút thao tác */}
                   <div className="p-1.5 space-y-1">
-                    
+
                     {/* Cập nhật hồ sơ & đổi mật khẩu */}
                     <button
                       type="button"
@@ -640,9 +634,9 @@ export default function Header({
                 <AlertTriangle className="w-6 h-6 shrink-0" />
                 <h3 className="text-base font-bold text-slate-900">Xác Nhận Hủy Tài Khoản</h3>
               </div>
-              <button 
-                type="button" 
-                onClick={() => setDeleteModalOpen(false)} 
+              <button
+                type="button"
+                onClick={() => setDeleteModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600"
               >
                 <X className="w-5 h-5" />

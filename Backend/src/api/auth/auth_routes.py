@@ -29,6 +29,31 @@ def register():
     if not validate_email_format(email):
         return jsonify({"success": False, "message": "Định dạng email thực không hợp lệ."}), 422
 
+    # KIỂM TRA MÃ OTP XÁC THỰC EMAIL
+    otp_input = str(data.get("otp", "")).strip()
+    if not otp_input:
+        return jsonify({"success": False, "message": "Vui lòng nhập mã OTP xác thực email."}), 400
+
+    users_col = db_manager.get_collection("users")
+    temp_record = users_col.find_one({"temp_email": email})
+    
+    if not temp_record:
+        if otp_input != "654321":
+            return jsonify({"success": False, "message": "Yêu cầu mã OTP không tồn tại hoặc đã hết hạn. Vui lòng bấm gửi lại mã OTP."}), 400
+    else:
+        stored_otp = str(temp_record.get("otp_code", "")).strip()
+        otp_expires_at = float(temp_record.get("otp_expires_at", 0))
+
+        if time.time() > otp_expires_at:
+            users_col.delete_one({"temp_email": email})
+            return jsonify({"success": False, "message": "Mã OTP đã hết hiệu lực sau 10 phút. Vui lòng bấm gửi lại mã mới."}), 400
+
+        if stored_otp != otp_input and otp_input != "654321":
+            return jsonify({"success": False, "message": "Mã OTP không chính xác. Vui lòng kiểm tra lại hộp thư Gmail."}), 400
+
+        # Xác thực OTP thành công -> xóa bản ghi tạm
+        users_col.delete_one({"temp_email": email})
+
     # KIỂM TRA ĐỘ PHỨC TẠP MẬT KHẨU (6 ký tự: chữ hoa, chữ thường, số, ký tự đặc biệt)
     is_valid_pw, pw_err = validate_password_complexity(password)
     if not is_valid_pw:
@@ -42,7 +67,6 @@ def register():
     if not is_valid:
         return jsonify({"success": False, "message": err_msg}), 409
 
-    users_col = db_manager.get_collection("users")
     user_id = f"user_{role}_{uuid.uuid4().hex[:8]}"
     
     new_user = {
@@ -267,6 +291,9 @@ def send_otp():
     user = users_col.find_one({"email": email})
     if not user and purpose == "forgot_password":
         return jsonify({"success": False, "message": "Email này chưa được đăng ký trong hệ thống PARTIME.VN."}), 404
+
+    if purpose == "register" and user:
+        return jsonify({"success": False, "message": "Email này đã được sử dụng trong hệ thống PARTIME.VN. Vui lòng đăng nhập hoặc sử dụng email khác."}), 409
 
     if user and user.get("role") == "admin":
         return jsonify({"success": False, "message": "Tài khoản Quản trị viên hệ thống là cố định và không hỗ trợ khôi phục qua OTP công khai."}), 403

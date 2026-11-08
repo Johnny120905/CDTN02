@@ -97,13 +97,14 @@ def register_socket_events():
         if raw_room:
             canonical_room = canonicalize_room_id(raw_room)
             data["room_id"] = canonical_room
-            # Gửi cả tới phòng chuẩn hóa lẫn phòng thô và phòng cá nhân (nếu có)
             emit("incoming-call", data, room=canonical_room, include_self=False)
             if raw_room != canonical_room:
                 emit("incoming-call", data, room=raw_room, include_self=False)
             target_user_id = data.get("target_user_id")
             if target_user_id:
                 emit("incoming-call", data, room=f"user_{target_user_id}", include_self=False)
+        # Phát broadcast để đảm bảo người nhận nhận được tín hiệu bắt máy ngay tức khắc dù ở bất kỳ tab nào
+        emit("incoming-call", data, broadcast=True, include_self=False)
 
     # 2. Tín hiệu Chấp nhận cuộc gọi (WebRTC Answer)
     @socketio.on("make-answer")
@@ -115,6 +116,7 @@ def register_socket_events():
             emit("answer-made", data, room=canonical_room, include_self=False)
             if raw_room != canonical_room:
                 emit("answer-made", data, room=raw_room, include_self=False)
+        emit("answer-made", data, broadcast=True, include_self=False)
 
     # 3. Tín hiệu ICE Candidate (Địa chỉ mạng P2P)
     @socketio.on("send-candidate")
@@ -126,6 +128,7 @@ def register_socket_events():
             emit("receive-candidate", data, room=canonical_room, include_self=False)
             if raw_room != canonical_room:
                 emit("receive-candidate", data, room=raw_room, include_self=False)
+        emit("receive-candidate", data, broadcast=True, include_self=False)
 
     # 4. Tín hiệu Từ chối cuộc gọi
     @socketio.on("reject-call")
@@ -137,6 +140,7 @@ def register_socket_events():
             emit("call-rejected", data, room=canonical_room, include_self=False)
             if raw_room != canonical_room:
                 emit("call-rejected", data, room=raw_room, include_self=False)
+        emit("call-rejected", data, broadcast=True, include_self=False)
 
     # 5. Tín hiệu Kết thúc cuộc gọi / Gác máy
     @socketio.on("end-call")
@@ -148,4 +152,5 @@ def register_socket_events():
             emit("call-ended", data, room=canonical_room, include_self=False)
             if raw_room != canonical_room:
                 emit("call-ended", data, room=raw_room, include_self=False)
+        emit("call-ended", data, broadcast=True, include_self=False)
 

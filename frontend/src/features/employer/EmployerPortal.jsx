@@ -16,8 +16,10 @@ import {
   createPeerConnection,
   closePeerConnection,
   getLocalMediaStream,
-  stopMediaStream
+  stopMediaStream,
+  isSameChatList
 } from '../../shared/webrtcSocketService';
+import CallMediaLayer from '../../shared/CallMediaLayer';
 import { 
   VIETNAM_PROVINCES, PROVINCE_DISTRICTS_MAP, WORK_SHIFTS, 
   SALARY_BRACKETS, getDistrictsByProvince 
@@ -258,6 +260,23 @@ export default function EmployerPortal({
   const remoteStreamRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const pendingIceCandidatesRef = useRef([]);
+  const callActiveRef = useRef(false); // true khi đang trong cuộc gọi (đổ chuông hoặc đã kết nối)
+  const callRoomIdRef = useRef(null);  // room của cuộc gọi hiện tại
+
+  // Gắn lại luồng Video local/remote vào thẻ <video> sau mỗi lần render
+  // (thẻ video bị mount/unmount khi đổi trạng thái gọi hoặc bật/tắt camera)
+  useEffect(() => {
+    const lv = localVideoRef.current;
+    if (lv && localStreamRef.current && lv.srcObject !== localStreamRef.current) {
+      lv.srcObject = localStreamRef.current;
+    }
+    const rv = remoteVideoRef.current;
+    if (rv && remoteStreamRef.current && rv.srcObject !== remoteStreamRef.current) {
+      rv.srcObject = remoteStreamRef.current;
+      const p = rv.play && rv.play();
+      if (p && p.catch) p.catch(() => {});
+    }
+  });
 
   // Document Viewer Modals (CV & GPKD)
   const [applicantCvViewer, setApplicantCvViewer] = useState(null);
@@ -338,8 +357,18 @@ export default function EmployerPortal({
         is_negotiable: false,
         work_time: 'Ca sáng: 07:00 - 11:30 (4.5 tiếng)'
       });
+      fetchMyJobs();
     } else if (menuId === 'jobs') {
       setJobViewMode('list');
+      fetchMyJobs();
+    } else if (menuId === 'applicants') {
+      fetchApplicants();
+    } else if (menuId === 'company') {
+      fetchCompanyProfile();
+    } else if (menuId === 'reviews') {
+      fetchReviews();
+    } else if (menuId === 'chat') {
+      fetchChatMessages();
     }
     if (onSectionChange) onSectionChange(sectionTitleMap[menuId] || 'Bảng điều khiển tuyển dụng');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -371,11 +400,9 @@ export default function EmployerPortal({
     }
   }, [requestedMenu]);
 
-  // Initial & Auto-Refresh Data (every 8s)
+  // Tải dữ liệu ban đầu khi đăng nhập (Không chạy setInterval ngầm để tránh lag giật web)
   useEffect(() => {
     fetchAllData();
-    const interval = setInterval(fetchAllData, 8000);
-    return () => clearInterval(interval);
   }, [token, isGuestMode, currentUser]);
 
   // Reset toàn bộ dữ liệu nội bộ nhà tuyển dụng khi đăng xuất hoặc ở chế độ khách
@@ -411,7 +438,6 @@ export default function EmployerPortal({
     fetchApplicants();
     fetchCompanyProfile();
     fetchReviews();
-    fetchChatMessages();
   };
 
   // WebRTC Call Timer & Media Toggle Handlers
@@ -560,11 +586,11 @@ export default function EmployerPortal({
       const res = await fetch(`/api/chat/messages?room_id=${roomId}`, { headers });
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
-        setChatMessages(data.data);
+        // Chỉ cập nhật khi tin nhắn thực sự thay đổi -> không re-render/giật khung chat
+        setChatMessages(prev => (isSameChatList(prev, data.data) ? prev : data.data));
       }
     } catch (err) {
       console.warn('Chat fetch fallback:', err);
-      setChatMessages([]);
     }
   };
 
@@ -1136,10 +1162,11 @@ export default function EmployerPortal({
   };
 
   // Socket.IO Room Joining & WebRTC P2P Signaling Listeners (FR 2.9.4)
+  const currentRoomKey = getRoomId(); // chuỗi ổn định -> effect không chạy lại khi object selectedContact đổi tham chiếu
   useEffect(() => {
     if (!token) return;
     const socket = getSocket();
-    const currentRoomId = getRoomId();
+    const currentRoomId = currentRoomKey;
     if (currentRoomId) {
       socket.emit('join-room', {
         room_id: currentRoomId,
@@ -1149,7 +1176,7 @@ export default function EmployerPortal({
     }
 
     const onIncomingCall = (data) => {
-      if (data.caller_role === 'student' && !isVideoCalling) {
+      if (data.caller_role === 'student' && !callActiveRef.current) {
         setIncomingCall(data);
         setCallType(data.call_type || 'video');
       }
@@ -1187,15 +1214,24 @@ export default function EmployerPortal({
     };
 
     const onCallEnded = () => {
+      // Người gọi huỷ khi đang đổ chuông -> tắt popup cuộc gọi đến
+      setIncomingCall(null);
+      if (!callActiveRef.current) return; // Không có cuộc gọi đang diễn ra -> bỏ qua (tránh lặp vô hạn)
       handleEndCall(false);
       if (onShowBanner) onShowBanner(null);
       notify('Ứng viên đã kết thúc cuộc gọi.', 'success');
     };
 
     const onCallRejected = () => {
+      if (!callActiveRef.current) return;
       handleEndCall(false);
       if (onShowBanner) onShowBanner(null);
       notify('Ứng viên đã từ chối cuộc gọi.', 'error');
+    };
+
+    const onNewChatMessage = (msg) => {
+      if (!msg) return;
+      setChatMessages(prev => (prev.some(m => m._id === msg._id) ? prev : [...prev, msg]));
     };
 
     socket.on('incoming-call', onIncomingCall);
@@ -1203,34 +1239,39 @@ export default function EmployerPortal({
     socket.on('receive-candidate', onReceiveCandidate);
     socket.on('call-ended', onCallEnded);
     socket.on('call-rejected', onCallRejected);
+    socket.on('new-chat-message', onNewChatMessage);
 
-    // Fallback polling phụ trợ (mỗi 3 giây)
-    const pollInterval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/chat/call/status?room_id=${currentRoomId}`, { headers });
-        const data = await res.json();
-        if (data.success && data.call) {
-          const call = data.call;
-          if (call.status === 'ringing' && call.target_role === 'employer' && !isVideoCalling && !incomingCall) {
-            setIncomingCall(call);
-          } else if (callStatus === 'calling' && call.status === 'connected') {
-            setCallStatus('connected');
-          } else if (isVideoCalling && (call.status === 'ended' || call.status === 'declined')) {
-            handleEndCall(false);
-          }
-        }
-      } catch (e) {}
-    }, 3000);
-
+    // KHÔNG polling lặp /api/chat/call/status hay /api/chat/messages nữa:
+    // toàn bộ tín hiệu cuộc gọi và tin nhắn đi qua Socket.IO thời gian thực,
+    // chỉ phát sinh request khi người dùng bấm nút gọi / nhấc máy / kết thúc hoặc gửi tin nhắn.
     return () => {
-      clearInterval(pollInterval);
       socket.off('incoming-call', onIncomingCall);
       socket.off('answer-made', onAnswerMade);
       socket.off('receive-candidate', onReceiveCandidate);
       socket.off('call-ended', onCallEnded);
       socket.off('call-rejected', onCallRejected);
+      socket.off('new-chat-message', onNewChatMessage);
     };
-  }, [token, isVideoCalling, callStatus, incomingCall, selectedContact, empId]);
+  }, [token, isVideoCalling, currentRoomKey, empId]);
+
+  // Kiểm tra cuộc gọi đến dự phòng (3s - chỉ kiểm tra khi rảnh, đọc nhanh từ RAM máy chủ để chắc chắn 100% hiện popup bắt máy)
+  useEffect(() => {
+    if (!token || isVideoCalling || incomingCall) return;
+    const checkCallStatus = async () => {
+      try {
+        const res = await fetch(`/api/chat/call/status?room_id=${getRoomId()}`, { headers });
+        const data = await res.json();
+        if (data.success && data.call && data.call.status === 'ringing') {
+          if (data.call.caller_role === 'student' && !callActiveRef.current) {
+            setIncomingCall(data.call);
+            setCallType(data.call.call_type || 'video');
+          }
+        }
+      } catch (e) {}
+    };
+    const timer = setInterval(checkCallStatus, 3000);
+    return () => clearInterval(timer);
+  }, [token, isVideoCalling, incomingCall]);
 
   const handleStartCall = async (type = 'video') => {
     setCallType(type);
@@ -1241,6 +1282,10 @@ export default function EmployerPortal({
 
     const socket = getSocket();
     const currentRoomId = getRoomId();
+    callActiveRef.current = true;
+    callRoomIdRef.current = currentRoomId;
+    setIsMuted(false);
+    setIsCameraOff(false);
 
     try {
       const stream = await getLocalMediaStream(type);
@@ -1298,6 +1343,7 @@ export default function EmployerPortal({
       notify(`Đang đổ chuông cuộc gọi ${type === 'video' ? 'Video' : 'Thoại'} tới ứng viên ${selectedContact?.name || ''}...`, 'loading');
     } catch (e) {
       console.warn('[WebRTC Call Error]', e);
+      await handleEndCall(false, true);
       notify('Không thể truy cập Camera/Micro.', 'error');
     }
   };
@@ -1307,9 +1353,30 @@ export default function EmployerPortal({
     const socket = getSocket();
     const currentRoomId = incomingCall.room_id || getRoomId();
     const type = incomingCall.call_type || 'video';
+    callActiveRef.current = true;
+    callRoomIdRef.current = currentRoomId;
+
+    // Chuyển sang màn hình Tin nhắn & chọn đúng ứng viên đang gọi để hiện đủ nút Mic / Camera / Kết thúc
+    const callerContact = contacts.find(c => currentRoomId.endsWith(`_stu_${c.student_user_id || c.id || c.student_id}`));
+    if (callerContact) {
+      setSelectedContact(callerContact);
+    } else if (!selectedContact && contacts.length > 0) {
+      setSelectedContact(contacts[0]);
+    } else if (!selectedContact) {
+      setSelectedContact({
+        id: incomingCall.caller_id || 'student_partner',
+        student_user_id: incomingCall.caller_id,
+        name: incomingCall.caller_name || 'Ứng viên sinh viên',
+        online: true,
+        subtitle: 'Ứng viên sinh viên'
+      });
+    }
+    setActiveMenu('chat');
 
     setCallType(type);
     setIncomingCall(null);
+    setIsMuted(false);
+    setIsCameraOff(false);
     setIsVideoCalling(true);
     setCallStatus('connected');
     setHasRemoteVideo(false);
@@ -1366,7 +1433,8 @@ export default function EmployerPortal({
       notify('Đã kết nối cuộc gọi phỏng vấn WebRTC thành công!', 'success');
     } catch (e) {
       console.warn('[WebRTC Answer Error]', e);
-      notify('Lỗi kết nối WebRTC.', 'error');
+      await handleEndCall(true, true);
+      notify('Lỗi kết nối WebRTC hoặc không truy cập được Camera/Micro.', 'error');
     }
   };
 
@@ -1387,11 +1455,18 @@ export default function EmployerPortal({
     notify('Đã từ chối cuộc gọi.', 'error');
   };
 
-  const handleEndCall = async (notifyBackend = true) => {
+  const handleEndCall = async (notifyBackend = true, silent = false) => {
     const socket = getSocket();
-    const currentRoomId = getRoomId();
+    const currentRoomId = callRoomIdRef.current || getRoomId();
 
-    socket.emit('end-call', { room_id: currentRoomId });
+    // Chỉ phát tín hiệu 'end-call' khi CHÍNH MÌNH bấm kết thúc.
+    // (Nếu phát lại khi nhận 'call-ended' sẽ tạo vòng lặp vô hạn giữa 2 máy -> gọi liên tục & giật khung chat)
+    if (notifyBackend && callActiveRef.current) {
+      socket.emit('end-call', { room_id: currentRoomId });
+    }
+    const wasActive = callActiveRef.current;
+    callActiveRef.current = false;
+    callRoomIdRef.current = null;
 
     if (peerConnectionRef.current) {
       closePeerConnection(peerConnectionRef.current);
@@ -1402,10 +1477,15 @@ export default function EmployerPortal({
       localStreamRef.current = null;
     }
     remoteStreamRef.current = null;
+    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     pendingIceCandidatesRef.current = [];
     setHasRemoteVideo(false);
+    setIncomingCall(null);
+    setIsMuted(false);
+    setIsCameraOff(false);
 
-    if (notifyBackend) {
+    if (notifyBackend && wasActive) {
       try {
         await fetch('/api/chat/call/end', {
           method: 'POST',
@@ -1417,52 +1497,21 @@ export default function EmployerPortal({
     setIsVideoCalling(false);
     setCallStatus('idle');
     setCallDuration(0);
-    if (onShowBanner) onShowBanner(null);
-    notify('Cuộc gọi phỏng vấn đã kết thúc.', 'success');
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(t => t.stop());
-      localStreamRef.current = null;
+    if (wasActive && !silent) {
+      if (onShowBanner) onShowBanner(null);
+      notify('Cuộc gọi phỏng vấn đã kết thúc.', 'success');
+      fetchChatMessages();
     }
-    fetchChatMessages();
   };
 
-  // WebRTC Camera / Audio stream handler for Employer
-  useEffect(() => {
-    let timer = null;
-    if (isVideoCalling && callStatus === 'connected') {
-      timer = setInterval(() => setCallDuration(d => d + 1), 1000);
-    }
-    if (isVideoCalling) {
-      if (callType === 'video' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ video: !isCameraOff, audio: !isMuted })
-          .then((stream) => {
-            localStreamRef.current = stream;
-            if (localVideoRef.current) {
-              localVideoRef.current.srcObject = stream;
-            }
-          })
-          .catch((err) => console.warn('Media stream error:', err));
-      }
-    } else {
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(t => t.stop());
-        localStreamRef.current = null;
-      }
-    }
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [isVideoCalling, callStatus, callType, isCameraOff, isMuted]);
+  // (Đã bỏ effect xin lại getUserMedia mỗi lần bật/tắt mic-cam: nó tạo stream mới không được gửi đi
+  //  nên mic/cam vẫn hoạt động dù giao diện báo đã tắt. Việc bật/tắt giờ áp dụng trực tiếp lên track đang gửi.)
 
-  // Periodic poll for chat messages when activeMenu === 'chat'
+  // Chỉ tải tin nhắn khi người dùng vào menu Chat hoặc đổi liên hệ (Không polling lặp để tránh lag web)
   useEffect(() => {
     if (!token || activeMenu !== 'chat') return;
     fetchChatMessages();
-    const chatPoll = setInterval(() => {
-      fetchChatMessages();
-    }, 2000);
-    return () => clearInterval(chatPoll);
-  }, [token, activeMenu]);
+  }, [token, activeMenu, currentRoomKey]);
 
   // Submit Report (FR 2.5.6 & 2.7.5)
   const handleReportSubmit = async (e) => {
@@ -4051,7 +4100,7 @@ export default function EmployerPortal({
 
         {/* 6. MÀN HÌNH CHAT & GỌI VIDEO PHỎNG VẤN (UI-NTD-CHAT-02, 03, UI-NTD-CALL-01 - 2.7 & 2.9) */}
         {activeMenu === 'chat' && (
-          <div className="max-w-6xl mx-auto h-[calc(100vh-140px)] flex flex-col rounded-3xl bg-white border border-slate-200/80 shadow-md overflow-hidden text-slate-900">
+          <div className="max-w-6xl mx-auto h-[calc(100vh-160px)] min-h-[520px] flex flex-col rounded-3xl bg-white border border-slate-200/80 shadow-md overflow-hidden text-slate-900">
             {!selectedContact || isGuestMode ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/50">
                 <div className="w-20 h-20 rounded-3xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 mb-5 shadow-sm">
@@ -4227,8 +4276,20 @@ export default function EmployerPortal({
 
                 {/* GIAO DIỆN PHỎNG VẤN TRỰC TUYẾN 2 CHIỀU (UI-NTD-CALL-01) */}
                 {isVideoCalling ? (
-                  <div className="flex-1 bg-black relative flex flex-col items-center justify-center p-4">
-                    <div className="w-full h-full max-w-4xl max-h-[70vh] rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center relative overflow-hidden shadow-2xl">
+                  <div className="flex-1 min-h-0 bg-black relative flex flex-col items-center justify-center p-3 sm:p-4">
+                    <div className="w-full flex-1 min-h-0 max-w-4xl rounded-3xl bg-slate-900 border border-slate-800 flex items-center justify-center relative overflow-hidden shadow-2xl">
+                      {/* Badge thông tin & thời lượng cuộc gọi nổi ở góc trên */}
+                      <div className="absolute top-4 left-4 z-20 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-950/80 backdrop-blur-md border border-white/10 text-white text-xs shadow-lg font-medium">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span className="font-mono font-bold text-emerald-300">
+                          {callStatus === 'calling' ? 'Đang đổ chuông...' : `${Math.floor(callDuration / 60)}:${(callDuration % 60).toString().padStart(2, '0')}`}
+                        </span>
+                        <span className="text-slate-400">|</span>
+                        <span className="text-slate-200 truncate max-w-[200px]">
+                          {callType === 'video' ? 'Phỏng vấn Video' : 'Cuộc gọi Thoại'}: {selectedContact?.name || 'Ứng viên'}
+                        </span>
+                      </div>
+
                       {callStatus === 'calling' ? (
                         <div className="text-center space-y-4">
                           <div className="relative mx-auto w-24 h-24 flex items-center justify-center">
@@ -4249,7 +4310,8 @@ export default function EmployerPortal({
                             ref={remoteVideoRef}
                             autoPlay
                             playsInline
-                            className={`w-full h-full object-cover ${callType === 'video' && hasRemoteVideo ? 'block' : 'hidden'}`}
+                            muted
+                            className={`absolute inset-0 w-full h-full object-cover ${callType === 'video' && hasRemoteVideo ? 'block' : 'hidden'}`}
                           />
                           {(!hasRemoteVideo || callType === 'audio') && (
                             <div className="text-center space-y-3">
@@ -4269,56 +4331,68 @@ export default function EmployerPortal({
                       )}
 
                       {/* Local Camera stream nếu là Video Call */}
-                      {callType === 'video' && !isCameraOff && (
-                        <div className="absolute bottom-4 right-4 w-44 h-32 rounded-2xl bg-slate-950 border-2 border-sky-400/80 overflow-hidden shadow-2xl">
-                          <video
-                            ref={localVideoRef}
-                            autoPlay
-                            playsInline
-                            muted
-                            className="w-full h-full object-cover"
-                          />
-                          <span className="absolute bottom-1 left-2 text-xs font-bold text-white bg-black/60 px-1 rounded">
-                            `Bạn (${companyInfo?.representative_name || 'Nhà tuyển dụng'})`
-                          </span>
+                      {callType === 'video' && (
+                        <div className="absolute bottom-4 right-4 w-36 sm:w-44 h-24 sm:h-32 rounded-2xl bg-slate-950 border-2 border-sky-400/80 overflow-hidden shadow-2xl z-20 flex items-center justify-center">
+                          {!isCameraOff ? (
+                            <>
+                              <video
+                                ref={localVideoRef}
+                                autoPlay
+                                playsInline
+                                muted
+                                className="w-full h-full object-cover"
+                              />
+                              <span className="absolute bottom-1 left-2 text-[11px] font-bold text-white bg-black/60 px-1.5 py-0.5 rounded backdrop-blur-xs">
+                                {`Bạn (${companyInfo?.representative_name || 'Nhà tuyển dụng'})`}
+                              </span>
+                            </>
+                          ) : (
+                            <div className="text-center p-2 text-slate-400">
+                              <CameraOff className="w-5 h-5 mx-auto text-rose-400 mb-1" />
+                              <span className="text-[10px] font-bold block text-slate-300">Camera đã tắt</span>
+                            </div>
+                          )}
                         </div>
                       )}
-                    </div>
 
-                    {/* Nút điều khiển cuộc gọi */}
-                    <div className="flex items-center gap-4 mt-4">
-                      <button
-                        type="button"
-                        onClick={() => setIsMuted(!isMuted)}
-                        className={`p-3.5 rounded-full cursor-pointer transition-all ${
-                          isMuted ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'
-                        }`}
-                        title={isMuted ? 'Bật Mic' : 'Tắt Mic'}
-                      >
-                        {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                      </button>
-
-                      {callType === 'video' && (
+                      {/* THANH ĐIỀU KHIỂN NỔI ĐÈ TRỰC TIẾP LÊN MÀN HÌNH GỌI (LUÔN HIỂN THỊ CẢ NGƯỜI GỌI & NGƯỜI NGHE) */}
+                      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 px-5 py-2.5 rounded-full bg-slate-950/90 backdrop-blur-md border border-white/20 shadow-2xl">
+                        {/* Nút Mic */}
                         <button
                           type="button"
-                          onClick={() => setIsCameraOff(!isCameraOff)}
-                          className={`p-3.5 rounded-full cursor-pointer transition-all ${
-                            isCameraOff ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'
+                          onClick={() => setIsMuted(!isMuted)}
+                          className={`p-3 rounded-full cursor-pointer transition-all shadow-md flex items-center justify-center ${
+                            isMuted ? 'bg-rose-600 text-white animate-pulse' : 'bg-slate-800 text-slate-200 hover:bg-slate-700 hover:scale-105'
                           }`}
-                          title={isCameraOff ? 'Mở Camera' : 'Tắt Camera'}
+                          title={isMuted ? 'Bật Mic (Micro đang tắt)' : 'Tắt Mic (Micro đang bật)'}
                         >
-                          {isCameraOff ? <CameraOff className="w-5 h-5" /> : <Camera className="w-5 h-5" />}
+                          {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
                         </button>
-                      )}
 
-                      <button
-                        type="button"
-                        onClick={() => handleEndCall(true)}
-                        className="p-3.5 rounded-full bg-red-600 hover:bg-red-500 text-white cursor-pointer shadow-lg shadow-red-950/60"
-                        title="Kết thúc phỏng vấn"
-                      >
-                        <Phone className="w-5 h-5 rotate-[135deg]" />
-                      </button>
+                        {/* Nút Camera (nếu là cuộc gọi Video) */}
+                        {callType === 'video' && (
+                          <button
+                            type="button"
+                            onClick={() => setIsCameraOff(!isCameraOff)}
+                            className={`p-3 rounded-full cursor-pointer transition-all shadow-md flex items-center justify-center ${
+                              isCameraOff ? 'bg-rose-600 text-white animate-pulse' : 'bg-slate-800 text-slate-200 hover:bg-slate-700 hover:scale-105'
+                            }`}
+                            title={isCameraOff ? 'Mở Camera (Camera đang tắt)' : 'Tắt Camera (Camera đang bật)'}
+                          >
+                            {isCameraOff ? <CameraOff className="w-5 h-5" /> : <Camera className="w-5 h-5" />}
+                          </button>
+                        )}
+
+                        {/* Nút Kết Thúc Cuộc Gọi (Cúp Máy) */}
+                        <button
+                          type="button"
+                          onClick={() => handleEndCall(true)}
+                          className="p-3 rounded-full bg-rose-600 hover:bg-rose-500 text-white cursor-pointer shadow-lg shadow-rose-950/80 transition-all hover:scale-105 flex items-center justify-center"
+                          title="Kết thúc phỏng vấn"
+                        >
+                          <Phone className="w-5 h-5 rotate-[135deg]" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -5053,6 +5127,22 @@ export default function EmployerPortal({
           fileName: companyInfo.business_license_url ? companyInfo.business_license_url.split('/').pop() : 'GPKD_DoanhNghiep.pdf'
         }}
         onDownloadSuccess={(msg) => onShowBanner && onShowBanner(msg, 'success')}
+      />
+
+      {/* Lớp media cuộc gọi: luôn phát âm thanh đối phương + thanh điều khiển nổi khi đang gọi mà không ở màn Chat */}
+      <CallMediaLayer
+        isVideoCalling={isVideoCalling}
+        callType={callType}
+        callStatus={callStatus}
+        isMuted={isMuted}
+        isCameraOff={isCameraOff}
+        callDuration={callDuration}
+        remoteStreamRef={remoteStreamRef}
+        showFloatingControls={activeMenu !== 'chat'}
+        onToggleMic={() => setIsMuted(m => !m)}
+        onToggleCamera={() => setIsCameraOff(c => !c)}
+        onEndCall={() => handleEndCall(true)}
+        onOpenChat={() => setActiveMenu('chat')}
       />
 
       {/* ======================= MODAL CUỘC GỌI ĐẾN (INCOMING CALL PHÍA NTD) ======================= */}
