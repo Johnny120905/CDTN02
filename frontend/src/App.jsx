@@ -292,10 +292,14 @@ export default function App() {
 
     localStorage.removeItem('partime_token');
     localStorage.removeItem('partime_user');
+    localStorage.removeItem('partime_active_menu_employer');
+    localStorage.removeItem('partime_active_menu_student');
     setCurrentUser(null);
-    setPortalActiveMenu(null);
+    setPortalActiveMenu({ id: 'home', key: Date.now() });
+    setActiveSectionTitle('Trang Chủ');
     setIsAccountModalOpen(false);
     setChatDrawerOpen(false);
+    setHeaderSearchKeyword('');
 
     // Redirect to respective initial landing page after logout
     if (roleBeforeLogout === 'admin') {
@@ -496,6 +500,7 @@ export default function App() {
 
             <main className="flex-1 flex flex-col">
               <EmployerPortal
+                key="guest_employer"
                 currentUser={null}
                 isGuestMode={true}
                 onNavigateAuth={handleNavigateAuth}
@@ -544,6 +549,7 @@ export default function App() {
 
           <main className="flex-1 flex flex-col">
             <EmployerPortal
+              key={currentUser?._id || 'logged_in_employer'}
               currentUser={currentUser}
               isGuestMode={false}
               onNavigateAuth={handleNavigateAuth}
@@ -637,6 +643,7 @@ export default function App() {
 
           <main className="flex-1 flex flex-col">
             <StudentPortal
+              key="guest_student"
               currentUser={null}
               isGuestMode={true}
               onNavigateAuth={handleNavigateAuth}
@@ -686,6 +693,7 @@ export default function App() {
 
         <main className="flex-1 flex flex-col">
           <StudentPortal
+            key={currentUser?._id || 'logged_in_student'}
             currentUser={currentUser}
             isGuestMode={false}
             onNavigateAuth={handleNavigateAuth}

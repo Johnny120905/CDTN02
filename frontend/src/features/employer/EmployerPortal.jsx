@@ -11,6 +11,13 @@ import {
 } from 'lucide-react';
 import DocumentViewerModal from '../../shared/DocumentViewerModal';
 import ConfirmDialog from '../../shared/ConfirmDialog';
+import {
+  getSocket,
+  createPeerConnection,
+  closePeerConnection,
+  getLocalMediaStream,
+  stopMediaStream
+} from '../../shared/webrtcSocketService';
 import { 
   VIETNAM_PROVINCES, PROVINCE_DISTRICTS_MAP, WORK_SHIFTS, 
   SALARY_BRACKETS, getDistrictsByProvince 
@@ -244,8 +251,13 @@ export default function EmployerPortal({
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
   const localVideoRef = useRef(null);
   const localStreamRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const remoteStreamRef = useRef(null);
+  const peerConnectionRef = useRef(null);
+  const pendingIceCandidatesRef = useRef([]);
 
   // Document Viewer Modals (CV & GPKD)
   const [applicantCvViewer, setApplicantCvViewer] = useState(null);
@@ -271,11 +283,24 @@ export default function EmployerPortal({
   // Chat State: Khởi tạo tin nhắn từ API thực
   const [chatMessages, setChatMessages] = useState([]);
 
-  const empId = currentUser?._id || currentUser?.id || 'emp_default';
+  const empId = currentUser?.employer_id || 
+                currentUser?.profile?.employer_id || 
+                companyInfo?.employer_id || 
+                employerRecord?._id || 
+                (currentUser?._id?.startsWith('emp_') ? currentUser?._id : null) || 
+                currentUser?._id || 
+                currentUser?.id || 
+                'emp_default';
+
   const getRoomId = (targetContact = selectedContact) => {
-    const cId = targetContact?.id || (targetContact?.student_user_id || targetContact?.student_id);
-    if (!cId) return `room_emp_${empId}_empty`;
-    return `room_emp_${empId}_stu_${cId}`;
+    const activeEmpId = currentUser?.employer_id || 
+                        currentUser?.profile?.employer_id || 
+                        companyInfo?.employer_id || 
+                        employerRecord?._id || 
+                        empId;
+    const cId = targetContact?.student_user_id || targetContact?.id || targetContact?.student_id;
+    if (!cId) return `room_emp_${activeEmpId}_empty`;
+    return `room_emp_${activeEmpId}_stu_${cId}`;
   };
   const [newMsgText, setNewMsgText] = useState('');
   const [chatAttachment, setChatAttachment] = useState(null); // { file, name, size, type, base64, sizeStr }
@@ -353,6 +378,24 @@ export default function EmployerPortal({
     return () => clearInterval(interval);
   }, [token, isGuestMode, currentUser]);
 
+  // Reset toàn bộ dữ liệu nội bộ nhà tuyển dụng khi đăng xuất hoặc ở chế độ khách
+  useEffect(() => {
+    if (isGuestMode || !token || !currentUser) {
+      setMyJobs([]);
+      setApplicants([]);
+      setReviews([]);
+      setContacts([]);
+      setSelectedContact(null);
+      setChatMessages([]);
+      setIsVideoCalling(false);
+      setIncomingCall(null);
+      setCallStatus('idle');
+      if (activeMenu === 'chat') {
+        setActiveMenu('home');
+      }
+    }
+  }, [isGuestMode, token, currentUser]);
+
   const fetchAllData = () => {
     fetchCategories();
     if (isGuestMode || !token || !currentUser) {
@@ -360,6 +403,8 @@ export default function EmployerPortal({
       setApplicants([]);
       setReviews([]);
       setContacts([]);
+      setSelectedContact(null);
+      setChatMessages([]);
       return;
     }
     fetchMyJobs();
@@ -369,37 +414,34 @@ export default function EmployerPortal({
     fetchChatMessages();
   };
 
-  // WebRTC Stream Handler
+  // WebRTC Call Timer & Media Toggle Handlers
   useEffect(() => {
     let timer = null;
-    if (isVideoCalling) {
+    if (isVideoCalling && callStatus === 'connected') {
       timer = setInterval(() => setCallDuration(d => d + 1), 1000);
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-          .then((stream) => {
-            localStreamRef.current = stream;
-            if (localVideoRef.current) {
-              localVideoRef.current.srcObject = stream;
-            }
-          })
-          .catch((err) => {
-            console.warn('[WebRTC] Camera access:', err);
-          });
-      }
-    } else {
+    } else if (!isVideoCalling) {
       setCallDuration(0);
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(t => t.stop());
-        localStreamRef.current = null;
-      }
     }
     return () => {
       if (timer) clearInterval(timer);
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(t => t.stop());
-      }
     };
-  }, [isVideoCalling]);
+  }, [isVideoCalling, callStatus]);
+
+  useEffect(() => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks().forEach(track => {
+        track.enabled = !isMuted;
+      });
+    }
+  }, [isMuted]);
+
+  useEffect(() => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getVideoTracks().forEach(track => {
+        track.enabled = !isCameraOff;
+      });
+    }
+  }, [isCameraOff]);
 
   // API Calls
   const fetchMyJobs = async () => {
@@ -504,6 +546,10 @@ export default function EmployerPortal({
   };
 
   const fetchChatMessages = async (targetContact = selectedContact) => {
+    if (isGuestMode || !token || !currentUser) {
+      setChatMessages([]);
+      return;
+    }
     const contactToFetch = targetContact || selectedContact;
     if (!contactToFetch) {
       setChatMessages([]);
@@ -1089,12 +1135,79 @@ export default function EmployerPortal({
     }
   };
 
-  // Call signaling poll (every 2.5s) for Employer Two-Way Calling
+  // Socket.IO Room Joining & WebRTC P2P Signaling Listeners (FR 2.9.4)
   useEffect(() => {
     if (!token) return;
+    const socket = getSocket();
+    const currentRoomId = getRoomId();
+    if (currentRoomId) {
+      socket.emit('join-room', {
+        room_id: currentRoomId,
+        user_id: empId,
+        role: 'employer'
+      });
+    }
+
+    const onIncomingCall = (data) => {
+      if (data.caller_role === 'student' && !isVideoCalling) {
+        setIncomingCall(data);
+        setCallType(data.call_type || 'video');
+      }
+    };
+
+    const onAnswerMade = async (data) => {
+      if (peerConnectionRef.current && data.answer) {
+        try {
+          await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
+          while (pendingIceCandidatesRef.current.length > 0) {
+            const cand = pendingIceCandidatesRef.current.shift();
+            await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(cand));
+          }
+          setCallStatus('connected');
+          if (onShowBanner) onShowBanner(null);
+          notify('Đã kết nối WebRTC P2P thành công!', 'success');
+        } catch (e) {
+          console.warn('[WebRTC] Remote answer error:', e);
+        }
+      }
+    };
+
+    const onReceiveCandidate = async (data) => {
+      if (data.candidate) {
+        if (peerConnectionRef.current && peerConnectionRef.current.remoteDescription) {
+          try {
+            await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
+          } catch (e) {
+            console.warn('[WebRTC] Candidate error:', e);
+          }
+        } else {
+          pendingIceCandidatesRef.current.push(data.candidate);
+        }
+      }
+    };
+
+    const onCallEnded = () => {
+      handleEndCall(false);
+      if (onShowBanner) onShowBanner(null);
+      notify('Ứng viên đã kết thúc cuộc gọi.', 'success');
+    };
+
+    const onCallRejected = () => {
+      handleEndCall(false);
+      if (onShowBanner) onShowBanner(null);
+      notify('Ứng viên đã từ chối cuộc gọi.', 'error');
+    };
+
+    socket.on('incoming-call', onIncomingCall);
+    socket.on('answer-made', onAnswerMade);
+    socket.on('receive-candidate', onReceiveCandidate);
+    socket.on('call-ended', onCallEnded);
+    socket.on('call-rejected', onCallRejected);
+
+    // Fallback polling phụ trợ (mỗi 3 giây)
     const pollInterval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/chat/call/status?room_id=${getRoomId()}`, { headers });
+        const res = await fetch(`/api/chat/call/status?room_id=${currentRoomId}`, { headers });
         const data = await res.json();
         if (data.success && data.call) {
           const call = data.call;
@@ -1102,76 +1215,202 @@ export default function EmployerPortal({
             setIncomingCall(call);
           } else if (callStatus === 'calling' && call.status === 'connected') {
             setCallStatus('connected');
-            if (onShowBanner) onShowBanner(null);
-            notify('Đã kết nối cuộc gọi phỏng vấn thành công!', 'success');
           } else if (isVideoCalling && (call.status === 'ended' || call.status === 'declined')) {
             handleEndCall(false);
-            if (onShowBanner) onShowBanner(null);
-            notify('Cuộc gọi đã kết thúc.', 'success');
           }
         }
       } catch (e) {}
-    }, 2500);
-    return () => clearInterval(pollInterval);
-  }, [token, isVideoCalling, callStatus, incomingCall, selectedContact]);
+    }, 3000);
+
+    return () => {
+      clearInterval(pollInterval);
+      socket.off('incoming-call', onIncomingCall);
+      socket.off('answer-made', onAnswerMade);
+      socket.off('receive-candidate', onReceiveCandidate);
+      socket.off('call-ended', onCallEnded);
+      socket.off('call-rejected', onCallRejected);
+    };
+  }, [token, isVideoCalling, callStatus, incomingCall, selectedContact, empId]);
 
   const handleStartCall = async (type = 'video') => {
     setCallType(type);
     setIsVideoCalling(true);
     setCallStatus('calling');
+    setHasRemoteVideo(false);
+    pendingIceCandidatesRef.current = [];
+
+    const socket = getSocket();
+    const currentRoomId = getRoomId();
+
     try {
+      const stream = await getLocalMediaStream(type);
+      localStreamRef.current = stream;
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+
+      const pc = createPeerConnection({
+        onRemoteStream: (remoteStream) => {
+          remoteStreamRef.current = remoteStream;
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = remoteStream;
+          }
+          setHasRemoteVideo(remoteStream.getVideoTracks().length > 0);
+          setCallStatus('connected');
+        },
+        onIceCandidate: (candidate) => {
+          socket.emit('send-candidate', {
+            room_id: currentRoomId,
+            candidate
+          });
+        },
+        onConnectionStateChange: (state) => {
+          if (state === 'connected') {
+            setCallStatus('connected');
+          }
+        }
+      });
+      peerConnectionRef.current = pc;
+
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: type === 'video'
+      });
+      await pc.setLocalDescription(offer);
+
+      socket.emit('call-user', {
+        room_id: currentRoomId,
+        caller_name: companyInfo?.company_name || 'Nhà tuyển dụng',
+        caller_role: 'employer',
+        target_user_id: selectedContact?.student_user_id || selectedContact?.id,
+        call_type: type,
+        offer: offer
+      });
+
+      // REST persistence
       await fetch('/api/chat/call/initiate', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ room_id: getRoomId(), call_type: type })
+        body: JSON.stringify({ room_id: currentRoomId, call_type: type })
       });
       notify(`Đang đổ chuông cuộc gọi ${type === 'video' ? 'Video' : 'Thoại'} tới ứng viên ${selectedContact?.name || ''}...`, 'loading');
     } catch (e) {
-      console.warn(e);
+      console.warn('[WebRTC Call Error]', e);
+      notify('Không thể truy cập Camera/Micro.', 'error');
     }
   };
 
   const handleAnswerIncomingCall = async () => {
     if (!incomingCall) return;
+    const socket = getSocket();
+    const currentRoomId = incomingCall.room_id || getRoomId();
+    const type = incomingCall.call_type || 'video';
+
+    setCallType(type);
+    setIncomingCall(null);
+    setIsVideoCalling(true);
+    setCallStatus('connected');
+    setHasRemoteVideo(false);
+
     try {
+      const stream = await getLocalMediaStream(type);
+      localStreamRef.current = stream;
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+
+      const pc = createPeerConnection({
+        onRemoteStream: (remoteStream) => {
+          remoteStreamRef.current = remoteStream;
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = remoteStream;
+          }
+          setHasRemoteVideo(remoteStream.getVideoTracks().length > 0);
+          setCallStatus('connected');
+        },
+        onIceCandidate: (candidate) => {
+          socket.emit('send-candidate', {
+            room_id: currentRoomId,
+            candidate
+          });
+        }
+      });
+      peerConnectionRef.current = pc;
+
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+      if (incomingCall.offer) {
+        await pc.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
+        while (pendingIceCandidatesRef.current.length > 0) {
+          const cand = pendingIceCandidatesRef.current.shift();
+          await pc.addIceCandidate(new RTCIceCandidate(cand));
+        }
+      }
+
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      socket.emit('make-answer', {
+        room_id: currentRoomId,
+        answer: answer
+      });
+
+      // REST persistence
       await fetch('/api/chat/call/respond', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ room_id: getRoomId(), action: 'accept' })
+        body: JSON.stringify({ room_id: currentRoomId, action: 'accept' })
       });
-      setCallType(incomingCall.call_type || 'video');
-      setIncomingCall(null);
-      setIsVideoCalling(true);
-      setCallStatus('connected');
-      notify('Đã kết nối cuộc gọi phỏng vấn thành công!', 'success');
+      notify('Đã kết nối cuộc gọi phỏng vấn WebRTC thành công!', 'success');
     } catch (e) {
-      console.warn(e);
+      console.warn('[WebRTC Answer Error]', e);
+      notify('Lỗi kết nối WebRTC.', 'error');
     }
   };
 
   const handleDeclineIncomingCall = async () => {
     if (!incomingCall) return;
+    const socket = getSocket();
+    const currentRoomId = incomingCall.room_id || getRoomId();
+    socket.emit('reject-call', { room_id: currentRoomId });
     try {
       await fetch('/api/chat/call/respond', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ room_id: getRoomId(), action: 'decline' })
+        body: JSON.stringify({ room_id: currentRoomId, action: 'decline' })
       });
-      setIncomingCall(null);
-      if (onShowBanner) onShowBanner(null);
-      notify('Đã từ chối cuộc gọi.', 'error');
-    } catch (e) {
-      console.warn(e);
-    }
+    } catch (e) {}
+    setIncomingCall(null);
+    if (onShowBanner) onShowBanner(null);
+    notify('Đã từ chối cuộc gọi.', 'error');
   };
 
   const handleEndCall = async (notifyBackend = true) => {
+    const socket = getSocket();
+    const currentRoomId = getRoomId();
+
+    socket.emit('end-call', { room_id: currentRoomId });
+
+    if (peerConnectionRef.current) {
+      closePeerConnection(peerConnectionRef.current);
+      peerConnectionRef.current = null;
+    }
+    if (localStreamRef.current) {
+      stopMediaStream(localStreamRef.current);
+      localStreamRef.current = null;
+    }
+    remoteStreamRef.current = null;
+    pendingIceCandidatesRef.current = [];
+    setHasRemoteVideo(false);
+
     if (notifyBackend) {
       try {
         await fetch('/api/chat/call/end', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ room_id: getRoomId() })
+          body: JSON.stringify({ room_id: currentRoomId })
         });
       } catch (e) {}
     }
@@ -2588,7 +2827,7 @@ export default function EmployerPortal({
                     className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold shadow-sm cursor-pointer flex items-center justify-center gap-2"
                   >
                     <PlusCircle className="w-4 h-4" />
-                    <span>+ Tạo Tin Tuyển Dụng</span>
+                    <span>Tạo Tin Tuyển Dụng</span>
                   </button>
                   )}
                 </div>
@@ -3813,7 +4052,7 @@ export default function EmployerPortal({
         {/* 6. MÀN HÌNH CHAT & GỌI VIDEO PHỎNG VẤN (UI-NTD-CHAT-02, 03, UI-NTD-CALL-01 - 2.7 & 2.9) */}
         {activeMenu === 'chat' && (
           <div className="max-w-6xl mx-auto h-[calc(100vh-140px)] flex flex-col rounded-3xl bg-white border border-slate-200/80 shadow-md overflow-hidden text-slate-900">
-            {!selectedContact ? (
+            {!selectedContact || isGuestMode ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/50">
                 <div className="w-20 h-20 rounded-3xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 mb-5 shadow-sm">
                   <MessageSquare className="w-10 h-10" />
@@ -4004,17 +4243,28 @@ export default function EmployerPortal({
                           </div>
                         </div>
                       ) : (
-                        <div className="text-center space-y-3">
-                          <div className="w-24 h-24 rounded-full bg-blue-600/30 border border-blue-500/50 text-sky-300 font-black text-3xl flex items-center justify-center mx-auto animate-pulse">
-                            {selectedContact?.name ? selectedContact.name.split(' ').map(n=>n[0]).slice(-2).join('').toUpperCase() : 'VL'}
-                          </div>
-                          <p className="text-sm font-bold text-white">
-                            {callType === 'video' ? `Đang phỏng vấn Video trực tuyến: ${selectedContact?.name || 'Ứng viên'}` : `Đang thực hiện cuộc gọi Thoại phỏng vấn: ${selectedContact?.name || 'Ứng viên'}`}
-                          </p>
-                          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold">
-                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                            <span>Thời lượng: {Math.floor(callDuration / 60)}:{(callDuration % 60).toString().padStart(2, '0')}</span>
-                          </div>
+                        <div className="w-full h-full flex flex-col items-center justify-center relative overflow-hidden">
+                          {/* Remote Video Stream if received */}
+                          <video
+                            ref={remoteVideoRef}
+                            autoPlay
+                            playsInline
+                            className={`w-full h-full object-cover ${callType === 'video' && hasRemoteVideo ? 'block' : 'hidden'}`}
+                          />
+                          {(!hasRemoteVideo || callType === 'audio') && (
+                            <div className="text-center space-y-3">
+                              <div className="w-24 h-24 rounded-full bg-blue-600/30 border border-blue-500/50 text-sky-300 font-black text-3xl flex items-center justify-center mx-auto animate-pulse">
+                                {selectedContact?.name ? selectedContact.name.split(' ').map(n=>n[0]).slice(-2).join('').toUpperCase() : 'VL'}
+                              </div>
+                              <p className="text-sm font-bold text-white">
+                                {callType === 'video' ? `Đang phỏng vấn Video trực tuyến: ${selectedContact?.name || 'Ứng viên'}` : `Đang thực hiện cuộc gọi Thoại phỏng vấn: ${selectedContact?.name || 'Ứng viên'}`}
+                              </p>
+                              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-mono font-bold">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span>Thời lượng: {Math.floor(callDuration / 60)}:{(callDuration % 60).toString().padStart(2, '0')}</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
 

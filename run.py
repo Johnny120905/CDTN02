@@ -78,6 +78,7 @@ def main():
     # Add backend to sys.path and start server
     sys.path.insert(0, BACKEND_DIR)
     from server import create_app
+    from src.core.socket_service import socketio
     app = create_app()
 
     # Tự động mở trình duyệt web sau khi server sẵn sàng
@@ -91,7 +92,7 @@ def main():
     threading.Thread(target=auto_open, daemon=True).start()
 
     try:
-        app.run(host="0.0.0.0", port=port, debug=False)
+        socketio.run(app, host="0.0.0.0", port=port, debug=False, allow_unsafe_werkzeug=True)
     except KeyboardInterrupt:
         print("\n[Unified Runner] Đã dừng server.")
 

@@ -6,6 +6,7 @@ import base64
 from flask import Blueprint, request, jsonify, send_from_directory
 from src.core.database import db_manager
 from src.middlewares.auth_middleware import token_required
+from src.core.socket_service import canonicalize_room_id
 
 common_bp = Blueprint("common", __name__, url_prefix="/api")
 
@@ -197,9 +198,10 @@ def get_user_display_name(user):
 @token_required
 def get_messages():
     user = request.current_user
-    room_id = request.args.get("room_id", "default_room")
+    raw_room_id = request.args.get("room_id", "default_room")
+    room_id = canonicalize_room_id(raw_room_id)
     msg_col = db_manager.get_collection("messages")
-    messages = list(msg_col.find({"room_id": room_id}))
+    messages = list(msg_col.find({"$or": [{"room_id": room_id}, {"room_id": raw_room_id}]}))
     
     # Sắp xếp chuẩn hóa để tin nhắn và bản ghi cuộc gọi luôn ở cuối danh sách (phía dưới) theo thứ tự thời gian
     def get_sort_key(m):
@@ -216,7 +218,8 @@ def get_messages():
 def send_message():
     user = request.current_user
     data = request.get_json() or {}
-    room_id = data.get("room_id", "default_room")
+    raw_room_id = data.get("room_id", "default_room")
+    room_id = canonicalize_room_id(raw_room_id)
     content = str(data.get("content", "")).strip()
     media_url = data.get("media_url", "")
     file_name = str(data.get("file_name", "")).strip()
@@ -338,40 +341,68 @@ ACTIVE_CALL_SESSIONS = {}
 def initiate_call():
     user = request.current_user
     data = request.get_json() or {}
-    room_id = data.get("room_id", "default_room")
+    raw_room_id = data.get("room_id", "default_room")
+    room_id = canonicalize_room_id(raw_room_id)
     call_type = data.get("call_type", "video") # 'video' or 'audio'
     
     caller_role = user.get("role", "student")
     target_role = "employer" if caller_role == "student" else "student"
     caller_name = get_user_display_name(user)
+
+    # Xác định chính xác target_user_id theo phòng
+    target_user_id = None
+    try:
+        if "_stu_" in room_id:
+            parts = room_id.split("_stu_")
+            emp_part = parts[0].replace("room_emp_", "")
+            stu_part = parts[1]
+            if caller_role == "student":
+                emp = db_manager.get_collection("employers").find_one({"$or": [{"_id": emp_part}, {"user_id": emp_part}]})
+                if emp:
+                    target_user_id = emp.get("user_id")
+            else:
+                target_user_id = stu_part
+    except Exception:
+        pass
     
     # Nếu đối phương cũng đang đổ chuông tới mình thì lập tức kết nối thông suốt hai chiều
-    existing_call = ACTIVE_CALL_SESSIONS.get(room_id)
+    existing_call = ACTIVE_CALL_SESSIONS.get(room_id) or ACTIVE_CALL_SESSIONS.get(raw_room_id)
     if existing_call and existing_call.get("status") == "ringing" and existing_call.get("caller_role") != caller_role:
         existing_call["status"] = "connected"
         existing_call["connected_at"] = time.time()
+        ACTIVE_CALL_SESSIONS[room_id] = existing_call
+        ACTIVE_CALL_SESSIONS[raw_room_id] = existing_call
         return jsonify({"success": True, "call": existing_call, "message": "Đã tự động kết nối cuộc gọi hai chiều thành công!"}), 200
 
     call_id = f"call_{uuid.uuid4().hex[:8]}"
     call_session = {
         "call_id": call_id,
         "room_id": room_id,
+        "raw_room_id": raw_room_id,
         "caller_id": user["_id"],
         "caller_email": user["email"],
         "caller_name": caller_name,
         "caller_role": caller_role,
         "target_role": target_role,
+        "target_user_id": target_user_id,
         "call_type": call_type,
         "status": "ringing", # ringing | connected | declined | ended
         "timestamp": time.time(),
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
     }
     ACTIVE_CALL_SESSIONS[room_id] = call_session
+    if raw_room_id != room_id:
+        ACTIVE_CALL_SESSIONS[raw_room_id] = call_session
 
-    # Đẩy thông báo chuông gọi đến
+    # Đẩy thông báo chuông gọi đến đích danh người nhận
     try:
         users_col = db_manager.get_collection("users")
-        target_user = users_col.find_one({"role": target_role})
+        target_user = None
+        if target_user_id:
+            target_user = users_col.find_one({"_id": target_user_id})
+        if not target_user:
+            target_user = users_col.find_one({"role": target_role})
+            
         if target_user:
             db_manager.get_collection("notifications").insert_one({
                 "_id": f"notif_{uuid.uuid4().hex[:8]}",
@@ -379,6 +410,7 @@ def initiate_call():
                 "type": "incoming_call",
                 "title": f"Cuộc gọi {('Video' if call_type == 'video' else 'Thoại')} đến từ {caller_name}",
                 "message": "Có cuộc gọi phỏng vấn trực tuyến đang đổ chuông, vui lòng nhấp vào để nghe máy!",
+                "related_id": room_id,
                 "is_read": False,
                 "is_deleted": False,
                 "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
@@ -392,8 +424,30 @@ def initiate_call():
 @token_required
 def get_call_status():
     user = request.current_user
-    room_id = request.args.get("room_id", "default_room")
-    call_session = ACTIVE_CALL_SESSIONS.get(room_id)
+    raw_room_id = request.args.get("room_id", "default_room")
+    room_id = canonicalize_room_id(raw_room_id)
+    call_session = ACTIVE_CALL_SESSIONS.get(room_id) or ACTIVE_CALL_SESSIONS.get(raw_room_id)
+    
+    # Nếu không tìm thấy trong phòng cụ thể, kiểm tra xem có bất kỳ cuộc gọi nào đang đổ chuông tới tài khoản này không
+    if not call_session or call_session.get("status") not in ["ringing", "connected"]:
+        for sess in list(ACTIVE_CALL_SESSIONS.values()):
+            if sess.get("status") == "ringing":
+                # Kiểm tra xem user này có phải là đối tượng nhận cuộc gọi không
+                is_target = False
+                if sess.get("target_user_id") and sess.get("target_user_id") == user["_id"]:
+                    is_target = True
+                elif user.get("role") == "employer" and sess.get("target_role") == "employer":
+                    emp = db_manager.get_collection("employers").find_one({"user_id": user["_id"]})
+                    emp_id = emp["_id"] if emp else ""
+                    if (emp_id and emp_id in sess.get("room_id", "")) or (user["_id"] in sess.get("room_id", "")):
+                        is_target = True
+                elif user.get("role") == "student" and sess.get("target_role") == "student":
+                    if user["_id"] in sess.get("room_id", ""):
+                        is_target = True
+                
+                if is_target:
+                    call_session = sess
+                    break
     
     if call_session:
         # Hết hạn đổ chuông tối đa 3 phút (180 giây) nếu không ai nhấc máy -> Chuyển thành Cuộc gọi nhỡ
@@ -406,7 +460,7 @@ def get_call_status():
             try:
                 db_manager.get_collection("messages").insert_one({
                     "_id": f"msg_call_{uuid.uuid4().hex[:8]}",
-                    "room_id": room_id,
+                    "room_id": call_session.get("room_id", room_id),
                     "sender_id": call_session.get("caller_id"),
                     "sender_name": call_session.get("caller_name"),
                     "sender_role": call_session.get("caller_role"),
@@ -415,19 +469,6 @@ def get_call_status():
                     "call_status": "missed",
                     "call_type": call_session.get("call_type"),
                     "created_at": time.strftime("%H:%M")
-                })
-                # Đẩy thông báo cuộc gọi nhỡ
-                target_user = "user_student_long" if call_session.get("caller_role") == "employer" else "user_employer_ngoc"
-                db_manager.get_collection("notifications").insert_one({
-                    "_id": f"notif_{uuid.uuid4().hex[:8]}",
-                    "user_id": target_user,
-                    "title": "Cuộc gọi nhỡ",
-                    "message": f"Bạn có 1 cuộc gọi nhỡ từ {call_session.get('caller_name')} (Không trả lời sau 3 phút).",
-                    "type": "call",
-                    "related_id": room_id,
-                    "is_read": False,
-                    "is_deleted": False,
-                    "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
                 })
             except Exception as e:
                 print(f"[Call Log Error] {e}")
@@ -439,10 +480,18 @@ def get_call_status():
 def respond_call():
     user = request.current_user
     data = request.get_json() or {}
-    room_id = data.get("room_id", "default_room")
+    raw_room_id = data.get("room_id", "default_room")
+    room_id = canonicalize_room_id(raw_room_id)
     action = data.get("action", "accept") # 'accept' | 'decline' | 'missed'
     
-    call_session = ACTIVE_CALL_SESSIONS.get(room_id)
+    call_session = ACTIVE_CALL_SESSIONS.get(room_id) or ACTIVE_CALL_SESSIONS.get(raw_room_id)
+    if not call_session:
+        # Fallback tìm cuộc gọi theo session ringing gần nhất cho user này
+        for sess in list(ACTIVE_CALL_SESSIONS.values()):
+            if sess.get("target_role") == user.get("role"):
+                call_session = sess
+                break
+
     if not call_session:
         return jsonify({"success": False, "message": "Không tìm thấy phiên cuộc gọi."}), 404
         
@@ -455,7 +504,7 @@ def respond_call():
         try:
             db_manager.get_collection("messages").insert_one({
                 "_id": f"msg_call_{uuid.uuid4().hex[:8]}",
-                "room_id": room_id,
+                "room_id": call_session.get("room_id", room_id),
                 "sender_id": call_session.get("caller_id"),
                 "caller_id": call_session.get("caller_id"),
                 "caller_name": call_session.get("caller_name"),
@@ -474,7 +523,7 @@ def respond_call():
         try:
             db_manager.get_collection("messages").insert_one({
                 "_id": f"msg_call_{uuid.uuid4().hex[:8]}",
-                "room_id": room_id,
+                "room_id": call_session.get("room_id", room_id),
                 "sender_id": call_session.get("caller_id"),
                 "caller_id": call_session.get("caller_id"),
                 "caller_name": call_session.get("caller_name"),
@@ -495,9 +544,16 @@ def respond_call():
 def end_call():
     user = request.current_user
     data = request.get_json() or {}
-    room_id = data.get("room_id", "default_room")
+    raw_room_id = data.get("room_id", "default_room")
+    room_id = canonicalize_room_id(raw_room_id)
     
-    call_session = ACTIVE_CALL_SESSIONS.get(room_id)
+    call_session = ACTIVE_CALL_SESSIONS.get(room_id) or ACTIVE_CALL_SESSIONS.get(raw_room_id)
+    if not call_session:
+        for sess in list(ACTIVE_CALL_SESSIONS.values()):
+            if sess.get("caller_id") == user["_id"] or sess.get("target_user_id") == user["_id"]:
+                call_session = sess
+                break
+
     if call_session:
         call_session["status"] = "ended"
         call_session["ended_at"] = time.time()
@@ -508,7 +564,7 @@ def end_call():
         try:
             db_manager.get_collection("messages").insert_one({
                 "_id": f"msg_call_{uuid.uuid4().hex[:8]}",
-                "room_id": room_id,
+                "room_id": call_session.get("room_id", room_id),
                 "sender_id": user["_id"],
                 "caller_id": call_session.get("caller_id"),
                 "caller_name": call_session.get("caller_name", "Đối tác"),

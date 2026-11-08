@@ -191,14 +191,16 @@ def login():
     
     # Lấy thêm thông tin chi tiết
     profile_data = {}
+    emp_record = None
+    stu_record = None
     if user_role == "student":
-        stu = db_manager.get_collection("student_profiles").find_one({"user_id": user["_id"]})
-        if stu:
-            profile_data = stu
+        stu_record = db_manager.get_collection("student_profiles").find_one({"user_id": user["_id"]})
+        if stu_record:
+            profile_data = stu_record
     elif user_role == "employer":
-        emp = db_manager.get_collection("employers").find_one({"user_id": user["_id"]})
-        if emp:
-            comp = db_manager.get_collection("company_profiles").find_one({"employer_id": emp["_id"]})
+        emp_record = db_manager.get_collection("employers").find_one({"user_id": user["_id"]})
+        if emp_record:
+            comp = db_manager.get_collection("company_profiles").find_one({"employer_id": emp_record["_id"]})
             profile_data = comp or {}
 
     return jsonify({
@@ -207,9 +209,12 @@ def login():
         "token": token,
         "user": {
             "id": user["_id"],
+            "_id": user["_id"],
             "email": user["email"],
             "role": user_role,
-            "profile": profile_data
+            "profile": profile_data,
+            "employer_id": emp_record["_id"] if emp_record else None,
+            "student_id": stu_record["_id"] if stu_record else None
         }
     }), 200
 
@@ -219,23 +224,28 @@ def get_current_user():
     user = request.current_user
     user_role = user.get("role")
     profile_data = {}
+    emp_record = None
+    stu_record = None
     
     if user_role == "student":
-        stu = db_manager.get_collection("student_profiles").find_one({"user_id": user["_id"]})
-        profile_data = stu or {}
+        stu_record = db_manager.get_collection("student_profiles").find_one({"user_id": user["_id"]})
+        profile_data = stu_record or {}
     elif user_role == "employer":
-        emp = db_manager.get_collection("employers").find_one({"user_id": user["_id"]})
-        if emp:
-            comp = db_manager.get_collection("company_profiles").find_one({"employer_id": emp["_id"]})
+        emp_record = db_manager.get_collection("employers").find_one({"user_id": user["_id"]})
+        if emp_record:
+            comp = db_manager.get_collection("company_profiles").find_one({"employer_id": emp_record["_id"]})
             profile_data = comp or {}
 
     return jsonify({
         "success": True,
         "user": {
             "id": user["_id"],
+            "_id": user["_id"],
             "email": user["email"],
             "role": user_role,
-            "profile": profile_data
+            "profile": profile_data,
+            "employer_id": emp_record["_id"] if emp_record else None,
+            "student_id": stu_record["_id"] if stu_record else None
         }
     }), 200
 

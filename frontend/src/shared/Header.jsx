@@ -150,9 +150,12 @@ export default function Header({
     const title = (n.title || '').toLowerCase();
     const targetId = (n.target_id || n.related_id || '').toLowerCase();
 
-    if (type.includes('chat') || type.includes('call') || title.includes('tin nhắn') || title.includes('cuộc gọi')) {
-      if (onToggleChatDrawer) onToggleChatDrawer();
-      else if (onNavigateMenu) onNavigateMenu('chat');
+    if (type.includes('call') || title.includes('cuộc gọi')) {
+      if (onNavigateMenu) onNavigateMenu('chat');
+      else if (onToggleChatDrawer) onToggleChatDrawer();
+    } else if (type.includes('chat') || title.includes('tin nhắn')) {
+      if (onNavigateMenu) onNavigateMenu('chat');
+      else if (onToggleChatDrawer) onToggleChatDrawer();
     } else if (type.includes('app') || targetId.startsWith('app_') || title.includes('ứng tuyển') || title.includes('hồ sơ')) {
       if (onNavigateMenu) onNavigateMenu(isEmployer ? 'applicants' : 'applications');
     } else if (type.includes('review') || title.includes('đánh giá')) {

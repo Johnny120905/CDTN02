@@ -19,6 +19,7 @@ except ImportError:
             return response
 
 from src.core.config import Config
+from src.core.socket_service import init_socketio, socketio
 from src.api.auth.auth_routes import auth_bp
 from src.api.student.student_routes import student_bp
 from src.api.employer.employer_routes import employer_bp
@@ -52,6 +53,9 @@ def create_app():
     app.register_blueprint(employer_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(common_bp)
+
+    # Initialize Realtime Socket.IO Engine (WebRTC Signaling)
+    init_socketio(app)
 
     # UNIFIED SINGLE-PORT ROUTE: SERVES BOTH FRONTEND & BACKEND ON THE SAME LOCALHOST
     @app.route("/", defaults={"path": ""})
@@ -120,5 +124,6 @@ if __name__ == "__main__":
     print(f"      💼 Web Nhà tuyển dụng:  http://localhost:{port}/employer")
     print(f"      🛡️  Web Quản trị viên:   http://localhost:{port}/admin")
     print(f"      🔌 Backend API:         http://localhost:{port}/api/...")
+    print(f"      ⚡ Realtime Socket.IO:  Enabled (WebRTC P2P Signaling)")
     print(f"============================================================")
-    app.run(host="0.0.0.0", port=port, debug=Config.DEBUG)
+    socketio.run(app, host="0.0.0.0", port=port, debug=Config.DEBUG, allow_unsafe_werkzeug=True)
