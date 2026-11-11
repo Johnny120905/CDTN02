@@ -1,7 +1,11 @@
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+_ENV_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
+if os.path.exists(_ENV_PATH):
+    load_dotenv(_ENV_PATH)
+else:
+    load_dotenv()
 
 class Config:
     PORT = int(os.getenv("PORT", 8002))

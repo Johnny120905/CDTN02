@@ -154,7 +154,7 @@ export default function AdminPortal({
   }, [activeMenu]);
 
   const handleMenuSwitch = (menuId) => {
-    const target = menuId === 'home' ? 'dashboard' : menuId;
+    const target = menuId === 'home' ? 'dashboard' : (menuId === 'gpkd_verification' ? 'gpkd' : menuId);
     setActiveMenu(target);
     if (onSectionChange) onSectionChange(sectionTitleMap[target] || 'Trung tâm chỉ huy (Analytics Dashboard)');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -385,6 +385,7 @@ export default function AdminPortal({
       if (selectedUserDetail) {
         setSelectedUserDetail(prev => ({
           ...prev,
+          approval_status: status,
           employer_record: { ...prev.employer_record, approval_status: status, reject_reason: reason }
         }));
       }
@@ -971,7 +972,7 @@ export default function AdminPortal({
     if (userIdentityFilter === 'verified_email') {
       idMatch = u.status === 'active' || u.is_email_verified;
     } else if (userIdentityFilter === 'has_gpkd') {
-      idMatch = u.role === 'employer' && (u.business_license || u.has_gpkd);
+      idMatch = u.role === 'employer' && Boolean(u.license_url || u.profile?.business_license_url || u.employer_record?.license_url || u.business_license || u.has_gpkd);
     } else if (userIdentityFilter === 'incomplete') {
       idMatch = u.status === 'pending' || !u.full_name;
     }
@@ -983,27 +984,39 @@ export default function AdminPortal({
   const paginatedUsers = filteredUsers.slice((userPage - 1) * USERS_PER_PAGE, userPage * USERS_PER_PAGE);
 
   // Filtered GPKD Employers (FR-QTV-04.11: MST 10/13 số, Tỉnh thành, Hồ sơ tồn đọng)
-  const filteredGpkdEmployers = employerUsers.filter(u => {
-    let matchMst = true;
-    const mst = (u.business_license || u.company_profile?.business_license || '').replace(/\D/g, '');
-    if (gpkdMstFilter === '10') matchMst = mst.length === 10;
-    else if (gpkdMstFilter === '13') matchMst = mst.length === 13;
+  const filteredGpkdEmployers = employerUsers
+    .filter(u => {
+      let matchMst = true;
+      const mst = (u.business_license || u.profile?.business_license || u.company_profile?.business_license || '').replace(/\D/g, '');
+      if (gpkdMstFilter === '10') matchMst = mst.length === 10;
+      else if (gpkdMstFilter === '13') matchMst = mst.length === 13;
 
-    let matchProv = true;
-    if (gpkdProvinceFilter !== 'all') {
-      const addr = (u.address || u.company_profile?.address || '').toLowerCase();
-      matchProv = addr.includes(gpkdProvinceFilter.toLowerCase());
-    }
+      let matchProv = true;
+      if (gpkdProvinceFilter !== 'all') {
+        const addr = (u.address || u.profile?.address || u.company_profile?.address || '').toLowerCase();
+        matchProv = addr.includes(gpkdProvinceFilter.toLowerCase());
+      }
 
-    let matchAge = true;
-    if (gpkdAgeFilter !== 'all' && u.created_at) {
-      const ageHours = (Date.now() - new Date(u.created_at).getTime()) / 3600000;
-      if (gpkdAgeFilter === 'overdue') matchAge = ageHours > 24;
-      else if (gpkdAgeFilter === 'today') matchAge = ageHours <= 24;
-    }
+      let matchAge = true;
+      if (gpkdAgeFilter !== 'all' && u.created_at) {
+        const ageHours = (Date.now() - new Date(u.created_at).getTime()) / 3600000;
+        if (gpkdAgeFilter === 'overdue') matchAge = ageHours > 24;
+        else if (gpkdAgeFilter === 'today') matchAge = ageHours <= 24;
+      }
 
-    return matchMst && matchProv && matchAge;
-  });
+      return matchMst && matchProv && matchAge;
+    })
+    .sort((a, b) => {
+      const rank = { pending: 0, rejected: 1, approved: 2 };
+      const sa = a.employer_record?.approval_status || a.approval_status || 'pending';
+      const sb = b.employer_record?.approval_status || b.approval_status || 'pending';
+      if ((rank[sa] ?? 3) !== (rank[sb] ?? 3)) {
+        return (rank[sa] ?? 3) - (rank[sb] ?? 3);
+      }
+      const ta = String(a.license_uploaded_at || a.employer_record?.license_uploaded_at || a.created_at || '');
+      const tb = String(b.license_uploaded_at || b.employer_record?.license_uploaded_at || b.created_at || '');
+      return tb.localeCompare(ta);
+    });
 
   // Filtered Jobs (FR 3.5 & FR-QTV-05.07)
   const filteredJobs = jobs.filter(j => {
@@ -1362,8 +1375,9 @@ export default function AdminPortal({
                       </tr>
                     ) : (
                       filteredGpkdEmployers.map((emp) => {
-                      const status = emp.employer_record?.approval_status || emp.approval_status || 'approved';
-                      const gpkdUrl = emp.license_url || emp.profile?.business_license_url || '';
+                      const status = emp.employer_record?.approval_status || emp.approval_status || 'pending';
+                      const gpkdUrl = emp.profile?.business_license_url || emp.license_url || emp.employer_record?.license_url || '';
+                      const gpkdName = emp.profile?.business_license_name || emp.license_name || '';
 
                       return (
                         <tr key={emp._id} className="hover:bg-slate-50/80 transition-colors">
@@ -1382,19 +1396,24 @@ export default function AdminPortal({
                             {emp.profile?.business_license || 'Chưa cập nhật'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <button
-                              type="button"
-                              onClick={() => setAdminGpkdViewer({
-                                company_name: emp.profile?.company_name || emp.company_name || 'Doanh nghiệp',
-                                representative_name: emp.profile?.representative_name || 'Người đại diện',
-                                business_license: emp.profile?.business_license || 'Chưa cập nhật',
-                                business_license_url: gpkdUrl
-                              })}
-                              className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs text-xs whitespace-nowrap"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>Xem File GPKD (PDF)</span>
-                            </button>
+                            {gpkdUrl ? (
+                              <button
+                                type="button"
+                                onClick={() => setAdminGpkdViewer({
+                                  company_name: emp.profile?.company_name || emp.company_name || 'Doanh nghiệp',
+                                  representative_name: emp.profile?.representative_name || 'Người đại diện',
+                                  business_license: emp.profile?.business_license || 'Chưa cập nhật',
+                                  business_license_url: gpkdUrl,
+                                  business_license_name: gpkdName
+                                })}
+                                className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs text-xs whitespace-nowrap"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>Xem File GPKD (PDF)</span>
+                              </button>
+                            ) : (
+                              <span className="text-xs text-slate-400 italic">Chưa tải lên PDF</span>
+                            )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap gap-1.5 ${
@@ -2566,7 +2585,7 @@ export default function AdminPortal({
                   <tbody className="divide-y divide-slate-100 bg-white">
                     {paginatedUsers.map((u) => {
                       const isEmp = u.role === 'employer';
-                      const empApproval = u.employer_record?.approval_status || 'approved';
+                      const empApproval = u.employer_record?.approval_status || u.approval_status || 'pending';
 
                       return (
                         <tr
@@ -2604,9 +2623,9 @@ export default function AdminPortal({
                           <td className="px-6 py-4 whitespace-nowrap">
                             {isEmp ? (
                               <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${
-                                empApproval === 'approved' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-amber-100 text-amber-800 border-amber-200'
+                                empApproval === 'approved' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : (empApproval === 'rejected' ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-amber-100 text-amber-800 border-amber-200')
                               }`}>
-                                {empApproval === 'approved' ? 'Đã duyệt GPKD' : 'Chờ duyệt GPKD'}
+                                {empApproval === 'approved' ? 'Đã duyệt GPKD' : (empApproval === 'rejected' ? 'Bị từ chối GPKD' : 'Chờ duyệt GPKD')}
                               </span>
                             ) : (
                               <span className="text-slate-500 text-xs font-medium">Không áp dụng</span>
@@ -3711,7 +3730,15 @@ export default function AdminPortal({
                     <div className="flex items-center gap-3 min-w-0">
                       <FileText className="w-6 h-6 text-rose-600 shrink-0" />
                       <div className="min-w-0">
-                        <p className="font-bold text-slate-900 truncate">{selectedUserDetail.profile?.business_license_url ? selectedUserDetail.profile.business_license_url.split('/').pop() : 'Chưa có tệp GPKD'}</p>
+                        <p className="font-bold text-slate-900 truncate">
+                          {selectedUserDetail.profile?.business_license_name ||
+                            selectedUserDetail.license_name ||
+                            (() => {
+                              const uUrl = selectedUserDetail.profile?.business_license_url || selectedUserDetail.license_url || selectedUserDetail.employer_record?.license_url || '';
+                              if (!uUrl) return 'Chưa có tệp GPKD';
+                              return uUrl.toLowerCase().endsWith('.pdf') ? uUrl.split('/').pop() : 'GPKD_DoanhNghiep.pdf';
+                            })()}
+                        </p>
                         <p className="text-xs text-slate-600">Tài liệu pháp lý đã tải lên hệ thống</p>
                       </div>
                     </div>
@@ -4295,8 +4322,13 @@ export default function AdminPortal({
           repName: adminGpkdViewer?.profile?.representative_name || adminGpkdViewer?.representative_name || 'Người đại diện',
           licenseNumber: adminGpkdViewer?.profile?.business_license || adminGpkdViewer?.business_license || 'Chưa cập nhật',
           address: adminGpkdViewer?.profile?.address || adminGpkdViewer?.address || 'Chưa cập nhật',
-          fileName: adminGpkdViewer?.profile?.business_license_url ? adminGpkdViewer.profile.business_license_url.split('/').pop() : 'GPKD_DoanhNghiep.pdf',
-          fileUrl: adminGpkdViewer?.profile?.business_license_url || adminGpkdViewer?.license_url
+          fileName: (() => {
+            const url = adminGpkdViewer?.business_license_url || adminGpkdViewer?.profile?.business_license_url || adminGpkdViewer?.license_url || adminGpkdViewer?.employer_record?.license_url || '';
+            const explicitName = adminGpkdViewer?.business_license_name || adminGpkdViewer?.profile?.business_license_name || adminGpkdViewer?.license_name;
+            if (explicitName) return explicitName;
+            return (url && url.toLowerCase().endsWith('.pdf')) ? url.split('/').pop() : 'GPKD_DoanhNghiep.pdf';
+          })(),
+          fileUrl: adminGpkdViewer?.business_license_url || adminGpkdViewer?.profile?.business_license_url || adminGpkdViewer?.license_url || adminGpkdViewer?.employer_record?.license_url || ''
         }}
         onDownloadSuccess={(msg) => notify(msg, 'success')}
       />

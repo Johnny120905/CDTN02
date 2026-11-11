@@ -64,7 +64,7 @@ export default function AdminLoginScreen({ onAuthSuccess, onNavigate }) {
       });
       const data = await res.json();
 
-      if (res.ok && data.success) {
+      if (res.ok && data.success && data.token) {
         setSuccessMsg('Xác thực Quản trị viên thành công! Đang chuyển hướng vào Trung tâm chỉ huy...');
         localStorage.setItem('partime_token', data.token);
         localStorage.setItem('partime_user', JSON.stringify(data.user));
@@ -74,46 +74,8 @@ export default function AdminLoginScreen({ onAuthSuccess, onNavigate }) {
         return;
       }
 
-      // Offline resilient admin auth fallback
-      if (cleanEmail === 'lethithuyngan985@gmail.com' && cleanPassword === 'Le090805!') {
-        const adminUser = {
-          id: 'user_admin_ngan',
-          email: cleanEmail,
-          role: 'admin',
-          profile: {
-            full_name: 'Lê Thị Thuỳ Ngân',
-            company_name: 'Trung Tâm Quản Trị Hệ Thống PARTIME.VN'
-          }
-        };
-        localStorage.setItem('partime_token', 'token_admin_local_' + Date.now());
-        localStorage.setItem('partime_user', JSON.stringify(adminUser));
-        setSuccessMsg('Xác thực Quản trị viên thành công! Đang chuyển hướng...');
-        setTimeout(() => {
-          onAuthSuccess(adminUser);
-        }, 300);
-        return;
-      }
-
       setErrorMsg(data.message || 'Thông tin xác thực Quản trị viên không chính xác.');
     } catch (err) {
-      if (cleanEmail === 'lethithuyngan985@gmail.com' && cleanPassword === 'Le090805!') {
-        const adminUser = {
-          id: 'user_admin_ngan',
-          email: cleanEmail,
-          role: 'admin',
-          profile: {
-            full_name: 'Lê Thị Thuỳ Ngân',
-            company_name: 'Trung Tâm Quản Trị Hệ Thống PARTIME.VN'
-          }
-        };
-        localStorage.setItem('partime_token', 'token_admin_local_' + Date.now());
-        localStorage.setItem('partime_user', JSON.stringify(adminUser));
-        setSuccessMsg('Xác thực Quản trị viên thành công!');
-        setTimeout(() => {
-          onAuthSuccess(adminUser);
-        }, 300);
-        return;
-      }
       setErrorMsg('Không thể kết nối đến máy chủ xác thực.');
     } finally {
       setLoading(false);

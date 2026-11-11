@@ -1,24 +1,19 @@
 import time
 import uuid
 import re
-import os
-import base64
-from flask import Blueprint, request, jsonify, send_from_directory
-from src.core.database import db_manager
+from urllib.parse import quote
+from flask import Blueprint, request, jsonify, Response
+from src.core.database import db_manager, MAX_UPLOAD_BYTES
 from src.middlewares.auth_middleware import token_required
 from src.core.socket_service import canonicalize_room_id
 
 common_bp = Blueprint("common", __name__, url_prefix="/api")
 
-UPLOAD_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads"))
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
-# 0. Real File Upload API (PDF, PNG, JPG <= 10MB)
+# 0. Real File Upload & GridFS Retrieval API (PDF <= 10MB)
 @common_bp.route("/upload", methods=["POST"])
 def upload_file():
     """
-    Tải lên tệp tin thực tế từ máy tính của người dùng (CV, GPKD, hình ảnh, đính kèm chat).
-    Lưu trữ file vật lý trên máy chủ tại backend/uploads để người dùng khác có thể xem thực tế.
+    Tải lên tệp PDF thực tế (<= 10MB) và đẩy thẳng vào MongoDB GridFS, không ghi ra ổ đĩa.
     """
     # Xử lý multipart/form-data
     if "file" in request.files:
@@ -28,70 +23,81 @@ def upload_file():
 
         filename = file.filename
         ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
-        if ext not in ["pdf", "png", "jpg", "jpeg", "csv", "xlsx"]:
-            return jsonify({"success": False, "message": "Chỉ nhận tệp định dạng .pdf, .png, .jpg (dung lượng <= 10MB)!"}), 400
+        mimetype = (file.mimetype or "").lower()
+        if ext != "pdf" or (mimetype and mimetype not in ("application/pdf", "application/octet-stream")):
+            return jsonify({"success": False, "message": "Chỉ nhận tệp định dạng .pdf (dung lượng <= 10MB)!"}), 400
 
-        # Kiểm tra kích thước <= 10MB
-        file.seek(0, os.SEEK_END)
-        file_size = file.tell()
-        file.seek(0)
-        if file_size > 10 * 1024 * 1024:
+        file_bytes = file.read(MAX_UPLOAD_BYTES + 1)
+        file_size = len(file_bytes)
+        if file_size > MAX_UPLOAD_BYTES:
             return jsonify({"success": False, "message": "Dung lượng tệp vượt quá giới hạn 10MB!"}), 400
 
-        safe_name = f"{uuid.uuid4().hex[:8]}_{filename}"
-        target_path = os.path.join(UPLOAD_FOLDER, safe_name)
-        file.save(target_path)
+        try:
+            file_id = db_manager.save_file(file_bytes, filename=filename, content_type="application/pdf", metadata={"source": "upload"})
+        except ValueError as e:
+            return jsonify({"success": False, "message": str(e)}), 400
 
-        with open(target_path, "rb") as f:
-            file_bytes = f.read()
-
-        mime = "application/pdf" if ext == "pdf" else f"image/{ext}"
-        b64_url = f"data:{mime};base64,{base64.b64encode(file_bytes).decode('utf-8')}"
-        file_url = f"/uploads/{safe_name}"
-
+        file_url = f"/api/files/{file_id}"
         return jsonify({
             "success": True,
             "message": f"Tải lên tệp '{filename}' thành công!",
             "url": file_url,
+            "file_id": file_id,
             "file_name": filename,
-            "file_size": file_size,
-            "data_url": b64_url
+            "file_size": file_size
         }), 201
 
     # Xử lý JSON base64
     data = request.get_json(silent=True) or {}
     base64_data = data.get("file_data") or data.get("file_url")
-    filename = data.get("file_name", "document.pdf")
+    filename = str(data.get("file_name", "document.pdf")).strip() or "document.pdf"
     if base64_data and "," in base64_data:
+        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+        if ext != "pdf":
+            return jsonify({"success": False, "message": "Chỉ nhận tệp định dạng .pdf (dung lượng <= 10MB)!"}), 400
         try:
-            header, encoded = base64_data.split(",", 1)
-            file_bytes = base64.b64decode(encoded)
-            file_size = len(file_bytes)
-            if file_size > 10 * 1024 * 1024:
-                return jsonify({"success": False, "message": "Dung lượng tệp vượt quá 10MB!"}), 400
-
-            ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "pdf"
-            if ext not in ["pdf", "png", "jpg", "jpeg", "csv", "xlsx"]:
-                return jsonify({"success": False, "message": "Chỉ nhận tệp định dạng .pdf, .png, .jpg!"}), 400
-
-            safe_name = f"{uuid.uuid4().hex[:8]}_{filename}"
-            target_path = os.path.join(UPLOAD_FOLDER, safe_name)
-            with open(target_path, "wb") as f:
-                f.write(file_bytes)
-
-            file_url = f"/uploads/{safe_name}"
+            file_id, file_url = db_manager.save_data_url(
+                base64_data,
+                filename=filename,
+                allowed_types=("application/pdf",),
+                metadata={"source": "upload"},
+                allow_pdf_magic=True
+            )
+            file_doc = db_manager.get_file(file_id)
+            file_size = file_doc["length"] if file_doc else 0
             return jsonify({
                 "success": True,
                 "message": f"Tải lên tệp '{filename}' thành công!",
                 "url": file_url,
+                "file_id": file_id,
                 "file_name": filename,
-                "file_size": file_size,
-                "data_url": base64_data
+                "file_size": file_size
             }), 201
+        except ValueError as e:
+            return jsonify({"success": False, "message": str(e)}), 400
         except Exception as e:
             return jsonify({"success": False, "message": f"Lỗi giải mã tệp tin: {str(e)}"}), 400
 
     return jsonify({"success": False, "message": "Vui lòng chọn tệp tin để tải lên."}), 400
+
+
+@common_bp.route("/files/<file_id>", methods=["GET"])
+def get_uploaded_file(file_id):
+    """Đọc tệp đã lưu trong MongoDB GridFS trả về cho web xem và tải."""
+    file_doc = db_manager.get_file(file_id)
+    if not file_doc:
+        return jsonify({"success": False, "message": "Tệp tin không tồn tại trên hệ thống."}), 404
+
+    disposition_type = "attachment" if request.args.get("download") in ("1", "true", "yes") else "inline"
+    filename = file_doc["filename"] or "document.pdf"
+    ascii_name = filename.encode("ascii", "ignore").decode("ascii") or "document.pdf"
+    encoded_name = quote(filename)
+
+    resp = Response(file_doc["data"], status=200, mimetype=file_doc["content_type"])
+    resp.headers["Content-Length"] = str(file_doc["length"])
+    resp.headers["Content-Disposition"] = f'{disposition_type}; filename="{ascii_name}"; filename*=UTF-8\'\'{encoded_name}'
+    resp.headers["Cache-Control"] = "public, max-age=3600"
+    return resp
 
 
 # 1. Healthcheck
@@ -268,22 +274,24 @@ def send_message():
         ext = file_name.lower().split(".")[-1] if "." in file_name else ""
         if ext not in ["pdf", "png", "jpg", "jpeg"]:
             return jsonify({"success": False, "message": "Tệp đính kèm chỉ chấp nhận định dạng .pdf, .png, .jpg. Hệ thống chặn các tệp thực thi (.exe, .bat...) hoặc nén (.zip, .rar...)!"}), 400
-        if file_size > 10 * 1024 * 1024:
+        if file_size > MAX_UPLOAD_BYTES:
             return jsonify({"success": False, "message": "Dung lượng tệp đính kèm vượt quá 10MB!"}), 400
 
-    # Nếu gửi base64 đính kèm, ghi file vật lý vào backend/uploads để cả 2 bên mở xem được
-    if media_url and media_url.startswith("data:"):
+    # Nếu gửi base64 đính kèm, đẩy thẳng vào MongoDB GridFS để cả 2 bên mở xem được
+    file_id = None
+    if media_url and isinstance(media_url, str) and media_url.startswith("data:"):
         try:
-            mime_part, raw_b64 = media_url.split(",", 1)
-            ext = file_name.split(".")[-1].lower() if "." in file_name else ("pdf" if "pdf" in mime_part else "png")
-            file_bytes = base64.b64decode(raw_b64)
-            safe_name = f"chat_{uuid.uuid4().hex[:8]}_{file_name}"
-            target_path = os.path.join(UPLOAD_FOLDER, safe_name)
-            with open(target_path, "wb") as f:
-                f.write(file_bytes)
-            media_url = f"/uploads/{safe_name}"
-        except Exception:
-            pass
+            file_id, media_url = db_manager.save_data_url(
+                media_url,
+                filename=file_name or "attachment.pdf",
+                allowed_types=("application/pdf", "image/png", "image/jpeg", "image/jpg"),
+                metadata={"type": "chat_attachment", "room_id": room_id, "sender_id": user["_id"]},
+                allow_pdf_magic=True
+            )
+        except ValueError as e:
+            return jsonify({"success": False, "message": str(e)}), 400
+        except Exception as e:
+            return jsonify({"success": False, "message": f"Không thể lưu tệp đính kèm: {str(e)}"}), 400
 
     # Lọc từ cấm tự động: vẫn giữ nội dung gốc để người dùng đọc được nhằm mục đích báo cáo
     clean_content, was_flagged, flagged_words = filter_content_banned_words(content)
@@ -302,6 +310,7 @@ def send_message():
         "is_flagged": was_flagged,
         "flagged_words": flagged_words,
         "media_url": media_url,
+        "file_id": file_id,
         "file_name": file_name,
         "message_status": "sent",
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S")

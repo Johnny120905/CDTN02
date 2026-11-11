@@ -1,11 +1,47 @@
-import os
 import time
 import uuid
 from flask import Blueprint, request, jsonify
-from src.core.database import db_manager
+from src.core.database import db_manager, MAX_UPLOAD_BYTES
 from src.middlewares.auth_middleware import role_required
 
 student_bp = Blueprint("student", __name__, url_prefix="/api/student")
+
+
+def _store_cv_pdf(file_name: str, file_url: str, file_size: int, student_id: str):
+    """Validate PDF (<= 10MB) and store base64 PDF content in GridFS without writing to disk."""
+    if file_name and not file_name.lower().endswith(".pdf"):
+        return None, None, (jsonify({"success": False, "message": "Chỉ nhận tệp CV định dạng .pdf (application/pdf). Hệ thống chặn mọi định dạng khác (.docx, .png, .jpg...)!"}), 400)
+    if file_size > MAX_UPLOAD_BYTES:
+        return None, None, (jsonify({"success": False, "message": "Dung lượng tệp CV vượt quá giới hạn 10MB!"}), 400)
+
+    file_id = None
+    if file_url and isinstance(file_url, str) and file_url.startswith("data:"):
+        try:
+            file_id, file_url = db_manager.save_data_url(
+                file_url,
+                filename=file_name or "CV.pdf",
+                allowed_types=("application/pdf",),
+                metadata={"type": "cv", "student_id": student_id},
+                allow_pdf_magic=True
+            )
+        except ValueError as e:
+            return None, None, (jsonify({"success": False, "message": str(e)}), 400)
+        except Exception as e:
+            return None, None, (jsonify({"success": False, "message": f"Không thể lưu tệp CV: {str(e)}"}), 400)
+
+    return file_id, file_url, None
+
+
+def _delete_unused_cv_file(file_url: str):
+    """Remove a GridFS CV file only if no remaining resume or application references it."""
+    if not db_manager.extract_file_id(file_url):
+        return
+    res_still_used = db_manager.get_collection("resumes").count_documents({"file_url": file_url}) > 0
+    app_still_used = db_manager.get_collection("applications").count_documents({
+        "$or": [{"application_snapshot.cv_url": file_url}, {"cv_url": file_url}]
+    }) > 0
+    if not res_still_used and not app_still_used:
+        db_manager.delete_file(file_url)
 
 def get_student_profile(user_id):
     stu_col = db_manager.get_collection("student_profiles")
@@ -78,26 +114,10 @@ def add_resume():
     file_size = int(data.get("file_size", 0))
     is_default = data.get("is_default", False)
 
-    # Ràng buộc FR 1.4.2, 1.4.4, 1.5.6: Chỉ nhận .pdf <= 10MB
-    if not file_name.lower().endswith(".pdf"):
-        return jsonify({"success": False, "message": "Chỉ nhận tệp CV định dạng .pdf (application/pdf). Hệ thống chặn mọi định dạng khác (.docx, .png, .jpg...)!"}), 400
-    if file_size > 10 * 1024 * 1024:
-        return jsonify({"success": False, "message": "Dung lượng tệp CV vượt quá giới hạn 10MB!"}), 400
-
-    # Nếu gửi base64, lưu file vật lý vào backend/uploads để người dùng khác mở xem trực tiếp
-    if file_url and file_url.startswith("data:application/pdf;base64,"):
-        import base64
-        try:
-            raw_b64 = file_url.split(",", 1)[1]
-            file_bytes = base64.b64decode(raw_b64)
-            safe_name = f"{uuid.uuid4().hex[:8]}_{file_name}"
-            upload_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads"))
-            os.makedirs(upload_dir, exist_ok=True)
-            with open(os.path.join(upload_dir, safe_name), "wb") as f:
-                f.write(file_bytes)
-            file_url = f"/uploads/{safe_name}"
-        except Exception as e:
-            print("Write file error:", e)
+    # Ràng buộc FR 1.4.2, 1.4.4, 1.5.6: Chỉ nhận .pdf <= 10MB và đẩy thẳng lên GridFS
+    file_id, stored_url, err_resp = _store_cv_pdf(file_name, file_url, file_size, stu["_id"])
+    if err_resp:
+        return err_resp
 
     res_col = db_manager.get_collection("resumes")
     if is_default:
@@ -109,7 +129,8 @@ def add_resume():
         "_id": f"cv_{uuid.uuid4().hex[:8]}",
         "student_id": stu["_id"],
         "file_name": file_name,
-        "file_url": file_url,
+        "file_url": stored_url,
+        "file_id": file_id,
         "is_default": is_default,
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
     }
@@ -121,41 +142,33 @@ def add_resume():
 def update_resume(cv_id):
     user = request.current_user
     stu = get_student_profile(user["_id"])
+    res_col = db_manager.get_collection("resumes")
+    old_cv = res_col.find_one({"_id": cv_id, "student_id": stu["_id"]})
+    if not old_cv:
+        return jsonify({"success": False, "message": "Không tìm thấy CV cần cập nhật."}), 404
+
     data = request.get_json() or {}
     file_name = str(data.get("file_name", "")).strip()
     file_url = data.get("file_url", "")
     file_size = int(data.get("file_size", 0))
 
-    if file_name and not file_name.lower().endswith(".pdf"):
-        return jsonify({"success": False, "message": "Chỉ nhận tệp CV định dạng .pdf (application/pdf). Chặn mọi định dạng khác!"}), 400
-    if file_size > 10 * 1024 * 1024:
-        return jsonify({"success": False, "message": "Dung lượng tệp CV vượt quá 10MB!"}), 400
-
-    if file_url and file_url.startswith("data:application/pdf;base64,"):
-        import base64
-        try:
-            raw_b64 = file_url.split(",", 1)[1]
-            file_bytes = base64.b64decode(raw_b64)
-            safe_name = f"{uuid.uuid4().hex[:8]}_{file_name}"
-            upload_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads"))
-            os.makedirs(upload_dir, exist_ok=True)
-            with open(os.path.join(upload_dir, safe_name), "wb") as f:
-                f.write(file_bytes)
-            file_url = f"/uploads/{safe_name}"
-        except Exception as e:
-            print("Write file error:", e)
+    file_id, stored_url, err_resp = _store_cv_pdf(file_name, file_url, file_size, stu["_id"])
+    if err_resp:
+        return err_resp
 
     update_fields = {}
     if file_name:
         update_fields["file_name"] = file_name
-    if file_url:
-        update_fields["file_url"] = file_url
+    if stored_url:
+        update_fields["file_url"] = stored_url
+    if file_id:
+        update_fields["file_id"] = file_id
     update_fields["updated_at"] = time.strftime("%Y-%m-%d %H:%M:%S")
 
-    res_col = db_manager.get_collection("resumes")
-    res = res_col.update_one({"_id": cv_id, "student_id": stu["_id"]}, {"$set": update_fields})
-    if res.matched_count == 0:
-        return jsonify({"success": False, "message": "Không tìm thấy CV cần cập nhật."}), 404
+    res_col.update_one({"_id": cv_id, "student_id": stu["_id"]}, {"$set": update_fields})
+    old_url = old_cv.get("file_url", "")
+    if stored_url and old_url and old_url != stored_url:
+        _delete_unused_cv_file(old_url)
     return jsonify({"success": True, "message": "Thay thế file CV thành công!"})
 
 @student_bp.route("/resumes/<cv_id>/default", methods=["PUT"])
@@ -176,7 +189,10 @@ def delete_resume(cv_id):
     user = request.current_user
     stu = get_student_profile(user["_id"])
     res_col = db_manager.get_collection("resumes")
+    old_cv = res_col.find_one({"_id": cv_id, "student_id": stu["_id"]})
     res_col.delete_one({"_id": cv_id, "student_id": stu["_id"]})
+    if old_cv and old_cv.get("file_url"):
+        _delete_unused_cv_file(old_cv["file_url"])
     return jsonify({"success": True, "message": "Đã xóa CV thành công."})
 
 # 3. Bookmarks (FR 1.5.4, 1.5.8)

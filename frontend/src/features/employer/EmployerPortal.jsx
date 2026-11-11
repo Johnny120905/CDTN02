@@ -567,8 +567,9 @@ export default function EmployerPortal({
       if (data.success && data.data) {
         setCompanyInfo(data.data);
         setCompanyForm(data.data);
-        if (data.data.employer_record) {
-          setEmployerRecord(data.data.employer_record);
+        const empRec = data.employer_record || data.data.employer_record;
+        if (empRec) {
+          setEmployerRecord(empRec);
         }
       }
     } catch (err) {
@@ -621,30 +622,79 @@ export default function EmployerPortal({
   }, [selectedContact]);
 
   // Tải lên tệp GPKD mới từ máy tính (FR 2.3.2)
-  const handleGpkdFileSelect = (e) => {
-    const file = e.target.files?.[0];
+  const processGpkdFile = (file, resetInput = null) => {
     if (!file) return;
     if (file.size > 10 * 1024 * 1024) {
       notify('Dung lượng tệp Giấy phép kinh doanh (GPKD) không được vượt quá 10MB.', 'error');
+      if (resetInput) resetInput();
       return;
     }
     const ext = file.name.split('.').pop().toLowerCase();
-    if (ext !== 'pdf') {
+    if (ext !== 'pdf' && file.type !== 'application/pdf') {
       notify('Tệp Giấy phép kinh doanh (GPKD) chỉ chấp nhận định dạng .pdf!', 'error');
+      if (resetInput) resetInput();
       return;
     }
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const base64Url = event.target.result;
       setCompanyForm(prev => ({
         ...prev,
         business_license_url: base64Url,
+        business_license_name: file.name,
         new_gpkd_name: file.name,
         new_gpkd_uploaded: true
       }));
-      notify(`Đã chọn tệp GPKD mới: "${file.name}". Nhấn "Lưu Hồ Sơ Doanh Nghiệp" để gửi xét duyệt lại!`, 'success');
+      try {
+        const res = await fetch('/api/employer/company', {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({
+            business_license_url: base64Url,
+            business_license_name: file.name,
+            reuploaded_license: true
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          const updatedUrl = data.data?.business_license_url || base64Url;
+          const updatedName = data.data?.business_license_name || file.name;
+          setCompanyInfo(prev => ({
+            ...prev,
+            ...(data.data || {}),
+            business_license_url: updatedUrl,
+            business_license_name: updatedName
+          }));
+          setCompanyForm(prev => ({
+            ...prev,
+            business_license_url: updatedUrl,
+            business_license_name: updatedName,
+            new_gpkd_name: updatedName,
+            new_gpkd_uploaded: false
+          }));
+          setEmployerRecord(prev => ({
+            ...prev,
+            ...(data.employer_record || {}),
+            approval_status: data.approval_status || 'pending',
+            reject_reason: ''
+          }));
+          notify(`Đã tải lên tệp GPKD "${updatedName}" lên MongoDB và gửi Quản trị viên xét duyệt!`, 'success');
+        } else {
+          notify(data.message || 'Không thể tải lên tệp GPKD.', 'error');
+        }
+      } catch (err) {
+        notify('Lỗi kết nối máy chủ khi tải lên tệp GPKD.', 'error');
+      }
+      if (resetInput) resetInput();
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleGpkdFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    processGpkdFile(file, () => {
+      e.target.value = '';
+    });
   };
 
   // Helper tải tệp PDF CV ứng viên an toàn không bị lỗi file (FR 2.5.3, 2.5.4)
@@ -709,6 +759,7 @@ export default function EmployerPortal({
       const data = await res.json();
       if (data.success) {
         setCompanyInfo(data.data || companyForm);
+        setCompanyForm(prev => ({ ...(data.data || prev), new_gpkd_uploaded: false, new_gpkd_name: '' }));
         setIsEditingCompany(false);
 
         // Nếu có tải lại Giấy phép kinh doanh mới: Chuyển tài khoản về "pending" (Chờ duyệt)
@@ -2475,8 +2526,10 @@ export default function EmployerPortal({
                         GPKD
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-slate-900">Giấy Phép Kinh Doanh: {companyInfo.business_license}</p>
-                        <p className="text-xs text-slate-500 font-mono">Tài liệu: {companyInfo.business_license_url}</p>
+                        <p className="text-xs font-bold text-slate-900">Giấy Phép Kinh Doanh: {companyInfo.business_license || 'Chưa cập nhật'}</p>
+                        <p className="text-xs text-slate-500 font-mono">
+                          Tài liệu: {companyInfo.business_license_name || (companyInfo.business_license_url ? (companyInfo.business_license_url.toLowerCase().endsWith('.pdf') ? companyInfo.business_license_url.split('/').pop() : 'GPKD_DoanhNghiep.pdf') : 'Chưa tải lên tệp PDF')}
+                        </p>
                       </div>
                       <button
                         type="button"
@@ -2627,13 +2680,21 @@ export default function EmployerPortal({
 
                         <div 
                           onClick={() => gpkdFileInputRef.current?.click()}
-                          className="p-4 rounded-xl border-2 border-dashed border-slate-300 hover:border-blue-500 bg-white flex flex-col items-center justify-center text-center cursor-pointer transition-all group"
+                          onDragOver={(e) => { e.preventDefault(); setIsDraggingGpkd(true); }}
+                          onDragLeave={() => setIsDraggingGpkd(false)}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            setIsDraggingGpkd(false);
+                            const dropped = e.dataTransfer.files?.[0];
+                            if (dropped) processGpkdFile(dropped);
+                          }}
+                          className={`p-4 rounded-xl border-2 border-dashed ${isDraggingGpkd ? 'border-blue-600 bg-blue-50/50' : 'border-slate-300 hover:border-blue-500 bg-white'} flex flex-col items-center justify-center text-center cursor-pointer transition-all group`}
                         >
                           <Upload className="w-6 h-6 text-blue-600 mb-1.5 group-hover:scale-110 transition-transform" />
                           <p className="text-xs font-bold text-slate-800">
-                            {companyForm.new_gpkd_name 
-                              ? `Đã chọn: ${companyForm.new_gpkd_name}`
-                              : (companyForm.business_license_url ? 'Nhấn để tải lại tệp GPKD mới thay thế' : 'Nhấn để chọn tệp GPKD (.pdf) từ thiết bị')}
+                            {companyForm.new_gpkd_name || companyForm.business_license_name
+                              ? `Đã tải lên: ${companyForm.new_gpkd_name || companyForm.business_license_name}`
+                              : (companyForm.business_license_url ? 'Nhấn hoặc kéo thả tệp GPKD mới thay thế' : 'Nhấn hoặc kéo thả tệp GPKD (.pdf) từ thiết bị')}
                           </p>
                           <p className="text-xs text-slate-500 mt-0.5">Định dạng chấp nhận: PDF (kích thước tối đa 10MB)</p>
                         </div>
@@ -2691,7 +2752,7 @@ export default function EmployerPortal({
                           </div>
                           <div>
                             <p className="text-xs font-bold text-slate-900">Giấy Phép Đăng Ký Kinh Doanh: {companyInfo.business_license || 'Chưa cập nhật'}</p>
-                            <p className="text-xs text-slate-500 font-mono">Tệp lưu trữ: {companyInfo.business_license_url ? companyInfo.business_license_url.split('/').pop() : 'Chưa đính kèm tệp'}</p>
+                            <p className="text-xs text-slate-500 font-mono">Tệp lưu trữ: {companyInfo.business_license_name || (companyInfo.business_license_url ? (companyInfo.business_license_url.toLowerCase().endsWith('.pdf') ? companyInfo.business_license_url.split('/').pop() : 'GPKD_DoanhNghiep.pdf') : 'Chưa đính kèm tệp')}</p>
                           </div>
                         </div>
                         <button
@@ -5428,8 +5489,8 @@ export default function EmployerPortal({
           repName: companyInfo.representative_name || '',
           licenseNumber: companyInfo.business_license || '',
           address: companyInfo.address || '',
-          fileUrl: companyInfo.business_license_url,
-          fileName: companyInfo.business_license_url ? companyInfo.business_license_url.split('/').pop() : 'GPKD_DoanhNghiep.pdf'
+          fileUrl: companyInfo.business_license_url || companyForm.business_license_url || '',
+          fileName: companyInfo.business_license_name || companyForm.new_gpkd_name || ((companyInfo.business_license_url && companyInfo.business_license_url.toLowerCase().endsWith('.pdf')) ? companyInfo.business_license_url.split('/').pop() : 'GPKD_DoanhNghiep.pdf')
         }}
         onDownloadSuccess={(msg) => onShowBanner && onShowBanner(msg, 'success')}
       />

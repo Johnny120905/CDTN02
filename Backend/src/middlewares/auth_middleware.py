@@ -10,9 +10,10 @@ def token_required(f):
         if not auth_header.startswith("Bearer "):
             return jsonify({"success": False, "message": "Yêu cầu cung cấp Access Token hợp lệ (Bearer token)."}), 401
         
-        token = auth_header.split(" ")[1]
+        parts = auth_header.split(" ", 1)
+        token = parts[1].strip() if len(parts) == 2 else ""
         payload = decode_jwt_token(token)
-        if not payload:
+        if not payload or not payload.get("sub"):
             return jsonify({"success": False, "message": "Phiên đăng nhập đã hết hạn hoặc không hợp lệ. Vui lòng đăng nhập lại."}), 401
         
         user_col = db_manager.get_collection("users")

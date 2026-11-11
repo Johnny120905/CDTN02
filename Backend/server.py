@@ -65,30 +65,21 @@ def create_app():
         if path.startswith("api"):
             return jsonify({"success": False, "message": "API endpoint không tồn tại."}), 404
 
-        # 2. Check uploaded static files in backend/uploads
-        if path.startswith("uploads/"):
-            uploads_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads"))
-            rel_file = path[len("uploads/"):]
-            target_f = os.path.join(uploads_dir, rel_file)
-            if os.path.exists(target_f) and not os.path.isdir(target_f):
-                return send_from_directory(uploads_dir, rel_file)
-            return jsonify({"success": False, "message": "Tệp tin đã tải lên không tồn tại."}), 404
-
-        # 3. Check if a static file exists in frontend dist (e.g. assets/index.js, assets/index.css, favicon.ico)
+        # 2. Check if a static file exists in frontend dist (e.g. assets/index.js, assets/index.css, favicon.ico)
         file_path = os.path.join(FRONTEND_DIST_DIR, path)
         if path and os.path.exists(file_path) and not os.path.isdir(file_path):
             return send_from_directory(FRONTEND_DIST_DIR, path)
 
-        # 4. Critical: Do not serve index.html for missing media/document files (prevents iframe loading website)
+        # 3. Critical: Do not serve index.html for missing media/document files (prevents iframe loading website)
         if path and any(path.lower().endswith(ext) for ext in [".pdf", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".glb", ".zip"]):
             return jsonify({"success": False, "message": f"Tệp tài liệu '{path}' không tồn tại trên máy chủ."}), 404
 
-        # 5. Serve index.html for Single Page Application client-side routing (HTML5 History API)
+        # 4. Serve index.html for Single Page Application client-side routing (HTML5 History API)
         index_file = os.path.join(FRONTEND_DIST_DIR, "index.html")
         if os.path.exists(index_file):
             return send_from_directory(FRONTEND_DIST_DIR, "index.html")
 
-        # 4. Fallback info if frontend dist has not been built yet
+        # 5. Fallback info if frontend dist has not been built yet
         return jsonify({
             "service": "PARTIME.VN - Nền Tảng Tuyển Dụng Việc Làm Linh Hoạt (CDTN02)",
             "version": "2.0.0",

@@ -95,11 +95,30 @@ def register():
     elif role == "employer":
         emp_col = db_manager.get_collection("employers")
         emp_id = f"emp_{uuid.uuid4().hex[:8]}"
+        stored_license_url = license_file or ""
+        license_filename = str(data.get("license_filename") or f"gpkd_{emp_id}.pdf").strip() or f"gpkd_{emp_id}.pdf"
+        if stored_license_url.startswith("data:"):
+            try:
+                _, stored_license_url = db_manager.save_data_url(
+                    stored_license_url,
+                    filename=license_filename,
+                    allowed_types=("application/pdf",),
+                    metadata={"type": "gpkd", "employer_id": emp_id},
+                    allow_pdf_magic=True
+                )
+            except ValueError as e:
+                return jsonify({"success": False, "message": f"Tệp Giấy phép kinh doanh (GPKD) chỉ nhận định dạng .pdf (≤ 10MB)! ({e})"}), 400
+            except Exception as e:
+                return jsonify({"success": False, "message": f"Lỗi lưu tệp GPKD: {str(e)}"}), 400
+
         emp_col.insert_one({
             "_id": emp_id,
             "user_id": user_id,
             "approval_status": "pending",
-            "reject_reason": ""
+            "reject_reason": "",
+            "license_url": stored_license_url,
+            "license_name": license_filename if stored_license_url else "",
+            "license_uploaded_at": time.strftime("%Y-%m-%d %H:%M:%S") if stored_license_url else ""
         })
         comp_col = db_manager.get_collection("company_profiles")
         comp_col.insert_one({
@@ -112,7 +131,8 @@ def register():
             "scale": "1-10 nhân viên",
             "address": address or "TP. Hồ Chí Minh",
             "business_license": business_license,
-            "business_license_url": license_file or "",
+            "business_license_url": stored_license_url,
+            "business_license_name": license_filename if stored_license_url else "",
             "logo_url": "https://images.unsplash.com/photo-1559925393-8be0ec4767c8?w=120&auto=format&fit=crop&q=80",
             "cover_image_url": ""
         })
@@ -386,8 +406,9 @@ def change_password():
     if not old_password or not new_password:
         return jsonify({"success": False, "message": "Vui lòng nhập mật khẩu cũ và mật khẩu mới."}), 400
 
-    if len(new_password) < 6:
-        return jsonify({"success": False, "message": "Mật khẩu mới phải có tối thiểu 6 ký tự."}), 400
+    is_valid_pw, pw_err = validate_password_complexity(new_password)
+    if not is_valid_pw:
+        return jsonify({"success": False, "message": pw_err}), 400
 
     users_col = db_manager.get_collection("users")
     user_record = users_col.find_one({"_id": user["_id"]})
@@ -419,7 +440,7 @@ def delete_account():
     if user.get("role") == "student":
         # FR 1.2.3: Chuyển toàn bộ đơn đang Chờ duyệt sang Đã hủy
         # Đơn đã duyệt hiển thị tên "Người dùng đã xóa"
-        stu_col = db_manager.get_collection("students")
+        stu_col = db_manager.get_collection("student_profiles")
         stu = stu_col.find_one({"user_id": user["_id"]})
         if stu:
             stu_id = stu["_id"]

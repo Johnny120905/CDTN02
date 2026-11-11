@@ -12,16 +12,109 @@ export default function DocumentViewerModal({
   onDownloadSuccess
 }) {
   const printAreaRef = useRef(null);
-  const [viewMode, setViewMode] = useState(type === 'gpkd' ? 'a4' : (data.fileUrl ? 'file' : 'a4'));
+  const [viewMode, setViewMode] = useState('file');
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [isLoadingFile, setIsLoadingFile] = useState(false);
+  const [fileLoadError, setFileLoadError] = useState('');
+  const [isImagePreview, setIsImagePreview] = useState(false);
 
   React.useEffect(() => {
-    if (type === 'gpkd') {
-      setViewMode('a4');
-    } else if (data.fileUrl) {
-      setViewMode('file');
-    } else {
-      setViewMode('a4');
+    setViewMode('file');
+  }, [data.fileUrl, isOpen, type]);
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      setPreviewUrl('');
+      setFileLoadError('');
+      setIsLoadingFile(false);
+      setIsImagePreview(false);
+      return;
     }
+
+    const rawUrl = String(data.fileUrl || '').trim();
+    if (!rawUrl) {
+      setPreviewUrl('');
+      setFileLoadError('');
+      setIsLoadingFile(false);
+      setIsImagePreview(false);
+      return;
+    }
+
+    let revokedUrl = '';
+    const controller = new AbortController();
+
+    const loadPreview = async () => {
+      setFileLoadError('');
+      if (rawUrl.startsWith('data:')) {
+        try {
+          const commaIdx = rawUrl.indexOf(',');
+          if (commaIdx === -1) throw new Error('Dữ liệu tệp không hợp lệ.');
+          const header = rawUrl.slice(5, commaIdx);
+          const mimeRaw = header.split(';')[0].trim().toLowerCase();
+          const b64 = rawUrl.slice(commaIdx + 1);
+          const binaryStr = atob(b64);
+          const bytes = new Uint8Array(binaryStr.length);
+          for (let i = 0; i < binaryStr.length; i++) {
+            bytes[i] = binaryStr.charCodeAt(i);
+          }
+          const isImg = type === 'image' || mimeRaw.startsWith('image/');
+          const blobType = isImg ? (mimeRaw || 'image/png') : 'application/pdf';
+          const blob = new Blob([bytes], { type: blobType });
+          revokedUrl = URL.createObjectURL(blob);
+          setIsImagePreview(isImg);
+          setPreviewUrl(revokedUrl);
+        } catch (err) {
+          setFileLoadError('Không thể giải mã tệp PDF để xem trước.');
+        }
+        return;
+      }
+
+      if (rawUrl.startsWith('/api/files/')) {
+        setIsLoadingFile(true);
+        try {
+          const res = await fetch(rawUrl, { signal: controller.signal });
+          if (!res.ok) {
+            let errMsg = 'Không tìm thấy tệp tài liệu trên máy chủ.';
+            try {
+              const errJson = await res.json();
+              if (errJson?.message) errMsg = errJson.message;
+            } catch (_) {}
+            setFileLoadError(errMsg);
+            setPreviewUrl('');
+            return;
+          }
+          const ct = (res.headers.get('content-type') || '').toLowerCase();
+          const rawBlob = await res.blob();
+          const isImg = type === 'image' || ct.startsWith('image/');
+          const normalizedBlob = isImg
+            ? rawBlob
+            : new Blob([rawBlob], { type: 'application/pdf' });
+          revokedUrl = URL.createObjectURL(normalizedBlob);
+          setIsImagePreview(isImg);
+          setPreviewUrl(revokedUrl);
+        } catch (err) {
+          if (err.name !== 'AbortError') {
+            setFileLoadError('Lỗi kết nối khi tải tệp PDF từ máy chủ.');
+          }
+        } finally {
+          setIsLoadingFile(false);
+        }
+        return;
+      }
+
+      const isImgUrl = type === 'image' || /\.(png|jpe?g|webp|gif)(\?|$)/i.test(rawUrl);
+      setIsImagePreview(isImgUrl);
+      setPreviewUrl(rawUrl);
+    };
+
+    loadPreview();
+
+    return () => {
+      controller.abort();
+      if (revokedUrl) {
+        URL.revokeObjectURL(revokedUrl);
+      }
+    };
   }, [data.fileUrl, isOpen, type]);
 
   if (!isOpen) return null;
@@ -31,40 +124,23 @@ export default function DocumentViewerModal({
 
   // Trigger browser download of real document
   const handleDownloadFile = () => {
-    if (data.fileUrl && !data.fileUrl.startsWith('blob:')) {
-      const a = document.createElement('a');
-      a.href = data.fileUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      if (onDownloadSuccess) {
-        onDownloadSuccess(`Đã tải xuống tệp "${fileName}" thành công vào thư mục máy tính!`);
-      }
+    const rawUrl = String(data.fileUrl || '').trim();
+    if (!rawUrl) {
       return;
     }
 
-    try {
-      const docHeader = type === 'cv' 
-        ? `%PDF-1.4\n% PARTIME.VN - Ho So Ung Vien: ${data.studentName || 'Vu The Long'}\n`
-        : `%PDF-1.4\n% PARTIME.VN - Giay Phep Kinh Doanh: ${data.companyName || 'Doanh Nghiep'}\n`;
-      const samplePdfText = `${docHeader}1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 595 842]/Parent 2 0 R/Resources<<>>/Contents 4 0 R>>endobj 4 0 obj<</Length 180>>stream\nBT /F1 14 Tf 50 800 Td (${title}) Tj /F1 10 Tf 50 770 Td (${fileName}) Tj ET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000009 00000 n \n0000000090 00000 n \n0000000147 00000 n \n0000000249 00000 n \ntrailer<</Size 5/Root 1 0 R>>\nstartxref\n410\n%%EOF`;
-      const blob = new Blob([samplePdfText], { type: 'application/pdf' });
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-      if (onDownloadSuccess) {
-        onDownloadSuccess(`Đã tải xuống tệp "${fileName}" thành công vào thư mục máy tính!`);
-      }
-    } catch (e) {
-      if (onDownloadSuccess) {
-        onDownloadSuccess(`Đã tải xuống tệp "${fileName}" thành công!`);
-      }
+    const downloadHref = rawUrl.startsWith('/api/files/')
+      ? `${rawUrl}${rawUrl.includes('?') ? '&' : '?'}download=1`
+      : (rawUrl.startsWith('data:') && previewUrl ? previewUrl : rawUrl);
+
+    const a = document.createElement('a');
+    a.href = downloadHref;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    if (onDownloadSuccess) {
+      onDownloadSuccess(`Đã tải xuống tệp "${fileName}" thành công vào thư mục máy tính!`);
     }
   };
 
@@ -98,8 +174,13 @@ export default function DocumentViewerModal({
             <button
               type="button"
               onClick={handleDownloadFile}
-              className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
-              title="Tải tệp PDF về máy tính"
+              disabled={!data.fileUrl}
+              className={`px-3.5 py-2 rounded-xl text-xs font-semibold shadow-md flex items-center gap-1.5 transition-all ${
+                data.fileUrl
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+              }`}
+              title={data.fileUrl ? 'Tải tệp PDF về máy tính' : 'Chưa có tệp PDF để tải'}
             >
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">Tải về</span>
@@ -119,65 +200,55 @@ export default function DocumentViewerModal({
 
         {/* MODAL BODY */}
         <div className="flex-1 overflow-y-auto bg-slate-50/50 p-4 sm:p-6" ref={printAreaRef}>
-          {viewMode === 'file' ? (
-            <div className="w-full h-full min-h-[480px] flex items-center justify-center">
-              {data.fileUrl ? (
-                <iframe
-                  src={data.fileUrl}
-                  className="w-full h-full rounded-2xl border border-slate-200 shadow-inner bg-white"
-                  title={fileName}
-                />
-              ) : (
-                <div className="p-8 text-center bg-white rounded-3xl border border-slate-200 max-w-md shadow-lg">
+          {viewMode === 'file' && (
+            <div className="w-full h-full min-h-[540px] flex items-center justify-center">
+              {isLoadingFile ? (
+                <div className="p-8 text-center bg-white rounded-3xl border border-slate-200 max-w-md shadow-sm">
                   <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-4 border border-blue-100">
                     <FileText className="w-7 h-7" />
                   </div>
-                  <h4 className="text-slate-900 font-bold text-sm">Tài liệu: {fileName}</h4>
+                  <h4 className="text-slate-900 font-bold text-sm">Đang tải tài liệu: {fileName}</h4>
                   <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                    Tệp PDF hồ sơ đã được mã hóa bảo mật. Bạn có thể xem trực tuyến hoặc tải về máy tính để tra cứu chi tiết.
+                    Đang đọc dữ liệu PDF từ hệ thống lưu trữ...
                   </p>
-                  <button
-                    type="button"
-                    onClick={handleDownloadFile}
-                    className="mt-5 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-md transition-all cursor-pointer inline-flex items-center gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Tải về tài liệu</span>
-                  </button>
+                </div>
+              ) : fileLoadError ? (
+                <div className="p-8 text-center bg-white rounded-3xl border border-rose-200 max-w-md shadow-sm">
+                  <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-4 border border-rose-100">
+                    <FileText className="w-7 h-7" />
+                  </div>
+                  <h4 className="text-slate-900 font-bold text-sm">Không thể mở tệp: {fileName}</h4>
+                  <p className="text-xs text-rose-600 mt-2 leading-relaxed">{fileLoadError}</p>
+                </div>
+              ) : previewUrl ? (
+                isImagePreview ? (
+                  <img
+                    src={previewUrl}
+                    alt={fileName}
+                    className="max-w-full max-h-[72vh] rounded-2xl border border-slate-200 shadow-md object-contain bg-white"
+                  />
+                ) : (
+                  <iframe
+                    src={previewUrl}
+                    className="w-full h-full min-h-[560px] rounded-2xl border border-slate-200 shadow-inner bg-white"
+                    title={fileName}
+                  />
+                )
+              ) : (
+                <div className="p-8 text-center bg-white rounded-3xl border border-slate-200 max-w-md shadow-lg">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4 border border-amber-100">
+                    <FileText className="w-7 h-7" />
+                  </div>
+                  <h4 className="text-slate-900 font-bold text-sm">
+                    {type === 'gpkd' ? 'Chưa có tệp PDF Giấy phép kinh doanh' : `Chưa có tệp: ${fileName}`}
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-2 leading-relaxed">
+                    {type === 'gpkd'
+                      ? 'Doanh nghiệp chưa tải lên tệp PDF Giấy phép kinh doanh hợp lệ lên hệ thống.'
+                      : 'Tài liệu chưa được tải lên hệ thống.'}
+                  </p>
                 </div>
               )}
-            </div>
-          ) : (
-            /* A4 FORMAT GPKD */
-            <div className="max-w-2xl mx-auto bg-white border border-slate-200 rounded-2xl shadow-xl p-8 text-slate-800 font-sans space-y-6">
-              <div className="text-center border-b border-slate-200 pb-5">
-                <span className="text-xs font-bold text-blue-600 uppercase tracking-widest block">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</span>
-                <span className="text-xs text-slate-500 font-semibold block mt-0.5">Độc lập - Tự do - Hạnh phúc</span>
-                <div className="w-20 h-0.5 bg-slate-300 mx-auto my-3" />
-                <h2 className="text-lg font-bold text-slate-900 uppercase">GIẤY CHỨNG NHẬN ĐĂNG KÝ DOANH NGHIỆP</h2>
-                <p className="text-xs text-slate-500 mt-1">Mã số doanh nghiệp: <strong className="text-blue-700 font-mono text-sm">{data.taxCode || data.licenseNumber || 'Chưa cập nhật'}</strong></p>
-              </div>
-
-              <div className="space-y-3 text-xs">
-                <div className="flex items-start justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-500 font-medium">1. Tên doanh nghiệp:</span>
-                  <span className="font-bold text-slate-900 text-right">{data.companyName || 'Doanh nghiệp'}</span>
-                </div>
-                <div className="flex items-start justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-500 font-medium">2. Người đại diện pháp luật:</span>
-                  <span className="font-bold text-slate-900 text-right">{data.representativeName || data.repName || 'Người đại diện'}</span>
-                </div>
-                <div className="flex items-start justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-500 font-medium">3. Địa chỉ trụ sở / chi nhánh:</span>
-                  <span className="font-medium text-slate-800 text-right max-w-sm">{data.address || 'Chưa cập nhật'}</span>
-                </div>
-                <div className="flex items-start justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-500 font-medium">4. Tình trạng thẩm định:</span>
-                  <span className="inline-flex items-center gap-1 font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Đã xác thực GPKD
-                  </span>
-                </div>
-              </div>
             </div>
           )}
         </div>

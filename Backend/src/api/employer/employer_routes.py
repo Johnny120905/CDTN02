@@ -1,4 +1,3 @@
-import os
 import time
 import uuid
 from flask import Blueprint, request, jsonify
@@ -45,6 +44,7 @@ def get_company_profile():
     return jsonify({
         "success": True,
         "employer_status": emp.get("approval_status"),
+        "employer_record": emp,
         "data": comp
     })
 
@@ -58,37 +58,43 @@ def update_company_profile():
 
     # Validation constraints: GPKD .pdf <= 10MB, Logo & Cover .png/.jpg <= 10MB
     gpkd = str(data.get("business_license_url", "")).strip()
-    if gpkd:
-        if gpkd.startswith("data:") and not gpkd.startswith("data:application/pdf"):
-            return jsonify({"success": False, "message": "Tệp Giấy phép kinh doanh (GPKD) chỉ nhận định dạng .pdf (≤ 10MB)!"}), 400
 
     logo = str(data.get("logo_url", "")).strip()
-    if logo and not logo.startswith("http"):
+    if logo.startswith("data:image/svg+xml"):
+        logo = ""
+    elif logo and not logo.startswith("http"):
         if logo.startswith("data:") and not (logo.startswith("data:image/png") or logo.startswith("data:image/jpeg") or logo.startswith("data:image/jpg")):
             return jsonify({"success": False, "message": "Logo Doanh nghiệp chỉ nhận định dạng ảnh .png, .jpg, .jpeg (≤ 10MB)!"}), 400
 
     cover = str(data.get("cover_image_url", "")).strip()
-    if cover and not cover.startswith("http"):
+    if cover.startswith("data:image/svg+xml"):
+        cover = ""
+    elif cover and not cover.startswith("http"):
         if cover.startswith("data:") and not (cover.startswith("data:image/png") or cover.startswith("data:image/jpeg") or cover.startswith("data:image/jpg")):
             return jsonify({"success": False, "message": "Ảnh bìa Doanh nghiệp chỉ nhận định dạng ảnh .png, .jpg, .jpeg (≤ 10MB)!"}), 400
 
-    upload_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "uploads"))
-    os.makedirs(upload_dir, exist_ok=True)
-    import base64
+    existing_comp = comp_col.find_one({"employer_id": emp["_id"]}) or {}
+    old_gpkd = existing_comp.get("business_license_url") or emp.get("license_url") or ""
+    gpkd_name = str(data.get("business_license_name", "")).strip()
 
     is_new_license = bool(data.get("reuploaded_license"))
-    if gpkd and gpkd.startswith("data:application/pdf;base64,"):
+    if gpkd and gpkd.startswith("data:"):
         try:
-            raw_b64 = gpkd.split(",", 1)[1]
-            file_bytes = base64.b64decode(raw_b64)
-            safe_name = f"gpkd_{uuid.uuid4().hex[:8]}.pdf"
-            with open(os.path.join(upload_dir, safe_name), "wb") as f:
-                f.write(file_bytes)
-            gpkd = f"/uploads/{safe_name}"
+            _, gpkd = db_manager.save_data_url(
+                gpkd,
+                filename=gpkd_name or f"gpkd_{emp['_id']}.pdf",
+                allowed_types=("application/pdf",),
+                metadata={"type": "gpkd", "employer_id": emp["_id"]},
+                allow_pdf_magic=True
+            )
             is_new_license = True
-        except Exception:
-            pass
-    elif gpkd and gpkd != emp.get("license_url"):
+            if old_gpkd and old_gpkd != gpkd:
+                db_manager.delete_file(old_gpkd)
+        except ValueError as e:
+            return jsonify({"success": False, "message": f"Tệp Giấy phép kinh doanh (GPKD) chỉ nhận định dạng .pdf (≤ 10MB)! ({e})"}), 400
+        except Exception as e:
+            return jsonify({"success": False, "message": f"Lỗi lưu Giấy phép kinh doanh: {str(e)}"}), 400
+    elif gpkd and gpkd != old_gpkd:
         is_new_license = True
 
     comp_name = data.get("company_name") or emp.get("company_name", "Doanh nghiệp")
@@ -97,9 +103,17 @@ def update_company_profile():
     # Khi tải lại Giấy phép kinh doanh mới: Tự động chuyển trạng thái về "pending" (Chờ duyệt) và gửi thông báo Admin
     if is_new_license:
         new_approval_status = "pending"
+        emp_update = {
+            "license_url": gpkd,
+            "approval_status": "pending",
+            "reject_reason": "",
+            "license_uploaded_at": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+        if gpkd_name:
+            emp_update["license_name"] = gpkd_name
         db_manager.get_collection("employers").update_one(
             {"_id": emp["_id"]},
-            {"$set": {"license_url": gpkd, "approval_status": "pending", "reject_reason": ""}}
+            {"$set": emp_update}
         )
         # Đẩy thông báo duyệt lại hồ sơ sang Quản trị viên (FR 3.4.6)
         try:
@@ -110,8 +124,8 @@ def update_company_profile():
                     "_id": f"notif_{uuid.uuid4().hex[:8]}",
                     "user_id": adm["_id"],
                     "role": "admin",
-                    "type": "employer_reapproval",
-                    "title": f"Doanh nghiệp {comp_name} cập nhật lại GPKD",
+                    "type": "employer_reapproval_gpkd",
+                    "title": f"Doanh nghiệp {comp_name} cập nhật lại Giấy phép kinh doanh (GPKD)",
                     "message": f"Doanh nghiệp {comp_name} đã cập nhật lại Giấy phép kinh doanh mới và đang chờ Quản trị viên phê duyệt lại.",
                     "target_id": emp["_id"],
                     "is_read": False,
@@ -123,29 +137,39 @@ def update_company_profile():
 
     if logo and logo.startswith("data:image/"):
         try:
-            mime_part, raw_b64 = logo.split(",", 1)
+            mime_part = logo.split(",", 1)[0]
             ext = "png" if "png" in mime_part else "jpg"
-            file_bytes = base64.b64decode(raw_b64)
-            safe_name = f"logo_{uuid.uuid4().hex[:8]}.{ext}"
-            with open(os.path.join(upload_dir, safe_name), "wb") as f:
-                f.write(file_bytes)
-            logo = f"/uploads/{safe_name}"
-        except Exception:
-            pass
+            _, logo = db_manager.save_data_url(
+                logo,
+                filename=f"logo_{emp['_id']}.{ext}",
+                allowed_types=("image/png", "image/jpeg", "image/jpg"),
+                metadata={"type": "company_logo", "employer_id": emp["_id"]}
+            )
+            old_logo = existing_comp.get("logo_url")
+            if old_logo and old_logo != logo:
+                db_manager.delete_file(old_logo)
+        except ValueError as e:
+            return jsonify({"success": False, "message": str(e)}), 400
+        except Exception as e:
+            return jsonify({"success": False, "message": f"Lỗi lưu Logo doanh nghiệp: {str(e)}"}), 400
 
     if cover and cover.startswith("data:image/"):
         try:
-            mime_part, raw_b64 = cover.split(",", 1)
+            mime_part = cover.split(",", 1)[0]
             ext = "png" if "png" in mime_part else "jpg"
-            file_bytes = base64.b64decode(raw_b64)
-            safe_name = f"cover_{uuid.uuid4().hex[:8]}.{ext}"
-            with open(os.path.join(upload_dir, safe_name), "wb") as f:
-                f.write(file_bytes)
-            cover = f"/uploads/{safe_name}"
-        except Exception:
-            pass
-
-    existing_comp = comp_col.find_one({"employer_id": emp["_id"]}) or {}
+            _, cover = db_manager.save_data_url(
+                cover,
+                filename=f"cover_{emp['_id']}.{ext}",
+                allowed_types=("image/png", "image/jpeg", "image/jpg"),
+                metadata={"type": "company_cover", "employer_id": emp["_id"]}
+            )
+            old_cover = existing_comp.get("cover_image_url")
+            if old_cover and old_cover != cover:
+                db_manager.delete_file(old_cover)
+        except ValueError as e:
+            return jsonify({"success": False, "message": str(e)}), 400
+        except Exception as e:
+            return jsonify({"success": False, "message": f"Lỗi lưu Ảnh bìa doanh nghiệp: {str(e)}"}), 400
     update_fields = {
         "company_name": data["company_name"] if "company_name" in data else existing_comp.get("company_name", "Doanh nghiệp"),
         "representative_name": data["representative_name"] if "representative_name" in data else existing_comp.get("representative_name", ""),
@@ -156,9 +180,10 @@ def update_company_profile():
         "business_license": data["business_license"] if "business_license" in data else existing_comp.get("business_license", ""),
         "phone": data["phone"] if "phone" in data else existing_comp.get("phone", ""),
         "website": data["website"] if "website" in data else existing_comp.get("website", ""),
-        "business_license_url": gpkd or (data["business_license_url"] if "business_license_url" in data else existing_comp.get("business_license_url", "")),
-        "logo_url": logo or (data["logo_url"] if "logo_url" in data else existing_comp.get("logo_url", "")),
-        "cover_image_url": cover or (data["cover_image_url"] if "cover_image_url" in data else existing_comp.get("cover_image_url", ""))
+        "business_license_url": gpkd if "business_license_url" in data else existing_comp.get("business_license_url", ""),
+        "business_license_name": gpkd_name or existing_comp.get("business_license_name", ""),
+        "logo_url": logo if "logo_url" in data else existing_comp.get("logo_url", ""),
+        "cover_image_url": cover if "cover_image_url" in data else existing_comp.get("cover_image_url", "")
     }
     if "status" in data:
         update_fields["status"] = data["status"]

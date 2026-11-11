@@ -30,17 +30,13 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
     currentUser?.profile?.status || currentUser?.status || 'active'
   );
 
-  // Password state with auto-fill current password per specification
+  // Password state with auto-fill current password (chỉ áp dụng cho Quản trị viên)
   const getDefaultCurrentPassword = () => {
-    const saved = localStorage.getItem('partime_saved_pw') || sessionStorage.getItem('partime_saved_pw');
-    if (saved) return saved;
-    const email = (currentUser?.email || '').toLowerCase();
-    if (email.includes('vuthelong')) return 'Long123!';
-    if (email.includes('huynhnguyenbaongoc')) return 'Huynh120905!';
-    if (email.includes('lethithuyngan')) return 'Le090805!';
-    if (currentUser?.role === 'student') return 'Long123!';
-    if (currentUser?.role === 'employer') return 'Huynh120905!';
-    if (currentUser?.role === 'admin') return 'Le090805!';
+    if (currentUser?.role === 'admin') {
+      const saved = localStorage.getItem('partime_saved_pw') || sessionStorage.getItem('partime_saved_pw');
+      if (saved) return saved;
+      return 'Le090805!';
+    }
     return '';
   };
 

@@ -129,14 +129,18 @@ def list_users():
             emp = db_manager.get_collection("employers").find_one({"user_id": u["_id"]})
             u["employer_record"] = emp or {}
             if emp:
-                comp = db_manager.get_collection("company_profiles").find_one({"employer_id": emp["_id"]})
-                u["profile"] = comp or {}
+                comp = db_manager.get_collection("company_profiles").find_one({"employer_id": emp["_id"]}) or {}
+                u["profile"] = comp
                 u["approval_status"] = emp.get("approval_status", "pending")
-                u["license_url"] = emp.get("license_url") or (comp.get("license_url") if comp else None) or "/uploads/gpkd_phuclong.pdf"
+                u["license_url"] = comp.get("business_license_url") or emp.get("license_url") or comp.get("license_url") or ""
+                u["license_name"] = comp.get("business_license_name") or emp.get("license_name") or ""
+                u["license_uploaded_at"] = emp.get("license_uploaded_at", "")
             else:
                 u["profile"] = {}
                 u["approval_status"] = "pending"
-                u["license_url"] = "/uploads/gpkd_phuclong.pdf"
+                u["license_url"] = ""
+                u["license_name"] = ""
+                u["license_uploaded_at"] = ""
 
     return jsonify({"success": True, "data": users})
 
@@ -160,7 +164,9 @@ def list_employers():
         u["profile"] = comp
         u["company_name"] = comp.get("company_name") or u.get("full_name") or "Doanh nghiệp PARTIME"
         u["approval_status"] = emp.get("approval_status", "pending")
-        u["license_url"] = emp.get("license_url") or comp.get("license_url") or "/uploads/gpkd_phuclong.pdf"
+        u["license_url"] = comp.get("business_license_url") or emp.get("license_url") or comp.get("license_url") or ""
+        u["license_name"] = comp.get("business_license_name") or emp.get("license_name") or ""
+        u["license_uploaded_at"] = emp.get("license_uploaded_at", "")
         result.append(u)
     return jsonify({"success": True, "data": result})
 

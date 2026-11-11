@@ -105,8 +105,8 @@ export default function LoginScreen({ onAuthSuccess, onNavigate, initialRole, lo
         })
       });
       const data = await res.json();
-      
-      if (res.ok && data.success) {
+
+      if (res.ok && data.success && data.token) {
         setSuccessMsg('Đăng nhập thành công! Đang chuyển hướng...');
         localStorage.setItem('partime_token', data.token);
         localStorage.setItem('partime_user', JSON.stringify(data.user));
@@ -116,91 +116,8 @@ export default function LoginScreen({ onAuthSuccess, onNavigate, initialRole, lo
         return;
       }
 
-      // Offline resilient auth fallback
-      const checkGuaranteedAuth = () => {
-        if (role === 'admin' && cleanEmail === 'lethithuyngan985@gmail.com' && cleanPassword === 'Le090805!') {
-          return {
-            id: 'user_admin_ngan',
-            email: cleanEmail,
-            role: 'admin',
-            profile: { full_name: 'Lê Thị Thuỳ Ngân', company_name: 'Trung Tâm Quản Trị Hệ Thống' }
-          };
-        }
-        if (role === 'employer' && cleanEmail === 'huynhnguyenbaongoc2k5@gmail.com' && cleanPassword === 'Huynh120905!') {
-          return {
-            id: 'user_employer_ngoc',
-            email: cleanEmail,
-            role: 'employer',
-            profile: {
-              full_name: 'Huỳnh Nguyễn Bảo Ngọc',
-              representative_name: 'Huỳnh Nguyễn Bảo Ngọc',
-              company_name: 'Phúc Long Coffee & Tea',
-              branch_name: 'Chi nhánh Bến Nghé, Quận 1, TP.HCM',
-              address: '42 Ngô Đức Kế, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh',
-              business_license: '0314567890'
-            }
-          };
-        }
-        if (role === 'student' && cleanEmail === 'vuthelong1009@gmail.com' && cleanPassword === 'Long123!') {
-          return {
-            id: 'user_student_long',
-            email: cleanEmail,
-            role: 'student',
-            profile: {
-              full_name: 'Vũ Thế Long',
-              university: 'Đại học Văn Lang',
-              major: 'Công nghệ thông tin',
-              phone: '0987654321'
-            }
-          };
-        }
-        return null;
-      };
-
-      const fallbackMember = checkGuaranteedAuth();
-      if (fallbackMember) {
-        localStorage.setItem('partime_token', 'token_auth_verified_' + Date.now());
-        localStorage.setItem('partime_user', JSON.stringify(fallbackMember));
-        setSuccessMsg(`Đăng nhập thành công với vai trò ${role === 'student' ? 'Sinh viên' : 'Nhà tuyển dụng'}!`);
-        setTimeout(() => {
-          onAuthSuccess(fallbackMember);
-        }, 350);
-        return;
-      }
-
       setErrorMsg(data.message || 'Email hoặc mật khẩu không chính xác.');
     } catch (err) {
-      // Local fallback
-      if (role === 'student' && cleanEmail === 'vuthelong1009@gmail.com' && cleanPassword === 'Long123!') {
-        const stu = {
-          id: 'user_student_long',
-          email: cleanEmail,
-          role: 'student',
-          profile: { full_name: 'Vũ Thế Long', university: 'Đại học Văn Lang', major: 'Công nghệ thông tin' }
-        };
-        localStorage.setItem('partime_token', 'token_student_offline_' + Date.now());
-        localStorage.setItem('partime_user', JSON.stringify(stu));
-        setSuccessMsg('Đăng nhập Sinh viên thành công! Đang chuyển hướng...');
-        setTimeout(() => { onAuthSuccess(stu); }, 300);
-        return;
-      }
-      if (role === 'employer' && cleanEmail === 'huynhnguyenbaongoc2k5@gmail.com' && cleanPassword === 'Huynh120905!') {
-        const emp = {
-          id: 'user_employer_ngoc',
-          email: cleanEmail,
-          role: 'employer',
-          profile: {
-            full_name: 'Huỳnh Nguyễn Bảo Ngọc',
-            company_name: 'Phúc Long Coffee & Tea',
-            representative_name: 'Huỳnh Nguyễn Bảo Ngọc'
-          }
-        };
-        localStorage.setItem('partime_token', 'token_employer_offline_' + Date.now());
-        localStorage.setItem('partime_user', JSON.stringify(emp));
-        setSuccessMsg('Đăng nhập Nhà tuyển dụng thành công! Đang chuyển hướng...');
-        setTimeout(() => { onAuthSuccess(emp); }, 300);
-        return;
-      }
       setErrorMsg('Lỗi kết nối máy chủ. Vui lòng kiểm tra lại đường truyền mạng.');
     } finally {
       setLoading(false);

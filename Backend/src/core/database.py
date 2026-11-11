@@ -4,9 +4,14 @@ import json
 import time
 import uuid
 import copy
+import base64
+import gridfs
+from gridfs.errors import NoFile
 from pymongo import MongoClient
 from bson import ObjectId
 from src.core.config import Config
+
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10MB
 
 # The 16 collections specified in ERD and MongoDB Compass screenshot
 COLLECTIONS = [
@@ -241,13 +246,27 @@ class MemoryCollection:
     def create_index(self, keys, **kwargs):
         pass
 
+    @staticmethod
+    def _get_field(doc, key):
+        if not isinstance(doc, dict):
+            return None
+        if "." not in key:
+            return doc.get(key)
+        curr = doc
+        for part in key.split("."):
+            if isinstance(curr, dict) and part in curr:
+                curr = curr[part]
+            else:
+                return None
+        return curr
+
     def _matches(self, doc, query):
         for k, v in query.items():
             if k == "$or":
                 if not any(self._matches(doc, sub_q) for sub_q in v):
                     return False
             elif isinstance(v, dict):
-                doc_val = doc.get(k)
+                doc_val = self._get_field(doc, k)
                 if "$regex" in v:
                     import re
                     pattern = v["$regex"]
@@ -270,7 +289,7 @@ class MemoryCollection:
                     if doc_val is None or doc_val > v["$lte"]:
                         return False
             else:
-                if str(doc.get(k)) != str(v):
+                if str(self._get_field(doc, k)) != str(v):
                     return False
         return True
 
@@ -299,10 +318,50 @@ class MemoryCursor:
     def to_list(self):
         return self.data
 
+class _MemoryGridOut:
+    def __init__(self, doc):
+        self._doc = doc
+        self.filename = doc.get("filename", "file.pdf")
+        self.content_type = doc.get("content_type", "application/pdf")
+        self.length = doc.get("length", 0)
+        self.metadata = doc.get("metadata", {})
+
+    def read(self):
+        return base64.b64decode(self._doc.get("data_b64", ""))
+
+
+class MemoryGridFS:
+    """In-memory GridFS fallback used only when MongoDB Atlas is unreachable or in unit tests."""
+    def __init__(self, collection):
+        self._col = collection
+
+    def put(self, data_bytes: bytes, filename: str = "file.pdf", content_type: str = "application/pdf", metadata: dict = None):
+        oid = ObjectId()
+        self._col.insert_one({
+            "_id": str(oid),
+            "filename": filename,
+            "content_type": content_type,
+            "length": len(data_bytes),
+            "metadata": metadata or {},
+            "data_b64": base64.b64encode(data_bytes).decode("ascii")
+        })
+        return oid
+
+    def get(self, file_id):
+        doc = self._col.find_one({"_id": str(file_id)})
+        if not doc:
+            raise NoFile(f"No file with id {file_id}")
+        return _MemoryGridOut(doc)
+
+    def delete(self, file_id):
+        self._col.delete_one({"_id": str(file_id)})
+
+
 class DatabaseManager:
     def __init__(self):
         self.client = None
         self.db = None
+        self.fs = None
         self.is_atlas = False
         self.is_testing = "unittest" in sys.modules
         self.local_db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "local_db_store.json"))
@@ -311,6 +370,9 @@ class DatabaseManager:
             name: MemoryCollection(name, on_change=(None if self.is_testing else self._persist_local_store))
             for name in COLLECTIONS
         }
+        self.memory_collections["fs_files"] = MemoryCollection(
+            "fs_files", on_change=(None if self.is_testing else self._persist_local_store)
+        )
         self._atlas_adapters = {}
         self.connect()
         if not self.is_atlas and not self.is_testing:
@@ -350,11 +412,91 @@ class DatabaseManager:
             client.admin.command('ping')
             self.client = client
             self.db = client[Config.DATABASE_NAME]
+            self.fs = gridfs.GridFS(self.db)
             self.is_atlas = True
             print(f"[Database] Successfully connected to MongoDB Atlas '{Config.DATABASE_NAME}'")
         except Exception as e:
             self.is_atlas = False
+            self.fs = MemoryGridFS(self.memory_collections["fs_files"])
             print(f"[Database] MongoDB Atlas unreachable ({e}). Using resilient Local Document Store with all 16 collections.")
+
+    @staticmethod
+    def extract_file_id(file_url: str):
+        if isinstance(file_url, str) and file_url.startswith("/api/files/"):
+            fid = file_url[len("/api/files/"):].split("?", 1)[0].strip()
+            if ObjectId.is_valid(fid):
+                return fid
+        return None
+
+    def save_file(self, data_bytes: bytes, filename: str, content_type: str = "application/pdf", metadata: dict = None) -> str:
+        if not isinstance(data_bytes, (bytes, bytearray)):
+            raise ValueError("Dữ liệu tệp tin không hợp lệ.")
+        raw = bytes(data_bytes)
+        if len(raw) > MAX_UPLOAD_BYTES:
+            raise ValueError("Dung lượng tệp vượt quá giới hạn 10MB!")
+        if self.fs is None:
+            self.fs = gridfs.GridFS(self.db) if (self.is_atlas and self.db is not None) else MemoryGridFS(self.memory_collections["fs_files"])
+        file_id = self.fs.put(raw, filename=filename, content_type=content_type, metadata=metadata or {})
+        return str(file_id)
+
+    def save_data_url(self, data_url: str, filename: str, allowed_types=("application/pdf",), metadata: dict = None, allow_pdf_magic: bool = False):
+        if not data_url or not isinstance(data_url, str) or not data_url.startswith("data:") or "," not in data_url:
+            raise ValueError("Dữ liệu tệp tin không hợp lệ.")
+        header, raw_b64 = data_url.split(",", 1)
+        mime_part = header[5:].split(";", 1)[0].strip().lower()
+        file_bytes = base64.b64decode(raw_b64)
+        if len(file_bytes) > MAX_UPLOAD_BYTES:
+            raise ValueError("Dung lượng tệp vượt quá giới hạn 10MB!")
+
+        is_pdf_bytes = file_bytes.lstrip().startswith(b"%PDF")
+        if allow_pdf_magic and "application/pdf" in (allowed_types or ()):
+            if mime_part in ("application/pdf", "application/x-pdf") or (
+                mime_part in ("", "application/octet-stream") and is_pdf_bytes
+            ):
+                mime_part = "application/pdf"
+
+        if allowed_types and mime_part not in allowed_types:
+            raise ValueError(f"Định dạng tệp '{mime_part}' không được hỗ trợ.")
+        if mime_part == "image/jpg":
+            mime_part = "image/jpeg"
+        file_id = self.save_file(file_bytes, filename=filename, content_type=mime_part, metadata=metadata)
+        return file_id, f"/api/files/{file_id}"
+
+    def get_file(self, file_id: str):
+        if not file_id or not ObjectId.is_valid(str(file_id)):
+            return None
+        if self.fs is None:
+            self.fs = gridfs.GridFS(self.db) if (self.is_atlas and self.db is not None) else MemoryGridFS(self.memory_collections["fs_files"])
+        try:
+            grid_out = self.fs.get(ObjectId(str(file_id)))
+            data = grid_out.read()
+            filename = grid_out.filename or "document.pdf"
+            content_type = getattr(grid_out, "content_type", None)
+            if not content_type:
+                ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "pdf"
+                content_type = "application/pdf" if ext == "pdf" else (f"image/{'jpeg' if ext in ('jpg', 'jpeg') else ext}")
+            return {
+                "data": data,
+                "filename": filename,
+                "content_type": content_type,
+                "length": getattr(grid_out, "length", len(data)) or len(data)
+            }
+        except NoFile:
+            return None
+        except Exception:
+            return None
+
+    def delete_file(self, file_id_or_url: str) -> bool:
+        fid = self.extract_file_id(file_id_or_url)
+        if not fid and isinstance(file_id_or_url, str) and ObjectId.is_valid(file_id_or_url.strip()):
+            fid = file_id_or_url.strip()
+        if not fid or self.fs is None:
+            return False
+        try:
+            self.fs.delete(ObjectId(fid))
+            return True
+        except Exception:
+            return False
 
     def get_collection(self, name: str):
         if self.is_atlas and self.db is not None:
@@ -396,19 +538,30 @@ class DatabaseManager:
         stu_ids = [s["_id"] for s in stu_docs] + [uid]
         stu_col.delete_many({"user_id": uid})
 
-        self.get_collection("resumes").delete_many({"student_id": {"$in": stu_ids}})
+        resumes_col = self.get_collection("resumes")
+        stu_resumes = list(resumes_col.find({"student_id": {"$in": stu_ids}}))
+        resumes_col.delete_many({"student_id": {"$in": stu_ids}})
         self.get_collection("cover_letters").delete_many({"student_id": {"$in": stu_ids}})
         self.get_collection("bookmarks").delete_many({"student_id": {"$in": stu_ids}})
-        self.get_collection("applications").delete_many({
+        apps_col = self.get_collection("applications")
+        apps_col.delete_many({
             "$or": [{"student_id": {"$in": stu_ids}}, {"student_user_id": uid}]
         })
+        for cv_doc in stu_resumes:
+            cv_url = cv_doc.get("file_url", "")
+            if self.extract_file_id(cv_url) and apps_col.count_documents({"$or": [{"application_snapshot.cv_url": cv_url}, {"cv_url": cv_url}]}) == 0:
+                self.delete_file(cv_url)
 
         # Xóa hồ sơ doanh nghiệp và tin tuyển dụng phụ thuộc
         emp_col = self.get_collection("employers")
         emp_docs = list(emp_col.find({"user_id": uid}))
         emp_ids = [ed["_id"] for ed in emp_docs]
         if emp_ids:
-            self.get_collection("company_profiles").delete_many({"employer_id": {"$in": emp_ids}})
+            comp_col = self.get_collection("company_profiles")
+            for comp_doc in list(comp_col.find({"employer_id": {"$in": emp_ids}})):
+                for field in ("business_license_url", "logo_url", "cover_image_url"):
+                    self.delete_file(comp_doc.get(field, ""))
+            comp_col.delete_many({"employer_id": {"$in": emp_ids}})
             emp_jobs = list(self.get_collection("jobs").find({"employer_id": {"$in": emp_ids}}))
             emp_job_ids = [j["_id"] for j in emp_jobs]
             if emp_job_ids:
@@ -544,7 +697,7 @@ class DatabaseManager:
                         "scale": "50-200 nhân viên",
                         "address": "42 Ngô Đức Kế, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh",
                         "business_license": "0314567890",
-                        "business_license_url": "/uploads/GPKD_PhucLong_0314567890.pdf",
+                        "business_license_url": "",
                         "logo_url": "https://images.unsplash.com/photo-1559925393-8be0ec4767c8?w=120&auto=format&fit=crop&q=80",
                         "cover_image_url": "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&auto=format&fit=crop&q=80"
                     })
