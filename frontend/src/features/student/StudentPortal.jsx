@@ -51,8 +51,8 @@ export default function StudentPortal({
       onShowBanner(msg, type);
     }
   };
-  // Navigation State
-  const [activeMenu, setActiveMenu] = useState(() => localStorage.getItem('partime_active_menu_student') || 'home'); // 'home' | 'jobs' | 'saved_jobs' | 'applications' | 'profile_cv' | 'reviews' | 'chat'
+  // Navigation State - Mặc định luôn là 'home' (Trang chủ) khi mở mới bất kể phiên trước đó
+  const [activeMenu, setActiveMenu] = useState('home'); // 'home' | 'jobs' | 'saved_jobs' | 'applications' | 'profile_cv' | 'reviews' | 'chat'
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => localStorage.getItem('partime_sidebar_collapsed_student') === 'true');
   const toggleSidebarCollapse = () => {
     setIsSidebarCollapsed(prev => {
@@ -124,22 +124,29 @@ export default function StudentPortal({
   const [customLocationText, setCustomLocationText] = useState('');
   const [selectedShift, setSelectedShift] = useState('');
   const [salaryFilter, setSalaryFilter] = useState('');
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState(''); // FR-SV-05.10: sau ca, theo tuần, theo tháng
+  const [savedJobStatusFilter, setSavedJobStatusFilter] = useState('all'); // FR-SV-05.11: open, expiring_soon, closed
   const [jobPage, setJobPage] = useState(1);
   const JOBS_PER_PAGE = 10;
   const [heroKeyword, setHeroKeyword] = useState('');
   const [heroProvince, setHeroProvince] = useState('');
 
-  // Lịch ca làm đã nhận (my_shifts) States
+  // Lịch ca làm đã nhận (my_shifts) States (FR-SV-11.03)
   const [shiftFilterWeek, setShiftFilterWeek] = useState('current'); // 'current' | 'next' | 'all'
   const [shiftFilterTime, setShiftFilterTime] = useState('all'); // 'all' | 'morning' | 'afternoon' | 'evening'
+  const [shiftFilterBranch, setShiftFilterBranch] = useState('all'); // FR-SV-11.03: Lọc Chi nhánh
+  const [shiftFilterStatus, setShiftFilterStatus] = useState('all'); // FR-SV-11.03: Sắp diễn ra, Đang làm việc, Đã hoàn thành, Đã hủy ca
   const [shiftStatuses, setShiftStatuses] = useState({
     'shift_demo_1': 'in_progress',
     'shift_demo_2': 'upcoming'
   });
 
-  // Applications Filter
+  // Applications Filter (FR-SV-06.02 & FR-SV-06.06)
   const [appSearchQuery, setAppSearchQuery] = useState('');
-  const [appStatusTab, setAppStatusTab] = useState('all'); // 'all' | 'pending' | 'accepted' | 'rejected' | 'cancelled'
+  const [appStatusTab, setAppStatusTab] = useState('all'); // 6 chặng chuẩn: all | pending | reviewed | interview | accepted | rejected | cancelled
+  const [appDateFilter, setAppDateFilter] = useState('all'); // FR-SV-06.06: all | 7days | 30days | custom
+  const [appFromDate, setAppFromDate] = useState('');
+  const [appToDate, setAppToDate] = useState('');
   const [selectedAppTimeline, setSelectedAppTimeline] = useState(null);
 
   // Profile Edit State with 10-Digit Phone Validator & Weekly Free Matrix
@@ -1621,19 +1628,82 @@ export default function StudentPortal({
       }
     }
 
-    return matchesSearch && matchesCat && matchesLoc && matchesShift && matchesSal;
+    // 6. Hình thức chi trả thù lao (FR-SV-05.10: Nhận ngay sau ca, theo tuần, định kỳ theo tháng)
+    let matchesPayment = true;
+    if (paymentTypeFilter) {
+      const payType = (j.payment_type || '').toLowerCase();
+      const desc = ((j.description || '') + ' ' + (j.work_time || '')).toLowerCase();
+      if (paymentTypeFilter === 'after_shift') {
+        matchesPayment = payType === 'after_shift' || desc.includes('sau ca') || desc.includes('ngay sau ca') || desc.includes('theo ca');
+      } else if (paymentTypeFilter === 'weekly') {
+        matchesPayment = payType === 'weekly' || desc.includes('tuần') || desc.includes('theo tuần');
+      } else if (paymentTypeFilter === 'monthly') {
+        matchesPayment = payType === 'monthly' || desc.includes('tháng') || desc.includes('định kỳ theo tháng') || desc.includes('hàng tháng');
+      }
+    }
+
+    return matchesSearch && matchesCat && matchesLoc && matchesShift && matchesSal && matchesPayment;
   });
 
   const totalPages = Math.ceil(filteredJobs.length / JOBS_PER_PAGE) || 1;
   const paginatedJobs = filteredJobs.slice((jobPage - 1) * JOBS_PER_PAGE, jobPage * JOBS_PER_PAGE);
 
-  // Filter Applications
+  // Filtered Saved Jobs (FR-SV-05.11: Đang mở nhận hồ sơ, Sắp hết hạn <= 48h, Đã đóng / Đã đủ chỉ tiêu)
+  const filteredSavedJobs = savedJobs.filter(job => {
+    const isGreyedOut = !job.is_open || job.job_status === 'filled' || job.job_status === 'completed' || job.job_status === 'closed';
+    const isExpiringSoon = !isGreyedOut && (job.is_expiring_soon || (job.created_at && (Date.now() - new Date(job.created_at).getTime()) > 5 * 86400000));
+    if (savedJobStatusFilter === 'open') {
+      return !isGreyedOut && !isExpiringSoon;
+    } else if (savedJobStatusFilter === 'expiring_soon') {
+      return isExpiringSoon;
+    } else if (savedJobStatusFilter === 'closed') {
+      return isGreyedOut;
+    }
+    return true;
+  });
+
+  // Filter Applications (FR-SV-06.02: 6 chặng trạng thái chuẩn & FR-SV-06.06: Lọc theo thời gian nộp)
   const filteredApplications = myApplications.filter(app => {
     const matchesSearch = !appSearchQuery ||
       (app.job_title && app.job_title.toLowerCase().includes(appSearchQuery.toLowerCase())) ||
       (app.company_name && app.company_name.toLowerCase().includes(appSearchQuery.toLowerCase()));
-    const matchesStatus = appStatusTab === 'all' || app.application_status === appStatusTab;
-    return matchesSearch && matchesStatus;
+    
+    // 6 chặng chuẩn: pending (Chờ xét duyệt), reviewed (Đã tiếp nhận), interview (Mời phỏng vấn), accepted (Trúng tuyển), rejected (Chưa phù hợp), cancelled (Đã rút hồ sơ)
+    let matchesStatus = true;
+    if (appStatusTab === 'pending') {
+      matchesStatus = app.application_status === 'pending';
+    } else if (appStatusTab === 'reviewed') {
+      matchesStatus = app.application_status === 'reviewed' || app.application_status === 'received';
+    } else if (appStatusTab === 'interview') {
+      matchesStatus = app.application_status === 'interview';
+    } else if (appStatusTab === 'accepted') {
+      matchesStatus = app.application_status === 'accepted';
+    } else if (appStatusTab === 'rejected') {
+      matchesStatus = app.application_status === 'rejected';
+    } else if (appStatusTab === 'cancelled') {
+      matchesStatus = app.application_status === 'cancelled' || app.application_status === 'withdrawn';
+    }
+
+    // Lọc thời gian nộp (FR-SV-06.06: 7 ngày qua, 30 ngày qua, khoảng ngày tùy chọn)
+    let matchesDate = true;
+    if (appDateFilter !== 'all' && app.applied_at) {
+      const appTime = new Date(app.applied_at).getTime();
+      const now = Date.now();
+      if (appDateFilter === '7days') {
+        matchesDate = (now - appTime) <= 7 * 86400000;
+      } else if (appDateFilter === '30days') {
+        matchesDate = (now - appTime) <= 30 * 86400000;
+      } else if (appDateFilter === 'custom') {
+        if (appFromDate) {
+          matchesDate = matchesDate && appTime >= new Date(appFromDate).getTime();
+        }
+        if (appToDate) {
+          matchesDate = matchesDate && appTime <= (new Date(appToDate).getTime() + 86400000);
+        }
+      }
+    }
+
+    return matchesSearch && matchesStatus && matchesDate;
   });
 
   // Completed jobs ready for review (loại trừ các đơn đã gửi đánh giá để khớp 100% với danh sách chờ đánh giá)
@@ -2204,27 +2274,27 @@ export default function StudentPortal({
                 </div>
               </div>
 
-              {/* Bộ lọc đa tiêu chí chuẩn (1.5.1 & 1.5.2) */}
+              {/* Bộ lọc đa tiêu chí chuẩn (1.5.1 & 1.5.2 & 1.5.10) */}
               <div className="space-y-4 pt-2">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
                   {/* 1. Từ khóa Chức danh */}
-                  <div className="relative">
+                  <div className="relative min-w-0">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Chức danh, từ khóa..."
-                      className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-medium"
+                      className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-medium truncate"
                     />
                   </div>
 
                   {/* 2. Ngành nghề (Master Data) */}
-                  <div>
+                  <div className="min-w-0">
                     <select
                       value={selectedCategory}
                       onChange={(e) => setSelectedCategory(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-blue-600 cursor-pointer"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-blue-600 cursor-pointer truncate"
                     >
                       <option value="">Tất cả ngành nghề</option>
                       {JOB_CATEGORIES.filter(c => c !== 'Tất cả ngành nghề').map((c, i) => (
@@ -2236,17 +2306,17 @@ export default function StudentPortal({
                     </select>
                   </div>
 
-                  {/* 3. Chọn Tỉnh / Thành phố (63 Tỉnh Thành) */}
-                  <div>
+                  {/* 3. Chọn Tỉnh / Thành phố */}
+                  <div className="min-w-0">
                     <select
                       value={selectedProvince}
                       onChange={(e) => {
                         setSelectedProvince(e.target.value);
                         setSelectedDistricts([]);
                       }}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-blue-600 cursor-pointer"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-blue-600 cursor-pointer truncate"
                     >
-                      <option value="">Toàn quốc (63 Tỉnh/Thành)</option>
+                      <option value="">Toàn quốc</option>
                       {VIETNAM_PROVINCES.map((p) => (
                         <option key={p} value={p}>{p}</option>
                       ))}
@@ -2254,31 +2324,44 @@ export default function StudentPortal({
                   </div>
 
                   {/* 4. Ca làm việc */}
-                  <div>
+                  <div className="min-w-0">
                     <select
                       value={selectedShift}
                       onChange={(e) => setSelectedShift(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-blue-600 cursor-pointer"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-blue-600 cursor-pointer truncate"
                     >
                       <option value="">Mọi ca làm việc</option>
                       {WORK_SHIFTS.filter(s => s.id !== 'all').map((s) => (
-                        <option key={s.id} value={s.id}>{s.label} ({s.time})</option>
+                        <option key={s.id} value={s.id}>{s.label}</option>
                       ))}
                     </select>
                   </div>
 
                   {/* 5. Khoảng lương theo giờ */}
-                  <div>
+                  <div className="min-w-0">
                     <select
                       value={salaryFilter}
                       onChange={(e) => setSalaryFilter(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-blue-600 cursor-pointer"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-blue-600 cursor-pointer truncate"
                     >
-                      <option value="">Mọi mức lương</option>
+                      <option value="">Tất cả mức lương</option>
                       {SALARY_BRACKETS.filter(b => b.id !== 'all').map((b) => (
                         <option key={b.id} value={b.id}>{b.label}</option>
                       ))}
-                      
+                    </select>
+                  </div>
+
+                  {/* 6. Hình thức chi trả thù lao (FR-SV-05.10) */}
+                  <div className="min-w-0">
+                    <select
+                      value={paymentTypeFilter}
+                      onChange={(e) => setPaymentTypeFilter(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-blue-600 cursor-pointer truncate"
+                    >
+                      <option value="">Tất cả hình thức chi trả</option>
+                      <option value="after_shift">Nhận thù lao ngay sau ca làm</option>
+                      <option value="weekly">Nhận lương theo tuần</option>
+                      <option value="monthly">Nhận lương định kỳ theo tháng</option>
                     </select>
                   </div>
                 </div>
@@ -2439,7 +2522,7 @@ export default function StudentPortal({
         {/* 3. MÀN HÌNH VIỆC LÀM ĐÃ LƯU (UI-SV-JOB-04 - 1.5.8) */}
         {activeMenu === 'saved_jobs' && (
           <div className="w-full max-w-full mx-auto space-y-8">
-            <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-sm flex items-center justify-between">
+            <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
                 <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
                   <Heart className="w-5 h-5 text-red-500 fill-red-500" />
@@ -2448,6 +2531,54 @@ export default function StudentPortal({
                 <p className="text-xs text-slate-500 mt-0.5">
                   {isGuestMode ? 'Chế độ xem trước tính năng theo dõi việc làm yêu thích' : `Bạn đang theo dõi ${bookmarkedIds.size} việc làm yêu thích`}
                 </p>
+              </div>
+
+              {/* Bộ lọc Trạng thái hạn tuyển (FR-SV-05.11) */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setSavedJobStatusFilter('all')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    savedJobStatusFilter === 'all'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'
+                  }`}
+                >
+                  Tất cả việc làm đã lưu ({savedJobs.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSavedJobStatusFilter('open')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    savedJobStatusFilter === 'open'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'
+                  }`}
+                >
+                  Tin đang mở nhận hồ sơ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSavedJobStatusFilter('expiring_soon')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    savedJobStatusFilter === 'expiring_soon'
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'
+                  }`}
+                >
+                  Tin sắp hết hạn nộp đơn (&le; 48h)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSavedJobStatusFilter('closed')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    savedJobStatusFilter === 'closed'
+                      ? 'bg-slate-700 text-white shadow-sm'
+                      : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'
+                  }`}
+                >
+                  Tin đã đóng / đã đủ chỉ tiêu
+                </button>
               </div>
             </div>
 
@@ -2499,12 +2630,14 @@ export default function StudentPortal({
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {savedJobs.length === 0 ? (
+                {filteredSavedJobs.length === 0 ? (
                   <div className="col-span-2 py-16 text-center text-slate-500 text-xs bg-white rounded-3xl border border-slate-200 shadow-sm">
-                    Bạn chưa lưu công việc nào. Hãy nhấp vào icon Trái tim tại trang Khám phá việc làm để lưu lại.
+                    {savedJobs.length === 0
+                      ? 'Bạn chưa lưu công việc nào. Hãy nhấp vào icon Trái tim tại trang Khám phá việc làm để lưu lại.'
+                      : 'Không tìm thấy việc làm đã lưu phù hợp với bộ lọc trạng thái được chọn.'}
                   </div>
                 ) : (
-                  savedJobs.map((job) => {
+                  filteredSavedJobs.map((job) => {
                     const isGreyedOut = !job.is_open || job.job_status === 'filled' || job.job_status === 'completed';
 
                     return (
@@ -2588,59 +2721,108 @@ export default function StudentPortal({
 
             {/* Thanh tìm kiếm & Tabs lọc trạng thái (Chỉ hiển thị khi đã đăng nhập) */}
             {!isGuestMode && (
-              <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
-                <div className="relative w-full md:w-80">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={appSearchQuery}
-                    onChange={(e) => setAppSearchQuery(e.target.value)}
-                    placeholder="Tìm kiếm công việc đã nộp..."
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 placeholder-slate-400 outline-none focus:border-blue-500"
-                  />
+              <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm space-y-3.5">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                  <div className="relative w-full sm:w-80 min-w-0">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={appSearchQuery}
+                      onChange={(e) => setAppSearchQuery(e.target.value)}
+                      placeholder="Tìm kiếm công việc đã nộp..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 placeholder-slate-400 outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  {/* Bộ lọc Thời gian nộp (FR-SV-06.06: 7 ngày qua, 30 ngày qua, khoảng ngày tùy chọn) */}
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="font-bold text-slate-500 flex items-center gap-1 whitespace-nowrap">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Thời gian nộp:</span>
+                    </span>
+                    <select
+                      value={appDateFilter}
+                      onChange={(e) => setAppDateFilter(e.target.value)}
+                      className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
+                    >
+                      <option value="all">Toàn bộ thời gian</option>
+                      <option value="7days">7 ngày qua</option>
+                      <option value="30days">30 ngày qua</option>
+                      <option value="custom">Khoảng ngày tùy chọn</option>
+                    </select>
+
+                    {appDateFilter === 'custom' && (
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="date"
+                          value={appFromDate}
+                          onChange={(e) => setAppFromDate(e.target.value)}
+                          className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 outline-none focus:border-blue-500"
+                          title="Từ ngày"
+                        />
+                        <span className="text-slate-400">-</span>
+                        <input
+                          type="date"
+                          value={appToDate}
+                          onChange={(e) => setAppToDate(e.target.value)}
+                          className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 outline-none focus:border-blue-500"
+                          title="Đến ngày"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Tabs lọc trạng thái kèm ApplicationStatusBadge */}
-                <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+                {/* Tabs lọc 6 chặng trạng thái chuẩn (FR-SV-06.02) */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={() => setAppStatusTab('all')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${appStatusTab === 'all' ? 'bg-white text-slate-900 font-bold border border-slate-300 shadow-sm' : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'
-                      }`}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${appStatusTab === 'all' ? 'bg-white text-slate-900 font-bold border border-slate-300 shadow-sm' : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'}`}
                   >
                     Tất cả ({myApplications.length})
                   </button>
                   <button
                     type="button"
                     onClick={() => setAppStatusTab('pending')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${appStatusTab === 'pending' ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'
-                      }`}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${appStatusTab === 'pending' ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'}`}
                   >
-                    Chờ duyệt ({myApplications.filter(a => a.application_status === 'pending').length})
+                    Đang chờ xét duyệt ({myApplications.filter(a => a.application_status === 'pending').length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAppStatusTab('reviewed')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${appStatusTab === 'reviewed' ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'}`}
+                  >
+                    Đã tiếp nhận ({myApplications.filter(a => a.application_status === 'reviewed' || a.application_status === 'received').length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAppStatusTab('interview')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${appStatusTab === 'interview' ? 'bg-purple-100 text-purple-800 border border-purple-300' : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'}`}
+                  >
+                    Mời phỏng vấn ({myApplications.filter(a => a.application_status === 'interview').length})
                   </button>
                   <button
                     type="button"
                     onClick={() => setAppStatusTab('accepted')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${appStatusTab === 'accepted' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'
-                      }`}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${appStatusTab === 'accepted' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'}`}
                   >
-                    Đã duyệt ({myApplications.filter(a => a.application_status === 'accepted').length})
+                    Trúng tuyển ({myApplications.filter(a => a.application_status === 'accepted').length})
                   </button>
                   <button
                     type="button"
                     onClick={() => setAppStatusTab('rejected')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${appStatusTab === 'rejected' ? 'bg-red-100 text-red-800 border border-red-300' : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'
-                      }`}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${appStatusTab === 'rejected' ? 'bg-red-100 text-red-800 border border-red-300' : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'}`}
                   >
-                    Từ chối ({myApplications.filter(a => a.application_status === 'rejected').length})
+                    Chưa phù hợp ({myApplications.filter(a => a.application_status === 'rejected').length})
                   </button>
                   <button
                     type="button"
                     onClick={() => setAppStatusTab('cancelled')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${appStatusTab === 'cancelled' ? 'bg-slate-200 text-slate-800 border border-slate-300' : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'
-                      }`}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${appStatusTab === 'cancelled' ? 'bg-slate-200 text-slate-800 border border-slate-300' : 'bg-slate-50 text-slate-600 hover:text-slate-900 border border-slate-200'}`}
                   >
-                    Đã hủy ({myApplications.filter(a => a.application_status === 'cancelled').length})
+                    Đã rút hồ sơ ({myApplications.filter(a => a.application_status === 'cancelled' || a.application_status === 'withdrawn').length})
                   </button>
                 </div>
               </div>
@@ -2689,18 +2871,24 @@ export default function StudentPortal({
                 filteredApplications.map((app) => {
                   const statusColors = {
                     pending: 'bg-amber-50 text-amber-800 border-amber-200',
+                    reviewed: 'bg-blue-50 text-blue-800 border-blue-200',
+                    received: 'bg-blue-50 text-blue-800 border-blue-200',
                     interview: 'bg-orange-50 text-orange-800 border-orange-200',
                     accepted: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-                    rejected: 'bg-red-50 text-red-800 border-red-200',
-                    cancelled: 'bg-slate-100 text-slate-600 border-slate-200'
+                    rejected: 'bg-rose-50 text-rose-800 border-rose-200',
+                    cancelled: 'bg-slate-100 text-slate-600 border-slate-200',
+                    withdrawn: 'bg-slate-100 text-slate-600 border-slate-200'
                   };
 
                   const statusLabels = {
-                    pending: 'Chờ Doanh Nghiệp Duyệt',
-                    interview: 'Mời Phỏng Vấn Trực Tuyến',
-                    accepted: 'Đã Được Phê Duyệt Trúng Tuyển',
-                    rejected: 'Bị Từ Chối',
-                    cancelled: 'Đã Hủy / Rút Hồ Sơ'
+                    pending: 'Đang chờ xét duyệt',
+                    reviewed: 'Đã tiếp nhận',
+                    received: 'Đã tiếp nhận',
+                    interview: 'Mời phỏng vấn',
+                    accepted: 'Trúng tuyển',
+                    rejected: 'Chưa phù hợp',
+                    cancelled: 'Đã rút hồ sơ',
+                    withdrawn: 'Đã rút hồ sơ'
                   };
 
                   return (
@@ -2964,12 +3152,12 @@ export default function StudentPortal({
                 </p>
               </div>
 
-              {/* Lọc theo Tuần & Khung Ca */}
-              <div className="flex flex-wrap items-center gap-2">
+              {/* Lọc đa tiêu chí Lịch ca làm đã nhận (FR-SV-11.03: Tuần, Khung ca, Chi nhánh, Trạng thái ca) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 w-full sm:w-auto">
                 <select
                   value={shiftFilterWeek}
                   onChange={(e) => setShiftFilterWeek(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
+                  className="w-full min-w-0 truncate bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
                 >
                   <option value="current">Tuần này (Hiện tại)</option>
                   <option value="next">Tuần tới</option>
@@ -2979,12 +3167,35 @@ export default function StudentPortal({
                 <select
                   value={shiftFilterTime}
                   onChange={(e) => setShiftFilterTime(e.target.value)}
-                  className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
+                  className="w-full min-w-0 truncate bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
                 >
                   <option value="all">Tất cả khung ca</option>
                   <option value="morning">Ca sáng (06:00 - 12:00)</option>
                   <option value="afternoon">Ca chiều (12:00 - 18:00)</option>
                   <option value="evening">Ca tối (18:00 - 23:00)</option>
+                </select>
+
+                <select
+                  value={shiftFilterBranch}
+                  onChange={(e) => setShiftFilterBranch(e.target.value)}
+                  className="w-full min-w-0 truncate bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
+                >
+                  <option value="all">Tất cả Chi nhánh</option>
+                  <option value="Chi nhánh Bến Nghé, Quận 1">Chi nhánh Bến Nghé, Q1</option>
+                  <option value="Chi nhánh Landmark 81, Bình Thạnh">Chi nhánh Landmark 81</option>
+                  <option value="Chi nhánh Vạn Hạnh Mall, Quận 10">Chi nhánh Vạn Hạnh Mall</option>
+                </select>
+
+                <select
+                  value={shiftFilterStatus}
+                  onChange={(e) => setShiftFilterStatus(e.target.value)}
+                  className="w-full min-w-0 truncate bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
+                >
+                  <option value="all">Tất cả trạng thái ca</option>
+                  <option value="upcoming">Sắp diễn ra</option>
+                  <option value="in_progress">Đang làm việc</option>
+                  <option value="completed">Đã hoàn thành</option>
+                  <option value="cancelled">Đã hủy ca</option>
                 </select>
               </div>
             </div>

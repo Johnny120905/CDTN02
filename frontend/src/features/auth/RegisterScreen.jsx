@@ -8,28 +8,6 @@ import {
 } from 'lucide-react';
 import { HCM_DISTRICTS } from '../../shared/professionSuggestions';
 
-const VIETNAM_UNIVERSITIES = [
-  'Đại học Văn Lang (VLU)',
-  'Đại học Bách Khoa - ĐHQG TP.HCM',
-  'Đại học Khoa học Tự nhiên - ĐHQG TP.HCM',
-  'Đại học Công nghệ Thông tin - ĐHQG TP.HCM (UIT)',
-  'Đại học Kinh tế TP.HCM (UEH)',
-  'Đại học Sư phạm Kỹ thuật TP.HCM (HCMUTE)',
-  'Đại học Ngoại Thương - Cơ sở 2 (FTU2)',
-  'Đại học Tôn Đức Thắng (TDTU)',
-  'Đại học Công nghệ TP.HCM (HUTECH)',
-  'Đại học Hoa Sen (HSU)',
-  'Đại học FPT TP.HCM',
-  'Đại học Sài Gòn (SGU)',
-  'Đại học Mở TP.HCM (OU)',
-  'Đại học Ngân Hàng TP.HCM (HUB)',
-  'Đại học Tài chính - Marketing (UFM)',
-  'Đại học Luật TP.HCM (ULAW)',
-  'Đại học Y Dược TP.HCM (UMP)',
-  'Cao đẳng Kỹ thuật Cao Thắng',
-  'Cao đẳng Kinh tế Đối ngoại'
-];
-
 export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole, lockRole = false }) {
   const [role, setRole] = useState(initialRole || 'student'); // 'student' | 'employer'
   const [step, setStep] = useState(1); // 1: Form | 2: OTP Verification
@@ -58,13 +36,11 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
   const [successMsg, setSuccessMsg] = useState('');
   const [isDraggingFile, setIsDraggingFile] = useState(false);
 
-  // OTP Verification States
+  // OTP Verification States (Người dùng tự nhập tay 6 chữ số)
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [receivedOtp, setReceivedOtp] = useState('');
-  const [otpTimer, setOtpTimer] = useState(600);
+  const [otpTimer, setOtpTimer] = useState(60);
   const [isTimerActive, setIsTimerActive] = useState(false);
-  const [isAutoFilling, setIsAutoFilling] = useState(false);
-  const [otpToast, setOtpToast] = useState(null);
   const digitRefs = useRef([]);
 
   useEffect(() => {
@@ -73,7 +49,7 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
     }
   }, [initialRole]);
 
-  // Countdown Timer for OTP (10 minutes)
+  // Countdown Timer for OTP (60 seconds)
   useEffect(() => {
     let timer = null;
     if (isTimerActive && otpTimer > 0) {
@@ -82,7 +58,7 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
       }, 1000);
     } else if (otpTimer === 0 && isTimerActive) {
       setIsTimerActive(false);
-      setErrorMsg('Mã OTP đã hết hiệu lực sau 10 phút. Vui lòng bấm "Gửi lại mã OTP".');
+      setErrorMsg('Mã OTP đã hết hiệu lực sau 60 giây. Vui lòng bấm "Gửi lại mã OTP".');
     }
     return () => {
       if (timer) clearInterval(timer);
@@ -148,29 +124,6 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       processFile(e.dataTransfer.files[0]);
     }
-  };
-
-  // Hands-free Auto Fill OTP
-  const handleAutoFillOtp = (customOtp) => {
-    const targetOtp = customOtp || receivedOtp;
-    if (!targetOtp || targetOtp.length < 6) return;
-    setIsAutoFilling(true);
-    const chars = String(targetOtp).slice(0, 6).split('');
-    chars.forEach((c, idx) => {
-      setTimeout(() => {
-        setOtpDigits((prev) => {
-          const next = [...prev];
-          next[idx] = c;
-          return next;
-        });
-        if (digitRefs.current[idx]) {
-          digitRefs.current[idx].focus();
-        }
-        if (idx === chars.length - 1) {
-          setIsAutoFilling(false);
-        }
-      }, idx * 100);
-    });
   };
 
   const handleDigitChange = (index, value) => {
@@ -255,17 +208,11 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
       if (res.ok && data.success) {
         const code = String(data.otp);
         setReceivedOtp(code);
-        setOtpTimer(data.expires_in || 600);
+        setOtpTimer(data.expires_in || 60);
         setIsTimerActive(true);
         setStep(2);
         setOtpDigits(['', '', '', '', '', '']);
-        setOtpToast({ code, email: cleanEmail });
-        setSuccessMsg(`Mã xác thực OTP đã được gửi tới ${cleanEmail}. Đang tự động điền...`);
-
-        // Tự động điền mã OTP sau 800ms
-        setTimeout(() => {
-          handleAutoFillOtp(code);
-        }, 800);
+        setSuccessMsg(`Mã xác thực OTP gồm 6 chữ số đã được gửi tới ${cleanEmail}. Vui lòng nhập tay vào khung bên dưới.`);
       } else {
         setErrorMsg(data.message || 'Không thể gửi mã xác thực OTP. Vui lòng kiểm tra lại email.');
       }
@@ -273,15 +220,11 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
       // Fallback cho kiểm thử offline
       const demoOtp = '654321';
       setReceivedOtp(demoOtp);
-      setOtpTimer(600);
+      setOtpTimer(60);
       setIsTimerActive(true);
       setStep(2);
       setOtpDigits(['', '', '', '', '', '']);
-      setOtpToast({ code: demoOtp, email: cleanEmail });
-      setSuccessMsg(`Mã xác thực OTP đã được gửi tới ${cleanEmail}. Đang tự động điền...`);
-      setTimeout(() => {
-        handleAutoFillOtp(demoOtp);
-      }, 800);
+      setSuccessMsg(`Mã xác thực OTP đã được gửi tới ${cleanEmail}. Vui lòng nhập tay vào khung bên dưới.`);
     } finally {
       setLoading(false);
     }
@@ -305,27 +248,20 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
       if (res.ok && data.success) {
         const code = String(data.otp);
         setReceivedOtp(code);
-        setOtpTimer(data.expires_in || 600);
+        setOtpTimer(data.expires_in || 60);
         setIsTimerActive(true);
         setOtpDigits(['', '', '', '', '', '']);
-        setOtpToast({ code, email: cleanEmail });
-        setSuccessMsg('Mã OTP mới đã được gửi tới hộp thư Gmail của bạn.');
-        setTimeout(() => {
-          handleAutoFillOtp(code);
-        }, 800);
+        setSuccessMsg('Mã OTP mới đã được gửi tới hộp thư Gmail của bạn. Vui lòng nhập tay vào khung bên dưới.');
       } else {
         setErrorMsg(data.message || 'Không thể gửi lại mã OTP. Vui lòng thử lại sau.');
       }
     } catch (err) {
       const demoOtp = '654321';
       setReceivedOtp(demoOtp);
-      setOtpTimer(600);
+      setOtpTimer(60);
       setIsTimerActive(true);
       setOtpDigits(['', '', '', '', '', '']);
-      setOtpToast({ code: demoOtp, email: cleanEmail });
-      setTimeout(() => {
-        handleAutoFillOtp(demoOtp);
-      }, 800);
+      setSuccessMsg('Mã OTP mới đã được gửi. Vui lòng nhập tay vào khung bên dưới.');
     } finally {
       setLoading(false);
     }
@@ -390,36 +326,6 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
   return (
     <div className="min-h-screen bg-canvas-dimension text-slate-900 font-sans selection:bg-blue-600 selection:text-white flex flex-col justify-center items-center p-4 relative py-12">
       
-      {/* Floating OTP Simulator Toast with Auto-Fill */}
-      {otpToast && (
-        <div className="fixed top-6 right-6 z-50 bg-white border-2 border-blue-500 rounded-2xl p-4 shadow-2xl max-w-sm w-full animate-in slide-in-from-top-4 duration-300">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-2 text-blue-700">
-              <KeyRound className="w-5 h-5" />
-              <h4 className="text-xs font-bold uppercase tracking-wide">Mã OTP Xác Thực (10 Phút)</h4>
-            </div>
-            <button onClick={() => setOtpToast(null)} className="text-slate-400 hover:text-slate-600 p-1">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          <p className="text-xs text-slate-600 mt-1">
-            Gửi tới: <strong className="text-slate-800">{otpToast.email}</strong>
-          </p>
-          <div className="flex items-center justify-between mt-3 bg-blue-50 p-2.5 rounded-xl border border-blue-200">
-            <span className="font-mono text-xl font-black text-blue-700 tracking-widest">
-              {otpToast.code}
-            </span>
-            <button
-              onClick={() => handleAutoFillOtp(otpToast.code)}
-              disabled={isAutoFilling}
-              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer transition-colors"
-            >
-              {isAutoFilling ? 'Đang điền...' : 'Điền tự động'}
-            </button>
-          </div>
-        </div>
-      )}
-
       <div className="w-full max-w-2xl">
         
         {/* Brand Header - Bấm vào logo để quay lại trang xem chế độ khách */}
@@ -588,17 +494,14 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
                   </label>
                   <div className="relative">
                     <GraduationCap className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <select
+                    <input
+                      type="text"
+                      required
                       value={organization}
                       onChange={(e) => setOrganization(e.target.value)}
-                      required
-                      className="w-full pl-10 pr-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm sm:text-base text-slate-800 focus:outline-none focus:border-blue-600 focus:bg-white"
-                    >
-                      <option value="">-- Chọn trường theo học --</option>
-                      {VIETNAM_UNIVERSITIES.map((u, idx) => (
-                        <option key={idx} value={u}>{u}</option>
-                      ))}
-                    </select>
+                      placeholder="Nhập tên trường Đại học / Cao đẳng bạn đang theo học"
+                      className="w-full pl-10 pr-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm sm:text-base text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white font-medium"
+                    />
                   </div>
                 </div>
               )}
@@ -881,10 +784,10 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
                 <button
                   type="button"
                   onClick={handleResendOtp}
-                  disabled={loading || otpTimer > 540}
+                  disabled={loading || otpTimer > 0}
                   className="text-xs font-bold text-blue-600 hover:underline disabled:opacity-40 cursor-pointer"
                 >
-                  {loading ? 'Đang gửi...' : 'Gửi lại mã OTP'}
+                  {loading ? 'Đang gửi...' : (otpTimer > 0 ? `Gửi lại sau (${otpTimer}s)` : 'Gửi lại mã OTP')}
                 </button>
               </div>
 
@@ -902,10 +805,6 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
                   </>
                 )}
               </button>
-
-              <p className="text-center text-xs text-slate-500">
-                💡 Hệ thống hỗ trợ <strong>tự động điền mã OTP</strong> ngay khi nhận được để bạn tiết kiệm thời gian.
-              </p>
             </form>
           )}
 

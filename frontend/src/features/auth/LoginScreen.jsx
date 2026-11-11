@@ -126,7 +126,7 @@ export default function LoginScreen({ onAuthSuccess, onNavigate, initialRole, lo
             profile: { full_name: 'Lê Thị Thuỳ Ngân', company_name: 'Trung Tâm Quản Trị Hệ Thống' }
           };
         }
-        if (role === 'employer' && cleanEmail === 'huynhnguyenbaongoc2k5@gmail.com' && (cleanPassword === 'Huynh120905!' || cleanPassword === 'Ngoc123!')) {
+        if (role === 'employer' && cleanEmail === 'huynhnguyenbaongoc2k5@gmail.com' && cleanPassword === 'Huynh120905!') {
           return {
             id: 'user_employer_ngoc',
             email: cleanEmail,
@@ -184,7 +184,7 @@ export default function LoginScreen({ onAuthSuccess, onNavigate, initialRole, lo
         setTimeout(() => { onAuthSuccess(stu); }, 300);
         return;
       }
-      if (role === 'employer' && cleanEmail === 'huynhnguyenbaongoc2k5@gmail.com' && (cleanPassword === 'Huynh120905!' || cleanPassword === 'Ngoc123!')) {
+      if (role === 'employer' && cleanEmail === 'huynhnguyenbaongoc2k5@gmail.com' && cleanPassword === 'Huynh120905!') {
         const emp = {
           id: 'user_employer_ngoc',
           email: cleanEmail,

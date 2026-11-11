@@ -140,22 +140,22 @@ export function getDistrictsByProvince(provinceName) {
   ];
 }
 
-// Hourly salary brackets
+// Hourly salary brackets (FR-SV-05.10: Dưới 20.000đ/giờ; 20.000–25.000đ/giờ; 25.000–30.000đ/giờ; 30.000–40.000đ/giờ; Trên 40.000đ/giờ)
 export const SALARY_BRACKETS = [
   { id: 'all', label: 'Tất cả mức lương' },
-  { id: 'under_20k', label: 'Dưới 20k/giờ', min: 0, max: 20000 },
-  { id: '20k_25k', label: '20k - 25k/giờ', min: 20000, max: 25000 },
-  { id: '25k_30k', label: '25k - 30k/giờ', min: 25000, max: 30000 },
-  { id: '30k_40k', label: '30k - 40k/giờ', min: 30000, max: 40000 },
-  { id: 'above_40k', label: 'Trên 40k/giờ', min: 40000, max: 999999 }
+  { id: 'under_20k', label: 'Dưới 20.000đ/giờ', min: 0, max: 20000 },
+  { id: '20k_25k', label: '20.000 – 25.000đ/giờ', min: 20000, max: 25000 },
+  { id: '25k_30k', label: '25.000 – 30.000đ/giờ', min: 25000, max: 30000 },
+  { id: '30k_40k', label: '30.000 – 40.000đ/giờ', min: 30000, max: 40000 },
+  { id: 'above_40k', label: 'Trên 40.000đ/giờ', min: 40000, max: 999999 }
 ];
 
-// Shifts
+// Shifts (FR-SV-05.02 & FR-NTD-05.09)
 export const WORK_SHIFTS = [
   { id: 'all', label: 'Tất cả ca làm' },
-  { id: 'morning', label: 'Ca sáng', time: '07:00 - 12:00' },
-  { id: 'afternoon', label: 'Ca chiều', time: '13:00 - 18:00' },
-  { id: 'evening', label: 'Ca tối', time: '18:00 - 22:30' },
-  { id: 'flexible', label: 'Ca linh hoạt', time: 'Tự chọn theo lịch học' }
+  { id: 'morning', label: 'Ca sáng (07:00–12:00)', time: '07:00 - 12:00' },
+  { id: 'afternoon', label: 'Ca chiều (13:00–18:00)', time: '13:00 - 18:00' },
+  { id: 'evening', label: 'Ca tối (18:00–22:30)', time: '18:00 - 22:30' },
+  { id: 'flexible', label: 'Ca linh hoạt (tự chọn theo lịch học)', time: 'Tự chọn theo lịch học' }
 ];
 

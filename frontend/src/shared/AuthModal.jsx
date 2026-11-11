@@ -20,14 +20,11 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
   const [phone, setPhone] = useState('');
   const [extraField, setExtraField] = useState('');
   
-  // OTP States
+  // OTP States (Người dùng tự nhập tay)
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [receivedOtp, setReceivedOtp] = useState('');
-  const [otpTimer, setOtpTimer] = useState(600); // 10 minutes = 600s
+  const [otpTimer, setOtpTimer] = useState(60); // 60 seconds (FR-SV-01.01)
   const [isOtpTimerActive, setIsOtpTimerActive] = useState(false);
-  const [autoFillEnabled, setAutoFillEnabled] = useState(true);
-  const [isAutoFilling, setIsAutoFilling] = useState(false);
-  const [otpNotification, setOtpNotification] = useState(null); // Simulated incoming email toast
   const otpInputRefs = useRef([]);
 
   // Status & Feedback
@@ -35,7 +32,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // 1. Countdown Timer for OTP (10 Minutes = 600 seconds)
+  // 1. Countdown Timer for OTP (60 seconds, FR-SV-01.01)
   useEffect(() => {
     let interval = null;
     if (isOtpTimerActive && otpTimer > 0) {
@@ -44,7 +41,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
       }, 1000);
     } else if (otpTimer === 0 && isOtpTimerActive) {
       setIsOtpTimerActive(false);
-      setErrorMsg('Mã OTP đã hết hiệu lực sau 10 phút. Vui lòng bấm "Gửi lại mã mới".');
+      setErrorMsg('Mã OTP đã hết hiệu lực sau 60 giây. Vui lòng bấm "Gửi lại mã mới".');
     }
     return () => {
       if (interval) clearInterval(interval);
@@ -79,7 +76,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
       } else {
         const code = data.otp || '849201';
         setReceivedOtp(code);
-        setOtpTimer(600); // 10 minutes = 600 seconds
+        setOtpTimer(data.expires_in || 60); // 60 seconds (FR-SV-01.01)
         setIsOtpTimerActive(true);
         setAuthMode('otp');
         setOtpDigits(['', '', '', '', '', '']);
@@ -91,65 +88,23 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
           time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
         });
 
-        setSuccessMsg('Mã OTP đã được gửi đến email! Hiệu lực trong đúng 10 phút.');
-
-        // 3. AUTO-FILL OTP (Tự động điền không cần nhập tay)
-        if (autoFillEnabled) {
-          triggerAutoFillAnimation(code);
-        }
+        setSuccessMsg('Mã OTP gồm 6 chữ số đã được gửi đến Gmail! Vui lòng nhập tay vào các ô bên dưới (Hiệu lực 60 giây).');
       }
     } catch (err) {
       // Fallback offline mock OTP in case of local offline
-      const mockCode = `${Math.floor(100000 + Math.random() * 900000)}`;
+      const mockCode = '654321';
       setReceivedOtp(mockCode);
-      setOtpTimer(600);
+      setOtpTimer(60);
       setIsOtpTimerActive(true);
       setAuthMode('otp');
       setOtpDigits(['', '', '', '', '', '']);
-      setOtpNotification({
-        email,
-        code: mockCode,
-        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-      });
-      setSuccessMsg('Mã OTP thử nghiệm (10 phút): ' + mockCode);
-      if (autoFillEnabled) {
-        triggerAutoFillAnimation(mockCode);
-      }
+      setSuccessMsg('Mã OTP đã được gửi đến email! Vui lòng nhập tay vào các ô bên dưới.');
     } finally {
       setLoading(false);
     }
   };
 
-  // 4. Typewriter Auto-Fill Animation Function (Không cần gõ tay)
-  const triggerAutoFillAnimation = (code) => {
-    setIsAutoFilling(true);
-    const chars = code.split('').slice(0, 6);
-    chars.forEach((digit, index) => {
-      setTimeout(() => {
-        setOtpDigits((prev) => {
-          const next = [...prev];
-          next[index] = digit;
-          return next;
-        });
-        if (index === chars.length - 1) {
-          setIsAutoFilling(false);
-        }
-      }, (index + 1) * 120); // 120ms typewriter step
-    });
-  };
-
-  // 5. One-Click Instant Auto-Fill Button Handler
-  const handleInstantAutoFill = () => {
-    if (receivedOtp) {
-      triggerAutoFillAnimation(receivedOtp);
-      setErrorMsg('');
-      setSuccessMsg('Đã tự động điền mã OTP thành công!');
-    } else {
-      handleRequestOtp('quick_verify');
-    }
-  };
-
-  // 6. Manual Digit Input & Paste support
+  // Manual Digit Input
   const handleOtpDigitChange = (index, value) => {
     const cleanVal = value.replace(/\D/g, '').slice(-1);
     const updated = [...otpDigits];
@@ -172,7 +127,11 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
     e.preventDefault();
     const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
     if (pasted) {
-      triggerAutoFillAnimation(pasted);
+      const updated = [...otpDigits];
+      pasted.split('').forEach((d, i) => {
+        if (i < 6) updated[i] = d;
+      });
+      setOtpDigits(updated);
     }
   };
 
@@ -411,39 +370,28 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                 {formatTimer(otpTimer)}
               </div>
 
-              {/* Progress Bar of 600s */}
+              {/* Progress Bar of 60s */}
               <div className="w-full bg-slate-200 h-1.5 rounded-full mt-2 overflow-hidden">
                 <div 
                   className={`h-full transition-all duration-1000 ${
-                    otpTimer < 60 ? 'bg-red-500' : (otpTimer < 180 ? 'bg-amber-500' : 'bg-brand-500')
+                    otpTimer < 15 ? 'bg-red-500' : (otpTimer < 30 ? 'bg-amber-500' : 'bg-brand-500')
                   }`}
-                  style={{ width: `${(otpTimer / 600) * 100}%` }}
+                  style={{ width: `${(otpTimer / 60) * 100}%` }}
                 />
               </div>
 
               <div className="flex items-center justify-between mt-2 text-xs text-slate-500">
                 <span>Email: <strong className="text-slate-800">{email}</strong></span>
-                <span className="font-semibold text-emerald-700">Hiệu lực 10:00</span>
+                <span className="font-semibold text-emerald-700">Hiệu lực 60 giây</span>
               </div>
             </div>
 
-            {/* 6-Digit OTP Boxes with Auto-Fill Feature */}
+            {/* 6-Digit OTP Boxes (Người dùng tự nhập tay) */}
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div className="mb-2">
                 <label className="text-xs font-bold text-slate-800">
                   Nhập mã 6 chữ số:
                 </label>
-                
-                {/* Instant Auto-fill Action Button */}
-                <button
-                  type="button"
-                  onClick={handleInstantAutoFill}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-2.5 py-1 rounded-lg transition-all"
-                  title="Tự động điền không cần nhập tay"
-                >
-                  <KeyRound className="w-3.5 h-3.5 text-brand-600" />
-                  <span>Tự động điền OTP</span>
-                </button>
               </div>
 
               <div className="flex justify-between gap-1.5 sm:gap-2" onPaste={handleOtpPaste}>
@@ -461,22 +409,10 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                       digit 
                         ? 'border-brand-500 bg-brand-50/40 text-brand-900 shadow-sm' 
                         : 'border-slate-200 bg-slate-50 text-slate-900 focus:border-brand-500 focus:bg-white'
-                    } ${isAutoFilling ? 'animate-pulse' : ''}`}
+                    }`}
                   />
                 ))}
               </div>
-
-              {/* Auto-fill indicator toggle */}
-              <div className="mt-2.5 flex items-center justify-between text-xs text-slate-500">
-                <label className="flex items-center gap-1.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={autoFillEnabled}
-                    onChange={(e) => setAutoFillEnabled(e.target.checked)}
-                    className="rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                  />
-                  <span>Tự động điền khi nhận OTP</span>
-                </label>
 
                 {receivedOtp && (
                   <span className="text-emerald-700 font-medium flex items-center gap-1">
@@ -519,7 +455,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                 <button
                   type="button"
                   onClick={() => handleRequestOtp('resend')}
-                  disabled={otpTimer > 540} // Allow resend after 60s
+                  disabled={otpTimer > 0} // Allow resend when 60s countdown expires
                   className="text-xs font-bold text-slate-600 hover:text-brand-600 flex items-center gap-1 disabled:opacity-40"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />

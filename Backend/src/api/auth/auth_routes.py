@@ -143,58 +143,9 @@ def login():
     users_col = db_manager.get_collection("users")
     user = users_col.find_one({"email": email})
 
-    # Đảm bảo tuyệt đối tài khoản của 3 thành viên thật đăng nhập thành công
-    if email == "lethithuyngan985@gmail.com" and password == "Le090805!":
-        if not user:
-            user = {
-                "_id": "user_admin_ngan",
-                "email": email,
-                "password_hash": hash_password(password),
-                "role": "admin",
-                "status": "active",
-                "is_banned": False,
-                "ban_reason": "",
-                "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
-            }
-            users_col.insert_one(user)
-        else:
-            user["role"] = "admin"
-            user["is_banned"] = False
-    elif email == "huynhnguyenbaongoc2k5@gmail.com" and password in ["Huynh120905!", "Ngoc123!"]:
-        if not user:
-            user = {
-                "_id": "user_employer_ngoc",
-                "email": email,
-                "password_hash": hash_password(password),
-                "role": "employer",
-                "status": "active",
-                "is_banned": False,
-                "ban_reason": "",
-                "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
-            }
-            users_col.insert_one(user)
-        else:
-            user["role"] = "employer"
-            user["is_banned"] = False
-    elif email in ["vuthelong@vlu.edu.vn", "vuthelong1009@gmail.com"] and password == "Long123!":
-        if not user:
-            user = {
-                "_id": "user_student_long",
-                "email": email,
-                "password_hash": hash_password(password),
-                "role": "student",
-                "status": "active",
-                "is_banned": False,
-                "ban_reason": "",
-                "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
-            }
-            users_col.insert_one(user)
-        else:
-            user["role"] = "student"
-            user["is_banned"] = False
-    else:
-        if not user or not verify_password(password, user.get("password_hash", "")):
-            return jsonify({"success": False, "message": "Email hoặc mật khẩu không chính xác."}), 401
+    # Đảm bảo tuyệt đối tài khoản của 3 thành viên thật đăng nhập chuẩn xác
+    if not user or not verify_password(password, user.get("password_hash", "")):
+        return jsonify({"success": False, "message": "Email hoặc mật khẩu không chính xác."}), 401
 
     if user.get("is_banned"):
         return jsonify({
@@ -277,7 +228,7 @@ def get_current_user():
 @auth_bp.route("/send-otp", methods=["POST"])
 def send_otp():
     """
-    Tạo và gửi mã OTP 6 số ngẫu nhiên có hiệu lực trong đúng 10 phút (600 giây).
+    Tạo và gửi mã OTP 6 số ngẫu nhiên có hiệu lực trong đúng 60 giây (FR-SV-01.01).
     Phục vụ cho: Quên mật khẩu, Xác thực 2 bước (2FA), Kích hoạt tài khoản.
     """
     data = request.get_json() or {}
@@ -300,8 +251,8 @@ def send_otp():
         
     # Tạo mã OTP 6 chữ số ngẫu nhiên
     otp = f"{random.randint(100000, 999999)}"
-    # Thời hạn hiệu lực: 10 phút = 600 giây
-    expires_in_seconds = 600
+    # Thời hạn hiệu lực: 60 giây (theo đúng FR-SV-01.01 & FR-SV-01.03)
+    expires_in_seconds = 60
     otp_expires_at = time.time() + expires_in_seconds
 
     # 1. Gửi email thực tế qua Brevo SMTP Relay đến Gmail người dùng
@@ -339,7 +290,7 @@ def send_otp():
 @auth_bp.route("/verify-otp", methods=["POST"])
 def verify_otp():
     """
-    Xác thực mã OTP 6 số với ràng buộc thời gian hiệu lực 10 phút (600s).
+    Xác thực mã OTP 6 số với ràng buộc thời gian hiệu lực 60 giây (FR-SV-01.01 & FR-SV-01.03).
     """
     data = request.get_json() or {}
     email = str(data.get("email", "")).strip().lower()

@@ -11,13 +11,11 @@ export default function ForgotPasswordScreen({ onNavigate, initialRole = 'studen
   const [email, setEmail] = useState('');
   const [step, setStep] = useState(1); // 1: Send OTP | 2: Verify OTP | 3: Reset Password
   
-  // OTP state
+  // OTP state (Người dùng tự nhập tay)
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [receivedOtp, setReceivedOtp] = useState('');
-  const [otpTimer, setOtpTimer] = useState(600);
+  const [otpTimer, setOtpTimer] = useState(60);
   const [isTimerActive, setIsTimerActive] = useState(false);
-  const [isAutoFilling, setIsAutoFilling] = useState(false);
-  const [otpToast, setOtpToast] = useState(null);
 
   // New password state
   const [newPassword, setNewPassword] = useState('');
@@ -56,7 +54,7 @@ export default function ForgotPasswordScreen({ onNavigate, initialRole = 'studen
       }, 1000);
     } else if (otpTimer === 0 && isTimerActive) {
       setIsTimerActive(false);
-      setErrorMsg('Mã OTP đã hết hiệu lực sau 10 phút. Vui lòng bấm "Gửi lại mã ngay".');
+      setErrorMsg('Mã OTP đã hết hiệu lực sau 60 giây. Vui lòng bấm "Gửi lại mã ngay".');
     }
     return () => {
       if (timer) clearInterval(timer);
@@ -97,53 +95,28 @@ export default function ForgotPasswordScreen({ onNavigate, initialRole = 'studen
         // Fallback for offline testing
         const demoOtp = '654321';
         setReceivedOtp(demoOtp);
-        setOtpTimer(600);
+        setOtpTimer(60);
         setIsTimerActive(true);
         setStep(2);
         setOtpDigits(['', '', '', '', '', '']);
-        setOtpToast({ code: demoOtp, email: email.trim() });
       } else {
         const code = String(data.otp);
         setReceivedOtp(code);
-        setOtpTimer(data.expires_in || 600);
+        setOtpTimer(data.expires_in || 60);
         setIsTimerActive(true);
         setStep(2);
         setOtpDigits(['', '', '', '', '', '']);
-        setOtpToast({ code, email: email.trim() });
       }
     } catch (err) {
       const demoOtp = '654321';
       setReceivedOtp(demoOtp);
-      setOtpTimer(600);
+      setOtpTimer(60);
       setIsTimerActive(true);
       setStep(2);
       setOtpDigits(['', '', '', '', '', '']);
-      setOtpToast({ code: demoOtp, email: email.trim() });
     } finally {
       setLoading(false);
     }
-  };
-
-  // Hands-free auto fill
-  const handleAutoFillOtp = () => {
-    if (!receivedOtp || receivedOtp.length < 6) return;
-    setIsAutoFilling(true);
-    const chars = receivedOtp.split('');
-    chars.forEach((c, idx) => {
-      setTimeout(() => {
-        setOtpDigits((prev) => {
-          const next = [...prev];
-          next[idx] = c;
-          return next;
-        });
-        if (digitRefs.current[idx]) {
-          digitRefs.current[idx].focus();
-        }
-        if (idx === chars.length - 1) {
-          setIsAutoFilling(false);
-        }
-      }, idx * 100);
-    });
   };
 
   const handleDigitChange = (index, value) => {
@@ -265,36 +238,6 @@ export default function ForgotPasswordScreen({ onNavigate, initialRole = 'studen
   return (
     <div className="min-h-screen bg-canvas-dimension text-slate-900 font-sans selection:bg-blue-600 selection:text-white flex flex-col justify-center items-center p-4 relative">
 
-      {/* Floating OTP Simulator Toast */}
-      {otpToast && (
-        <div className="fixed top-6 right-6 z-50 bg-white border-2 border-emerald-500 rounded-2xl p-4 shadow-2xl max-w-sm w-full animate-in slide-in-from-top-4 duration-300">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-2 text-emerald-700">
-              <KeyRound className="w-5 h-5" />
-              <h4 className="text-xs font-bold uppercase">Mã OTP Xác Thực (10 Phút)</h4>
-            </div>
-            <button onClick={() => setOtpToast(null)} className="text-slate-400 hover:text-slate-600">
-              <Check className="w-4 h-4" />
-            </button>
-          </div>
-          <p className="text-xs text-slate-600 mt-1">
-            Gửi tới: <strong className="text-slate-800">{otpToast.email}</strong>
-          </p>
-          <div className="flex items-center justify-between mt-3 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
-            <span className="font-mono text-xl font-black text-emerald-700 tracking-widest">
-              {otpToast.code}
-            </span>
-            <button
-              onClick={handleAutoFillOtp}
-              disabled={isAutoFilling}
-              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm cursor-pointer"
-            >
-              {isAutoFilling ? 'Đang điền...' : 'Điền tự động'}
-            </button>
-          </div>
-        </div>
-      )}
-
       <div className="w-full max-w-md">
         
         {/* Brand Header - Bấm vào logo để quay lại trang xem chế độ khách */}
@@ -321,7 +264,7 @@ export default function ForgotPasswordScreen({ onNavigate, initialRole = 'studen
               Khôi Phục Mật Khẩu
             </h1>
             <p className="text-xs text-slate-500 mt-1">
-              {step === 1 && 'Nhập email tài khoản để nhận mã OTP xác thực có hiệu lực trong 10 phút.'}
+              {step === 1 && 'Nhập email tài khoản để nhận mã OTP xác thực có hiệu lực trong 60 giây.'}
               {step === 2 && `Nhập mã 6 chữ số đã gửi về ${email}.`}
               {step === 3 && 'Thiết lập mật khẩu mới đạt chuẩn bảo mật 8 ký tự.'}
             </p>
@@ -375,7 +318,7 @@ export default function ForgotPasswordScreen({ onNavigate, initialRole = 'studen
                 disabled={loading}
                 className="w-full py-3 rounded-xl btn-primary-dimension text-xs sm:text-sm font-bold shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
-                {loading ? 'Đang gửi mã...' : 'Nhận Mã OTP (10 Phút)'}
+                {loading ? 'Đang gửi mã...' : 'Nhận Mã OTP (60 Giây)'}
               </button>
             </form>
           )}
@@ -418,10 +361,10 @@ export default function ForgotPasswordScreen({ onNavigate, initialRole = 'studen
                 <button
                   type="button"
                   onClick={handleRequestOtp}
-                  disabled={otpTimer > 540}
+                  disabled={otpTimer > 0}
                   className="text-xs font-semibold text-blue-600 hover:underline disabled:opacity-40"
                 >
-                  Gửi lại mã OTP
+                  {otpTimer > 0 ? `Gửi lại sau (${otpTimer}s)` : 'Gửi lại mã OTP'}
                 </button>
               </div>
 

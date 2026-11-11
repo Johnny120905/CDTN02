@@ -1041,3 +1041,31 @@ un.py.
    - Đánh mã WBS (FR-ID) tịnh tiến tăng dần chính xác từ mã lớn nhất của từng Module (FR-SV-05.09+, FR-NTD-04.09+, FR-QTV-04.09+...).
 3. **Đồng Bộ Dữ Liệu `NhapTongHop.xlsx`:**
    - Đồng bộ cập nhật sheet `Bosungboloc` trong `NhapTongHop.xlsx`.
+
+
+---
+
+## 34. GIAI ĐOẠN 34: CHUẨN HÓA 100% ĐỐI CHIẾU 1-1 SHEET FR, CÔ LẬP PHIÊN 3 ROLE MULTI-TAB & NHẬP TAY THỦ CÔNG
+**Thời gian:** 11/11/2026  
+**Thành phần:** `frontend/`, `backend/`, `tailieu/bailam/`  
+**Nội dung thực hiện chi tiết:**
+1. **Cô lập phiên làm việc đa tab theo chuẩn SessionStorage (Multi-Tab Guest Mode):**
+   - Loại bỏ hoàn toàn sự cố ghi đè tài khoản dùng chung giữa các tab trên domain `localhost`.
+   - Bất kỳ khi nào mở Tab mới hoặc Copy link dán sang tab mới, hệ thống tự động nhận diện `sessionStorage` rỗng và luôn luôn hiển thị **Giao diện Trang xem trước ở Chế độ khách (Guest Preview Mode)** cho cả Sinh viên và Nhà tuyển dụng (kèm 2 nút Đăng Nhập / Đăng Ký).
+   - Cho phép mở đồng thời 3 tab trình chiếu song song độc lập cho 3 vai trò (`/student`, `/employer`, `/admin`) mà không bị xung đột phiên hay phải đăng xuất qua lại.
+2. **Loại bỏ triệt để các nút bấm ngoài luồng FR:**
+   - Xóa bỏ 100% nút `[⚡ Vào tài khoản: Vũ Thế Long]` và `[👁️ Chế độ khách]` trên Header và Dropdown menu tài khoản, bám sát tuyệt đối 1-1 theo mô tả Sheet FR.
+3. **Giải quyết dứt điểm lỗi 1 Email có 2 Mật khẩu:**
+   - Xóa bỏ điều kiện fallback phụ `|| cleanPassword === 'Ngoc123!'` trong `LoginScreen.jsx`.
+   - Ràng buộc duy nhất 1 mật khẩu chuẩn cho mỗi tài khoản từ Database MongoDB đến Frontend: Sinh viên (`Long123!`), Nhà tuyển dụng (`Huynh120905!`), Quản trị viên (`Le090805!`).
+4. **Nhập tay thủ công khi đăng ký & nhập mã OTP 60 giây:**
+   - Thay thế dropdown chọn trường đại học bằng ô nhập tay văn bản tự do trong biểu mẫu Đăng ký.
+   - Loại bỏ toàn bộ animation chạy số giả lập, tự động điền OTP và toast simulator; người dùng tự tay nhập 6 số vào các ô mã OTP với bộ đếm ngược 60 giây.
+5. **Khắc phục lỗi 2 con mắt ở khung mật khẩu:**
+   - Bổ sung cấu hình CSS triệt tiêu icon con mắt tự động của trình duyệt Edge/Chromium trên Windows (`::-ms-reveal`), đảm bảo chỉ hiển thị duy nhất 1 icon con mắt.
+6. **Căn chỉnh toàn bộ Bộ lọc - Trạng thái chống tràn / gãy chữ cho cả 3 Role:**
+   - **Sinh viên:** Chuyển bộ lọc Khám việc làm sang Responsive Grid 3 cột, thêm `truncate` và `min-w-0`; bỏ chữ `(63 Tỉnh/ Thành)` chỉ để `Toàn quốc`; tối ưu bộ lọc Việc làm đã lưu, Lịch ca làm đã nhận, Tiến độ ứng tuyển 6 chặng.
+   - **Nhà tuyển dụng:** Bố trí Quản lý tin và Quản lý ứng viên theo Grid 4 cột đều đặn, đưa bộ chọn ngày tùy chỉnh xuống hàng riêng biệt.
+   - **Quản trị viên:** Thiết lập Grid 12 cột cho Kiểm duyệt tin tuyển dụng và Grid 3 cột chuẩn cho Quản lý người dùng, xử lý triệt để tình trạng gãy dòng ở các tùy chọn vi phạm dài.
+7. **Đồng bộ Build Production:**
+   - Chạy `npm run build` thành công, bundle cập nhật đầy đủ vào `frontend/dist/`.

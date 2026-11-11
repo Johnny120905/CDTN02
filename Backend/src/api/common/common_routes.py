@@ -119,6 +119,7 @@ def search_jobs():
     location = request.args.get("location", "").strip()
     min_sal = request.args.get("min_salary")
     work_time = request.args.get("work_time", "").strip()
+    payment_type = request.args.get("payment_type", "").strip()
 
     job_col = db_manager.get_collection("jobs")
     query = {"is_open": True, "is_hidden": False}
@@ -129,6 +130,8 @@ def search_jobs():
         query["location"] = {"$regex": location, "$options": "i"}
     if work_time:
         query["work_time"] = {"$regex": work_time, "$options": "i"}
+    if payment_type:
+        query["payment_type"] = {"$regex": payment_type, "$options": "i"}
     if min_sal:
         try:
             query["salary_max"] = {"$gte": int(min_sal)}

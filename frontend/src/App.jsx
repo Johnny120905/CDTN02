@@ -217,20 +217,55 @@ export default function App() {
     else navigateTo('/student');
   };
 
-  // Load existing user session from localStorage
-  useEffect(() => {
-    const savedUser = localStorage.getItem('partime_user');
-    const token = localStorage.getItem('partime_token');
-    if (savedUser && token) {
-      try {
-        const parsed = JSON.parse(savedUser);
-        setCurrentUser(parsed);
-      } catch (e) {
-        localStorage.removeItem('partime_user');
-        localStorage.removeItem('partime_token');
+  // Đồng bộ phiên: Mặc định MỌI TAB MỚI / DÁN LINK đều bắt đầu ở CHẾ ĐỘ XEM KHÁCH TRƯỚC TIÊN
+  const syncRoleSession = () => {
+    // Nếu URL có cờ xem trước khách (?preview=true hoặc ?guest=true hoặc ?mode=guest) -> Luôn là khách
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('preview') === 'true' || urlParams.get('guest') === 'true' || urlParams.get('mode') === 'guest') {
+      setCurrentUser(null);
+      return;
+    }
+
+    const path = window.location.pathname || currentPath || '/';
+    let targetRole = 'student';
+    if (path.startsWith('/admin')) {
+      targetRole = 'admin';
+    } else if (path.startsWith('/employer') || path.startsWith('/recruiter')) {
+      targetRole = 'employer';
+    }
+
+    // Chỉ khi tab này ĐÃ được người dùng chủ động đăng nhập hoặc bấm "Vào tài khoản" (lưu trong sessionStorage của riêng tab này):
+    const isTabActive = sessionStorage.getItem(`partime_tab_active_${targetRole}`) === 'true';
+
+    if (isTabActive) {
+      const roleUser = localStorage.getItem(`partime_${targetRole}_user`);
+      const roleToken = localStorage.getItem(`partime_${targetRole}_token`);
+
+      if (roleUser) {
+        try {
+          const parsed = JSON.parse(roleUser);
+          if (parsed.role === targetRole) {
+            setCurrentUser(parsed);
+            if (roleToken) {
+              localStorage.setItem('partime_token', roleToken);
+            }
+            return;
+          }
+        } catch (e) {}
       }
     }
-  }, []);
+
+    // Mặc định cho mọi tab mới dán link: Luôn là CHẾ ĐỘ XEM KHÁCH (currentUser = null)
+    setCurrentUser(null);
+  };
+
+  useEffect(() => {
+    syncRoleSession();
+    window.addEventListener('focus', syncRoleSession);
+    return () => {
+      window.removeEventListener('focus', syncRoleSession);
+    };
+  }, [currentPath]);
 
   const handleAuthSuccess = (user) => {
     const updatedUser = {
@@ -238,6 +273,18 @@ export default function App() {
       status: 'active',
       profile: { ...(user.profile || {}), status: 'active' }
     };
+    const role = updatedUser.role || (currentPath.startsWith('/admin') ? 'admin' : (currentPath.startsWith('/employer') ? 'employer' : 'student'));
+    
+    // Kích hoạt phiên độc lập cho riêng tab hiện tại
+    sessionStorage.setItem(`partime_tab_active_${role}`, 'true');
+
+    // Lưu phiên độc lập theo vai trò để mở song song 3 role trên 3 tab không bị ghi đè lẫn nhau
+    localStorage.setItem(`partime_${role}_user`, JSON.stringify(updatedUser));
+    const token = localStorage.getItem('partime_token');
+    if (token) {
+      localStorage.setItem(`partime_${role}_token`, token);
+    }
+
     localStorage.setItem('partime_user', JSON.stringify(updatedUser));
     setCurrentUser(updatedUser);
     setPortalActiveMenu(null);
@@ -254,7 +301,6 @@ export default function App() {
     }
 
     // Sync online status with backend
-    const token = localStorage.getItem('partime_token');
     if (token) {
       const endpoint = user.role === 'student' 
         ? '/api/student/profile' 
@@ -270,8 +316,8 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    const token = localStorage.getItem('partime_token');
-    const roleBeforeLogout = currentUser?.role;
+    const roleBeforeLogout = currentUser?.role || (currentPath.startsWith('/admin') ? 'admin' : (currentPath.startsWith('/employer') ? 'employer' : 'student'));
+    const token = localStorage.getItem(`partime_${roleBeforeLogout}_token`) || localStorage.getItem('partime_token');
 
     if (token && currentUser) {
       try {
@@ -290,10 +336,28 @@ export default function App() {
       }
     }
 
-    localStorage.removeItem('partime_token');
-    localStorage.removeItem('partime_user');
-    localStorage.removeItem('partime_active_menu_employer');
-    localStorage.removeItem('partime_active_menu_student');
+    // Hủy kích hoạt phiên trên tab hiện tại
+    sessionStorage.removeItem(`partime_tab_active_${roleBeforeLogout}`);
+
+    // Xóa phiên của riêng vai trò đó để không ảnh hưởng đến các vai trò khác đang mở ở tab khác
+    localStorage.removeItem(`partime_${roleBeforeLogout}_user`);
+    localStorage.removeItem(`partime_${roleBeforeLogout}_token`);
+    localStorage.removeItem(`partime_active_menu_${roleBeforeLogout}`);
+
+    // Xóa phiên chung nếu đang lưu vai trò này
+    const generalUser = localStorage.getItem('partime_user');
+    if (generalUser) {
+      try {
+        if (JSON.parse(generalUser).role === roleBeforeLogout) {
+          localStorage.removeItem('partime_user');
+          localStorage.removeItem('partime_token');
+        }
+      } catch (e) {
+        localStorage.removeItem('partime_user');
+        localStorage.removeItem('partime_token');
+      }
+    }
+
     setCurrentUser(null);
     setPortalActiveMenu({ id: 'home', key: Date.now() });
     setActiveSectionTitle('Trang Chủ');
