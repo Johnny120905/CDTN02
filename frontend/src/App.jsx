@@ -245,6 +245,7 @@ export default function App() {
         try {
           const parsed = JSON.parse(roleUser);
           if (parsed.role === targetRole) {
+            sessionStorage.setItem('partime_tab_role', targetRole);
             setCurrentUser(parsed);
             if (roleToken) {
               localStorage.setItem('partime_token', roleToken);
@@ -277,6 +278,7 @@ export default function App() {
     
     // Kích hoạt phiên độc lập cho riêng tab hiện tại
     sessionStorage.setItem(`partime_tab_active_${role}`, 'true');
+    sessionStorage.setItem('partime_tab_role', role);
 
     // Lưu phiên độc lập theo vai trò để mở song song 3 role trên 3 tab không bị ghi đè lẫn nhau
     localStorage.setItem(`partime_${role}_user`, JSON.stringify(updatedUser));

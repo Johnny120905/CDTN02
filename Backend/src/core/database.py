@@ -261,35 +261,81 @@ class MemoryCollection:
         return curr
 
     def _matches(self, doc, query):
+        if not query:
+            return True
+        import re
         for k, v in query.items():
-            if k == "$or":
-                if not any(self._matches(doc, sub_q) for sub_q in v):
+            if k == "$and":
+                if not isinstance(v, list) or not all(self._matches(doc, sub_q) for sub_q in v):
                     return False
-            elif isinstance(v, dict):
+            elif k == "$or":
+                if not isinstance(v, list) or not any(self._matches(doc, sub_q) for sub_q in v):
+                    return False
+            elif k == "$nor":
+                if not isinstance(v, list) or any(self._matches(doc, sub_q) for sub_q in v):
+                    return False
+            elif isinstance(v, dict) and any(str(op).startswith("$") for op in v.keys()):
                 doc_val = self._get_field(doc, k)
-                if "$regex" in v:
-                    import re
-                    pattern = v["$regex"]
-                    options = re.IGNORECASE if v.get("$options") == "i" else 0
-                    if not doc_val or not re.search(pattern, str(doc_val), options):
-                        return False
-                elif "$in" in v:
-                    if doc_val not in v["$in"]:
-                        return False
-                elif "$nin" in v:
-                    if doc_val in v["$nin"]:
-                        return False
-                elif "$ne" in v:
-                    if doc_val == v["$ne"]:
-                        return False
-                elif "$gte" in v:
-                    if doc_val is None or doc_val < v["$gte"]:
-                        return False
-                elif "$lte" in v:
-                    if doc_val is None or doc_val > v["$lte"]:
-                        return False
+                for op, op_val in v.items():
+                    if op == "$options":
+                        continue
+                    if op == "$regex":
+                        pattern = op_val
+                        options = re.IGNORECASE if "i" in str(v.get("$options", "")) else 0
+                        def _regex_hit(val):
+                            if val is None or val == "":
+                                return False
+                            if hasattr(pattern, "search"):
+                                return bool(pattern.search(str(val)))
+                            return bool(re.search(pattern, str(val), options))
+                        if isinstance(doc_val, list):
+                            if not any(_regex_hit(item) for item in doc_val):
+                                return False
+                        elif not _regex_hit(doc_val):
+                            return False
+                    elif op == "$in":
+                        in_list = op_val if isinstance(op_val, (list, tuple, set)) else []
+                        in_strs = [str(x) for x in in_list]
+                        if isinstance(doc_val, list):
+                            if not any(item in in_list or (item is not None and str(item) in in_strs) for item in doc_val):
+                                return False
+                        elif doc_val not in in_list and (doc_val is None or str(doc_val) not in in_strs):
+                            return False
+                    elif op == "$nin":
+                        nin_list = op_val if isinstance(op_val, (list, tuple, set)) else []
+                        nin_strs = [str(x) for x in nin_list]
+                        if isinstance(doc_val, list):
+                            if any(item in nin_list or (item is not None and str(item) in nin_strs) for item in doc_val):
+                                return False
+                        elif doc_val in nin_list or (doc_val is not None and str(doc_val) in nin_strs):
+                            return False
+                    elif op == "$ne":
+                        if doc_val == op_val:
+                            return False
+                    elif op == "$exists":
+                        field_exists = k in doc if "." not in k else (doc_val is not None)
+                        if bool(op_val) != bool(field_exists):
+                            return False
+                    elif op in ("$gte", "$gt", "$lte", "$lt"):
+                        if doc_val is None:
+                            return False
+                        try:
+                            if op == "$gte" and not (doc_val >= op_val):
+                                return False
+                            if op == "$gt" and not (doc_val > op_val):
+                                return False
+                            if op == "$lte" and not (doc_val <= op_val):
+                                return False
+                            if op == "$lt" and not (doc_val < op_val):
+                                return False
+                        except TypeError:
+                            return False
             else:
-                if str(self._get_field(doc, k)) != str(v):
+                doc_val = self._get_field(doc, k)
+                if isinstance(doc_val, list) and not isinstance(v, list):
+                    if v not in doc_val and str(v) not in [str(x) for x in doc_val]:
+                        return False
+                elif str(doc_val) != str(v):
                     return False
         return True
 
@@ -364,7 +410,10 @@ class DatabaseManager:
         self.fs = None
         self.is_atlas = False
         self.is_testing = "unittest" in sys.modules
-        self.local_db_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "local_db_store.json"))
+        self.local_db_path = os.path.abspath(
+            os.getenv("PARTIME_LOCAL_DB_PATH")
+            or os.path.join(os.path.dirname(__file__), "..", "..", "local_db_store.json")
+        )
         self._saving_local = False
         self.memory_collections = {
             name: MemoryCollection(name, on_change=(None if self.is_testing else self._persist_local_store))
@@ -399,7 +448,7 @@ class DatabaseManager:
             self._saving_local = True
             payload = {name: self.memory_collections[name].docs for name in COLLECTIONS}
             with open(self.local_db_path, "w", encoding="utf-8") as f:
-                json.dump(payload, f, ensure_ascii=False, indent=2)
+                json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
         except Exception as e:
             print(f"[Database] Could not save local store: {e}")
         finally:
@@ -590,16 +639,13 @@ class DatabaseManager:
     def seed_initial_data(self):
         from src.core.security import hash_password
 
-        # Dọn dẹp vĩnh viễn tài khoản eadeedc@gmail.com (user_student_486c9bf4) theo yêu cầu Quản trị viên
-        self.cascade_delete_user("eadeedc@gmail.com")
-        self.cascade_delete_user("user_student_486c9bf4")
-
-        # Xóa các danh mục mẫu địa điểm dư thừa cũ (loc_1..loc_5)
         cat_col = self.get_collection("categories")
-        cat_col.delete_many({"_id": {"$in": ["loc_1", "loc_2", "loc_3", "loc_4", "loc_5"]}})
-
         notif_col = self.get_collection("notifications")
-        already_seeded = (not self.is_testing) and (notif_col.find_one({"_id": "_system_seed_v2"}) is not None)
+        users_col = self.get_collection("users")
+        already_seeded = (not self.is_testing) and (
+            (notif_col.find_one({"_id": "_system_seed_v2"}) is not None)
+            or (users_col.count_documents({}) > 0 and cat_col.count_documents({}) > 0)
+        )
 
         # 1. Categories seed (Master Data) - Chỉ khởi tạo lần đầu để không phục hồi lại các mục Admin đã xóa
         if not already_seeded and cat_col.count_documents({}) == 0:
@@ -621,16 +667,7 @@ class DatabaseManager:
             for kw in keywords:
                 ban_col.insert_one({"_id": f"bkw_{uuid.uuid4().hex[:8]}", "keyword": kw, "created_at": time.strftime("%Y-%m-%d %H:%M:%S")})
 
-        # 3. Seed Users for 3 Roles (Chỉ giữ tài khoản thực có đuôi @gmail.com, xóa toàn bộ tài khoản giả lập)
-        users_col = self.get_collection("users")
-        if not self.is_testing:
-            non_gmail_users = [
-                u for u in list(users_col.find({}))
-                if not str(u.get("email", "")).strip().lower().endswith("@gmail.com")
-            ]
-            for u in non_gmail_users:
-                self.cascade_delete_user(u.get("_id"))
-
+        # 3. Seed Users for 3 Roles (Chỉ khởi tạo tài khoản mẫu nếu database chưa có dữ liệu; tuyệt đối không xóa dữ liệu hiện có)
         if not already_seeded:
             # Sinh viên thật: Vũ Thế Long (vuthelong1009@gmail.com - Pass: Long123!)
             stu_users = [
@@ -665,8 +702,6 @@ class DatabaseManager:
                         "ban_reason": "",
                         "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
                     })
-                else:
-                    users_col.update_one({"email": e["email"]}, {"$set": {"password_hash": hash_password(e["pass"]), "role": "employer", "is_banned": False}})
 
             emp_col = self.get_collection("employers")
             for e in emp_users:
@@ -702,17 +737,7 @@ class DatabaseManager:
                         "cover_image_url": "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=800&auto=format&fit=crop&q=80"
                     })
 
-        # Dọn dẹp toàn bộ tin tuyển dụng giả lập hoặc mồ côi và báo cáo mẫu cũ
-        valid_emp_ids = {ed["_id"] for ed in self.get_collection("employers").find({})}
-        jobs_col = self.get_collection("jobs")
-        for j in list(jobs_col.find({})):
-            if j.get("_id") in ["job_1", "job_2", "job_3", "job_4", "job_5", "job_6"] or j.get("employer_id") not in valid_emp_ids:
-                jobs_col.delete_one({"_id": j["_id"]})
-
-        rep_col = self.get_collection("reports")
-        rep_col.delete_many({"_id": "rep_1"})
-
-        # Quản trị viên: Lê Thị Thuỳ Ngân - Cố định Gmail & Mật khẩu (lethithuyngan985@gmail.com - Pass: Le090805!)
+        # Quản trị viên: Lê Thị Thuỳ Ngân - Cố định Gmail (lethithuyngan985@gmail.com) - chỉ chèn nếu chưa có
         admin_users = [
             {"email": "lethithuyngan985@gmail.com", "pass": "Le090805!", "id": "user_admin_ngan"}
         ]
@@ -728,11 +753,6 @@ class DatabaseManager:
                     "ban_reason": "",
                     "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
                 })
-            else:
-                users_col.update_one(
-                    {"email": a["email"]},
-                    {"$set": {"password_hash": hash_password(a["pass"]), "role": "admin", "is_banned": False}}
-                )
 
         if not self.is_testing and not already_seeded:
             notif_col.update_one(

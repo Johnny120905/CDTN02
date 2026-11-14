@@ -6,10 +6,10 @@ import {
 } from 'lucide-react';
 
 export default function AdminLoginScreen({ onAuthSuccess, onNavigate }) {
-  const [email, setEmail] = useState(() => localStorage.getItem('partime_admin_remembered_email') || 'lethithuyngan985@gmail.com');
-  const [password, setPassword] = useState(() => localStorage.getItem('partime_admin_remembered_pw') || 'Le090805!');
+  const [email, setEmail] = useState(() => localStorage.getItem('partime_admin_remembered_email') || '');
+  const [password, setPassword] = useState(() => localStorage.getItem('partime_admin_remembered_pw') || '');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(() => Boolean(localStorage.getItem('partime_admin_remembered_email')));
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -66,6 +66,8 @@ export default function AdminLoginScreen({ onAuthSuccess, onNavigate }) {
 
       if (res.ok && data.success && data.token) {
         setSuccessMsg('Xác thực Quản trị viên thành công! Đang chuyển hướng vào Trung tâm chỉ huy...');
+        localStorage.setItem('partime_admin_token', data.token);
+        localStorage.setItem('partime_admin_user', JSON.stringify(data.user));
         localStorage.setItem('partime_token', data.token);
         localStorage.setItem('partime_user', JSON.stringify(data.user));
         setTimeout(() => {

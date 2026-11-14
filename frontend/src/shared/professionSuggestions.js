@@ -2,59 +2,45 @@
  * Danh mục chuyên nghiệp, địa bàn hành chính TP.HCM và quy tắc trạng thái (CDTN02)
  */
 
-// Danh sách gợi ý hơn 35 ngành nghề việc làm Part-time phổ biến cho sinh viên
+// Danh sách gợi ý ngành nghề việc làm Part-time theo ca chuẩn cho sinh viên (Đã loại bỏ việc làm tự do / Freelancer)
 export const PROFESSION_SUGGESTIONS = [
   "Nhân viên Barista / Pha chế",
   "Pha chế trà sữa / Thu ngân F&B",
   "Phục vụ nhà hàng / Quán café",
   "Thu ngân siêu thị / Cửa hàng tiện lợi",
+  "Bán hàng siêu thị (Co.opmart, WinMart)",
+  "Nhân viên rạp chiếu phim (CGV / Lotte)",
   "Lễ tân khách sạn / Tòa nhà",
+  "Phụ bếp / Sơ chế thực phẩm",
+  "Nhân viên đóng gói kho Shopee / Lazada",
+  "Nhân viên giao hàng / Shipper công nghệ",
   "Gia sư Tiếng Anh",
   "Gia sư Toán / Lý / Hóa",
   "Gia sư Tiểu học",
-  "Nhân viên giao hàng / Shipper công nghệ",
-  "Quản trị Fanpage / Trực chat page",
-  "Content Creator / Viết bài SEO",
-  "Thiết kế đồ họa / Canva / Banner",
-  "Chăm sóc khách hàng (CSKH)",
-  "Telesales / Tư vấn tuyển sinh",
-  "Bán hàng siêu thị (Co.opmart, WinMart)",
-  "PG / PB Sự kiện & Triển lãm",
-  "Dịch thuật tài liệu Anh - Việt",
-  "Nhập liệu dữ liệu văn phòng",
   "Trợ giảng tiếng Anh trung tâm",
   "Trợ lý thư viện trường học",
-  "Nhân viên đóng gói kho Shopee / Lazada",
-  "Trực tổng đài hỗ trợ kỹ thuật",
-  "Mẫu ảnh thời trang Lookbook",
-  "Quay phim / Chụp ảnh sự kiện",
-  "Hỗ trợ IT Helpdesk trường học",
-  "Lập trình viên tập sự (Frontend / Python / Node)",
-  "Kiểm thử phần mềm (Tester) part-time",
-  "Phụ bếp / Sơ chế thực phẩm",
-  "Nhân viên rạp chiếu phim (CGV / Lotte)",
+  "Chăm sóc khách hàng (CSKH)",
+  "Telesales / Tư vấn tuyển sinh",
+  "PG / PB Sự kiện & Triển lãm",
+  "Tiếp thị sản phẩm (Sampling)",
+  "Nhập liệu dữ liệu văn phòng",
   "Soạn thảo văn bản & Hỗ trợ hành chính",
   "Hướng dẫn viên du lịch sinh viên",
-  "Tiếp thị sản phẩm (Sampling)",
-  "Bảo vệ ca đêm / Trực an ninh trường học",
-  "Cộng tác viên truyền thông sự kiện"
+  "Bảo vệ ca đêm / Trực an ninh trường học"
 ];
 
-// Danh sách ngành nghề nhóm việc làm chuẩn cho dropdown
+// Danh sách ngành nghề nhóm việc làm chuẩn cho dropdown (Part-time theo ca)
 export const JOB_CATEGORIES = [
   "Tất cả ngành nghề",
   "F&B / Pha chế / Phục vụ café",
   "Bán hàng / Thu ngân / Tiện lợi",
   "Gia sư / Trợ giảng / Giáo dục",
-  "IT / Lập trình / Tester / Kỹ thuật",
-  "Marketing / Content / Thiết kế đồ họa",
-  "Chăm sóc khách hàng / Telesales / Trực page",
+  "Chăm sóc khách hàng / Telesales",
   "Lễ tân / Hành chính / Văn phòng",
   "Giao hàng / Kho vận / Logistics",
-  "Sự kiện / PG / PB / Truyền thông",
-  "Dịch thuật / Biên tập / Nhập liệu",
-  "Khách sạn / Nhà hàng / Du lịch",
-  "Thời trang / Mẫu ảnh / Chụp ảnh"
+  "Sự kiện / PG / PB / Sampling",
+  "Khách sạn / Nhà hàng / Rạp chiếu phim",
+  "An ninh / Bảo vệ / Phụ bếp"
 ];
 
 // ĐẦY ĐỦ TẤT CẢ 24 QUẬN / HUYỆN / THÀNH PHỐ THUỘC TP. HỒ CHÍ MINH

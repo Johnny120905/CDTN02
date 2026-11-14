@@ -28,6 +28,18 @@ import {
   PROFESSION_SUGGESTIONS, filterSuggestions, getStatusBadge, 
   HCM_DISTRICTS, HCM_BRANCH_SUGGESTIONS, JOB_STATUS_OPTIONS, JOB_CATEGORIES 
 } from '../../shared/professionSuggestions';
+import {
+  removeVietnameseTones,
+  parseSalaryNumber,
+  matchKeywordFlexible,
+  matchCategoryFlexible,
+  matchShiftFlexible,
+  matchSalaryBracketFlexible,
+  matchLocationFlexible,
+  normalizeJobStatus,
+  getRoleToken,
+  maskBannedWordsClient
+} from '../../shared/searchAndFilterHelper';
 
 const DEFAULT_COVER_SVG = "data:image/svg+xml;utf8," + encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400">
@@ -242,7 +254,7 @@ export default function EmployerPortal({
   const [editingJob, setEditingJob] = useState(null);
   const [jobForm, setJobForm] = useState({
     title: '',
-    category_id: 'cat_1',
+    category_id: '',
     location: 'Quận 1, TP.HCM',
     description: '',
     salary_min: 28000,
@@ -318,6 +330,13 @@ export default function EmployerPortal({
 
   // Chat State: Khởi tạo tin nhắn từ API thực
   const [chatMessages, setChatMessages] = useState([]);
+  const [bannedKeywords, setBannedKeywords] = useState([]);
+  const selectedContactRef = useRef(selectedContact);
+  selectedContactRef.current = selectedContact;
+  const companyInfoRef = useRef(companyInfo);
+  companyInfoRef.current = companyInfo;
+  const employerRecordRef = useRef(employerRecord);
+  employerRecordRef.current = employerRecord;
 
   const empId = currentUser?.employer_id || 
                 currentUser?.profile?.employer_id || 
@@ -328,22 +347,23 @@ export default function EmployerPortal({
                 currentUser?.id || 
                 'emp_default';
 
-  const getRoomId = (targetContact = selectedContact) => {
+  const getRoomId = (targetContact = selectedContactRef.current) => {
     const activeEmpId = currentUser?.employer_id || 
                         currentUser?.profile?.employer_id || 
-                        companyInfo?.employer_id || 
-                        employerRecord?._id || 
+                        companyInfoRef.current?.employer_id || 
+                        employerRecordRef.current?._id || 
                         empId;
     const cId = targetContact?.student_user_id || targetContact?.id || targetContact?.student_id;
     if (!cId) return `room_emp_${activeEmpId}_empty`;
     return `room_emp_${activeEmpId}_stu_${cId}`;
   };
+  const currentRoomKey = getRoomId(); // chuỗi ổn định -> effects không bị stale hoặc Temporal Dead Zone
   const [newMsgText, setNewMsgText] = useState('');
   const [chatAttachment, setChatAttachment] = useState(null); // { file, name, size, type, base64, sizeStr }
   const [chatPreviewDoc, setChatPreviewDoc] = useState(null);
   const chatFileInputRef = useRef(null);
 
-  const token = isGuestMode ? null : localStorage.getItem('partime_token');
+  const token = isGuestMode ? null : getRoleToken('employer');
   const headers = token ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } : { 'Content-Type': 'application/json' };
 
   // Sync title - 9 Mục Nhà tuyển dụng chuẩn
@@ -366,7 +386,7 @@ export default function EmployerPortal({
       setEditingJob(null);
       setJobForm({
         title: '',
-        category_id: 'cat_1',
+        category_id: '',
         location: companyInfo.address || 'Quận 1, TP.HCM',
         description: '',
         salary_min: 28000,
@@ -401,7 +421,7 @@ export default function EmployerPortal({
         setEditingJob(null);
         setJobForm({
           title: '',
-          category_id: 'cat_1',
+          category_id: '',
           location: companyInfo.address || 'Quận 1, TP.HCM',
           description: '',
           salary_min: 28000,
@@ -442,6 +462,7 @@ export default function EmployerPortal({
 
   const fetchAllData = () => {
     fetchCategories();
+    fetchBannedKeywords();
     if (isGuestMode || !token || !currentUser) {
       setMyJobs([]);
       setApplicants([]);
@@ -521,12 +542,16 @@ export default function EmployerPortal({
               role: 'student',
               email: app.student_email || '',
               online: true,
-              lastMsg: `Đơn ứng tuyển: ${app.job_title}`,
-              time: 'Mới ứng tuyển',
+              lastMsg: app.last_message || `Đơn ứng tuyển: ${app.job_title}`,
+              time: app.last_message_at || app.applied_at || 'Mới ứng tuyển',
               unread: 0,
+              unread_count: 0,
+              unreplied: app.unreplied !== undefined ? app.unreplied : (app.application_status === 'pending'),
+              status: app.application_status,
               application_status: app.application_status,
               is_cancelled: app.is_cancelled,
               application_id: app._id,
+              job_id: app.job_id,
               job_title: app.job_title
             });
           }
@@ -535,8 +560,19 @@ export default function EmployerPortal({
         setContacts(uniqueStudents);
         if (uniqueStudents.length > 0) {
           setSelectedContact(prev => {
-            if (prev && uniqueStudents.some(u => u.id === prev.id)) return prev;
-            return uniqueStudents[0];
+            if (!prev) return uniqueStudents[0];
+            const matched = uniqueStudents.find(u => u.id === prev.id);
+            if (!matched) return uniqueStudents[0];
+            if (
+              prev.name === matched.name &&
+              prev.lastMsg === matched.lastMsg &&
+              prev.time === matched.time &&
+              prev.unreplied === matched.unreplied &&
+              prev.application_status === matched.application_status
+            ) {
+              return prev;
+            }
+            return matched;
           });
         } else {
           setSelectedContact(null);
@@ -557,6 +593,18 @@ export default function EmployerPortal({
       }
     } catch (err) {
       console.warn('Could not fetch categories:', err);
+    }
+  };
+
+  const fetchBannedKeywords = async () => {
+    try {
+      const res = await fetch('/api/banned-keywords');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setBannedKeywords(data.data);
+      }
+    } catch (err) {
+      console.warn('Could not fetch banned keywords:', err);
     }
   };
 
@@ -589,19 +637,19 @@ export default function EmployerPortal({
     }
   };
 
-  const fetchChatMessages = async (targetContact = selectedContact) => {
+  const fetchChatMessages = async (targetContact = null) => {
     if (isGuestMode || !token || !currentUser) {
       setChatMessages([]);
       return;
     }
-    const contactToFetch = targetContact || selectedContact;
+    const contactToFetch = targetContact || selectedContactRef.current;
     if (!contactToFetch) {
       setChatMessages([]);
       return;
     }
     const roomId = getRoomId(contactToFetch);
     try {
-      const res = await fetch(`/api/chat/messages?room_id=${roomId}`, { headers });
+      const res = await fetch(`/api/chat/messages?room_id=${encodeURIComponent(roomId)}`, { headers });
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
         // Chỉ cập nhật khi tin nhắn thực sự thay đổi -> không re-render/giật khung chat
@@ -612,14 +660,14 @@ export default function EmployerPortal({
     }
   };
 
-  // Tự động tải lại tin nhắn khi người dùng chọn một ứng viên khác
+  // Tự động tải lại tin nhắn khi người dùng đổi ứng viên, mở tab chat, hoặc canonical empId vừa đồng bộ
   useEffect(() => {
     if (selectedContact) {
       fetchChatMessages(selectedContact);
     } else {
       setChatMessages([]);
     }
-  }, [selectedContact]);
+  }, [token, activeMenu, currentRoomKey]);
 
   // Tải lên tệp GPKD mới từ máy tính (FR 2.3.2)
   const processGpkdFile = (file, resetInput = null) => {
@@ -905,7 +953,7 @@ export default function EmployerPortal({
       title: 'Xác Nhận Xóa Tin Tuyển Dụng',
       message: `Bạn có chắc chắn muốn xóa tin tuyển dụng "${job.title}" vĩnh viễn khỏi hệ thống? Toàn bộ hồ sơ ứng tuyển liên quan của tin này cũng sẽ được gỡ bỏ.`,
       type: 'danger',
-      confirmText: 'Xóa Vĩnh Viễn',
+      confirmText: 'Xóa',
       cancelText: 'Hủy Bỏ',
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
@@ -933,12 +981,12 @@ export default function EmployerPortal({
   const handleSaveJobSubmit = async (e) => {
     e.preventDefault();
     if (isGuestMode) {
-      notify('Vui lòng đăng nhập tài khoản Nhà tuyển dụng để đăng tin tuyển dụng!', 'info');
+      notify('Vui lòng đăng nhập tài khoản Doanh nghiệp để đăng tin tuyển dụng!', 'info');
       if (onNavigateAuth) onNavigateAuth('login', 'employer');
       return;
     }
     if (isGuestMode || !token) {
-      if (onShowBanner) onShowBanner('Vui lòng đăng nhập tài khoản Nhà tuyển dụng để đăng tin mới!', 'info');
+      if (onShowBanner) onShowBanner('Vui lòng đăng nhập tài khoản Doanh nghiệp để đăng tin mới!', 'info');
       if (onNavigateAuth) onNavigateAuth('login', 'employer');
       return;
     }
@@ -1012,7 +1060,7 @@ export default function EmployerPortal({
       title: 'Xóa Hồ Sơ Ứng Tuyển',
       message: `Bạn có chắc chắn muốn xóa vĩnh viễn hồ sơ ứng tuyển của "${stuName}" (${app.job_title || 'Việc làm'}) khỏi hệ thống?`,
       type: 'danger',
-      confirmText: 'Xóa Vĩnh Viễn',
+      confirmText: 'Xóa',
       cancelText: 'Hủy Bỏ',
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
@@ -1189,13 +1237,18 @@ export default function EmployerPortal({
     setNewMsgText('');
     setChatAttachment(null);
 
+    const { cleanText, isFlagged, matchedWords } = maskBannedWordsClient(textContent, bannedKeywords);
     const optimisticMsg = {
       _id: `msg_tmp_${Date.now()}`,
       sender_id: currentUser?._id || currentUser?.id || 'emp_user',
       sender_role: 'employer',
       sender_email: currentUser?.email || '',
-      sender_name: companyInfo?.representative_name || companyInfo?.company_name || currentUser?.name || 'Nhà tuyển dụng',
-      content: textContent,
+      sender_name: companyInfo?.representative_name || companyInfo?.company_name || currentUser?.name || 'Doanh nghiệp',
+      content: cleanText,
+      clean_content: cleanText,
+      original_content: textContent,
+      is_flagged: isFlagged,
+      flagged_words: matchedWords,
       media_url: attachmentToSend?.base64 || '',
       file_name: attachmentToSend?.name || '',
       file_size: attachmentToSend?.size || 0,
@@ -1230,11 +1283,13 @@ export default function EmployerPortal({
   };
 
   // Socket.IO Room Joining & WebRTC P2P Signaling Listeners (FR 2.9.4)
-  const currentRoomKey = getRoomId(); // chuỗi ổn định -> effect không chạy lại khi object selectedContact đổi tham chiếu
   useEffect(() => {
     if (!token) return;
     const socket = getSocket();
     const currentRoomId = currentRoomKey;
+    if (empId) {
+      socket.emit('register-user', { user_id: empId, role: 'employer' });
+    }
     if (currentRoomId) {
       socket.emit('join-room', {
         room_id: currentRoomId,
@@ -1300,14 +1355,41 @@ export default function EmployerPortal({
     const onNewChatMessage = (msg) => {
       if (!msg) return;
       setChatMessages(prev => (prev.some(m => m._id === msg._id) ? prev : [...prev, msg]));
+      const partnerId = msg.sender_role === 'student' ? (msg.sender_id || msg.student_id) : msg.receiver_id;
+      if (partnerId) {
+        setContacts(prev => prev.map(c => c.id === partnerId ? {
+          ...c,
+          lastMsg: msg.content || c.lastMsg,
+          unreplied: msg.sender_role === 'student'
+        } : c));
+      }
     };
 
+    const onApplicantChanged = () => {
+      fetchApplicants();
+      fetchMyJobs();
+    };
+    const onRealtimeSync = () => {
+      fetchApplicants();
+      fetchMyJobs();
+    };
     socket.on('incoming-call', onIncomingCall);
     socket.on('answer-made', onAnswerMade);
     socket.on('receive-candidate', onReceiveCandidate);
     socket.on('call-ended', onCallEnded);
     socket.on('call-rejected', onCallRejected);
     socket.on('new-chat-message', onNewChatMessage);
+
+    socket.on('applicant-withdrawn', onApplicantChanged);
+    socket.on('new-application', onApplicantChanged);
+    socket.on('application-status-updated', onApplicantChanged);
+    socket.on('shift-status-updated', onApplicantChanged);
+    socket.on('job-updated', onRealtimeSync);
+    socket.on('gpkd-status-updated', onRealtimeSync);
+    socket.on('new-review', onRealtimeSync);
+    socket.on('review-updated', onRealtimeSync);
+    socket.on('categories-updated', fetchCategories);
+    socket.on('banned-keywords-updated', fetchBannedKeywords);
 
     // KHÔNG polling lặp /api/chat/call/status hay /api/chat/messages nữa:
     // toàn bộ tín hiệu cuộc gọi và tin nhắn đi qua Socket.IO thời gian thực,
@@ -1319,6 +1401,16 @@ export default function EmployerPortal({
       socket.off('call-ended', onCallEnded);
       socket.off('call-rejected', onCallRejected);
       socket.off('new-chat-message', onNewChatMessage);
+      socket.off('applicant-withdrawn', onApplicantChanged);
+      socket.off('new-application', onApplicantChanged);
+      socket.off('application-status-updated', onApplicantChanged);
+      socket.off('shift-status-updated', onApplicantChanged);
+      socket.off('job-updated', onRealtimeSync);
+      socket.off('gpkd-status-updated', onRealtimeSync);
+      socket.off('new-review', onRealtimeSync);
+      socket.off('review-updated', onRealtimeSync);
+      socket.off('categories-updated', fetchCategories);
+      socket.off('banned-keywords-updated', fetchBannedKeywords);
     };
   }, [token, isVideoCalling, currentRoomKey, empId]);
 
@@ -1340,6 +1432,25 @@ export default function EmployerPortal({
     const timer = setInterval(checkCallStatus, 3000);
     return () => clearInterval(timer);
   }, [token, isVideoCalling, incomingCall]);
+
+  // Chuẩn hóa tương tác ≤ 3s: Polling tự động làm mới dữ liệu theo tab đang mở (không dùng stale closure)
+  useEffect(() => {
+    if (!token || isGuestMode) return;
+    if (['home', 'company', 'applicants', 'jobs', 'job_completion', 'interviews', 'reviews', 'chat'].includes(activeMenu)) {
+      const timer = setInterval(() => {
+        if (activeMenu === 'chat') {
+          if (selectedContactRef.current) {
+            fetchChatMessages(selectedContactRef.current);
+          }
+          fetchApplicants();
+        } else {
+          fetchApplicants();
+          fetchMyJobs();
+        }
+      }, 3000);
+      return () => clearInterval(timer);
+    }
+  }, [token, isGuestMode, activeMenu, currentRoomKey]);
 
   const handleStartCall = async (type = 'video') => {
     setCallType(type);
@@ -1395,7 +1506,7 @@ export default function EmployerPortal({
 
       socket.emit('call-user', {
         room_id: currentRoomId,
-        caller_name: companyInfo?.company_name || 'Nhà tuyển dụng',
+        caller_name: companyInfo?.company_name || 'Doanh nghiệp',
         caller_role: 'employer',
         target_user_id: selectedContact?.student_user_id || selectedContact?.id,
         call_type: type,
@@ -1657,7 +1768,7 @@ export default function EmployerPortal({
       title: 'Xóa Đánh Giá Năng Lực Sinh Viên',
       message: 'Bạn có chắc chắn muốn xóa vĩnh viễn bài đánh giá năng lực sinh viên này khỏi hệ thống?',
       type: 'danger',
-      confirmText: 'Xóa Đánh Giá',
+      confirmText: 'Xóa',
       cancelText: 'Hủy Bỏ',
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
@@ -1680,34 +1791,24 @@ export default function EmployerPortal({
     });
   };
 
+  useEffect(() => {
+    setJobPage(1);
+  }, [jobSearch, jobStatusFilter, jobBranchFilter, jobRoleFilter]);
+
   // Filter Jobs Table (FR-NTD-04.10: Chi nhánh & Chức danh)
   const filteredJobs = myJobs.filter(j => {
-    const jTitle = (j.title || '').toLowerCase();
-    const jDesc = (j.description || '').toLowerCase();
-    const sSearch = (jobSearch || '').trim().toLowerCase();
-    const matchesSearch = !sSearch || 
-      jTitle.includes(sSearch) || 
-      jDesc.includes(sSearch);
-    const jSt = j.job_status || j.status;
-    const matchesStatus = !jobStatusFilter || 
-      (jobStatusFilter === 'open' && (jSt === 'open' || (j.is_open && jSt !== 'filled' && jSt !== 'completed'))) || 
-      (jobStatusFilter === 'closed' && (jSt === 'closed' || jSt === 'paused' || (!j.is_open && jSt !== 'filled' && jSt !== 'completed'))) ||
-      (jobStatusFilter === 'filled' && jSt === 'filled') ||
-      (jobStatusFilter === 'completed' && jSt === 'completed') ||
-      (jSt === jobStatusFilter);
+    // 1. Tìm kiếm theo từ khóa (Tiêu đề, mô tả, chi nhánh, ngành nghề)
+    const matchesSearch = matchKeywordFlexible(j, jobSearch, ['title', 'description', 'location', 'address', 'branch_name', 'category_name']);
 
-    // FR-NTD-04.10: Lọc theo Chi nhánh / Cơ sở (Tỉnh/Thành) & Chức danh chuyên môn
-    let matchesBranch = true;
-    if (jobBranchFilter) {
-      const bText = ((j.location || '') + ' ' + (j.branch_name || '') + ' ' + (j.address || '')).toLowerCase();
-      matchesBranch = bText.includes(jobBranchFilter.toLowerCase());
-    }
+    const jSt = normalizeJobStatus(j);
+    const matchesStatus = !jobStatusFilter || jobStatusFilter === 'all' ||
+      (jobStatusFilter === 'active' ? jSt === 'open' : jSt === jobStatusFilter);
 
-    let matchesRole = true;
-    if (jobRoleFilter) {
-      const rText = ((j.title || '') + ' ' + (j.description || '')).toLowerCase();
-      matchesRole = rText.includes(jobRoleFilter.toLowerCase());
-    }
+    // 2. FR-NTD-04.10: Lọc theo Chi nhánh / Cơ sở (Tỉnh/Thành) linh hoạt đa từ
+    const matchesBranch = matchKeywordFlexible(j, jobBranchFilter, ['location', 'branch_name', 'address', 'district', 'province']);
+
+    // 3. Lọc theo Chức danh chuyên môn linh hoạt đa từ
+    const matchesRole = matchKeywordFlexible(j, jobRoleFilter, ['title', 'description', 'category_name', 'category']);
 
     return matchesSearch && matchesStatus && matchesBranch && matchesRole;
   });
@@ -1715,47 +1816,58 @@ export default function EmployerPortal({
   const totalJobPages = Math.ceil(filteredJobs.length / JOBS_PER_PAGE) || 1;
   const paginatedJobs = filteredJobs.slice((jobPage - 1) * JOBS_PER_PAGE, jobPage * JOBS_PER_PAGE);
 
-  // Tự động ẩn đi các đơn ứng tuyển mà sinh viên đã chủ động hủy trước đó
-  const validApplicants = isGuestMode ? [] : applicants.filter(a => 
-    a.application_status !== 'cancelled' && 
-    a.application_status !== 'withdrawn' && 
-    !a.is_cancelled
-  );
+  // Danh sách ứng viên (Bao gồm đầy đủ các hồ sơ, kể cả khi sinh viên chủ động rút đơn để Doanh nghiệp nắm bắt)
+  const validApplicants = isGuestMode ? [] : applicants;
 
   // Filter Kanban Candidates (FR-NTD-05.09, FR-NTD-05.10, FR-NTD-05.11)
   const filteredKanbanApplicants = validApplicants.filter(a => {
-    const studentName = a.application_snapshot?.student_name || a.student_name || '';
-    const matchesSearch = !kanbanSearch || 
-      studentName.toLowerCase().includes(kanbanSearch.toLowerCase()) ||
-      (a.job_title && a.job_title.toLowerCase().includes(kanbanSearch.toLowerCase()));
-    const matchesJob = !kanbanJobFilter || a.job_id === kanbanJobFilter;
+    // 1. Tìm kiếm ứng viên (Tên, Trường ĐH, Chức danh, SĐT, Email - Bỏ dấu tiếng Việt)
+    const applicantObj = {
+      ...a,
+      student_name: a.application_snapshot?.student_name || a.student_name || '',
+      university: a.application_snapshot?.university || a.university || '',
+      phone: a.application_snapshot?.phone || a.phone || '',
+      email: a.application_snapshot?.email || a.email || ''
+    };
+    const matchesSearch = matchKeywordFlexible(applicantObj, kanbanSearch, ['student_name', 'job_title', 'university', 'phone', 'email']);
 
-    // 1. FR-NTD-05.09: Lọc theo Ca làm việc đăng ký (Ca sáng, Ca chiều, Ca tối, Ca linh hoạt)
-    let matchesShift = true;
-    if (applicantShiftFilter !== 'all') {
-      const aShift = ((a.shift_registered || '') + ' ' + (a.cover_note || '') + ' ' + (a.work_time || '')).toLowerCase();
-      if (applicantShiftFilter === 'morning') matchesShift = aShift.includes('sáng') || aShift.includes('morning');
-      else if (applicantShiftFilter === 'afternoon') matchesShift = aShift.includes('chiều') || aShift.includes('afternoon');
-      else if (applicantShiftFilter === 'evening') matchesShift = aShift.includes('tối') || aShift.includes('evening');
-      else if (applicantShiftFilter === 'flexible') matchesShift = aShift.includes('linh hoạt') || aShift.includes('tự chọn');
-    }
+    // 2. Lọc theo Tin tuyển dụng (khớp ID hoặc Tên bài đăng)
+    const matchesJob = !kanbanJobFilter || kanbanJobFilter === '' || kanbanJobFilter === 'all' ||
+      a.job_id === kanbanJobFilter ||
+      matchKeywordFlexible(a, kanbanJobFilter, ['job_title', 'job_id']);
 
-    // 2. FR-NTD-05.10: Lọc theo Trường Đại học & Mức độ trùng khớp Lịch rảnh
-    let matchesUni = true;
-    if (applicantUniFilter !== 'all') {
-      const uName = (a.application_snapshot?.university || a.university || '').toLowerCase();
-      matchesUni = uName.includes(applicantUniFilter.toLowerCase());
-    }
+    // 3. FR-NTD-05.09: Lọc theo Ca làm việc đăng ký (khớp cả từ khóa lẫn mốc giờ 07:00, 13:00, 18:00...)
+    const matchesShift = matchShiftFlexible(a, applicantShiftFilter);
 
+    // 4. FR-NTD-05.10: Lọc theo Trường Đại học (khớp không dấu)
+    const matchesUni = !applicantUniFilter || applicantUniFilter === 'all' || applicantUniFilter === 'Mọi trường đại học' ||
+      matchKeywordFlexible(applicantObj, applicantUniFilter, ['university']);
+
+    // 5. FR-NTD-05.10: Lọc theo Mức độ khớp lịch rảnh (100%, >=75%, >=50%)
+    const computeScheduleMatch = () => {
+      const fs = a.free_schedule || a.student_free_schedule || a.application_snapshot?.free_schedule;
+      if (!fs || typeof fs !== 'object') return null;
+      const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+      const shiftText = `${a.shift_applied || ''} ${a.shift_registered || ''} ${a.work_time || ''}`.toLowerCase();
+      const targetShifts = [];
+      if (shiftText.includes('sáng') || shiftText.includes('morning') || shiftText.includes('07:') || shiftText.includes('08:')) targetShifts.push('morning');
+      if (shiftText.includes('chiều') || shiftText.includes('afternoon') || shiftText.includes('13:') || shiftText.includes('14:')) targetShifts.push('afternoon');
+      if (shiftText.includes('tối') || shiftText.includes('evening') || shiftText.includes('18:') || shiftText.includes('17:')) targetShifts.push('evening');
+      const matchedDays = days.filter(d => {
+        if (!fs[d] || typeof fs[d] !== 'object') return false;
+        if (targetShifts.length > 0) return targetShifts.some(s => fs[d][s]);
+        return fs[d].morning || fs[d].afternoon || fs[d].evening;
+      }).length;
+      return Math.round((matchedDays / days.length) * 100);
+    };
     let matchesSchedule = true;
-    if (applicantMatchFilter !== 'all') {
-      const matchScore = a.schedule_match_percentage || 85;
-      if (applicantMatchFilter === 'high') matchesSchedule = matchScore >= 85;
-      else if (applicantMatchFilter === 'medium') matchesSchedule = matchScore >= 70 && matchScore < 85;
-      else if (applicantMatchFilter === 'potential') matchesSchedule = matchScore < 70;
+    if (applicantMatchFilter && applicantMatchFilter !== 'all') {
+      const score = computeScheduleMatch();
+      const threshold = Number(applicantMatchFilter) || 0;
+      matchesSchedule = score !== null && score >= threshold;
     }
 
-    // 3. FR-NTD-05.11: Lọc Thời gian nộp hồ sơ ứng viên
+    // 6. FR-NTD-05.11: Lọc Thời gian nộp hồ sơ ứng viên
     let matchesDate = true;
     if (applicantTimeFilter !== 'all' && a.applied_at) {
       const appTime = new Date(a.applied_at).getTime();
@@ -1775,29 +1887,36 @@ export default function EmployerPortal({
     return matchesSearch && matchesJob && matchesShift && matchesUni && matchesSchedule && matchesDate;
   });
 
-  // Kanban Columns
-  const pendingApps = filteredKanbanApplicants.filter(a => a.application_status === 'pending');
+  // Kanban Columns (4 Cột chuẩn: Chờ duyệt / Đã tiếp nhận, Đã duyệt, Chưa phù hợp, Sinh viên chủ động rút đơn)
+  const pendingApps = filteredKanbanApplicants.filter(a => ['pending', 'reviewed', 'received'].includes(a.application_status) || !a.application_status);
   const acceptedApps = filteredKanbanApplicants.filter(a => a.application_status === 'accepted' || a.application_status === 'interview');
   const rejectedApps = filteredKanbanApplicants.filter(a => a.application_status === 'rejected');
+  const withdrawnApps = filteredKanbanApplicants.filter(a => a.application_status === 'cancelled' || a.application_status === 'withdrawn' || a.is_cancelled);
 
-  // Filled jobs for shift completion (FR-NTD-10.03: Lọc theo Chi nhánh, Tin tuyển dụng & Trạng thái)
-  const baseFilledJobs = myJobs.filter(j => j.status === 'filled' || j.job_status === 'filled' || j.status === 'completed' || j.job_status === 'completed' || (j.applicant_count || 0) > 0);
+  // Filled jobs for shift completion (FR-NTD-10.03: Lọc theo Chi nhánh, Tin tuyển dụng & Đầy đủ trạng thái)
+  const baseFilledJobs = myJobs;
   const filledJobsForCompletion = baseFilledJobs.filter(j => {
-    let matchB = true;
-    if (completionBranchFilter !== 'all') {
-      const bText = ((j.location || '') + ' ' + (j.branch_name || '')).toLowerCase();
-      matchB = bText.includes(completionBranchFilter.toLowerCase());
-    }
-    let matchJ = true;
-    if (completionJobFilter !== 'all') {
-      matchJ = j._id === completionJobFilter;
-    }
+    const matchB = (!completionBranchFilter || completionBranchFilter === 'all' || completionBranchFilter === 'Tất cả chi nhánh')
+      ? true
+      : matchKeywordFlexible(j, completionBranchFilter, ['location', 'branch_name', 'address', 'district', 'province']);
+
+    const matchJ = (!completionJobFilter || completionJobFilter === 'all' || completionJobFilter === 'Tất cả tin tuyển dụng')
+      ? true
+      : (j._id === completionJobFilter || matchKeywordFlexible(j, completionJobFilter, ['title', '_id']));
+
     let matchS = true;
-    const jSt = j.job_status || j.status;
-    if (completionStatusFilter === 'waiting') {
-      matchS = jSt === 'filled' || (j.applicant_count > 0 && jSt !== 'completed');
+    const jSt = normalizeJobStatus(j);
+    const hasAcceptedApps = (j.accepted_count > 0) || validApplicants.some(a => a.job_id === j._id && (a.application_status === 'accepted' || a.application_status === 'interview'));
+    if (completionStatusFilter === 'open') {
+      matchS = jSt === 'open';
+    } else if (completionStatusFilter === 'filled' || completionStatusFilter === 'waiting') {
+      matchS = jSt === 'filled' || (hasAcceptedApps && jSt !== 'completed');
+    } else if (completionStatusFilter === 'working') {
+      matchS = jSt === 'working' || jSt === 'in_progress' || jSt === 'filled';
     } else if (completionStatusFilter === 'completed') {
       matchS = jSt === 'completed';
+    } else if (completionStatusFilter === 'closed') {
+      matchS = jSt === 'closed';
     }
     return matchB && matchJ && matchS;
   });
@@ -1817,7 +1936,7 @@ export default function EmployerPortal({
     { id: 'jobs', label: 'Quản lý tin tuyển dụng', icon: <Briefcase className="w-4 h-4" />, count: isGuestMode ? undefined : myJobs.length },
     { id: 'applicants', label: 'Quản trị ứng viên', icon: <Users className="w-4 h-4" />, count: isGuestMode ? undefined : validApplicants.length },
     { id: 'interviews', label: 'Lịch phỏng vấn trực tuyến', icon: <Video className="w-4 h-4" />, count: isGuestMode ? undefined : validApplicants.length },
-    { id: 'job_completion', label: 'Xác nhận hoàn thành ca làm', icon: <FileCheck className="w-4 h-4" />, count: isGuestMode ? undefined : filledJobsForCompletion.length },
+    { id: 'job_completion', label: 'Xác nhận hoàn thành ca làm', icon: <FileCheck className="w-4 h-4" />, count: isGuestMode ? undefined : baseFilledJobs.length },
     { id: 'reviews', label: 'Đánh giá năng lực sinh viên', icon: <Star className="w-4 h-4" />, count: isGuestMode ? undefined : reviews.length },
     { id: 'chat', label: 'Tin nhắn & Phỏng vấn ứng viên', icon: <MessageSquare className="w-4 h-4" />, count: isGuestMode ? undefined : contacts.length }
   ];
@@ -1885,7 +2004,7 @@ export default function EmployerPortal({
                     <span className={`absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black flex items-center justify-center whitespace-nowrap ring-2 shadow-xs ${
                       isActive ? 'bg-white text-blue-700 ring-indigo-600' : 'bg-blue-600 text-white ring-white'
                     }`}>
-                      {item.count > 99 ? '99+' : item.count}
+                      {item.count >= 100 ? '99+' : item.count}
                     </span>
                   )}
                   {!collapsedDesktop && <span className="leading-snug">{item.label}</span>}
@@ -1894,7 +2013,7 @@ export default function EmployerPortal({
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-black shrink-0 whitespace-nowrap ${
                     isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-800 border border-blue-200'
                   }`}>
-                    {item.count}
+                    {item.count >= 100 ? '99+' : item.count}
                   </span>
                 )}
               </button>
@@ -1921,97 +2040,23 @@ export default function EmployerPortal({
               </button>
             </div>
 
-            {/* Thanh tìm kiếm & Lọc hội thoại (FR-NTD-07.06: Tin tuyển dụng & Chưa phản hồi) */}
-            <div className="p-3 border-b border-slate-200 space-y-2">
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={chatSearchQuery}
-                  onChange={(e) => setChatSearchQuery(e.target.value)}
-                  placeholder="Tìm theo tên Sinh viên..."
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 placeholder-slate-500 outline-none focus:border-blue-600 focus:bg-white"
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <select
-                  value={chatJobFilter}
-                  onChange={(e) => setChatJobFilter(e.target.value)}
-                  className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 outline-none focus:border-blue-600 cursor-pointer"
-                  title="Lọc hội thoại theo Tin tuyển dụng (FR-NTD-07.06)"
-                >
-                  <option value="all">Tất cả tin tuyển dụng</option>
-                  {myJobs.map(j => (
-                    <option key={j._id} value={j._id}>{j.title}</option>
-                  ))}
-                </select>
-
-                <button
-                  type="button"
-                  onClick={() => setChatUnrepliedOnly(!chatUnrepliedOnly)}
-                  className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap border ${
-                    chatUnrepliedOnly
-                      ? 'bg-amber-100 text-amber-900 border-amber-300'
-                      : 'bg-slate-50 text-slate-600 hover:text-slate-900 border-slate-200'
-                  }`}
-                  title="Chỉ hiển thị hội thoại chưa phản hồi (FR-NTD-07.06)"
-                >
-                  Chưa phản hồi
-                </button>
-              </div>
-            </div>
-
-            {/* Danh sách các cuộc hội thoại */}
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-100 p-2 space-y-1">
-              {contacts.length === 0 ? (
-                <div className="p-6 text-center text-slate-600 text-xs">
-                  <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50 text-slate-400" />
-                  <p className="font-bold text-slate-800">Chưa có cuộc trò chuyện nào</p>
-                  <p className="text-xs text-slate-600 mt-1">
-                    Danh bạ sẽ tự động xuất hiện khi có sinh viên ứng tuyển vào công việc của bạn.
-                  </p>
-                </div>
-              ) : (
-                contacts
-                  .filter(c => {
-                    const matchName = !chatSearchQuery || c.name.toLowerCase().includes(chatSearchQuery.toLowerCase());
-                    const matchJob = chatJobFilter === 'all' || !chatJobFilter || c.job_id === chatJobFilter;
-                    const matchUnreplied = !chatUnrepliedOnly || c.unreplied || c.unread_count > 0 || c.status === 'pending';
-                    return matchName && matchJob && matchUnreplied;
-                  })
-                  .map((contact) => (
-                    <button
-                      key={contact.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedContact(contact);
-                        handleMenuSwitch('chat');
-                        if (onCloseChatDrawer) onCloseChatDrawer();
-                      }}
-                      className="w-full p-3 rounded-xl bg-slate-50 hover:bg-blue-50/70 border border-slate-200 transition-all text-left flex items-start gap-3 cursor-pointer group"
-                    >
-                      <div className="relative shrink-0">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-sky-500 text-white font-bold flex items-center justify-center text-sm shadow-sm">
-                          {contact.name.charAt(0)}
-                        </div>
-                        <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
-                          contact.online ? 'bg-emerald-500' : 'bg-slate-400'
-                        }`}></span>
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs sm:text-sm font-bold text-slate-900 truncate group-hover:text-blue-700">{contact.name}</p>
-                          <span className="text-xs text-slate-500 font-mono">{contact.time}</span>
-                        </div>
-                        <p className="text-xs text-blue-700 font-semibold truncate mt-0.5">{contact.subtitle}</p>
-                        <p className="text-xs text-slate-600 line-clamp-1 mt-0.5">{contact.lastMsg}</p>
-                      </div>
-                    </button>
-                  ))
-              )}
-            </div>
+            <EmployerChatContactsPanel
+              contacts={contacts}
+              selectedContact={selectedContact}
+              chatSearchQuery={chatSearchQuery}
+              onSearchChange={setChatSearchQuery}
+              chatJobFilter={chatJobFilter}
+              onJobFilterChange={setChatJobFilter}
+              myJobs={myJobs}
+              chatUnrepliedOnly={chatUnrepliedOnly}
+              onToggleUnreplied={() => setChatUnrepliedOnly(!chatUnrepliedOnly)}
+              onSelectContact={(contact) => {
+                setSelectedContact(contact);
+                handleMenuSwitch('chat');
+                if (onCloseChatDrawer) onCloseChatDrawer();
+              }}
+              isDrawer
+            />
 
             <div className="p-3 border-t border-slate-200 bg-slate-50 text-center">
               <button
@@ -2030,7 +2075,9 @@ export default function EmployerPortal({
       )}
 
       {/* ======================= MAIN CONTENT AREA ======================= */}
-      <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto transition-all duration-300">
+      <main className={`flex-1 min-w-0 overflow-y-auto transition-all duration-300 ${
+        activeMenu === 'chat' ? 'p-2.5 sm:p-4 lg:p-5' : 'p-4 sm:p-6 lg:p-8'
+      }`}>
 
         {/* 1. MÀN HÌNH TRANG CHỦ DOANH NGHIỆP */}
         {activeMenu === 'home' && (
@@ -2222,7 +2269,7 @@ export default function EmployerPortal({
                   <div className="space-y-1">
                     <h4 className="text-base sm:text-lg font-bold text-slate-900">Quy Trình Quản Trị Hồ Sơ Ứng Viên Chuẩn ATS</h4>
                     <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto leading-relaxed">
-                      Bạn đang xem ở chế độ khách. Đăng ký hoặc đăng nhập tài khoản Nhà tuyển dụng để phát hành tin tuyển dụng theo ca và tiếp nhận hồ sơ ứng tuyển trực tiếp từ sinh viên.
+                      Bạn đang xem ở chế độ khách. Đăng ký hoặc đăng nhập tài khoản Doanh nghiệp để phát hành tin tuyển dụng theo ca và tiếp nhận hồ sơ ứng tuyển trực tiếp từ sinh viên.
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
@@ -2422,10 +2469,11 @@ export default function EmployerPortal({
                       <button
                         type="button"
                         onClick={() => handleResetMediaToDefault('cover_image_url')}
-                        className="p-2 rounded-xl bg-red-600/80 hover:bg-red-600 text-white cursor-pointer"
-                        title="Xóa về Placeholder mặc định"
+                        className="px-2.5 py-1.5 rounded-xl bg-red-600/80 hover:bg-red-600 text-white cursor-pointer text-xs font-bold inline-flex items-center gap-1 shadow-xs"
+                        title="Xóa ảnh bìa về mặc định"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Xóa</span>
                       </button>
                     </div>
                   </div>
@@ -2471,10 +2519,11 @@ export default function EmployerPortal({
                           <button
                             type="button"
                             onClick={() => handleResetMediaToDefault('logo_url')}
-                            className="p-2 rounded-xl bg-red-600 text-white cursor-pointer"
+                            className="px-2.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white cursor-pointer text-xs font-bold inline-flex items-center gap-1 shadow-xs"
                             title="Xóa logo"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
+                            <span>Xóa</span>
                           </button>
                         </div>
                       </div>
@@ -2492,14 +2541,16 @@ export default function EmployerPortal({
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingCompany(!isEditingCompany)}
-                      className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs sm:text-sm font-bold border border-slate-300 transition-all cursor-pointer flex items-center gap-2 shadow-xs shrink-0"
-                    >
-                      <Edit className="w-4 h-4 text-blue-600" />
-                      <span>{isEditingCompany ? 'Hủy Sửa' : 'Chỉnh Sửa Thông Tin'}</span>
-                    </button>
+                    {!isEditingCompany && (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingCompany(true)}
+                        className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs sm:text-sm font-bold border border-slate-300 transition-all cursor-pointer flex items-center gap-2 shadow-xs shrink-0"
+                      >
+                        <Edit className="w-4 h-4 text-blue-600" />
+                        <span>Chỉnh sửa thông tin</span>
+                      </button>
+                    )}
                   </div>
 
                   {/* Progress bar upload media */}
@@ -2531,14 +2582,6 @@ export default function EmployerPortal({
                           Tài liệu: {companyInfo.business_license_name || (companyInfo.business_license_url ? (companyInfo.business_license_url.toLowerCase().endsWith('.pdf') ? companyInfo.business_license_url.split('/').pop() : 'GPKD_DoanhNghiep.pdf') : 'Chưa tải lên tệp PDF')}
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setShowCompanyGpkdViewer(true)}
-                        className="ml-2 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>Xem Bản In GPKD</span>
-                      </button>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -2830,30 +2873,15 @@ export default function EmployerPortal({
                           className="w-full bg-white border border-blue-200/80 rounded-xl px-4 py-3 text-slate-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-400/20 shadow-xs text-xs sm:text-sm placeholder:text-slate-400"
                         />
                         <datalist id="job-industry-suggestions">
-                          {categories.filter(c => c.type === 'job' || !c.type).map(c => (
-                            <option key={c._id} value={c.name} />
-                          ))}
+                          {categories
+                            .filter(c => (c.type === 'job' || !c.type) && !['bảo hành', 'thời trang', 'quận', 'huyện', 'tp.', 'tỉnh'].some(w => (c.name || '').toLowerCase().includes(w)))
+                            .map(c => (
+                              <option key={c._id} value={c.name} />
+                            ))}
                           {PROFESSION_SUGGESTIONS.map((p, idx) => (
                             <option key={`p-${idx}`} value={p} />
                           ))}
                         </datalist>
-                      </div>
-                      {/* Gợi ý chọn nhanh ngành nghề */}
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {categories.filter(c => c.type === 'job' || !c.type).slice(0, 6).map(c => (
-                          <button
-                            key={c._id}
-                            type="button"
-                            onClick={() => setJobForm({ ...jobForm, category_id: c.name })}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                              jobForm.category_id === c.name || jobForm.category_id === c._id
-                                ? 'bg-blue-600 text-white font-bold shadow-xs'
-                                : 'bg-white text-slate-700 hover:text-blue-700 border border-blue-200 hover:bg-blue-50'
-                            }`}
-                          >
-                            {c.name}
-                          </button>
-                        ))}
                       </div>
                     </div>
 
@@ -2936,18 +2964,23 @@ export default function EmployerPortal({
                       <span className="text-xs text-blue-700 font-semibold">Hỗ trợ 4 khung ca: Sáng, Chiều, Tối, Linh hoạt</span>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {WORK_SHIFTS.map((s) => (
+                      {[
+                        { id: 'morning', label: 'Ca sáng (7:00-12:00)', value: 'Ca sáng (7:00-12:00)' },
+                        { id: 'afternoon', label: 'Ca chiều (13:00-18:00)', value: 'Ca chiều (13:00-18:00)' },
+                        { id: 'evening', label: 'Ca tối (18:00-23:00)', value: 'Ca tối (18:00-23:00)' },
+                        { id: 'flexible', label: 'Ca linh hoạt (Tự chọn theo lịch học)', value: 'Ca linh hoạt (Tự chọn theo lịch học)' }
+                      ].map((s) => (
                         <button
                           key={s.id}
                           type="button"
-                          onClick={() => setJobForm({ ...jobForm, work_time: `${s.label}: ${s.time}` })}
+                          onClick={() => setJobForm({ ...jobForm, work_time: s.value })}
                           className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                            jobForm.work_time.includes(s.label)
+                            jobForm.work_time === s.value || (jobForm.work_time && jobForm.work_time.includes(s.label))
                               ? 'bg-blue-600 text-white font-bold shadow-sm'
                               : 'bg-white text-slate-700 border border-blue-200 hover:border-blue-400 hover:bg-blue-50'
                           }`}
                         >
-                          {s.label} ({s.time})
+                          {s.label}
                         </button>
                       ))}
                     </div>
@@ -3023,39 +3056,56 @@ export default function EmployerPortal({
                       </select>
                     </div>
 
-                    {/* FR-NTD-04.10: Bộ lọc theo Chi nhánh & Chức danh */}
+                    {/* FR-NTD-04.10: Bộ lọc theo Chi nhánh & Chức danh (Hỗ trợ nhập tay hoặc chọn gợi ý dropdown) */}
                     <div className="min-w-0">
-                      <select
+                      <input
+                        type="text"
+                        list="emp-job-branch-list"
                         value={jobBranchFilter}
                         onChange={(e) => setJobBranchFilter(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-600 focus:bg-white cursor-pointer truncate"
-                        title="Lọc theo Chi nhánh / Cơ sở cửa hàng"
-                      >
-                        <option value="">Tất cả Chi nhánh</option>
-                        <option value="Quận 1">Chi nhánh Quận 1</option>
-                        <option value="Quận 3">Chi nhánh Quận 3</option>
-                        <option value="Bình Thạnh">Chi nhánh Bình Thạnh</option>
-                        <option value="Thủ Đức">Chi nhánh TP. Thủ Đức</option>
-                        <option value="Quận 10">Chi nhánh Quận 10</option>
-                        <option value="Hà Nội">Cơ sở Hà Nội</option>
-                        <option value="Đà Nẵng">Cơ sở Đà Nẵng</option>
-                      </select>
+                        placeholder="Tất cả chi nhánh..."
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-600 focus:bg-white truncate"
+                        title="Lọc theo chi nhánh / Cơ sở cửa hàng (nhập tay hoặc chọn gợi ý)"
+                      />
+                      <datalist id="emp-job-branch-list">
+                        {Array.from(new Set([
+                          ...myJobs.flatMap(j => [j.branch_name, j.location]).filter(Boolean),
+                          'Quận 1, TP.HCM',
+                          'Quận 3, TP.HCM',
+                          'Bình Thạnh, TP.HCM',
+                          'TP. Thủ Đức, TP.HCM',
+                          'Quận 10, TP.HCM',
+                          'Cầu Giấy, Hà Nội',
+                          'Hải Châu, Đà Nẵng'
+                        ])).map((b, i) => (
+                          <option key={i} value={b} />
+                        ))}
+                      </datalist>
                     </div>
 
                     <div className="min-w-0">
-                      <select
+                      <input
+                        type="text"
+                        list="emp-job-role-list"
                         value={jobRoleFilter}
                         onChange={(e) => setJobRoleFilter(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-600 focus:bg-white cursor-pointer truncate"
-                        title="Lọc theo Chức danh chuyên môn"
-                      >
-                        <option value="">Tất cả Chức danh</option>
-                        <option value="Phục vụ">Phục vụ bàn</option>
-                        <option value="Thu ngân">Thu ngân</option>
-                        <option value="Pha chế">Pha chế (Barista)</option>
-                        <option value="Bán hàng">Bán hàng</option>
-                        <option value="Phụ kho">Phụ kho</option>
-                      </select>
+                        placeholder="Tất cả chức danh..."
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-600 focus:bg-white truncate"
+                        title="Lọc theo chức danh chuyên môn (nhập tay hoặc chọn gợi ý)"
+                      />
+                      <datalist id="emp-job-role-list">
+                        {Array.from(new Set([
+                          ...myJobs.map(j => j.title).filter(Boolean),
+                          ...myJobs.map(j => j.category_name).filter(Boolean),
+                          'Phục vụ bàn',
+                          'Thu ngân',
+                          'Pha chế (Barista)',
+                          'Bán hàng',
+                          'Phụ kho'
+                        ])).map((r, i) => (
+                          <option key={i} value={r} />
+                        ))}
+                      </datalist>
                     </div>
                   </div>
 
@@ -3068,7 +3118,7 @@ export default function EmployerPortal({
                         setEditingJob(null);
                         setJobForm({
                           title: '',
-                          category_id: 'cat_1',
+                          category_id: '',
                           location: companyInfo.address || 'Quận 1, TP.HCM',
                           description: '',
                           salary_min: 28000,
@@ -3087,7 +3137,7 @@ export default function EmployerPortal({
                       setEditingJob(null);
                       setJobForm({
                         title: '',
-                        category_id: 'cat_1',
+                        category_id: '',
                         location: companyInfo.address || 'Quận 1, TP.HCM',
                         description: '',
                         salary_min: 28000,
@@ -3174,7 +3224,7 @@ export default function EmployerPortal({
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        setKanbanJobFilter(job._id);
+                                        setKanbanJobFilter(job.title || '');
                                         setActiveMenu('applicants');
                                       }}
                                       className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-mono font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm transition-all"
@@ -3202,39 +3252,44 @@ export default function EmployerPortal({
 
                                   {/* Nút chuyển vòng đời: Đã nhận người -> Hoàn thành (FR 2.4.7) */}
                                   <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                                    <div className="flex items-center gap-1.5">
-                                      {job.job_status === 'active' && (
-                                        <button
-                                          type="button"
-                                          onClick={() => handleAdvanceJobLifecycle(job, 'filled')}
-                                          className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                                            approvedAppsCount >= 1
-                                              ? 'btn-primary-dimension text-white shadow-sm'
-                                              : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
-                                          }`}
-                                          title={approvedAppsCount >= 1 ? 'Chuyển sang Đã nhận người' : 'Nhấp để xem điều kiện chuyển trạng thái'}
-                                        >
-                                          Đã nhận người
-                                        </button>
-                                      )}
+                                    {(() => {
+                                      const normalizedJobSt = normalizeJobStatus(job);
+                                      return (
+                                        <div className="flex items-center gap-1.5">
+                                          {(normalizedJobSt === 'open' || normalizedJobSt === 'closed') && (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleAdvanceJobLifecycle(job, 'filled')}
+                                              className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                                                approvedAppsCount >= 1
+                                                  ? 'btn-primary-dimension text-white shadow-sm'
+                                                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                                              }`}
+                                              title={approvedAppsCount >= 1 ? 'Chuyển sang Đã nhận người' : 'Nhấp để xem điều kiện chuyển trạng thái'}
+                                            >
+                                              Đã nhận người
+                                            </button>
+                                          )}
 
-                                      {job.job_status === 'filled' && (
-                                        <button
-                                          type="button"
-                                          onClick={() => handleAdvanceJobLifecycle(job, 'completed')}
-                                          className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold border border-emerald-500 cursor-pointer shadow-sm"
-                                          title="Chuyển sang Hoàn thành công việc"
-                                        >
-                                          Hoàn thành
-                                        </button>
-                                      )}
+                                          {normalizedJobSt === 'filled' && (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleAdvanceJobLifecycle(job, 'completed')}
+                                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold border border-emerald-500 cursor-pointer shadow-sm"
+                                              title="Chuyển sang Hoàn thành công việc"
+                                            >
+                                              Hoàn thành
+                                            </button>
+                                          )}
 
-                                      {job.job_status === 'completed' && (
-                                        <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-xs font-bold border border-purple-200">
-                                          Đã Hoàn Thành
-                                        </span>
-                                      )}
-                                    </div>
+                                          {normalizedJobSt === 'completed' && (
+                                            <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-xs font-bold border border-purple-200">
+                                              Đã Hoàn Thành
+                                            </span>
+                                          )}
+                                        </div>
+                                      );
+                                    })()}
                                   </td>
 
                                   <td className="p-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
@@ -3255,7 +3310,7 @@ export default function EmployerPortal({
                                           setEditingJob(job);
                                           setJobForm({
                                             title: job.title,
-                                            category_id: job.category_id || 'cat_1',
+                                            category_id: (job.category_id && job.category_id !== 'cat_1') ? job.category_id : '',
                                             location: job.location,
                                             description: job.description,
                                             salary_min: job.salary_min,
@@ -3266,10 +3321,10 @@ export default function EmployerPortal({
                                           setJobViewMode('edit');
                                         }}
                                         className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap shadow-xs"
-                                        title="Sửa tin"
+                                        title="Chỉnh sửa tin"
                                       >
                                         <Edit className="w-3.5 h-3.5" />
-                                        <span>Sửa</span>
+                                        <span>Chỉnh sửa</span>
                                       </button>
 
                                       <button
@@ -3371,22 +3426,25 @@ export default function EmployerPortal({
                       />
                     </div>
 
-                    <select
-                      value={kanbanJobFilter}
-                      onChange={(e) => setKanbanJobFilter(e.target.value)}
-                      className="w-full sm:w-72 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-600 focus:bg-white cursor-pointer"
-                    >
-                      <option value="">Tất cả tin tuyển dụng ({validApplicants.length} hồ sơ)</option>
-                      {myJobs.map(j => {
-                        const count = validApplicants.filter(a => a.job_id === j._id).length;
-                        return (
-                          <option key={j._id} value={j._id}>{j.title} ({count} hồ sơ)</option>
-                        );
-                      })}
-                    </select>
+                    <div className="relative w-full sm:w-72">
+                      <input
+                        type="text"
+                        list="emp-kanban-job-list"
+                        value={kanbanJobFilter}
+                        onChange={(e) => setKanbanJobFilter(e.target.value)}
+                        placeholder="Lọc theo tin tuyển dụng..."
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-600 focus:bg-white truncate"
+                        title="Lọc theo tin tuyển dụng (nhập tay hoặc chọn gợi ý dropdown)"
+                      />
+                      <datalist id="emp-kanban-job-list">
+                        {myJobs.map(j => (
+                          <option key={j._id} value={j.title}>{j.title}</option>
+                        ))}
+                      </datalist>
+                    </div>
                   </div>
 
-                  {/* Thanh lọc nâng cao ứng viên (FR-NTD-05.09, FR-NTD-05.10, FR-NTD-05.11) */}
+                  {/* Thanh lọc nâng cao ứng viên (Hỗ trợ nhập tay hoặc chọn gợi ý) */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-2 border-t border-slate-100 text-xs">
                     {/* 1. FR-NTD-05.09: Lọc theo Ca làm việc đăng ký */}
                     <div className="min-w-0">
@@ -3394,9 +3452,9 @@ export default function EmployerPortal({
                         value={applicantShiftFilter}
                         onChange={(e) => setApplicantShiftFilter(e.target.value)}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-blue-600 cursor-pointer truncate"
-                        title="Lọc theo Ca làm việc đăng ký (Shift Matching Filter)"
+                        title="Lọc theo ca làm việc đăng ký"
                       >
-                        <option value="all">Mọi Ca làm việc đăng ký</option>
+                        <option value="all">Mọi ca làm việc đăng ký</option>
                         <option value="morning">Ca sáng (07:00 – 12:00)</option>
                         <option value="afternoon">Ca chiều (13:00 – 18:00)</option>
                         <option value="evening">Ca tối (18:00 – 22:30)</option>
@@ -3404,53 +3462,63 @@ export default function EmployerPortal({
                       </select>
                     </div>
 
-                    {/* 2. FR-NTD-05.10: Lọc theo Trường Đại học */}
+                    {/* 2. FR-NTD-05.10: Lọc theo Trường Đại học (Hỗ trợ nhập tay hoặc gợi ý dropdown) */}
                     <div className="min-w-0">
-                      <select
-                        value={applicantUniFilter}
-                        onChange={(e) => setApplicantUniFilter(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-blue-600 cursor-pointer truncate"
-                        title="Lọc theo Trường Đại học / Cao đẳng"
-                      >
-                        <option value="all">Mọi Trường Đại Học</option>
-                        <option value="Văn Lang">ĐH Văn Lang</option>
-                        <option value="Bách Khoa">ĐH Bách Khoa TP.HCM</option>
-                        <option value="Kinh Tế">ĐH Kinh Tế TP.HCM (UEH)</option>
-                        <option value="Khoa Học Tự Nhiên">ĐH Khoa Học Tự Nhiên</option>
-                        <option value="Công Nghệ Thông Tin">ĐH Công Nghệ Thông Tin (UIT)</option>
-                        <option value="FPT">Đại học FPT</option>
-                        <option value="Hutech">ĐH Công Nghệ TP.HCM (HUTECH)</option>
-                      </select>
+                      <input
+                        type="text"
+                        list="emp-applicant-uni-list"
+                        value={applicantUniFilter === 'all' ? '' : applicantUniFilter}
+                        onChange={(e) => setApplicantUniFilter(e.target.value || 'all')}
+                        placeholder="Mọi trường đại học / cao đẳng..."
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-blue-600 truncate"
+                        title="Lọc theo trường đại học / cao đẳng (nhập tay hoặc chọn gợi ý)"
+                      />
+                      <datalist id="emp-applicant-uni-list">
+                        {Array.from(new Set([
+                          ...validApplicants.map(a => a.application_snapshot?.university || a.university).filter(Boolean),
+                          'Đại học Văn Lang',
+                          'ĐH Bách Khoa TP.HCM',
+                          'ĐH Kinh Tế TP.HCM (UEH)',
+                          'ĐH Khoa Học Tự Nhiên',
+                          'ĐH Công Nghệ Thông Tin (UIT)',
+                          'Đại học FPT',
+                          'ĐH Công Nghệ TP.HCM (HUTECH)',
+                          'ĐH Sư Phạm Kỹ Thuật',
+                          'ĐH Tôn Đức Thắng'
+                        ])).map((u, i) => (
+                          <option key={i} value={u} />
+                        ))}
+                      </datalist>
                     </div>
 
-                    {/* 3. FR-NTD-05.10: Mức độ trùng khớp Lịch rảnh (Điểm Match AI) */}
-                    <div className="min-w-0">
-                      <select
-                        value={applicantMatchFilter}
-                        onChange={(e) => setApplicantMatchFilter(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-blue-600 cursor-pointer truncate"
-                        title="Lọc theo Mức độ trùng khớp giữa Thời khóa biểu rảnh và Ca làm (Điểm Match AI)"
-                      >
-                        <option value="all">Độ phù hợp công việc (Điểm Match AI)</option>
-                        <option value="high">Rất phù hợp (&ge; 85%)</option>
-                        <option value="medium">Phù hợp (70–84%)</option>
-                        <option value="potential">Tiềm năng (&lt; 70%)</option>
-                      </select>
-                    </div>
-
-                    {/* 4. FR-NTD-05.11: Thời gian nộp hồ sơ */}
+                    {/* 3. FR-NTD-05.11: Thời gian nộp hồ sơ */}
                     <div className="min-w-0">
                       <select
                         value={applicantTimeFilter}
                         onChange={(e) => setApplicantTimeFilter(e.target.value)}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-blue-600 cursor-pointer truncate"
-                        title="Lọc theo Thời gian nộp hồ sơ"
+                        title="Lọc theo thời gian nộp hồ sơ"
                       >
                         <option value="all">Tất cả thời gian nộp</option>
                         <option value="today">Nộp hôm nay</option>
                         <option value="7days">7 ngày qua</option>
                         <option value="30days">30 ngày qua</option>
                         <option value="custom">Khoảng ngày tùy chọn</option>
+                      </select>
+                    </div>
+
+                    {/* 4. FR-NTD-05.10: Lọc theo mức độ khớp lịch rảnh sinh viên */}
+                    <div className="min-w-0">
+                      <select
+                        value={applicantMatchFilter}
+                        onChange={(e) => setApplicantMatchFilter(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-blue-600 cursor-pointer truncate"
+                        title="Lọc theo mức độ khớp lịch rảnh"
+                      >
+                        <option value="all">Mọi mức độ khớp lịch rảnh</option>
+                        <option value="100">Khớp hoàn toàn (100%)</option>
+                        <option value="75">Khớp cao (≥ 75%)</option>
+                        <option value="50">Khớp cơ bản (≥ 50%)</option>
                       </select>
                     </div>
 
@@ -3543,8 +3611,8 @@ export default function EmployerPortal({
                                       interview: { label: 'Mời phỏng vấn', color: 'bg-purple-50 text-purple-700 border-purple-200' },
                                       accepted: { label: 'Trúng tuyển', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
                                       rejected: { label: 'Chưa phù hợp', color: 'bg-rose-50 text-rose-700 border-rose-200' },
-                                      cancelled: { label: 'Đã rút hồ sơ', color: 'bg-slate-100 text-slate-600 border-slate-200' },
-                                      withdrawn: { label: 'Đã rút hồ sơ', color: 'bg-slate-100 text-slate-600 border-slate-200' }
+                                      cancelled: { label: 'Sinh viên chủ động rút đơn', color: 'bg-slate-100 text-slate-700 border-slate-300' },
+                                      withdrawn: { label: 'Sinh viên chủ động rút đơn', color: 'bg-slate-100 text-slate-700 border-slate-300' }
                                     };
                                     const st = appStatusMap[app.application_status] || { label: app.application_status, color: 'bg-amber-50 text-amber-700 border-amber-200' };
                                     return (
@@ -3619,9 +3687,9 @@ export default function EmployerPortal({
                   </div>
                 )}
 
-                {/* BẢNG KANBAN 3 CỘT (Chờ duyệt, Đã duyệt, Từ chối) (FR 2.5.3) */}
+                {/* BẢNG KANBAN 4 CỘT (Chờ duyệt, Đã duyệt, Chưa phù hợp, Sinh viên chủ động rút đơn) */}
                 {candidateViewMode === 'kanban' && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                   
                   {/* CỘT 1: ĐANG CHỜ XÉT DUYỆT (PENDING) */}
                   <div className="rounded-3xl bg-slate-50/80 border border-amber-200 p-4 space-y-3 flex flex-col shadow-sm">
@@ -3674,7 +3742,7 @@ export default function EmployerPortal({
                                 className="px-2 py-0.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 cursor-pointer"
                                 title="Xóa hồ sơ ứng viên"
                               >
-                                <Trash2 className="w-3 h-3" />
+                                <Trash2 className="w-3.5 h-3.5" />
                                 <span>Xóa</span>
                               </button>
                             </div>
@@ -3757,7 +3825,7 @@ export default function EmployerPortal({
                                   className="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 cursor-pointer"
                                   title="Xóa hồ sơ ứng viên"
                                 >
-                                  <Trash2 className="w-3 h-3" />
+                                  <Trash2 className="w-3.5 h-3.5" />
                                   <span>Xóa</span>
                                 </button>
                               </div>
@@ -3818,7 +3886,61 @@ export default function EmployerPortal({
                                 className="px-2 py-0.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 cursor-pointer"
                                 title="Xóa hồ sơ ứng viên"
                               >
-                                <Trash2 className="w-3 h-3" />
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>Xóa</span>
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* CỘT 4: SINH VIÊN CHỦ ĐỘNG RÚT ĐƠN (WITHDRAWN) */}
+                  <div className="rounded-3xl bg-slate-50/80 border border-slate-300 p-4 space-y-3 flex flex-col shadow-sm">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-300">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide truncate">Sinh Viên Rút Đơn</h4>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 text-xs font-black font-mono">
+                        {withdrawnApps.length}
+                      </span>
+                    </div>
+
+                    <div className="space-y-3 flex-1 overflow-y-auto min-h-[300px]">
+                      {withdrawnApps.length === 0 ? (
+                        <div className="p-8 text-center text-xs text-slate-500">
+                          Không có hồ sơ nào bị rút.
+                        </div>
+                      ) : (
+                        withdrawnApps.map((app) => (
+                          <div
+                            key={app._id}
+                            onClick={() => setSelectedApplicant(app)}
+                            className="p-4 rounded-2xl bg-white border border-slate-200 hover:border-slate-400 transition-all cursor-pointer opacity-85 hover:opacity-100 space-y-2 shadow-xs"
+                          >
+                            <div className="flex items-start justify-between">
+                              <p className="text-xs font-bold text-slate-900">{app.application_snapshot?.student_name || app.student_name || 'Ứng viên'}</p>
+                              <span className="text-[10px] text-slate-400 font-mono">{app.applied_at || ''}</span>
+                            </div>
+                            <span className="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-300">
+                              Sinh viên chủ động rút đơn
+                            </span>
+                            <p className="text-xs text-slate-600 line-clamp-1">{app.job_title}</p>
+                            <p className="text-xs text-slate-500">{app.application_snapshot?.university || app.university || 'Chưa cập nhật'}</p>
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                              <span className="text-[10px] text-slate-500 italic">Đã hủy ứng tuyển</span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteApplicant(app);
+                                }}
+                                className="px-2 py-0.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 cursor-pointer"
+                                title="Xóa bản ghi ứng viên này"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
                                 <span>Xóa</span>
                               </button>
                             </div>
@@ -3886,7 +4008,7 @@ export default function EmployerPortal({
                     type="text"
                     value={interviewSearch}
                     onChange={(e) => setInterviewSearch(e.target.value)}
-                    placeholder="Tìm kiếm ứng viên theo tên, chuyên ngành, số điện thoại, vị trí tuyển dụng..."
+                    placeholder="Tìm kiếm ứng viên theo tên, trường đại học, số điện thoại, vị trí tuyển dụng..."
                     className="w-full bg-white border border-slate-300 rounded-2xl pl-11 pr-4 py-3 text-xs text-slate-900 outline-none focus:border-blue-600 shadow-sm"
                   />
                 </div>
@@ -3926,9 +4048,8 @@ export default function EmployerPortal({
                       </div>
                     )}
                   </div>
-                ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {validApplicants
+                ) : (() => {
+                  const filteredInterviewApps = validApplicants
                     .filter(app => {
                       if (interviewFilter === 'interview') return app.application_status === 'interview';
                       if (interviewFilter === 'accepted') return app.application_status === 'accepted';
@@ -3936,14 +4057,28 @@ export default function EmployerPortal({
                       return true;
                     })
                     .filter(app => {
-                      if (!interviewSearch.trim()) return true;
-                      const q = interviewSearch.toLowerCase();
-                      const name = (app.application_snapshot?.student_name || '').toLowerCase();
-                      const job = (app.job_title || '').toLowerCase();
-                      const phone = (app.application_snapshot?.phone || '').toLowerCase();
-                      return name.includes(q) || job.includes(q) || phone.includes(q);
-                    })
-                    .map((app) => {
+                      const interviewObj = {
+                        ...app,
+                        student_name: app.application_snapshot?.student_name || app.student_name || '',
+                        university: app.application_snapshot?.university || app.university || '',
+                        phone: app.application_snapshot?.phone || app.phone || ''
+                      };
+                      return matchKeywordFlexible(interviewObj, interviewSearch, ['student_name', 'university', 'phone', 'job_title']);
+                    });
+
+                  if (filteredInterviewApps.length === 0) {
+                    return (
+                      <div className="p-10 text-center rounded-3xl bg-white border border-slate-200/80 shadow-sm space-y-2">
+                        <Video className="w-8 h-8 text-slate-400 mx-auto" />
+                        <p className="text-sm font-bold text-slate-900">Không tìm thấy ứng viên phù hợp với bộ lọc</p>
+                        <p className="text-xs text-slate-500">Thử xóa từ khóa tìm kiếm hoặc chọn "Tất cả ứng viên" để xem đầy đủ danh sách.</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredInterviewApps.map((app) => {
                       const studentName = app.application_snapshot?.student_name || 'Ứng viên';
                       return (
                         <div
@@ -4053,7 +4188,8 @@ export default function EmployerPortal({
                       );
                     })}
                 </div>
-                )}
+                  );
+                })()}
           </div>
         )}
 
@@ -4107,30 +4243,45 @@ export default function EmployerPortal({
                     <span>Bộ lọc ca làm:</span>
                   </span>
 
-                  <select
-                    value={completionBranchFilter}
-                    onChange={(e) => setCompletionBranchFilter(e.target.value)}
-                    className="w-full min-w-0 truncate bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-blue-600 cursor-pointer"
-                    title="Lọc theo Chi nhánh / Cơ sở cửa hàng (FR-NTD-10.03)"
-                  >
-                    <option value="all">Tất cả Chi nhánh</option>
-                    <option value="Quận 1">Chi nhánh Quận 1</option>
-                    <option value="Quận 3">Chi nhánh Quận 3</option>
-                    <option value="Bình Thạnh">Chi nhánh Bình Thạnh</option>
-                    <option value="Thủ Đức">Chi nhánh TP. Thủ Đức</option>
-                  </select>
+                  <div className="min-w-0">
+                    <input
+                      type="text"
+                      list="emp-completion-branch-list"
+                      value={completionBranchFilter === 'all' ? '' : completionBranchFilter}
+                      onChange={(e) => setCompletionBranchFilter(e.target.value || 'all')}
+                      placeholder="Tất cả chi nhánh..."
+                      className="w-full min-w-0 truncate bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-blue-600"
+                      title="Lọc theo chi nhánh / Cơ sở cửa hàng (nhập tay hoặc chọn gợi ý)"
+                    />
+                    <datalist id="emp-completion-branch-list">
+                      {Array.from(new Set([
+                        ...baseFilledJobs.flatMap(j => [j.branch_name, j.location]).filter(Boolean),
+                        'Quận 1, TP.HCM',
+                        'Quận 3, TP.HCM',
+                        'Bình Thạnh, TP.HCM',
+                        'TP. Thủ Đức, TP.HCM'
+                      ])).map((b, i) => (
+                        <option key={i} value={b} />
+                      ))}
+                    </datalist>
+                  </div>
 
-                  <select
-                    value={completionJobFilter}
-                    onChange={(e) => setCompletionJobFilter(e.target.value)}
-                    className="w-full min-w-0 truncate bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-blue-600 cursor-pointer"
-                    title="Lọc theo Tin tuyển dụng (FR-NTD-10.03)"
-                  >
-                    <option value="all">Tất cả tin tuyển dụng</option>
-                    {baseFilledJobs.map(j => (
-                      <option key={j._id} value={j._id}>{j.title}</option>
-                    ))}
-                  </select>
+                  <div className="min-w-0">
+                    <input
+                      type="text"
+                      list="emp-completion-job-list"
+                      value={completionJobFilter === 'all' ? '' : completionJobFilter}
+                      onChange={(e) => setCompletionJobFilter(e.target.value || 'all')}
+                      placeholder="Tất cả tin tuyển dụng..."
+                      className="w-full min-w-0 truncate bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-blue-600"
+                      title="Lọc theo tin tuyển dụng (nhập tay hoặc chọn gợi ý)"
+                    />
+                    <datalist id="emp-completion-job-list">
+                      {baseFilledJobs.map(j => (
+                        <option key={j._id} value={j.title} />
+                      ))}
+                    </datalist>
+                  </div>
 
                   <select
                     value={completionStatusFilter}
@@ -4139,8 +4290,10 @@ export default function EmployerPortal({
                     title="Lọc theo Trạng thái ca làm (FR-NTD-10.03)"
                   >
                     <option value="all">Tất cả trạng thái</option>
+                    <option value="open">Đang mở tuyển</option>
                     <option value="waiting">Đã nhận người – chờ xác nhận</option>
-                    <option value="completed">Hoàn thành</option>
+                    <option value="completed">Đã hoàn thành ca làm</option>
+                    <option value="closed">Tạm đóng</option>
                   </select>
                 </div>
 
@@ -4303,7 +4456,7 @@ export default function EmployerPortal({
                         reviewTab === 'pending' ? 'bg-white text-slate-900 font-bold border border-slate-300 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      Sinh Viên Chờ Đánh Giá ({pendingEmployerReviews.length})
+                      Ca làm chờ gửi đánh giá ({pendingEmployerReviews.length})
                     </button>
                     <button
                       type="button"
@@ -4312,7 +4465,7 @@ export default function EmployerPortal({
                         reviewTab === 'history' ? 'bg-white text-slate-900 font-bold border border-slate-300 shadow-sm' : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      Lịch Sử Đánh Giá ({reviews.length})
+                      Ca làm đã hoàn tất đánh giá ({reviews.length})
                     </button>
                   </div>
                 </div>
@@ -4420,7 +4573,7 @@ export default function EmployerPortal({
                               className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border border-slate-200"
                             >
                               <Eye className="w-3.5 h-3.5" />
-                              <span>Xem Chi Tiết Đánh Giá</span>
+                              <span>Xem chi tiết</span>
                             </button>
 
                             {rev.is_hidden ? (
@@ -4444,7 +4597,7 @@ export default function EmployerPortal({
                                 className="px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
                               >
                                 <Edit className="w-3.5 h-3.5" />
-                                <span>Chỉnh Sửa Đánh Giá</span>
+                                <span>Chỉnh sửa</span>
                               </button>
                             )}
                             <button
@@ -4453,7 +4606,7 @@ export default function EmployerPortal({
                               className="px-3.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
-                              <span>Xóa Đánh Giá</span>
+                              <span>Xóa</span>
                             </button>
                           </div>
                         </div>
@@ -4466,7 +4619,47 @@ export default function EmployerPortal({
 
         {/* 6. MÀN HÌNH CHAT & GỌI VIDEO PHỎNG VẤN (UI-NTD-CHAT-02, 03, UI-NTD-CALL-01 - 2.7 & 2.9) */}
         {activeMenu === 'chat' && (
-          <div className="max-w-6xl mx-auto h-[calc(100vh-160px)] min-h-[520px] flex flex-col rounded-3xl bg-white border border-slate-200/80 shadow-md overflow-hidden text-slate-900">
+          <div className="w-full max-w-full h-[calc(100vh-112px)] min-h-[580px] sm:h-[calc(100vh-116px)] lg:h-[calc(100vh-120px)] lg:min-h-[650px] flex flex-col lg:flex-row rounded-3xl bg-white border border-slate-200/80 shadow-md overflow-hidden text-slate-900">
+            {/* Cột trái: Danh sách hội thoại ứng viên + Tìm kiếm + Lọc tin tuyển dụng & Chưa phản hồi */}
+            {!isGuestMode && (
+              <aside className={`${selectedContact ? 'hidden lg:flex' : 'flex flex-1 lg:flex-none'} w-full lg:w-[320px] xl:w-[360px] shrink-0 border-b lg:border-b-0 lg:border-r border-slate-200 bg-slate-50/70 flex-col min-h-0 overflow-hidden`}>
+                <div className="px-4 py-3.5 border-b border-slate-200 bg-white flex items-center justify-between gap-2 shrink-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <MessageSquare className="w-4 h-4 text-blue-600 shrink-0" />
+                    <h3 className="text-sm font-black text-slate-900 truncate">Hội Thoại Ứng Viên</h3>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold">
+                      {contacts.length}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setNewChatModalOpen(true)}
+                      className="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-colors cursor-pointer"
+                      title="Tạo tin nhắn mới / Mời phỏng vấn"
+                    >
+                      <MessageSquarePlus className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+                <EmployerChatContactsPanel
+                  contacts={contacts}
+                  selectedContact={selectedContact}
+                  chatSearchQuery={chatSearchQuery}
+                  onSearchChange={setChatSearchQuery}
+                  chatJobFilter={chatJobFilter}
+                  onJobFilterChange={setChatJobFilter}
+                  myJobs={myJobs}
+                  chatUnrepliedOnly={chatUnrepliedOnly}
+                  onToggleUnreplied={() => setChatUnrepliedOnly(!chatUnrepliedOnly)}
+                  onSelectContact={(contact) => setSelectedContact(contact)}
+                  onCreateNewChat={() => setNewChatModalOpen(true)}
+                />
+              </aside>
+            )}
+
+            {/* Khung phải: Hội thoại chi tiết, WebRTC Video/Audio & Nhập tin nhắn */}
+            <div className={`${!isGuestMode && !selectedContact ? 'hidden lg:flex' : 'flex'} flex-1 min-w-0 min-h-0 flex-col bg-white overflow-hidden`}>
             {!selectedContact || isGuestMode ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/50">
                 <div className="w-20 h-20 rounded-3xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 mb-5 shadow-sm">
@@ -4523,35 +4716,18 @@ export default function EmployerPortal({
               </div>
             ) : (
               <>
-                {/* Thanh chuyển đổi danh bạ ứng viên khớp với số đếm Sidebar */}
-                {contacts.length > 0 && (
-                  <div className="px-4 py-2.5 bg-white border-b border-slate-200 flex items-center gap-2 overflow-x-auto">
-                    <span className="text-xs font-bold text-slate-600 shrink-0">
-                      Danh bạ ứng viên ({contacts.length}):
-                    </span>
-                    {contacts.map((c) => {
-                      const activeContact = selectedContact?.id === c.id;
-                      return (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => setSelectedContact(c)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 flex items-center gap-1.5 border ${
-                            activeContact
-                              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                              : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
-                          }`}
-                        >
-                          <span className={`w-2 h-2 rounded-full ${c.online ? 'bg-emerald-400' : 'bg-slate-400'}`}></span>
-                          <span>{c.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
+                <div className="lg:hidden px-3.5 py-2 bg-slate-100 border-b border-slate-200 flex items-center justify-between shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedContact(null)}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-900 cursor-pointer"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Danh sách hội thoại ({contacts.length})</span>
+                  </button>
+                </div>
                 {/* Header chat: Tên sinh viên, Trạng thái, Nút Tạo tin nhắn mới, Camera WebRTC, Cờ báo cáo */}
-                <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-sky-500 text-white font-bold flex items-center justify-center text-sm shadow-md">
@@ -4602,7 +4778,7 @@ export default function EmployerPortal({
                       title={isChatReadOnly ? 'Chỉ đọc: Không thể gọi khi đơn ứng tuyển đã bị từ chối/hủy' : 'Gọi thoại trực tiếp với Ứng viên'}
                     >
                       <Phone className="w-3.5 h-3.5 text-blue-600" />
-                      <span className="hidden sm:inline">Gọi Thoại</span>
+                      <span className="hidden sm:inline">Gọi thoại</span>
                     </button>
 
                     <button
@@ -4613,7 +4789,7 @@ export default function EmployerPortal({
                       title={isChatReadOnly ? 'Chỉ đọc: Không thể gọi khi đơn ứng tuyển đã bị từ chối/hủy' : 'Bắt đầu gọi phỏng vấn trực tuyến qua WebRTC'}
                     >
                       <Video className="w-4 h-4" />
-                      <span className="hidden sm:inline">Gọi Video Phỏng Vấn</span>
+                      <span className="hidden sm:inline">Gọi video</span>
                     </button>
 
                     {/* Icon Cờ báo cáo hội thoại vi phạm (FR 2.7.5) */}
@@ -4632,10 +4808,11 @@ export default function EmployerPortal({
                           target_title: `Hội thoại với ${selectedContact?.name || 'Ứng viên'}`
                         });
                       }}
-                      className="p-2 rounded-xl bg-white hover:bg-slate-50 text-slate-400 hover:text-red-600 border border-slate-200 transition-colors cursor-pointer"
+                      className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-600 hover:text-red-600 border border-slate-200 transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
                       title="Báo cáo ứng viên vi phạm tiêu chuẩn hội thoại"
                     >
-                      <Flag className="w-4 h-4" />
+                      <Flag className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline text-xs font-bold">Báo cáo</span>
                     </button>
                   </div>
                 </div>
@@ -4709,7 +4886,7 @@ export default function EmployerPortal({
                                 className="w-full h-full object-cover"
                               />
                               <span className="absolute bottom-1 left-2 text-[11px] font-bold text-white bg-black/60 px-1.5 py-0.5 rounded backdrop-blur-xs">
-                                {`Bạn (${companyInfo?.representative_name || 'Nhà tuyển dụng'})`}
+                                {`Bạn (${companyInfo?.representative_name || 'Doanh nghiệp'})`}
                               </span>
                             </>
                           ) : (
@@ -4764,8 +4941,16 @@ export default function EmployerPortal({
                 ) : (
                   /* KHUNG TIN NHẮN TRÒ CHUYỆN (FR 2.7.3 & 2.9.2 - 2.9.3) */
                   <>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50">
-                      {chatMessages.map((m) => {
+                    <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4 bg-slate-50/50">
+                      {chatMessages.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
+                          <MessageSquare className="w-10 h-10 mb-2 text-blue-300" />
+                          <p className="text-sm font-bold text-slate-700">Chưa có tin nhắn trong cuộc trò chuyện này</p>
+                          <p className="text-xs text-slate-500 mt-1 max-w-md">
+                            Hãy gửi lời chào hoặc bấm chèn liên kết phỏng vấn để trao đổi trực tiếp với ứng viên {selectedContact?.name}.
+                          </p>
+                        </div>
+                      ) : chatMessages.map((m) => {
                         if (m.type === 'call_record') {
                           const isOutgoing = m.caller_role === 'employer' || m.caller_id === currentUser?._id;
                           const isMissed = m.call_status === 'missed';
@@ -4826,59 +5011,63 @@ export default function EmployerPortal({
                           >
                             <div className="flex items-center gap-2 mb-1 px-1">
                               <span className="text-xs font-bold text-slate-500">
-                                {isMe ? `Bạn (${companyInfo?.representative_name || 'Nhà tuyển dụng'})` : `${selectedContact?.name || 'Ứng viên'} (Sinh viên)`}
+                                {isMe ? `Bạn (${companyInfo?.representative_name || 'Doanh nghiệp'})` : `${selectedContact?.name || 'Ứng viên'} (Sinh viên)`}
                               </span>
                               <span className="text-xs text-slate-400 font-mono">{m.created_at}</span>
                             </div>
 
                             <div
-                              className={`max-w-md p-3.5 rounded-2xl text-xs leading-relaxed ${
+                              className={`max-w-[85%] sm:max-w-[75%] xl:max-w-2xl px-4 py-3 rounded-2xl text-sm leading-relaxed ${
                                 isMe 
                                   ? 'bg-blue-600 text-white rounded-br-sm shadow-sm' 
                                   : 'bg-white text-slate-800 rounded-bl-sm border border-slate-200 shadow-sm'
                               }`}
                             >
-                              <p className="whitespace-pre-wrap">{m.content || m.clean_content}</p>
-                              {m.is_flagged && (
-                                <div className="mt-2 p-2 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 space-y-1">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <span className="font-bold flex items-center gap-1 text-red-600">
-                                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                                      Cảnh báo từ ngữ cấm:
-                                    </span>
-                                    {!isMe && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          const words = m.flagged_words && m.flagged_words.length > 0 ? m.flagged_words.join(', ') : 'đặt cọc';
-                                          setReportReason(`Phát hiện tin nhắn vi phạm chứa từ cấm [${words}]: "${m.original_content || m.content}"`);
-                                          setReportModalData({
-                                            type: 'chat',
-                                            target_id: m.sender_id || 'emp_user_employer_ngoc',
-                                            target_title: `Báo cáo tin nhắn từ ${m.sender_name || 'Doanh nghiệp'}`
-                                          });
-                                        }}
-                                        className="px-2 py-0.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-black text-xs shadow cursor-pointer transition-colors"
-                                      >
-                                        Báo cáo vi phạm
-                                      </button>
-                                    )}
+                              {(() => {
+                                const rawText = m.clean_content || m.content || '';
+                                const clientMasked = maskBannedWordsClient(rawText, bannedKeywords);
+                                const displayContent = clientMasked.cleanText;
+                                const showFlagNotice = Boolean(m.is_flagged || clientMasked.isFlagged);
+                                return showFlagNotice ? (
+                                  <div className="space-y-1.5">
+                                    <p className="whitespace-pre-wrap">{displayContent}</p>
+                                    <div className={`flex items-center justify-between gap-2 pt-1.5 border-t text-xs ${isMe ? 'border-white/25 text-white/90' : 'border-slate-200 text-slate-600'}`}>
+                                      <span className="italic flex items-center gap-1">
+                                        <ShieldCheck className={`w-3.5 h-3.5 shrink-0 ${isMe ? 'text-white' : 'text-amber-600'}`} />
+                                        Từ ngữ nhạy cảm đã được che (***)
+                                      </span>
+                                      {!isMe && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setReportReason(`Báo cáo tin nhắn vi phạm tiêu chuẩn cộng đồng: "${m.original_content || m.content}"`);
+                                            setReportModalData({
+                                              type: 'chat',
+                                              target_id: m.sender_id || 'stu_user_student',
+                                              target_title: `Báo cáo tin nhắn từ ${m.sender_name || 'Ứng viên'}`
+                                            });
+                                          }}
+                                          className="px-2 py-0.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow cursor-pointer transition-colors"
+                                        >
+                                          Báo cáo
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
-                                  <p className="text-xs text-red-600 font-mono">
-                                    Từ khóa phát hiện: <span className="bg-red-100 px-1 py-0.5 rounded text-red-700 font-bold">{m.flagged_words && m.flagged_words.length > 0 ? m.flagged_words.join(', ') : 'đặt cọc'}</span>
-                                  </p>
-                                </div>
-                              )}
+                                ) : (
+                                  <p className="whitespace-pre-wrap">{displayContent}</p>
+                                );
+                              })()}
 
                               {/* Render Tệp Hình Ảnh Đính Kèm Thực Tế */}
                               {m.media_url && (m.file_name?.match(/\.(png|jpe?g|webp)$/i) || m.media_url?.startsWith('data:image')) && (
                                 <div 
                                   onClick={() => setChatPreviewDoc({ fileUrl: m.media_url, fileName: m.file_name || 'Hinh_Anh.jpg', title: 'Tệp Hình Ảnh Đính Kèm' })}
-                                  className="mt-2 rounded-xl overflow-hidden border border-slate-200 max-w-[260px] cursor-pointer hover:opacity-95 transition-opacity shadow-sm"
+                                  className="mt-2 rounded-xl overflow-hidden border border-slate-200 max-w-xs sm:max-w-sm cursor-pointer hover:opacity-95 transition-opacity shadow-sm"
                                 >
-                                  <img src={m.media_url} alt={m.file_name || 'Ảnh đính kèm'} className="w-full max-h-[180px] object-cover bg-slate-100" />
+                                  <img src={m.media_url} alt={m.file_name || 'Ảnh đính kèm'} className="w-full max-h-[220px] object-cover bg-slate-100" />
                                   <div className="p-1.5 bg-black/60 text-xs text-white flex items-center justify-between">
-                                    <span className="truncate max-w-[180px]">{m.file_name || 'Ảnh đính kèm'}</span>
+                                    <span className="truncate max-w-[220px]">{m.file_name || 'Ảnh đính kèm'}</span>
                                     <Eye className="w-3.5 h-3.5 text-blue-300" />
                                   </div>
                                 </div>
@@ -4886,7 +5075,7 @@ export default function EmployerPortal({
 
                               {/* Render Tệp PDF Đính Kèm Thực Tế */}
                               {m.media_url && (m.file_name?.toLowerCase().endsWith('.pdf') || m.media_url?.includes('pdf') || m.media_url?.startsWith('data:application/pdf')) && (
-                                <div className="mt-2 p-2.5 rounded-xl bg-slate-50 border border-red-200 flex items-center justify-between gap-3 text-xs max-w-[280px]">
+                                <div className="mt-2 p-3 rounded-xl bg-slate-50 border border-red-200 flex items-center justify-between gap-3 text-xs w-full max-w-xs sm:max-w-sm">
                                   <div className="flex items-center gap-2.5 min-w-0">
                                     <div className="w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center shrink-0 border border-red-200">
                                       <FileText className="w-4 h-4" />
@@ -4914,13 +5103,6 @@ export default function EmployerPortal({
                                     </a>
                                   </div>
                                 </div>
-                              )}
-
-                              {m.is_flagged && (
-                                <span className="inline-flex items-center gap-1 mt-2 px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
-                                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                                  <span>Tin nhắn chứa từ khóa vi phạm: {Array.isArray(m.flagged_words) ? m.flagged_words.join(', ') : 'Cấm'}</span>
-                                </span>
                               )}
                             </div>
                             <span className="text-xs text-slate-400 font-mono mt-0.5 px-1">Đã gửi</span>
@@ -4963,7 +5145,7 @@ export default function EmployerPortal({
                         </div>
                       </div>
                     ) : (
-                      <form onSubmit={handleSendMessage} className="p-3 bg-slate-50 border-t border-slate-200 flex items-center gap-2">
+                      <form onSubmit={handleSendMessage} className="p-3.5 sm:p-4 bg-slate-50 border-t border-slate-200 flex items-center gap-2.5 shrink-0">
                         <input
                           type="file"
                           ref={chatFileInputRef}
@@ -4974,20 +5156,20 @@ export default function EmployerPortal({
                         <button
                           type="button"
                           onClick={() => chatFileInputRef.current?.click()}
-                          className="p-2.5 rounded-xl bg-white hover:bg-slate-100 text-purple-600 border border-slate-300 transition-colors cursor-pointer shrink-0 shadow-sm"
+                          className="p-3 rounded-xl bg-white hover:bg-slate-100 text-purple-600 border border-slate-300 transition-colors cursor-pointer shrink-0 shadow-sm"
                           title="Đính kèm tệp PDF hoặc ảnh (≤ 10MB)"
                         >
-                          <Paperclip className="w-4 h-4" />
+                          <Paperclip className="w-[18px] h-[18px]" />
                         </button>
 
                         {/* Nút chèn nhanh link phỏng vấn trực tuyến (FR 2.7.1) */}
                         <button
                           type="button"
                           onClick={handleInsertInterviewLink}
-                          className="p-2.5 rounded-xl bg-white hover:bg-slate-100 text-blue-600 border border-slate-300 transition-colors cursor-pointer shrink-0 shadow-sm"
+                          className="p-3 rounded-xl bg-white hover:bg-slate-100 text-blue-600 border border-slate-300 transition-colors cursor-pointer shrink-0 shadow-sm"
                           title="Gửi liên kết phỏng vấn trực tuyến (Meet / WebRTC)"
                         >
-                          <Link className="w-4 h-4" />
+                          <Link className="w-[18px] h-[18px]" />
                         </button>
 
                         <input
@@ -4995,14 +5177,15 @@ export default function EmployerPortal({
                           value={newMsgText}
                           onChange={(e) => setNewMsgText(e.target.value)}
                           placeholder="Nhập phản hồi tới ứng viên hoặc gửi link phỏng vấn... (Hệ thống tự lọc từ cấm ***)"
-                          className="flex-1 bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-900 placeholder-slate-400 outline-none focus:border-blue-600"
+                          className="flex-1 bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/15"
                         />
                         <button
                           type="submit"
                           disabled={!newMsgText.trim() && !chatAttachment}
-                          className="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 disabled:opacity-40 transition-all cursor-pointer shadow-sm"
+                          className="px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 disabled:opacity-40 transition-all cursor-pointer shadow-sm shrink-0"
                         >
                           <Send className="w-4 h-4" />
+                          <span className="hidden sm:inline">Gửi</span>
                         </button>
                       </form>
                     )}
@@ -5010,6 +5193,7 @@ export default function EmployerPortal({
                 )}
               </>
             )}
+            </div>
           </div>
         )}
       </main>
@@ -5082,8 +5266,10 @@ export default function EmployerPortal({
                     </div>
                     <div>
                       <h3 className="text-sm font-bold text-slate-900">{selectedApplicant.application_snapshot?.student_name || selectedApplicant.student_name || 'Ứng viên'}</h3>
-                      <p className="text-blue-700 text-xs font-bold">{selectedApplicant.application_snapshot?.major || 'Chuyên ngành'}</p>
-                      <p className="text-xs text-slate-600">{selectedApplicant.application_snapshot?.university || 'Trường Đại học/Cao đẳng'}</p>
+                      <p className="text-blue-700 text-xs font-bold">{selectedApplicant.application_snapshot?.university || 'Trường Đại học/Cao đẳng'}</p>
+                      {selectedApplicant.application_snapshot?.residence_address && (
+                        <p className="text-xs text-slate-600">{selectedApplicant.application_snapshot.residence_address}</p>
+                      )}
                     </div>
                   </div>
 
@@ -5244,7 +5430,7 @@ export default function EmployerPortal({
                     title="Báo cáo vi phạm đối với ứng viên đã duyệt"
                   >
                     <Flag className="w-3.5 h-3.5 text-rose-600" />
-                    <span>Báo Cáo Vi Phạm</span>
+                    <span>Báo cáo</span>
                   </button>
                 ) : (
                   <span 
@@ -5277,18 +5463,18 @@ export default function EmployerPortal({
                   className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm cursor-pointer inline-flex items-center gap-2 whitespace-nowrap"
                 >
                   <X className="w-4 h-4" />
-                  <span>Từ Chối</span>
+                  <span>Từ chối</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => {
-                    handleUpdateApplicantStatus(selectedApplicant._id, 'accepted', 'Nhà tuyển dụng phê duyệt trúng tuyển');
+                    handleUpdateApplicantStatus(selectedApplicant._id, 'accepted', 'Doanh nghiệp phê duyệt trúng tuyển');
                   }}
                   className="px-7 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-sm cursor-pointer inline-flex items-center gap-2 whitespace-nowrap"
                 >
                   <Check className="w-4 h-4" />
-                  <span>Duyệt Hồ Sơ</span>
+                  <span>Duyệt</span>
                 </button>
               </div>
             </div>
@@ -5469,7 +5655,6 @@ export default function EmployerPortal({
         type="cv"
         data={{
           studentName: applicantCvViewer?.application_snapshot?.student_name || applicantCvViewer?.student_name || 'Ứng viên',
-          major: applicantCvViewer?.application_snapshot?.major || 'Chuyên ngành',
           university: applicantCvViewer?.application_snapshot?.university || 'Trường Đại học/Cao đẳng',
           phone: applicantCvViewer?.application_snapshot?.phone || 'Chưa cập nhật',
           email: applicantCvViewer?.student_email || applicantCvViewer?.application_snapshot?.email || '',
@@ -5537,7 +5722,7 @@ export default function EmployerPortal({
                 className="flex-1 py-3 rounded-2xl bg-red-600/90 hover:bg-red-600 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-red-950/60"
               >
                 <X className="w-4 h-4" />
-                <span>Từ Chối</span>
+                <span>Từ chối</span>
               </button>
               <button
                 type="button"
@@ -5679,7 +5864,7 @@ export default function EmployerPortal({
               <button
                 type="button"
                 onClick={() => {
-                  setKanbanJobFilter(selectedJobDetail._id || '');
+                  setKanbanJobFilter(selectedJobDetail.title || '');
                   setSelectedJobDetail(null);
                   setActiveMenu('applicants');
                 }}
@@ -5698,7 +5883,7 @@ export default function EmployerPortal({
                     setEditingJob(job);
                     setJobForm({
                       title: job.title || '',
-                      category_id: job.category_id || 'cat_1',
+                      category_id: (job.category_id && job.category_id !== 'cat_1') ? job.category_id : '',
                       location: job.location || '',
                       description: job.description || '',
                       salary_min: job.salary_min || 25000,
@@ -6027,5 +6212,156 @@ export default function EmployerPortal({
         onCancel={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
       />
     </div>
+  );
+}
+
+/**
+ * Shared contacts search/filter & conversation list used by both the slide-over
+ * chat drawer and the inline left sidebar of the Employer full chat workspace.
+ */
+function EmployerChatContactsPanel({
+  contacts,
+  selectedContact,
+  chatSearchQuery,
+  onSearchChange,
+  chatJobFilter,
+  onJobFilterChange,
+  myJobs,
+  chatUnrepliedOnly,
+  onToggleUnreplied,
+  onSelectContact,
+  onCreateNewChat,
+  isDrawer = false,
+}) {
+  const filteredContacts = contacts.filter(c => {
+    const matchName = matchKeywordFlexible(c, chatSearchQuery, ['name', 'subtitle', 'lastMsg', 'job_title']);
+    const selectedFilterJob = myJobs.find(j => j._id === chatJobFilter);
+    const matchJob = chatJobFilter === 'all' || !chatJobFilter || c.job_id === chatJobFilter ||
+      (selectedFilterJob ? matchKeywordFlexible(c, selectedFilterJob.title, ['job_title', 'subtitle', 'lastMsg']) : false);
+    const matchUnreplied = !chatUnrepliedOnly || c.unreplied || c.unread_count > 0 || c.status === 'pending';
+    return matchName && matchJob && matchUnreplied;
+  });
+
+  return (
+    <>
+      {/* Thanh tìm kiếm & Lọc hội thoại (FR-NTD-07.06: Tin tuyển dụng & Chưa phản hồi) */}
+      <div className="p-3 border-b border-slate-200 space-y-2 shrink-0 bg-white/90">
+        <div className="relative">
+          <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={chatSearchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Tìm theo tên Sinh viên..."
+            className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 placeholder-slate-500 outline-none focus:border-blue-600 focus:bg-white"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <select
+            value={chatJobFilter}
+            onChange={(e) => onJobFilterChange(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-900 outline-none focus:border-blue-600 cursor-pointer"
+            title="Lọc hội thoại theo Tin tuyển dụng (FR-NTD-07.06)"
+          >
+            <option value="all">Tất cả tin tuyển dụng</option>
+            {myJobs.map(j => (
+              <option key={j._id} value={j._id}>{j.title}</option>
+            ))}
+          </select>
+
+          <div className="flex items-center justify-between gap-2 pt-0.5">
+            <span className="text-xs text-slate-500 font-medium">
+              Bộ lọc ({filteredContacts.length}/{contacts.length}):
+            </span>
+            <button
+              type="button"
+              onClick={onToggleUnreplied}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap border ${
+                chatUnrepliedOnly
+                  ? 'bg-amber-100 text-amber-900 border-amber-300 shadow-xs'
+                  : 'bg-white text-slate-700 hover:text-slate-900 border-slate-300 hover:bg-slate-50'
+              }`}
+              title="Chỉ hiển thị hội thoại chưa phản hồi (FR-NTD-07.06)"
+            >
+              {chatUnrepliedOnly ? '✓ Chưa phản hồi' : 'Chưa phản hồi'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Danh sách các cuộc hội thoại */}
+      <div className={`flex-1 overflow-y-auto p-2.5 space-y-1.5 min-h-0 ${isDrawer ? 'divide-y divide-slate-100' : ''}`}>
+        {contacts.length === 0 ? (
+          <div className="p-6 text-center text-slate-600 text-xs">
+            <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50 text-slate-400" />
+            <p className="font-bold text-slate-800">Chưa có cuộc trò chuyện nào</p>
+            <p className="text-xs text-slate-600 mt-1">
+              Danh bạ sẽ tự động xuất hiện khi có sinh viên ứng tuyển vào công việc của bạn.
+            </p>
+            {onCreateNewChat && (
+              <button
+                type="button"
+                onClick={onCreateNewChat}
+                className="mt-4 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer inline-flex items-center gap-1.5"
+              >
+                <MessageSquarePlus className="w-3.5 h-3.5" />
+                <span>Tạo Tin Nhắn Mới</span>
+              </button>
+            )}
+          </div>
+        ) : filteredContacts.length === 0 ? (
+          <div className="p-6 text-center text-slate-600 text-xs">
+            <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50 text-slate-400" />
+            <p className="font-bold text-slate-800">Không tìm thấy hội thoại phù hợp</p>
+            <p className="text-xs text-slate-500 mt-1">Thử bỏ chọn "Chưa phản hồi" hoặc đổi bộ lọc tin tuyển dụng.</p>
+          </div>
+        ) : (
+          filteredContacts.map((contact) => {
+            const isSelected = selectedContact?.id === contact.id;
+            const hasUnreplied = Boolean(contact.unreplied || contact.unread_count > 0);
+            return (
+              <button
+                key={contact.id}
+                type="button"
+                onClick={() => onSelectContact(contact)}
+                className={`w-full p-3 rounded-xl border transition-all text-left flex items-start gap-3 cursor-pointer group ${
+                  isSelected
+                    ? 'bg-blue-50 border-blue-400 shadow-xs ring-1 ring-blue-300/60'
+                    : 'bg-white hover:bg-blue-50/60 border-slate-200/80 hover:border-blue-300'
+                }`}
+              >
+                <div className="relative shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-sky-500 text-white font-bold flex items-center justify-center text-sm shadow-sm">
+                    {contact.name.charAt(0)}
+                  </div>
+                  <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
+                    contact.online ? 'bg-emerald-500' : 'bg-slate-400'
+                  }`}></span>
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className={`text-xs sm:text-sm font-bold truncate ${
+                      isSelected ? 'text-blue-800' : 'text-slate-900 group-hover:text-blue-700'
+                    }`}>
+                      {contact.name}
+                    </p>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {hasUnreplied && (
+                        <span className="w-2 h-2 rounded-full bg-amber-500" title="Chưa phản hồi"></span>
+                      )}
+                      <span className="text-xs text-slate-500 font-mono">{contact.time}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-blue-700 font-semibold truncate mt-0.5">{contact.subtitle}</p>
+                  <p className="text-xs text-slate-600 line-clamp-1 mt-0.5">{contact.lastMsg}</p>
+                </div>
+              </button>
+            );
+          })
+        )}
+      </div>
+    </>
   );
 }

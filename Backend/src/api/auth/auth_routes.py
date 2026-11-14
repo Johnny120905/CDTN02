@@ -6,6 +6,7 @@ from flask import Blueprint, request, jsonify
 from src.core.security import validate_email_format, validate_password_complexity, hash_password, verify_password, generate_jwt_token
 from src.core.database import db_manager
 from src.core.email_service import send_otp_email
+from src.core.notification_service import emit_socket_event, notify_admins
 from src.middlewares.auth_middleware import token_required, check_email_role_constraint
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
@@ -46,7 +47,7 @@ def register():
 
         if time.time() > otp_expires_at:
             users_col.delete_one({"temp_email": email})
-            return jsonify({"success": False, "message": "Mã OTP đã hết hiệu lực sau 10 phút. Vui lòng bấm gửi lại mã mới."}), 400
+            return jsonify({"success": False, "message": "Mã OTP đã hết hiệu lực sau 60 giây. Vui lòng bấm gửi lại mã mới."}), 400
 
         if stored_otp != otp_input and otp_input != "654321":
             return jsonify({"success": False, "message": "Mã OTP không chính xác. Vui lòng kiểm tra lại hộp thư Gmail."}), 400
@@ -90,8 +91,9 @@ def register():
             "full_name": full_name or "Sinh viên mới",
             "phone": phone,
             "university": extra_field or "Đại học Văn Lang",
-            "major": "Công nghệ thông tin"
+            "address": str(data.get("address") or "").strip() or "Quận 1, TP. Hồ Chí Minh"
         })
+        emit_socket_event("user-registered", {"user_id": user_id, "role": "student"})
     elif role == "employer":
         emp_col = db_manager.get_collection("employers")
         emp_id = f"emp_{uuid.uuid4().hex[:8]}"
@@ -121,10 +123,11 @@ def register():
             "license_uploaded_at": time.strftime("%Y-%m-%d %H:%M:%S") if stored_license_url else ""
         })
         comp_col = db_manager.get_collection("company_profiles")
+        comp_display_name = company_name or extra_field or full_name or "Doanh nghiệp mới"
         comp_col.insert_one({
             "_id": f"comp_{uuid.uuid4().hex[:8]}",
             "employer_id": emp_id,
-            "company_name": company_name or extra_field or full_name or "Doanh nghiệp mới",
+            "company_name": comp_display_name,
             "representative_name": representative_name or full_name or "Người đại diện",
             "branch_name": branch_name or "",
             "description": "Thông tin doanh nghiệp đang cập nhật",
@@ -136,6 +139,15 @@ def register():
             "logo_url": "https://images.unsplash.com/photo-1559925393-8be0ec4767c8?w=120&auto=format&fit=crop&q=80",
             "cover_image_url": ""
         })
+        notify_admins(
+            title=f"Doanh nghiệp mới chờ duyệt GPKD: {comp_display_name}",
+            message=f"Doanh nghiệp {comp_display_name} ({email}) vừa đăng ký tài khoản và gửi Giấy phép kinh doanh chờ Quản trị viên thẩm định.",
+            notif_type="employer_reapproval_gpkd",
+            related_id=emp_id,
+            target_id=user_id,
+        )
+        emit_socket_event("gpkd-reupload", {"employer_id": emp_id, "user_id": user_id, "company_name": comp_display_name, "approval_status": "pending"})
+        emit_socket_event("user-registered", {"user_id": user_id, "role": "employer"})
 
     token = generate_jwt_token(user_id, email, role)
     return jsonify({
@@ -328,12 +340,12 @@ def verify_otp():
     stored_otp = str(user.get("otp_code", ""))
     expires_at = float(user.get("otp_expires_at", 0))
 
-    # Kiểm tra thời gian 10 phút
+    # Kiểm tra thời gian hiệu lực 60 giây
     current_time = time.time()
     if current_time > expires_at:
         return jsonify({
             "success": False, 
-            "message": "Mã OTP đã hết hiệu lực sau 10 phút. Vui lòng bấm 'Gửi lại mã OTP mới'."
+            "message": "Mã OTP đã hết hiệu lực sau 60 giây. Vui lòng bấm 'Gửi lại mã OTP mới'."
         }), 410
 
     if stored_otp != otp_input:
@@ -344,7 +356,7 @@ def verify_otp():
 
     return jsonify({
         "success": True,
-        "message": "Xác thực mã OTP thành công! Hiệu lực trong thời hạn 10 phút được đảm bảo.",
+        "message": "Xác thực mã OTP thành công! Hiệu lực trong thời hạn 60 giây được đảm bảo.",
         "email": email,
         "verified": True
     }), 200
@@ -352,7 +364,7 @@ def verify_otp():
 @auth_bp.route("/reset-password-otp", methods=["POST"])
 def reset_password_otp():
     """
-    Đổi mật khẩu mới dựa trên mã OTP hợp lệ trong 10 phút.
+    Đổi mật khẩu mới dựa trên mã OTP hợp lệ trong 60 giây.
     """
     data = request.get_json() or {}
     email = str(data.get("email", "")).strip().lower()
@@ -372,7 +384,7 @@ def reset_password_otp():
     expires_at = float(user.get("otp_expires_at", 0))
 
     if time.time() > expires_at:
-        return jsonify({"success": False, "message": "Mã OTP đã hết hạn sau 10 phút."}), 410
+        return jsonify({"success": False, "message": "Mã OTP đã hết hạn sau 60 giây."}), 410
 
     if stored_otp != otp_input:
         return jsonify({"success": False, "message": "Mã OTP không hợp lệ."}), 400
@@ -468,9 +480,9 @@ def delete_account():
                     "application_status": {"$in": ["accepted", "Đã duyệt"]}
                 })
                 if accepted_count >= 1:
-                    jobs_col.update_one({"_id": j_id}, {"$set": {"status": "completed", "is_open": False}})
+                    jobs_col.update_one({"_id": j_id}, {"$set": {"status": "completed", "job_status": "completed", "is_open": False}})
                 else:
-                    jobs_col.update_one({"_id": j_id}, {"$set": {"status": "closed", "is_open": False}})
+                    jobs_col.update_one({"_id": j_id}, {"$set": {"status": "closed", "job_status": "closed", "is_open": False}})
 
                 # Toàn bộ đơn đang Chờ duyệt chuyển sang Từ chối kèm lý do
                 app_col.update_many(
@@ -482,6 +494,16 @@ def delete_account():
                         }
                     }
                 )
+
+    notify_admins(
+        title="Người dùng hủy tài khoản",
+        message=f"Tài khoản {user.get('email')} ({user.get('role')}) vừa yêu cầu hủy và vô hiệu hóa tài khoản.",
+        notif_type="user_status",
+        related_id=user["_id"],
+    )
+    emit_socket_event("user-status-updated", {"user_id": user["_id"], "status": "deactivated"})
+    emit_socket_event("job-updated", {"employer_user_id": user["_id"]})
+    emit_socket_event("application-status-updated", {"user_id": user["_id"]})
 
     return jsonify({"success": True, "message": "Tài khoản của bạn đã được hủy và vô hiệu hóa thành công."})
 

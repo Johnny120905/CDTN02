@@ -92,15 +92,9 @@ export default function ForgotPasswordScreen({ onNavigate, initialRole = 'studen
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        // Fallback for offline testing
-        const demoOtp = '654321';
-        setReceivedOtp(demoOtp);
-        setOtpTimer(60);
-        setIsTimerActive(true);
-        setStep(2);
-        setOtpDigits(['', '', '', '', '', '']);
+        setErrorMsg(data.message || 'Không thể gửi mã OTP. Vui lòng kiểm tra lại email.');
       } else {
-        const code = String(data.otp);
+        const code = data.otp ? String(data.otp) : '';
         setReceivedOtp(code);
         setOtpTimer(data.expires_in || 60);
         setIsTimerActive(true);
@@ -159,19 +153,14 @@ export default function ForgotPasswordScreen({ onNavigate, initialRole = 'studen
       const data = await res.json();
       if (res.ok && data.success) {
         setStep(3);
-        setOtpToast(null);
-      } else if (enteredOtp === receivedOtp) {
-        setStep(3);
-        setOtpToast(null);
       } else {
-        setErrorMsg('Mã OTP không chính xác hoặc đã hết hạn.');
+        setErrorMsg(data.message || 'Mã OTP không chính xác hoặc đã hết hạn.');
       }
     } catch (err) {
-      if (enteredOtp === receivedOtp) {
+      if (receivedOtp && enteredOtp === receivedOtp) {
         setStep(3);
-        setOtpToast(null);
       } else {
-        setErrorMsg('Mã OTP không chính xác.');
+        setErrorMsg('Không thể kết nối máy chủ để xác thực OTP. Vui lòng thử lại.');
       }
     } finally {
       setLoading(false);
@@ -197,7 +186,7 @@ export default function ForgotPasswordScreen({ onNavigate, initialRole = 'studen
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/reset-password', {
+      const res = await fetch('/api/auth/reset-password-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -215,21 +204,10 @@ export default function ForgotPasswordScreen({ onNavigate, initialRole = 'studen
           onNavigate('login', role);
         }, 1500);
       } else {
-        // Fallback local update
-        setSuccessMsg('Đổi mật khẩu thành công! Đang chuyển hướng...');
-        setTimeout(() => {
-          const loginPath = role === 'employer' ? '/employer/login' : '/student/login';
-          if (window.history && window.history.pushState) window.history.pushState({}, '', loginPath);
-          onNavigate('login', role);
-        }, 1500);
+        setErrorMsg(data.message || 'Không thể đổi mật khẩu. Vui lòng kiểm tra mã OTP hoặc thử lại.');
       }
     } catch (err) {
-      setSuccessMsg('Đổi mật khẩu thành công! Đang chuyển hướng...');
-      setTimeout(() => {
-        const loginPath = role === 'employer' ? '/employer/login' : '/student/login';
-        if (window.history && window.history.pushState) window.history.pushState({}, '', loginPath);
-        onNavigate('login', role);
-      }, 1500);
+      setErrorMsg('Lỗi kết nối máy chủ. Không thể đặt lại mật khẩu.');
     } finally {
       setLoading(false);
     }

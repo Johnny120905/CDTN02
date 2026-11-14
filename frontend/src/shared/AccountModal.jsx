@@ -3,10 +3,9 @@ import {
   X, User, Lock, Mail, Phone, Building, GraduationCap, MapPin,
   Check, Eye, EyeOff, ShieldCheck, CheckCircle2, AlertCircle, Activity
 } from 'lucide-react';
+import { getRoleToken } from './searchAndFilterHelper';
 
 export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuccess }) {
-  if (!isOpen || !currentUser) return null;
-
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'password'
   
   // Profile state - Distinct fields for Student vs Employer
@@ -26,21 +25,12 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
     currentUser?.profile?.university || 
     currentUser?.profile?.address || ''
   );
+  const [address, setAddress] = useState(currentUser?.profile?.address || '');
   const [userStatus, setUserStatus] = useState(
     currentUser?.profile?.status || currentUser?.status || 'active'
   );
 
-  // Password state with auto-fill current password (chỉ áp dụng cho Quản trị viên)
-  const getDefaultCurrentPassword = () => {
-    if (currentUser?.role === 'admin') {
-      const saved = localStorage.getItem('partime_saved_pw') || sessionStorage.getItem('partime_saved_pw');
-      if (saved) return saved;
-      return 'Le090805!';
-    }
-    return '';
-  };
-
-  const [oldPassword, setOldPassword] = useState(getDefaultCurrentPassword());
+  const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showOldPassword, setShowOldPassword] = useState(false);
@@ -48,15 +38,33 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
-      setOldPassword(getDefaultCurrentPassword());
+    if (isOpen && currentUser) {
+      setFullName(
+        currentUser?.profile?.representative_name ||
+        currentUser?.profile?.full_name ||
+        currentUser?.full_name || ''
+      );
+      setCompanyName(currentUser?.profile?.company_name || '');
+      setBranchName(currentUser?.profile?.branch_name || '');
+      setPhone(currentUser?.profile?.phone || '');
+      setExtraField(
+        currentUser.role === 'student'
+          ? (currentUser?.profile?.university || '')
+          : (currentUser?.profile?.address || '')
+      );
+      setAddress(currentUser?.profile?.address || '');
+      setUserStatus(currentUser?.profile?.status || currentUser?.status || 'active');
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setMsg({ text: '', type: '' });
     }
   }, [isOpen, currentUser]);
 
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ text: '', type: '' });
 
-  const token = localStorage.getItem('partime_token');
+  const token = getRoleToken(currentUser?.role);
   const headers = token ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } : { 'Content-Type': 'application/json' };
 
   // Password complexity check
@@ -90,6 +98,7 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
             full_name: fullName.trim(), 
             phone: phone.trim(), 
             university: extraField.trim(),
+            address: address.trim(),
             status: userStatus
           }
         : { 
@@ -112,6 +121,7 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
         const updatedUser = { ...currentUser };
         updatedUser.status = userStatus;
         updatedUser.profile = { ...(updatedUser.profile || {}), ...bodyData };
+        localStorage.setItem(`partime_${currentUser.role}_user`, JSON.stringify(updatedUser));
         localStorage.setItem('partime_user', JSON.stringify(updatedUser));
         if (onUpdateSuccess) onUpdateSuccess(updatedUser);
       } else {
@@ -160,6 +170,8 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
       setLoading(false);
     }
   };
+
+  if (!isOpen || !currentUser) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
@@ -391,6 +403,22 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
                     />
                   </div>
                 </div>
+
+                {currentUser.role === 'student' && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Địa chỉ cư trú (ưu tiên việc làm gần bạn)</label>
+                    <div className="relative">
+                      <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        placeholder="Ví dụ: Quận Bình Thạnh, TP. Hồ Chí Minh"
+                        className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs font-medium text-slate-800 focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <button
                   type="submit"

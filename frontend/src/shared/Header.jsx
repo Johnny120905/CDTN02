@@ -7,6 +7,8 @@ import {
   CheckCircle2, Clock, ChevronRight, AlertCircle, Building2
 } from 'lucide-react';
 import { getStatusBadge } from './professionSuggestions';
+import { getRoleToken } from './searchAndFilterHelper';
+import { getSocket } from './webrtcSocketService';
 
 export default function Header({
   currentUser,
@@ -34,10 +36,14 @@ export default function Header({
   const dropdownRef = useRef(null);
   const notiRef = useRef(null);
   const debounceTimerRef = useRef(null);
+  const seenNotifIdsRef = useRef(new Set());
+  const notiOpenRef = useRef(false);
+  const markAllInFlightRef = useRef(false);
 
-  const token = localStorage.getItem('partime_token');
   const isGuest = !currentUser;
   const role = currentUser?.role || guestRole;
+  const token = isGuest ? null : getRoleToken(currentUser?.role);
+  const currentUserId = currentUser?._id || currentUser?.id;
   const isEmployer = role === 'employer';
   const isStudent = role === 'student';
   const isAdmin = role === 'admin';
@@ -83,9 +89,14 @@ export default function Header({
       });
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
-        setNotifications(data.data);
-        const unread = data.data.filter(n => !n.is_read).length;
-        setUnreadCount(unread);
+        if (markAllInFlightRef.current) {
+          setNotifications(data.data.map(n => ({ ...n, is_read: true })));
+          setUnreadCount(0);
+        } else {
+          setNotifications(data.data);
+          const unread = data.data.filter(n => !n.is_read).length;
+          setUnreadCount(unread);
+        }
       }
     } catch (err) {
       console.warn('Could not fetch notifications:', err);
@@ -93,10 +104,71 @@ export default function Header({
   };
 
   useEffect(() => {
+    if (!token || isGuest) return;
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 60000); // 1 lần mỗi phút
-    return () => clearInterval(interval);
-  }, [token, role]);
+    // Chuẩn hóa tương tác ≤ 3s: Polling fallback 2.5 giây cho tất cả 3 role
+    const interval = setInterval(fetchNotifications, 2500);
+
+    // Kích hoạt nhận thông báo tức thời qua WebRTC Socket.IO (3 role thông nhau)
+    const socket = getSocket();
+    const registerIdentity = () => {
+      if (currentUserId || role) {
+        socket.emit('register-user', { user_id: currentUserId, role });
+      }
+    };
+    registerIdentity();
+
+    const handleSocketUpdate = () => {
+      fetchNotifications();
+    };
+
+    const handleNewNotification = (notif) => {
+      const targetMatch = !notif || (currentUserId && notif.user_id === currentUserId) || (isAdmin && notif.role === 'admin');
+      if (!targetMatch) return;
+      fetchNotifications();
+      if (notif && notif._id && !seenNotifIdsRef.current.has(notif._id)) {
+        seenNotifIdsRef.current.add(notif._id);
+        if (onShowBanner && notif.title) {
+          onShowBanner(`${notif.title}: ${notif.message || ''}`, 'info');
+        }
+      }
+    };
+
+    socket.on('connect', registerIdentity);
+    socket.on('new-notification', handleNewNotification);
+    socket.on('applicant-withdrawn', handleSocketUpdate);
+    socket.on('application-status-updated', handleSocketUpdate);
+    socket.on('gpkd-status-updated', handleSocketUpdate);
+    socket.on('gpkd-reupload', handleSocketUpdate);
+    socket.on('new-application', handleSocketUpdate);
+    socket.on('new-report', handleSocketUpdate);
+    socket.on('report-updated', handleSocketUpdate);
+    socket.on('new-job', handleSocketUpdate);
+    socket.on('job-updated', handleSocketUpdate);
+    socket.on('shift-status-updated', handleSocketUpdate);
+    socket.on('new-review', handleSocketUpdate);
+    socket.on('review-updated', handleSocketUpdate);
+    socket.on('user-status-updated', handleSocketUpdate);
+
+    return () => {
+      clearInterval(interval);
+      socket.off('connect', registerIdentity);
+      socket.off('new-notification', handleNewNotification);
+      socket.off('applicant-withdrawn', handleSocketUpdate);
+      socket.off('application-status-updated', handleSocketUpdate);
+      socket.off('gpkd-status-updated', handleSocketUpdate);
+      socket.off('gpkd-reupload', handleSocketUpdate);
+      socket.off('new-application', handleSocketUpdate);
+      socket.off('new-report', handleSocketUpdate);
+      socket.off('report-updated', handleSocketUpdate);
+      socket.off('new-job', handleSocketUpdate);
+      socket.off('job-updated', handleSocketUpdate);
+      socket.off('shift-status-updated', handleSocketUpdate);
+      socket.off('new-review', handleSocketUpdate);
+      socket.off('review-updated', handleSocketUpdate);
+      socket.off('user-status-updated', handleSocketUpdate);
+    };
+  }, [token, role, currentUserId, isGuest]);
 
   // Handle Mark as Read on Hover
   const handleNotiHover = async (noti) => {
@@ -142,10 +214,47 @@ export default function Header({
     }
   };
 
+  const markAllNotificationsRead = async () => {
+    const hasUnread = unreadCount > 0 || notifications.some(n => !n.is_read);
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    setUnreadCount(0);
+    if (!token || !hasUnread) return;
+    markAllInFlightRef.current = true;
+    try {
+      const endpoint = isEmployer
+        ? '/api/employer/notifications/read-all'
+        : (isStudent ? '/api/student/notifications/read-all' : '/api/notifications/read-all');
+      await fetch(endpoint, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (e) {
+      console.warn('Error marking all notifications as read:', e);
+    } finally {
+      markAllInFlightRef.current = false;
+    }
+  };
+
+  const closeNotificationsPanel = () => {
+    if (!notiOpenRef.current) return;
+    notiOpenRef.current = false;
+    setNotiOpen(false);
+    markAllNotificationsRead();
+  };
+
+  const handleToggleNoti = () => {
+    if (notiOpenRef.current) {
+      closeNotificationsPanel();
+    } else {
+      notiOpenRef.current = true;
+      setNotiOpen(true);
+    }
+  };
+
   // Handle Notification Click
   const handleNotiClick = (n) => {
     handleNotiHover(n);
-    setNotiOpen(false);
+    closeNotificationsPanel();
     const type = (n.type || '').toLowerCase();
     const title = (n.title || '').toLowerCase();
     const targetId = (n.target_id || n.related_id || '').toLowerCase();
@@ -156,12 +265,20 @@ export default function Header({
     } else if (type.includes('chat') || title.includes('tin nhắn')) {
       if (onNavigateMenu) onNavigateMenu('chat');
       else if (onToggleChatDrawer) onToggleChatDrawer();
+    } else if (type.includes('report') || type.includes('ticket') || title.includes('khiếu nại') || title.includes('báo cáo')) {
+      if (onNavigateMenu) onNavigateMenu(isAdmin ? 'reports' : 'home');
+    } else if (type.includes('gpkd') || type.includes('license') || title.includes('giấy phép')) {
+      if (onNavigateMenu) onNavigateMenu(isAdmin ? 'gpkd' : 'company');
+    } else if (type.includes('shift') || title.includes('ca làm')) {
+      if (onNavigateMenu) onNavigateMenu(isStudent ? 'my_shifts' : (isEmployer ? 'job_completion' : 'jobs'));
+    } else if (type.includes('job_completed') || title.includes('hoàn thành')) {
+      if (onNavigateMenu) onNavigateMenu(isEmployer ? 'job_completion' : (isStudent ? 'applications' : 'jobs'));
     } else if (type.includes('app') || targetId.startsWith('app_') || title.includes('ứng tuyển') || title.includes('hồ sơ')) {
-      if (onNavigateMenu) onNavigateMenu(isEmployer ? 'applicants' : 'applications');
+      if (onNavigateMenu) onNavigateMenu(isEmployer ? 'applicants' : (isStudent ? 'applications' : 'dashboard'));
     } else if (type.includes('review') || title.includes('đánh giá')) {
       if (onNavigateMenu) onNavigateMenu('reviews');
-    } else if (type.includes('gpkd') || type.includes('license') || title.includes('giấy phép')) {
-      if (onNavigateMenu) onNavigateMenu(isAdmin ? 'gpkd_verification' : 'company');
+    } else if (type.includes('user') || type.includes('account') || title.includes('tài khoản')) {
+      if (onNavigateMenu) onNavigateMenu(isAdmin ? 'users' : 'home');
     } else if (type.includes('job') || targetId.startsWith('job_') || title.includes('việc làm') || title.includes('tuyển dụng')) {
       if (onNavigateMenu) onNavigateMenu('jobs');
     } else if (isAdmin) {
@@ -171,19 +288,28 @@ export default function Header({
     }
   };
 
-  // Close dropdowns on outside click
+  // Close dropdowns on outside click / Escape
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false);
       }
-      if (notiRef.current && !notiRef.current.contains(event.target)) {
-        setNotiOpen(false);
+      if (notiRef.current && !notiRef.current.contains(event.target) && notiOpenRef.current) {
+        closeNotificationsPanel();
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && notiOpenRef.current) {
+        closeNotificationsPanel();
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [token, role, notifications, unreadCount]);
 
   // Search Input Debounce (300ms)
   const handleSearchInputChange = (e) => {
@@ -208,9 +334,11 @@ export default function Header({
       const data = await res.json();
       if (data.success) {
         setDeleteModalOpen(false);
+        if (onShowBanner) onShowBanner('Đã hủy tài khoản thành công.', 'success');
         onLogout();
       } else {
         setDeleteModalOpen(false);
+        if (onShowBanner) onShowBanner(data.message || 'Không thể hủy tài khoản lúc này.', 'error');
       }
     } catch (err) {
       setDeleteModalOpen(false);
@@ -219,6 +347,8 @@ export default function Header({
       setDeleteLoading(false);
     }
   };
+
+
 
   const getRoleConfig = (r) => {
     switch (r) {
@@ -353,19 +483,19 @@ export default function Header({
             </button>
           )}
 
-          {/* Icon Chuông Thông Báo - Chỉ khi đã đăng nhập */}
-          {!isGuest && (isStudent || isEmployer) && (
+          {/* Icon Chuông Thông Báo - Hiển thị cho tất cả 3 vai trò khi đã đăng nhập */}
+          {!isGuest && (isStudent || isEmployer || isAdmin) && (
             <div className="relative" ref={notiRef}>
               <button
                 type="button"
-                onClick={() => setNotiOpen(!notiOpen)}
-                className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 transition-all cursor-pointer relative"
+                onClick={handleToggleNoti}
+                className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 transition-all cursor-pointer relative overflow-visible"
                 title="Thông báo hệ thống"
               >
                 <Bell className={`w-4 h-4 text-slate-700 ${unreadCount > 0 ? 'animate-bounce text-blue-600' : ''}`} />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 min-w-[18px] text-xs font-bold rounded-full bg-red-600 text-white border border-white text-center shadow-md">
-                    +{unreadCount}
+                  <span className="pointer-events-none absolute -top-2 -right-2 px-1 min-w-[16px] h-[16px] flex items-center justify-center text-[10px] leading-none font-bold rounded-full bg-red-600 text-white border border-white shadow-sm">
+                    {unreadCount >= 100 ? '99+' : `+${unreadCount}`}
                   </span>
                 )}
               </button>
@@ -406,7 +536,7 @@ export default function Header({
                                 {n.title}
                               </p>
                               <p className="text-xs text-slate-600 line-clamp-2 mt-0.5 leading-relaxed">
-                                {n.message}
+                                {n.message || n.content}
                               </p>
                               <span className="text-xs text-slate-400 mt-1 block">
                                 {n.created_at || 'Vừa xong'}
@@ -587,7 +717,7 @@ export default function Header({
                       <span>Cập nhật tài khoản cá nhân & Đổi mật khẩu</span>
                     </button>
 
-                    {/* Nút Hủy tài khoản (Không áp dụng cho Quản trị viên) */}
+                    {/* Nút Hủy tài khoản (Dành cho Sinh viên & Nhà tuyển dụng) */}
                     {!isAdmin && (
                       <button
                         type="button"
@@ -595,9 +725,9 @@ export default function Header({
                           setDropdownOpen(false);
                           setDeleteModalOpen(true);
                         }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-amber-700 hover:bg-amber-50 transition-all text-left cursor-pointer"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-700 hover:bg-rose-50 transition-all text-left cursor-pointer"
                       >
-                        <Trash2 className="w-4 h-4 text-amber-600 shrink-0" />
+                        <Trash2 className="w-4 h-4 text-rose-600 shrink-0" />
                         <span>Hủy tài khoản</span>
                       </button>
                     )}
@@ -628,9 +758,9 @@ export default function Header({
       {/* CONFIRM DELETE ACCOUNT MODAL */}
       {deleteModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white border border-red-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+          <div className="bg-white border border-rose-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2.5 text-red-600">
+              <div className="flex items-center gap-2.5 text-rose-600">
                 <AlertTriangle className="w-6 h-6 shrink-0" />
                 <h3 className="text-base font-bold text-slate-900">Xác Nhận Hủy Tài Khoản</h3>
               </div>
@@ -644,7 +774,7 @@ export default function Header({
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Bạn có chắc chắn muốn <strong className="text-red-600">hủy tài khoản ({currentUser?.email})</strong>?
+              Bạn có chắc chắn muốn <strong className="text-rose-600 font-bold">hủy tài khoản ({currentUser?.email})</strong>?
               Toàn bộ dữ liệu hồ sơ cá nhân và phiên đăng nhập sẽ bị vô hiệu hóa hoàn toàn theo chính sách bảo vệ dữ liệu.
             </p>
 
@@ -660,7 +790,7 @@ export default function Header({
                 type="button"
                 disabled={deleteLoading}
                 onClick={handleDeleteAccountSubmit}
-                className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs font-bold shadow-md cursor-pointer"
+                className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold shadow-md cursor-pointer transition-colors"
               >
                 {deleteLoading ? 'Đang xử lý...' : 'Xác Nhận Hủy Tài Khoản'}
               </button>

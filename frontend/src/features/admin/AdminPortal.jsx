@@ -13,7 +13,19 @@ import {
 } from 'lucide-react';
 import { PROFESSION_SUGGESTIONS, filterSuggestions, getStatusBadge } from '../../shared/professionSuggestions';
 import { HISTORICAL_2024_2025_BUCKETS } from './historicalAnalyticsData';
-import { VIETNAM_PROVINCES } from '../../shared/vietnamLocations';
+import { VIETNAM_PROVINCES, PROVINCE_DISTRICTS_MAP, getDistrictsByProvince } from '../../shared/vietnamLocations';
+import { getSocket } from '../../shared/webrtcSocketService';
+import {
+  removeVietnameseTones,
+  parseSalaryNumber,
+  matchKeywordFlexible,
+  matchCategoryFlexible,
+  matchShiftFlexible,
+  matchSalaryBracketFlexible,
+  matchLocationFlexible,
+  normalizeJobStatus,
+  getRoleToken
+} from '../../shared/searchAndFilterHelper';
 
 export default function AdminPortal({ 
   currentUser, 
@@ -85,9 +97,10 @@ export default function AdminPortal({
   const [banReason, setBanReason] = useState('');
   const [gpkdRejectModal, setGpkdRejectModal] = useState(null); // { userId, companyName, reason }
 
-  // GPKD Moderation Filter (FR-QTV-04.11: MST 10/13 số, Tỉnh thành, Hồ sơ tồn đọng)
+  // GPKD Moderation Filter (FR-QTV-04.11: MST 10/13 số, Tỉnh thành, Quận huyện, Hồ sơ tồn đọng)
   const [gpkdMstFilter, setGpkdMstFilter] = useState('all'); // 'all' | '10' | '13'
   const [gpkdProvinceFilter, setGpkdProvinceFilter] = useState('all');
+  const [gpkdDistrictFilter, setGpkdDistrictFilter] = useState('');
   const [gpkdAgeFilter, setGpkdAgeFilter] = useState('all'); // 'all' | 'overdue' | 'today'
 
   // Job Moderation States (FR 3.5 & FR-QTV-05.07)
@@ -133,7 +146,7 @@ export default function AdminPortal({
   const [hoveredLinePoint, setHoveredLinePoint] = useState(null); // { idx, label, svVal, jobVal, ratio }
   const [hoveredDonutSlice, setHoveredDonutSlice] = useState(null); // { name, pct, count, salary, color }
 
-  const token = localStorage.getItem('partime_token');
+  const token = getRoleToken('admin');
   const headers = token ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } : { 'Content-Type': 'application/json' };
 
   // Sync section title - 8 phân hệ cốt lõi
@@ -172,12 +185,73 @@ export default function AdminPortal({
     }
   }, [requestedMenu]);
 
-  // Initial & Auto-Refresh Data (every 8s)
+  // Initial Load + Socket.IO real-time targeted sync (tránh spam 7 API mỗi 3s gây chậm web)
   useEffect(() => {
     fetchAllData();
-    const interval = setInterval(fetchAllData, 8000);
+
+    const socket = getSocket();
+    const adminId = currentUser?._id || currentUser?.id;
+    if (token) {
+      socket.emit('register-user', { user_id: adminId, role: 'admin' });
+      socket.emit('join-room', { room_id: 'role_admin', user_id: adminId, role: 'admin' });
+    }
+
+    const onUsersChanged = () => {
+      fetchUsers();
+      fetchDashboard();
+    };
+    const onJobsChanged = () => {
+      fetchAllJobs();
+      fetchDashboard();
+    };
+    const onReportsChanged = () => {
+      fetchReports();
+      fetchDashboard();
+    };
+    const onAppsChanged = () => {
+      fetchDashboard();
+    };
+
+    const socketHandlers = [
+      ['new-application', onAppsChanged],
+      ['applicant-withdrawn', onAppsChanged],
+      ['application-status-updated', onAppsChanged],
+      ['shift-status-updated', onAppsChanged],
+      ['gpkd-reupload', onUsersChanged],
+      ['gpkd-status-updated', onUsersChanged],
+      ['user-status-updated', onUsersChanged],
+      ['user-registered', onUsersChanged],
+      ['new-job', onJobsChanged],
+      ['job-updated', onJobsChanged],
+      ['new-report', onReportsChanged],
+      ['report-updated', onReportsChanged],
+      ['new-review', fetchReviews],
+      ['review-updated', fetchReviews],
+      ['categories-updated', fetchCategories],
+      ['banned-keywords-updated', fetchBannedKeywords]
+    ];
+    socketHandlers.forEach(([ev, fn]) => socket.on(ev, fn));
+
+    return () => {
+      socketHandlers.forEach(([ev, fn]) => socket.off(ev, fn));
+    };
+  }, [token, currentUser]);
+
+  // Fallback polling nhẹ 3s: chỉ làm mới đúng phân hệ đang xem
+  useEffect(() => {
+    if (!token) return;
+    const fetchActiveTabOnly = () => {
+      if (activeMenu === 'dashboard' || activeMenu === 'home') fetchDashboard();
+      else if (activeMenu === 'users' || activeMenu === 'gpkd') fetchUsers();
+      else if (activeMenu === 'jobs') fetchAllJobs();
+      else if (activeMenu === 'keywords') fetchBannedKeywords();
+      else if (activeMenu === 'reviews') fetchReviews();
+      else if (activeMenu === 'categories') fetchCategories();
+      else if (activeMenu === 'reports') fetchReports();
+    };
+    const interval = setInterval(fetchActiveTabOnly, 3000);
     return () => clearInterval(interval);
-  }, [token]);
+  }, [token, activeMenu]);
 
   const fetchAllData = () => {
     if (token) {
@@ -233,7 +307,12 @@ export default function AdminPortal({
       const res = await fetch('/api/admin/categories', { headers });
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
-        setCategories(data.data.filter(c => !['loc_1', 'loc_2', 'loc_3', 'loc_4', 'loc_5'].includes(c._id)));
+        setCategories(data.data.filter(c => {
+          if (['loc_1', 'loc_2', 'loc_3', 'loc_4', 'loc_5'].includes(c._id)) return false;
+          const n = (c.name || '').toLowerCase();
+          if (['bảo hành', 'thời trang'].includes(n)) return false;
+          return true;
+        }));
       }
     } catch (err) {
       console.warn('Categories fetch warning:', err);
@@ -329,7 +408,7 @@ export default function AdminPortal({
       title: 'Xóa Vĩnh Viễn Tài Khoản Người Dùng',
       message: `Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản "${displayName}" (${user.email}) và toàn bộ dữ liệu liên quan khỏi hệ thống? Thao tác này không thể khôi phục.`,
       type: 'danger',
-      confirmText: 'Xóa Vĩnh Viễn',
+      confirmText: 'Xóa',
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         try {
@@ -447,7 +526,7 @@ export default function AdminPortal({
       title: 'Xóa Vĩnh Viễn Tin Tuyển Dụng',
       message: 'Bạn có chắc chắn muốn xóa vĩnh viễn tin tuyển dụng này khỏi cơ sở dữ liệu?',
       type: 'danger',
-      confirmText: 'Xóa Vĩnh Viễn',
+      confirmText: 'Xóa',
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         try {
@@ -489,7 +568,7 @@ export default function AdminPortal({
       title: 'Xóa Đánh Giá Vi Phạm',
       message: 'Bạn có chắc chắn muốn xóa đánh giá vi phạm này? Điểm Rating sẽ tự động được hệ thống tính toán lại.',
       type: 'danger',
-      confirmText: 'Xóa Đánh Giá',
+      confirmText: 'Xóa',
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         try {
@@ -575,7 +654,7 @@ export default function AdminPortal({
       title: 'Xóa Danh Mục Nghề Nghiệp',
       message: 'Xác nhận xóa danh mục này? Hệ thống sẽ kiểm tra ràng buộc toàn vẹn khóa ngoại trước khi tiến hành xóa.',
       type: 'danger',
-      confirmText: 'Xác Nhận Xóa',
+      confirmText: 'Xóa',
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         try {
@@ -626,7 +705,7 @@ export default function AdminPortal({
       title: 'Xóa Vĩnh Viễn Báo Cáo Vi Phạm',
       message: `Bạn có chắc chắn muốn xóa vĩnh viễn phiếu khiếu nại "${ticket.ticket_code || ticket._id}" khỏi hệ thống?`,
       type: 'danger',
-      confirmText: 'Xóa Vĩnh Viễn',
+      confirmText: 'Xóa',
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         try {
@@ -722,7 +801,7 @@ export default function AdminPortal({
       title: 'Xóa Từ Khóa Cấm',
       message: `Bạn có chắc chắn muốn xóa vĩnh viễn từ khóa cấm "${kwName}" khỏi bộ lọc hệ thống?`,
       type: 'danger',
-      confirmText: 'Xóa Từ Khóa',
+      confirmText: 'Xóa',
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         try {
@@ -821,7 +900,7 @@ export default function AdminPortal({
           <td>${j._id}</td>
           <td>${j.title || ''}</td>
           <td>${j.company_name || 'Doanh nghiệp'}</td>
-          <td>${j.category_name || j.category_id || 'Bán thời gian'}</td>
+          <td>${j.category_name || (j.category_id === 'cat_1' ? 'Bán lẻ / Phục vụ' : j.category_id) || 'Bán thời gian'}</td>
           <td>${j.location || 'TP.HCM'}</td>
           <td>${j.is_negotiable ? 'Lương thỏa thuận' : `${j.salary_min?.toLocaleString('vi-VN')}đ - ${j.salary_max?.toLocaleString('vi-VN')}đ`}</td>
           <td>${j.job_status === 'open' || j.is_open ? 'Đang tuyển' : (j.job_status === 'filled' ? 'Đã nhận người' : (j.job_status === 'completed' ? 'Hoàn thành' : 'Tạm đóng'))}</td>
@@ -939,42 +1018,52 @@ export default function AdminPortal({
   });
   const employerUsers = nonAdminUsers.filter(u => u.role === 'employer');
 
+  useEffect(() => {
+    setUserPage(1);
+  }, [userSearch, userRoleFilter, userStatusFilter, userUniFilter, userRiskFilter, userIdentityFilter]);
+
   // Filtered Users (FR 3.4 & FR-QTV-04.10)
   const filteredUsers = nonAdminUsers.filter(u => {
-    const sTerm = (userSearch || '').trim().toLowerCase();
-    const emailMatch = !sTerm ||
-      ((u.email || '').toLowerCase().includes(sTerm)) ||
-      ((u._id || '').toLowerCase().includes(sTerm)) ||
-      ((u.full_name || '').toLowerCase().includes(sTerm));
+    const userSearchObj = {
+      ...u,
+      full_name: u.profile?.full_name || u.full_name || '',
+      company_name: u.profile?.company_name || u.company_name || '',
+      branch_name: u.profile?.branch_name || u.branch_name || '',
+      address: u.profile?.address || u.address || u.profile?.residence_address || '',
+      phone: u.profile?.phone || u.phone || '',
+      university: u.profile?.university || u.university || ''
+    };
+    const emailMatch = matchKeywordFlexible(userSearchObj, userSearch, ['email', '_id', 'full_name', 'company_name', 'branch_name', 'phone', 'university']);
     const roleMatch = !userRoleFilter || u.role === userRoleFilter;
     const statusMatch = !userStatusFilter || 
       (userStatusFilter === 'banned' && u.is_banned) || 
       (userStatusFilter === 'active' && !u.is_banned && u.status !== 'pending') ||
       (userStatusFilter === 'pending' && u.status === 'pending');
 
-    // FR-QTV-04.10: Lọc theo Trường Đại học
-    let uniMatch = true;
-    if (userUniFilter !== 'all') {
-      const uUni = (u.university || u.student_profile?.university || '').toLowerCase();
-      uniMatch = uUni.includes(userUniFilter.toLowerCase());
-    }
+    // FR-QTV-04.10: Lọc theo Trường Đại học / Chi nhánh (Bỏ dấu tiếng Việt)
+    const uniMatch = !userUniFilter || userUniFilter === 'all' || userUniFilter === 'Tất cả các trường đại học / chi nhánh' ||
+      matchKeywordFlexible(userSearchObj, userUniFilter, ['university', 'branch_name', 'company_name', 'address']);
 
-    // FR-QTV-04.10: Mức độ rủi ro vi phạm
+    // FR-QTV-04.10: Mức độ rủi ro vi phạm (Khớp chuẩn option high_risk >= 1 report, complaints >= 3 khiếu nại, safe = an toàn)
     let riskMatch = true;
-    if (userRiskFilter === 'reported') {
-      riskMatch = (u.reports_count || 0) >= 1 || u.is_reported;
-    } else if (userRiskFilter === 'high_risk') {
-      riskMatch = (u.reports_count || 0) >= 3 || u.is_banned;
+    const repCount = Number(u.reports_count || 0);
+    if (userRiskFilter === 'high_risk' || userRiskFilter === 'reported') {
+      riskMatch = repCount >= 1 || Boolean(u.is_reported);
+    } else if (userRiskFilter === 'complaints') {
+      riskMatch = repCount >= 3 || Boolean(u.is_banned);
+    } else if (userRiskFilter === 'safe') {
+      riskMatch = repCount === 0 && !u.is_reported && !u.is_banned;
     }
 
-    // FR-QTV-04.10: Tình trạng định danh
+    // FR-QTV-04.10: Tình trạng định danh (Khớp chuẩn option verified_otp, has_gpkd, incomplete)
     let idMatch = true;
-    if (userIdentityFilter === 'verified_email') {
-      idMatch = u.status === 'active' || u.is_email_verified;
+    const hasName = Boolean(userSearchObj.full_name || userSearchObj.company_name);
+    if (userIdentityFilter === 'verified_otp' || userIdentityFilter === 'verified_email') {
+      idMatch = u.status === 'active' || Boolean(u.is_email_verified);
     } else if (userIdentityFilter === 'has_gpkd') {
       idMatch = u.role === 'employer' && Boolean(u.license_url || u.profile?.business_license_url || u.employer_record?.license_url || u.business_license || u.has_gpkd);
     } else if (userIdentityFilter === 'incomplete') {
-      idMatch = u.status === 'pending' || !u.full_name;
+      idMatch = u.status === 'pending' || !hasName;
     }
 
     return emailMatch && roleMatch && statusMatch && uniMatch && riskMatch && idMatch;
@@ -983,7 +1072,16 @@ export default function AdminPortal({
   const totalUserPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE) || 1;
   const paginatedUsers = filteredUsers.slice((userPage - 1) * USERS_PER_PAGE, userPage * USERS_PER_PAGE);
 
-  // Filtered GPKD Employers (FR-QTV-04.11: MST 10/13 số, Tỉnh thành, Hồ sơ tồn đọng)
+  // Danh sách quận/huyện tương ứng với Tỉnh/Thành được chọn trong Thẩm định GPKD
+  const gpkdAvailableDistricts = gpkdProvinceFilter && gpkdProvinceFilter !== 'all'
+    ? getDistrictsByProvince(gpkdProvinceFilter)
+    : [
+        "Quận 1", "Quận 2", "Quận 3", "Quận 4", "Quận 5", "Quận 7", "Quận 10", "Quận Bình Thạnh", "Quận Gò Vấp", "TP. Thủ Đức",
+        "Quận Cầu Giấy", "Quận Đống Đa", "Quận Ba Đình", "Quận Hoàn Kiếm", "Quận Hai Bà Trưng", "Quận Thanh Xuân",
+        "Quận Hải Châu", "Quận Ninh Kiều"
+      ];
+
+  // Filtered GPKD Employers (FR-QTV-04.11: MST 10/13 số, Tỉnh thành, Quận huyện, Hồ sơ tồn đọng)
   const filteredGpkdEmployers = employerUsers
     .filter(u => {
       let matchMst = true;
@@ -991,10 +1089,54 @@ export default function AdminPortal({
       if (gpkdMstFilter === '10') matchMst = mst.length === 10;
       else if (gpkdMstFilter === '13') matchMst = mst.length === 13;
 
+      // Gộp toàn diện địa chỉ, chi nhánh, tên doanh nghiệp để nhận diện chính xác vị trí cơ sở
+      const locationTokens = [
+        u.address,
+        u.profile?.address,
+        u.company_profile?.address,
+        u.employer_record?.address,
+        u.branch_name,
+        u.profile?.branch_name,
+        u.company_profile?.branch_name,
+        u.employer_record?.branch_name,
+        u.district,
+        u.profile?.district,
+        u.company_profile?.district,
+        u.province,
+        u.profile?.province,
+        u.company_profile?.province,
+        u.residence_address,
+        u.company_name,
+        u.profile?.company_name,
+        u.company_profile?.company_name
+      ].filter(Boolean).map(s => String(s).trim());
+      const fullLocationStr = locationTokens.join(' ');
+      const gpkdLocObj = {
+        location: fullLocationStr,
+        address: u.profile?.address || u.address || u.company_profile?.address || '',
+        branch_name: u.profile?.branch_name || u.branch_name || u.company_profile?.branch_name || '',
+        district: u.profile?.district || u.district || '',
+        province: u.profile?.province || u.province || ''
+      };
+
+      // So khớp Tỉnh / Thành Phố (chuẩn hóa không dấu + nhận diện qua tên tỉnh & danh sách quận/huyện thuộc tỉnh)
       let matchProv = true;
-      if (gpkdProvinceFilter !== 'all') {
-        const addr = (u.address || u.profile?.address || u.company_profile?.address || '').toLowerCase();
-        matchProv = addr.includes(gpkdProvinceFilter.toLowerCase());
+      if (gpkdProvinceFilter && gpkdProvinceFilter !== 'all') {
+        matchProv = matchLocationFlexible(gpkdLocObj, gpkdProvinceFilter, [], '');
+        if (!matchProv) {
+          const distList = PROVINCE_DISTRICTS_MAP[gpkdProvinceFilter] || [];
+          matchProv = distList.some(dist => matchLocationFlexible(gpkdLocObj, '', [dist], ''));
+        }
+        if (!matchProv && gpkdProvinceFilter === 'TP. Hồ Chí Minh') {
+          const locUnaccent = removeVietnameseTones(fullLocationStr);
+          matchProv = ['ben nghe', 'sai gon', 'tphcm', 'tp hcm'].some(alias => locUnaccent.includes(alias));
+        }
+      }
+
+      // So khớp Quận / Huyện linh hoạt (hỗ trợ cả không dấu, Q1/Quận 1, Cầu Giấy/Cau Giay, ranh giới số)
+      let matchDistrict = true;
+      if (gpkdDistrictFilter && gpkdDistrictFilter.trim()) {
+        matchDistrict = matchLocationFlexible(gpkdLocObj, '', [gpkdDistrictFilter.trim()], '');
       }
 
       let matchAge = true;
@@ -1004,7 +1146,7 @@ export default function AdminPortal({
         else if (gpkdAgeFilter === 'today') matchAge = ageHours <= 24;
       }
 
-      return matchMst && matchProv && matchAge;
+      return matchMst && matchProv && matchDistrict && matchAge;
     })
     .sort((a, b) => {
       const rank = { pending: 0, rejected: 1, approved: 2 };
@@ -1020,16 +1162,14 @@ export default function AdminPortal({
 
   // Filtered Jobs (FR 3.5 & FR-QTV-05.07)
   const filteredJobs = jobs.filter(j => {
-    const sTerm = (jobSearch || '').trim().toLowerCase();
-    const matchSearch = !sTerm ||
-      ((j.title || '').toLowerCase().includes(sTerm)) ||
-      ((j.company_name || '').toLowerCase().includes(sTerm));
-    const jSt = j.job_status || j.status || (j.is_open ? 'open' : 'closed');
+    // 1. Tìm kiếm linh hoạt đa từ & bỏ dấu tiếng Việt
+    const matchSearch = matchKeywordFlexible(j, jobSearch, ['title', 'company_name', 'description', 'location', 'address', 'branch_name', 'category_name', 'district', 'province']);
+    const jSt = normalizeJobStatus(j);
     let matchStatus = true;
     if (jobStatusFilter === 'open') {
-      matchStatus = !j.is_hidden && (jSt === 'open' || jSt === 'active' || jSt === 'recruiting' || j.is_open);
+      matchStatus = !j.is_hidden && jSt === 'open';
     } else if (jobStatusFilter === 'closed') {
-      matchStatus = !j.is_hidden && (!j.is_open || jSt === 'closed') && jSt !== 'filled' && jSt !== 'completed';
+      matchStatus = !j.is_hidden && jSt === 'closed';
     } else if (jobStatusFilter === 'filled') {
       matchStatus = !j.is_hidden && jSt === 'filled';
     } else if (jobStatusFilter === 'completed') {
@@ -1041,13 +1181,25 @@ export default function AdminPortal({
     // FR-QTV-05.07: Bộ lọc Tin vi phạm Lương 4 Vùng, Vi phạm giờ làm & Dấu hiệu lừa đảo
     let matchViolation = true;
     if (jobViolationFilter === 'under_min_wage') {
-      matchViolation = (j.salary_min && j.salary_min < 20000) || (j.salary_max && j.salary_max < 20000);
+      const sMin = parseSalaryNumber(j.salary_min);
+      const sMax = parseSalaryNumber(j.salary_max);
+      matchViolation = (sMin > 0 && sMin < 20000) || (sMax > 0 && sMax < 20000);
     } else if (jobViolationFilter === 'over_8h') {
-      const wt = (j.work_time || '').toLowerCase();
-      matchViolation = wt.includes('10 tiếng') || wt.includes('12 tiếng') || wt.includes('10h') || wt.includes('12h');
+      const wt = removeVietnameseTones(j.work_time || '');
+      const hoursMatch = wt.match(/(\d+(?:\.\d+)?)\s*(?:tieng|gio|h\b)/);
+      const rangeMatch = wt.match(/(\d{1,2}):\d{2}\s*[-–]\s*(\d{1,2}):\d{2}/);
+      let spanHours = 0;
+      if (rangeMatch) {
+        const startH = Number(rangeMatch[1]);
+        let endH = Number(rangeMatch[2]);
+        if (endH <= startH) endH += 24;
+        spanHours = endH - startH;
+      }
+      matchViolation = (hoursMatch && Number(hoursMatch[1]) > 8) || spanHours > 8 ||
+        wt.includes('10 tieng') || wt.includes('12 tieng') || wt.includes('10h') || wt.includes('12h');
     } else if (jobViolationFilter === 'scam_keywords') {
-      const desc = ((j.title || '') + ' ' + (j.description || '')).toLowerCase();
-      matchViolation = desc.includes('cọc') || desc.includes('đặt cọc') || desc.includes('nạp tiền') || desc.includes('telegram');
+      const desc = removeVietnameseTones((j.title || '') + ' ' + (j.description || ''));
+      matchViolation = desc.includes('coc') || desc.includes('dat coc') || desc.includes('nap tien') || desc.includes('telegram') || desc.includes('thu phi');
     } else if (jobViolationFilter === 'high_reports') {
       matchViolation = (j.report_count || 0) >= 2 || (j.violation_reports || 0) >= 2;
     }
@@ -1057,13 +1209,7 @@ export default function AdminPortal({
 
   // Filtered Reviews (FR 3.6 & FR-QTV-06.07)
   const filteredReviews = reviews.filter(r => {
-    const term = (reviewSearch || '').toLowerCase().trim();
-    const matchSearch = !term || 
-      (r.reviewer_name && r.reviewer_name.toLowerCase().includes(term)) ||
-      (r.user_name && r.user_name.toLowerCase().includes(term)) ||
-      (r.comment && r.comment.toLowerCase().includes(term)) ||
-      (r.target_name && r.target_name.toLowerCase().includes(term)) ||
-      (r.job_title && r.job_title.toLowerCase().includes(term));
+    const matchSearch = matchKeywordFlexible(r, reviewSearch, ['reviewer_name', 'user_name', 'student_name', 'company_name', 'comment', 'target_name', 'job_title']);
       
     let matchStatus = true;
     if (reviewStatusFilter === 'public') {
@@ -1072,20 +1218,34 @@ export default function AdminPortal({
       matchStatus = r.is_hidden === true;
     }
 
-    // FR-QTV-06.07: Chiều tương tác 2 Chiều
+    // FR-QTV-06.07: Chiều tương tác 2 Chiều (SV -> NTD vs NTD -> SV)
     let matchDirection = true;
+    const isEmployerReviewer = r.direction === 'employer_to_student' || 
+                               r.reviewer_role === 'employer' || 
+                               r.type === 'employer_review' || 
+                               (r.reviewer_name && (r.reviewer_name.toLowerCase().includes('nhà tuyển dụng') || r.reviewer_name.toLowerCase().includes('doanh nghiệp'))) ||
+                               r.target_role === 'student';
+
+    const isStudentReviewer = r.direction === 'student_to_employer' || 
+                              r.reviewer_role === 'student' || 
+                              r.type === 'student_review' || 
+                              (!isEmployerReviewer);
+
     if (reviewDirectionFilter === 'stu_to_emp') {
-      matchDirection = r.direction === 'student_to_employer' || r.type === 'student_review' || (!r.direction && r.reviewer_role === 'student');
+      matchDirection = isStudentReviewer;
     } else if (reviewDirectionFilter === 'emp_to_stu') {
-      matchDirection = r.direction === 'employer_to_student' || r.type === 'employer_review' || (!r.direction && r.reviewer_role === 'employer');
+      matchDirection = isEmployerReviewer;
     }
 
-    // FR-QTV-06.07: Thang điểm sao
+    // FR-QTV-06.07: Thang điểm sao (Tiêu cực 1-2, Trung bình 3, Tích cực 4-5)
     let matchStars = true;
+    const starScore = Number(r.rating || r.score || 5);
     if (reviewStarsFilter === 'negative') {
-      matchStars = Number(r.rating || r.score || 5) <= 2;
+      matchStars = starScore <= 2;
+    } else if (reviewStarsFilter === 'neutral') {
+      matchStars = starScore === 3;
     } else if (reviewStarsFilter === 'positive') {
-      matchStars = Number(r.rating || r.score || 5) >= 4;
+      matchStars = starScore >= 4;
     }
 
     return matchSearch && matchStatus && matchDirection && matchStars;
@@ -1093,7 +1253,7 @@ export default function AdminPortal({
 
   // Filtered Tickets (FR 3.8 & FR-QTV-08.02)
   const filteredTickets = reports.filter(r => {
-    const matchSearch = !ticketSearch || (r.ticket_code && r.ticket_code.toLowerCase().includes(ticketSearch.toLowerCase())) || (r.reason && r.reason.toLowerCase().includes(ticketSearch.toLowerCase()));
+    const matchSearch = matchKeywordFlexible(r, ticketSearch, ['ticket_code', 'reason', 'reporter_name', 'target_name', 'type', 'report_type', 'notes', 'description']);
     const matchType = !ticketTab || ticketTab === 'all' || r.type === ticketTab || r.report_type === ticketTab;
     const matchStatus = ticketStatusFilter === 'all' || r.status === ticketStatusFilter || (ticketStatusFilter === 'pending' && (!r.status || r.status === 'chờ xử lý'));
     return matchSearch && matchType && matchStatus;
@@ -1107,7 +1267,7 @@ export default function AdminPortal({
     { id: 'jobs', label: 'Kiểm duyệt tin tuyển dụng', icon: <Briefcase className="w-4 h-4" />, count: jobs.length },
     { id: 'keywords', label: 'Kiểm duyệt từ khoá cấm', icon: <ShieldCheck className="w-4 h-4" />, count: bannedKeywords.length },
     { id: 'reviews', label: 'Quản lý đánh giá chéo 2 chiều', icon: <Star className="w-4 h-4" />, count: reviews.length },
-    { id: 'categories', label: 'Quản trị danh mục Master Data', icon: <Tag className="w-4 h-4" />, count: categories.filter(c => c.type !== 'location').length },
+    { id: 'categories', label: 'Quản trị danh mục Master Data', icon: <Tag className="w-4 h-4" />, count: categories.length },
     { id: 'reports', label: 'Xử lý Khiếu nại & Báo cáo vi phạm', icon: <AlertTriangle className="w-4 h-4" />, count: reports.length }
   ];
 
@@ -1170,7 +1330,7 @@ export default function AdminPortal({
                     <span className={`absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-black flex items-center justify-center whitespace-nowrap ring-2 shadow-xs ${
                       isActive ? 'bg-white text-blue-700 ring-indigo-600' : 'bg-blue-600 text-white ring-white'
                     }`}>
-                      {item.count > 99 ? '99+' : item.count}
+                      {item.count >= 100 ? '99+' : item.count}
                     </span>
                   )}
                   {!collapsedDesktop && <span className="leading-snug">{item.label}</span>}
@@ -1179,7 +1339,7 @@ export default function AdminPortal({
                   <span className={`px-2.5 py-0.5 rounded-full text-xs font-black shrink-0 whitespace-nowrap ${
                     isActive ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-800 border border-blue-200'
                   }`}>
-                    {item.count}
+                    {item.count >= 100 ? '99+' : item.count}
                   </span>
                 )}
               </button>
@@ -1310,8 +1470,8 @@ export default function AdminPortal({
                 </span>
               </div>
 
-              {/* FR-QTV-04.11: Bộ lọc Bàn thẩm định GPKD (MST 10/13 số, Tỉnh thành, Hồ sơ tồn đọng) */}
-              <div className="p-4 bg-slate-50/50 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* FR-QTV-04.11: Bộ lọc Bàn thẩm định GPKD (MST 10/13 số, Tỉnh thành, Quận huyện, Hồ sơ tồn đọng) */}
+              <div className="p-4 bg-slate-50/50 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Mã Số Thuế (MST):</label>
                   <select
@@ -1329,7 +1489,10 @@ export default function AdminPortal({
                   <label className="block text-xs font-bold text-slate-700 mb-1">Khu Vực Tỉnh / Thành Phố:</label>
                   <select
                     value={gpkdProvinceFilter}
-                    onChange={(e) => setGpkdProvinceFilter(e.target.value)}
+                    onChange={(e) => {
+                      setGpkdProvinceFilter(e.target.value);
+                      setGpkdDistrictFilter('');
+                    }}
                     className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-900 outline-none focus:border-blue-600 shadow-xs cursor-pointer"
                   >
                     <option value="all">Toàn quốc</option>
@@ -1337,6 +1500,29 @@ export default function AdminPortal({
                       <option key={p} value={p}>{p}</option>
                     ))}
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Lọc Theo Quận / Huyện:</label>
+                  <input
+                    type="text"
+                    list="gpkd-districts-datalist"
+                    value={gpkdDistrictFilter}
+                    onChange={(e) => setGpkdDistrictFilter(e.target.value)}
+                    placeholder={
+                      gpkdProvinceFilter === 'Hà Nội'
+                        ? 'Gợi ý: Cầu Giấy, Đống Đa, Ba Đình...'
+                        : (gpkdProvinceFilter === 'TP. Hồ Chí Minh'
+                          ? 'Gợi ý: Quận 1, Quận 2, Quận 3, Bình Thạnh...'
+                          : (gpkdProvinceFilter !== 'all' ? `Gợi ý: quận/huyện tại ${gpkdProvinceFilter}...` : 'Nhập Quận 1, Cầu Giấy,...'))
+                    }
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-900 outline-none focus:border-blue-600 shadow-xs"
+                  />
+                  <datalist id="gpkd-districts-datalist">
+                    {gpkdAvailableDistricts.map((d, i) => (
+                      <option key={`${d}-${i}`} value={d} />
+                    ))}
+                  </datalist>
                 </div>
 
                 <div>
@@ -1435,7 +1621,7 @@ export default function AdminPortal({
                                 className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap transition-all"
                               >
                                 <Check className="w-3.5 h-3.5" />
-                                <span>Phê Duyệt</span>
+                                <span>Duyệt</span>
                               </button>
                               <button
                                 type="button"
@@ -1445,7 +1631,7 @@ export default function AdminPortal({
                                     title: 'Từ Chối Giấy Phép Kinh Doanh',
                                     message: `Xác nhận từ chối GPKD của "${emp.profile?.company_name || emp.company_name || 'Doanh nghiệp'}"? Lý do: "Tài liệu mờ hoặc thông tin không trùng khớp".`,
                                     type: 'danger',
-                                    confirmText: 'Xác Nhận Từ Chối',
+                                    confirmText: 'Từ chối',
                                     cancelText: 'Hủy',
                                     onConfirm: () => {
                                       setConfirmDialog(prev => ({ ...prev, isOpen: false }));
@@ -1456,7 +1642,7 @@ export default function AdminPortal({
                                 className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs shadow-xs cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap transition-all"
                               >
                                 <X className="w-3.5 h-3.5" />
-                                <span>Từ Chối</span>
+                                <span>Từ chối</span>
                               </button>
                             </div>
                           </td>
@@ -1560,6 +1746,31 @@ export default function AdminPortal({
                     (b) => b.timestamp >= rangeStart.getTime() && b.timestamp <= rangeEnd.getTime()
                   );
 
+              // Bộ lọc địa điểm & ngành nghề dùng chung cho Dashboard (tránh trùng lặp logic)
+              const matchesDashGeoAndCat = (rawDoc) => {
+                const linkedJob = rawDoc?.job_id ? jobs.find(j => j._id === rawDoc.job_id) : null;
+                const doc = linkedJob ? { ...linkedJob, ...rawDoc } : rawDoc;
+                if (dashProvinceFilter) {
+                  const locObj = {
+                    location: [doc.province, doc.location, doc.address, doc.profile?.address, doc.company_profile?.address, doc.branch_name, doc.profile?.branch_name].filter(Boolean).join(' '),
+                    province: doc.province || doc.profile?.province || '',
+                    district: doc.district || doc.profile?.district || '',
+                    address: doc.address || doc.profile?.address || doc.company_profile?.address || '',
+                    branch_name: doc.branch_name || doc.profile?.branch_name || ''
+                  };
+                  let provOk = matchLocationFlexible(locObj, dashProvinceFilter, [], '');
+                  if (!provOk) {
+                    const dists = PROVINCE_DISTRICTS_MAP[dashProvinceFilter] || [];
+                    provOk = dists.some(d => matchLocationFlexible(locObj, '', [d], ''));
+                  }
+                  if (!provOk) return false;
+                }
+                if (dashCategoryFilter) {
+                  if (!matchCategoryFlexible(doc, dashCategoryFilter, categories)) return false;
+                }
+                return true;
+              };
+
               // Dữ liệu thực tế từ CSDL (cho năm 2026 và toàn thời gian)
               const matchesRealDoc = (doc) => {
                 if (!isAllTime) {
@@ -1570,24 +1781,15 @@ export default function AdminPortal({
                     return false;
                   }
                 }
-                // FR-QTV-03.07: Lọc theo Tỉnh / Thành Phố
-                if (dashProvinceFilter) {
-                  const provStr = `${doc.province || ''} ${doc.location || ''} ${doc.address || ''} ${doc.profile?.address || ''} ${doc.company_profile?.address || ''}`.toLowerCase();
-                  if (!provStr.includes(dashProvinceFilter.toLowerCase())) return false;
-                }
-                // FR-QTV-03.07: Lọc theo Nhóm ngành nghề Master Data
-                if (dashCategoryFilter) {
-                  const catStr = `${doc.category_id || ''} ${doc.category || ''} ${doc.category_name || ''} ${doc.title || ''} ${doc.field || ''}`.toLowerCase();
-                  if (!catStr.includes(dashCategoryFilter.toLowerCase())) return false;
-                }
-                return true;
+                return matchesDashGeoAndCat(doc);
               };
 
+              const hasGeoOrCatFilter = Boolean(dashProvinceFilter || dashCategoryFilter);
               const filteredDashStudents = nonAdminUsers.filter(u => u.role === 'student' && matchesRealDoc(u));
               const filteredDashEmployers = nonAdminUsers.filter(u => u.role === 'employer' && matchesRealDoc(u));
               const filteredDashJobs = jobs.filter(j => matchesRealDoc(j));
               const filteredDashActiveJobs = filteredDashJobs.filter(j => !j.is_hidden);
-              const filteredDashApps = isAllTime
+              const filteredDashApps = (isAllTime && !hasGeoOrCatFilter)
                 ? allRealApps
                 : allRealApps.filter(a => matchesRealDoc(a));
 
@@ -1607,7 +1809,7 @@ export default function AdminPortal({
               const jobCount = histJobs + filteredDashJobs.length;
               const activeJobCount = histActiveJobs + filteredDashActiveJobs.length;
               const appCount = histApps + (
-                isAllTime
+                (isAllTime && !hasGeoOrCatFilter)
                   ? (allRealApps.length || stats?.metrics?.total_applications || 0)
                   : filteredDashApps.length
               );
@@ -1650,15 +1852,7 @@ export default function AdminPortal({
                   } else if (d.getTime() < wStartMs || d.getTime() > wEndMs) {
                     return false;
                   }
-                  if (dashProvinceFilter) {
-                    const provStr = `${doc.province || ''} ${doc.location || ''} ${doc.address || ''} ${doc.profile?.address || ''} ${doc.company_profile?.address || ''}`.toLowerCase();
-                    if (!provStr.includes(dashProvinceFilter.toLowerCase())) return false;
-                  }
-                  if (dashCategoryFilter) {
-                    const catStr = `${doc.category_id || ''} ${doc.category || ''} ${doc.category_name || ''} ${doc.title || ''} ${doc.field || ''}`.toLowerCase();
-                    if (!catStr.includes(dashCategoryFilter.toLowerCase())) return false;
-                  }
-                  return true;
+                  return matchesDashGeoAndCat(doc);
                 };
                 const rSv = nonAdminUsers.filter(u => u.role === 'student' && inWin(u)).length;
                 const rJb = jobs.filter(j => inWin(j)).length;
@@ -2020,40 +2214,48 @@ export default function AdminPortal({
                       </div>
 
                       {/* FR-QTV-03.07: Báo cáo phân bổ theo Tỉnh/Thành phố & Nhóm ngành Master Data */}
-                      <div className="pt-2.5 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div className="pt-2.5 border-t border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                            <span>Khu vực Tỉnh / Thành phố:</span>
+                            <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Khu vực Tỉnh / Thành phố (Toàn quốc):</span>
                           </label>
                           <select
                             value={dashProvinceFilter}
                             onChange={(e) => setDashProvinceFilter(e.target.value)}
                             className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm font-bold text-slate-900 outline-none focus:border-blue-600 shadow-xs cursor-pointer"
                           >
-                            <option value="">Toàn quốc</option>
+                            <option value="">Toàn quốc (Tất cả Tỉnh/Thành phố)</option>
                             {VIETNAM_PROVINCES.map((prov) => (
-                              <option key={prov} value={prov}>{prov}</option>
+                              <option key={prov} value={prov}>
+                                {prov}
+                              </option>
                             ))}
                           </select>
                         </div>
-
                         <div>
                           <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
                             <Tag className="w-3.5 h-3.5 text-blue-600" />
-                            <span>Nhóm ngành nghề (Master Data):</span>
+                            <span>Tất cả nhóm ngành nghề (Master Data):</span>
                           </label>
                           <select
                             value={dashCategoryFilter}
                             onChange={(e) => setDashCategoryFilter(e.target.value)}
                             className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm font-bold text-slate-900 outline-none focus:border-blue-600 shadow-xs cursor-pointer"
                           >
-                            <option value="">Tất cả nhóm ngành</option>
-                            {categories.map((cat) => (
-                              <option key={cat._id || cat.name} value={cat.name || cat._id}>
-                                {cat.name}
-                              </option>
-                            ))}
+                            <option value="">Tất cả nhóm ngành nghề</option>
+                            {categories
+                              .filter((cat) => {
+                                const n = (cat.name || '').toLowerCase();
+                                const isLoc = ['hồ chí minh', 'bình thạnh', 'gò vấp', 'quận', 'huyện', 'tp.', 'tỉnh'].some(l => n.includes(l));
+                                const isUnwanted = n.includes('bảo hành') || n.includes('thời trang');
+                                return !isLoc && !isUnwanted && (cat.type === 'job' || !cat.type);
+                              })
+                              .map((cat) => (
+                                <option key={cat._id || cat.name} value={cat.name || cat._id}>
+                                  {cat.name}
+                                </option>
+                              ))}
                           </select>
                         </div>
                       </div>
@@ -2504,7 +2706,6 @@ export default function AdminPortal({
                     <option value="">Tất cả vai trò</option>
                     <option value="student">Sinh viên</option>
                     <option value="employer">Nhà tuyển dụng</option>
-                    <option value="admin">Quản trị viên</option>
                   </select>
                 </div>
 
@@ -2523,21 +2724,24 @@ export default function AdminPortal({
 
               {/* FR-QTV-04.10: Bộ lọc nâng cao Người dùng (Trường ĐH, Mức độ rủi ro, Tình trạng hồ sơ) */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
-                <div className="min-w-0">
-                  <select
-                    value={userUniFilter}
-                    onChange={(e) => setUserUniFilter(e.target.value)}
-                    className="w-full min-w-0 truncate bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm text-slate-900 outline-none cursor-pointer shadow-xs"
-                  >
-                    <option value="all">Tất cả trường Đại học</option>
-                    {Array.from(new Set(
-                      nonAdminUsers
-                        .map(u => u.university || u.student_profile?.university || '')
-                        .filter(Boolean)
-                    )).sort().map((uni) => (
-                      <option key={uni} value={uni}>{uni}</option>
+                <div className="min-w-0 relative">
+                  <input
+                    type="text"
+                    list="admin-uni-branch-suggestions"
+                    value={userUniFilter === 'all' ? '' : userUniFilter}
+                    onChange={(e) => setUserUniFilter(e.target.value || 'all')}
+                    placeholder="Tất cả các trường đại học / chi nhánh..."
+                    className="w-full min-w-0 truncate bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm text-slate-900 outline-none shadow-xs focus:border-blue-600"
+                  />
+                  <datalist id="admin-uni-branch-suggestions">
+                    {Array.from(new Set([
+                      ...nonAdminUsers.map(u => u.profile?.university || u.student_profile?.university || u.university || ''),
+                      ...nonAdminUsers.map(u => u.profile?.branch_name || u.employer_profile?.branch_name || u.branch_name || ''),
+                      ...nonAdminUsers.map(u => u.profile?.company_name || u.company_name || '')
+                    ])).filter(Boolean).sort().map((item) => (
+                      <option key={item} value={item} />
                     ))}
-                  </select>
+                  </datalist>
                 </div>
 
                 <div className="min-w-0">
@@ -2811,17 +3015,22 @@ export default function AdminPortal({
                         </td>
 
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${
-                            job.job_status === 'open' || job.is_open
-                              ? 'bg-blue-100 text-blue-800 border-blue-200'
-                              : (job.job_status === 'filled'
-                                ? 'bg-purple-100 text-purple-800 border-purple-200'
-                                : (job.job_status === 'completed'
-                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                                  : 'bg-slate-100 text-slate-700 border-slate-300'))
-                          }`}>
-                            {job.job_status === 'open' || job.is_open ? 'Đang tuyển' : (job.job_status === 'filled' ? 'Đã nhận người' : (job.job_status === 'completed' ? 'Hoàn thành' : 'Tạm đóng'))}
-                          </span>
+                          {(() => {
+                            const normSt = normalizeJobStatus(job);
+                            return (
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${
+                                normSt === 'open'
+                                  ? 'bg-blue-100 text-blue-800 border-blue-200'
+                                  : (normSt === 'filled'
+                                    ? 'bg-purple-100 text-purple-800 border-purple-200'
+                                    : (normSt === 'completed'
+                                      ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                      : 'bg-slate-100 text-slate-700 border-slate-300'))
+                              }`}>
+                                {normSt === 'open' ? 'Đang tuyển' : (normSt === 'filled' ? 'Đã nhận người' : (normSt === 'completed' ? 'Hoàn thành' : 'Tạm đóng'))}
+                              </span>
+                            );
+                          })()}
                         </td>
 
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -2926,8 +3135,8 @@ export default function AdminPortal({
                     className="w-full min-w-0 truncate bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-base sm:text-sm text-slate-900 outline-none cursor-pointer shadow-sm"
                   >
                     <option value="all">Tất cả chiều tương tác</option>
-                    <option value="stu_to_emp">Sinh viên đánh giá Nhà tuyển dụng</option>
-                    <option value="emp_to_stu">Nhà tuyển dụng đánh giá Sinh viên</option>
+                    <option value="stu_to_emp">Sinh viên đánh giá Doanh nghiệp</option>
+                    <option value="emp_to_stu">Doanh nghiệp đánh giá Sinh viên</option>
                   </select>
                 </div>
 
@@ -2973,8 +3182,17 @@ export default function AdminPortal({
                         onClick={() => setSelectedReviewDetail(rev)}
                         className="hover:bg-slate-50/80 cursor-pointer transition-colors"
                       >
-                        <td className="px-6 py-4 font-bold text-slate-900 text-base whitespace-nowrap">
-                          {rev.reviewer_name || 'Người đánh giá'}
+                        <td className="px-6 py-4 font-bold text-slate-900 text-sm whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <span>{rev.reviewer_name || 'Người đánh giá'}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${
+                              rev.direction === 'employer_to_student' || rev.reviewer_role === 'employer'
+                                ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                : 'bg-blue-50 text-blue-700 border-blue-200'
+                            }`}>
+                              {rev.direction === 'employer_to_student' || rev.reviewer_role === 'employer' ? 'NTD → SV' : 'SV → NTD'}
+                            </span>
+                          </div>
                         </td>
 
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -3136,7 +3354,7 @@ export default function AdminPortal({
                     {(() => {
                       const visibleCats = categories
                         .filter(c => categoryTab === 'all' ? true : (categoryTab === 'job' ? c.type !== 'location' : c.type === 'location'))
-                        .filter(c => !categorySearch.trim() || c.name.toLowerCase().includes(categorySearch.toLowerCase().trim()));
+                        .filter(c => matchKeywordFlexible(c, categorySearch, ['name', 'type']));
 
                       if (visibleCats.length === 0) {
                         return (
@@ -3387,7 +3605,7 @@ export default function AdminPortal({
                         className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap"
                       >
                         <FileText className="w-3.5 h-3.5" />
-                        <span>Xem Chi Tiết & Xử Lý</span>
+                        <span>Xem chi tiết</span>
                       </button>
 
                       <button
@@ -3641,8 +3859,8 @@ export default function AdminPortal({
                     <span className="text-slate-800 font-medium text-xs sm:text-sm">{selectedUserDetail.profile?.university || 'Chưa cập nhật'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block text-xs">Chuyên ngành:</span>
-                    <span className="text-slate-800 font-medium text-xs sm:text-sm">{selectedUserDetail.profile?.major || 'Chưa cập nhật'}</span>
+                    <span className="text-slate-500 block text-xs">Địa chỉ cư trú:</span>
+                    <span className="text-slate-800 font-medium text-xs sm:text-sm">{selectedUserDetail.profile?.residence_address || selectedUserDetail.profile?.address || selectedUserDetail.residence_address || 'Chưa cập nhật'}</span>
                   </div>
                   <div>
                     <span className="text-slate-500 block text-xs">Số điện thoại:</span>
@@ -3765,7 +3983,7 @@ export default function AdminPortal({
                       className="px-5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold shadow-xs cursor-pointer transition-colors whitespace-nowrap inline-flex items-center gap-1.5"
                     >
                       <XCircle className="w-3.5 h-3.5" />
-                      <span>Từ Chối GPKD</span>
+                      <span>Từ chối</span>
                     </button>
                     <button
                       type="button"
@@ -3773,7 +3991,7 @@ export default function AdminPortal({
                       className="px-6 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-sm cursor-pointer transition-colors whitespace-nowrap inline-flex items-center gap-1.5"
                     >
                       <Check className="w-3.5 h-3.5" />
-                      <span>Phê Duyệt GPKD</span>
+                      <span>Duyệt</span>
                     </button>
                   </div>
                 </div>
@@ -3854,7 +4072,7 @@ export default function AdminPortal({
             <div className="flex items-start justify-between pb-3 border-b border-slate-200">
               <div>
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200">
-                  {selectedJobDetail.category_name || selectedJobDetail.category_id || 'Ngành nghề'}
+                  {selectedJobDetail.category_name || (selectedJobDetail.category_id === 'cat_1' ? 'Bán lẻ / Phục vụ' : selectedJobDetail.category_id) || 'Ngành nghề'}
                 </span>
                 <h3 className="text-base font-black text-slate-900 mt-1.5">{selectedJobDetail.title}</h3>
                 <p className="text-xs text-emerald-700 font-bold mt-0.5">{selectedJobDetail.company_name}</p>

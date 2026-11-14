@@ -127,14 +127,23 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
   };
 
   const handleDigitChange = (index, value) => {
-    if (value.length > 1) {
-      value = value.slice(-1);
+    const cleaned = String(value || '').replace(/\D/g, '');
+    if (cleaned.length > 1) {
+      const nextDigits = [...otpDigits];
+      cleaned.slice(0, 6 - index).split('').forEach((ch, offset) => {
+        nextDigits[index + offset] = ch;
+      });
+      setOtpDigits(nextDigits);
+      const nextFocus = Math.min(5, index + cleaned.length);
+      digitRefs.current[nextFocus]?.focus();
+      return;
     }
+    const digit = cleaned.slice(-1);
     const newDigits = [...otpDigits];
-    newDigits[index] = value;
+    newDigits[index] = digit;
     setOtpDigits(newDigits);
 
-    if (value && index < 5) {
+    if (digit && index < 5) {
       digitRefs.current[index + 1]?.focus();
     }
   };
@@ -217,14 +226,7 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
         setErrorMsg(data.message || 'Không thể gửi mã xác thực OTP. Vui lòng kiểm tra lại email.');
       }
     } catch (err) {
-      // Fallback cho kiểm thử offline
-      const demoOtp = '654321';
-      setReceivedOtp(demoOtp);
-      setOtpTimer(60);
-      setIsTimerActive(true);
-      setStep(2);
-      setOtpDigits(['', '', '', '', '', '']);
-      setSuccessMsg(`Mã xác thực OTP đã được gửi tới ${cleanEmail}. Vui lòng nhập tay vào khung bên dưới.`);
+      setErrorMsg('Không thể kết nối máy chủ để gửi mã OTP. Vui lòng kiểm tra kết nối và thử lại.');
     } finally {
       setLoading(false);
     }
@@ -256,12 +258,7 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
         setErrorMsg(data.message || 'Không thể gửi lại mã OTP. Vui lòng thử lại sau.');
       }
     } catch (err) {
-      const demoOtp = '654321';
-      setReceivedOtp(demoOtp);
-      setOtpTimer(60);
-      setIsTimerActive(true);
-      setOtpDigits(['', '', '', '', '', '']);
-      setSuccessMsg('Mã OTP mới đã được gửi. Vui lòng nhập tay vào khung bên dưới.');
+      setErrorMsg('Không thể kết nối máy chủ để gửi lại mã OTP. Vui lòng thử lại sau.');
     } finally {
       setLoading(false);
     }
@@ -307,7 +304,6 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
 
       if (res.ok && data.success) {
         setSuccessMsg('Đăng ký tài khoản thành công! Đang chuyển hướng đăng nhập...');
-        setOtpToast(null);
         setTimeout(() => {
           const loginPath = role === 'employer' ? '/employer/login' : '/student/login';
           if (window.history && window.history.pushState) window.history.pushState({}, '', loginPath);
@@ -380,7 +376,7 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
               ) : (
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold">
                   {role === 'employer' ? <Briefcase className="w-3.5 h-3.5 text-blue-600" /> : <GraduationCap className="w-3.5 h-3.5 text-blue-600" />}
-                  <span>{role === 'employer' ? 'ĐĂNG KÝ NHÀ TUYỂN DỤNG' : 'ĐĂNG KÝ SINH VIÊN'}</span>
+                  <span>{role === 'employer' ? 'ĐĂNG KÝ DOANH NGHIỆP' : 'ĐĂNG KÝ SINH VIÊN'}</span>
                 </div>
               )}
             </>
@@ -429,7 +425,7 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
 
           {/* STEP 1: FORM NHẬP THÔNG TIN */}
           {step === 1 && (
-            <form onSubmit={handleRegisterSubmit} className="space-y-4">
+            <form onSubmit={handleRegisterSubmit} autoComplete="off" className="space-y-4">
               
               {/* Full Name */}
               <div>
@@ -441,9 +437,10 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
                   <input
                     type="text"
                     required
+                    autoComplete="off"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder={role === 'employer' ? 'Nguyễn Văn A (Đại diện)' : 'Nguyễn Văn B'}
+                    placeholder={role === 'employer' ? 'Nhập họ tên người đại diện' : 'Nhập họ và tên sinh viên'}
                     className="w-full pl-10 pr-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm sm:text-base text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white font-medium"
                   />
                 </div>
@@ -459,9 +456,10 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
                   <input
                     type="email"
                     required
+                    autoComplete="off"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder={role === 'employer' ? 'Nhatuyendung@gmail.com' : 'Sinhvien@gmail.com'}
+                    placeholder={role === 'employer' ? 'Nhập địa chỉ Gmail doanh nghiệp' : 'Nhập địa chỉ Gmail sinh viên'}
                     className="w-full pl-10 pr-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm sm:text-base text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white font-medium"
                   />
                 </div>
@@ -477,31 +475,54 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
                   <input
                     type="tel"
                     required
+                    autoComplete="off"
                     maxLength={10}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="0987654321"
+                    placeholder="Nhập 10 chữ số điện thoại liên hệ"
                     className="w-full pl-10 pr-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm sm:text-base text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white font-mono"
                   />
                 </div>
               </div>
 
-              {/* STUDENT SPECIFIC: University */}
+              {/* STUDENT SPECIFIC: University & Residence Address */}
               {role === 'student' && (
-                <div>
-                  <label className="block text-sm sm:text-base font-bold text-slate-700 mb-1.5">
-                    Trường Đại Học / Cao Đẳng *
-                  </label>
-                  <div className="relative">
-                    <GraduationCap className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      required
-                      value={organization}
-                      onChange={(e) => setOrganization(e.target.value)}
-                      placeholder="Nhập tên trường Đại học / Cao đẳng bạn đang theo học"
-                      className="w-full pl-10 pr-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm sm:text-base text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white font-medium"
-                    />
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm sm:text-base font-bold text-slate-700 mb-1.5">
+                      Trường Đại Học / Cao Đẳng *
+                    </label>
+                    <div className="relative">
+                      <GraduationCap className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        required
+                        value={organization}
+                        onChange={(e) => setOrganization(e.target.value)}
+                        placeholder="Nhập tên trường Đại học / Cao đẳng bạn đang theo học"
+                        className="w-full pl-10 pr-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm sm:text-base text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm sm:text-base font-bold text-slate-700 mb-1.5">
+                      Địa Chỉ Cư Trú (Quận/Huyện, Tỉnh/Thành phố) *
+                    </label>
+                    <div className="relative">
+                      <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        required
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        placeholder="Ví dụ: Quận 1, TP. Hồ Chí Minh hoặc Cầu Giấy, Hà Nội"
+                        className="w-full pl-10 pr-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm sm:text-base text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-600 focus:bg-white font-medium"
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Địa chỉ cư trú giúp hệ thống tự động ưu tiên gợi ý các việc làm lân cận gần bạn nhất.
+                    </p>
                   </div>
                 </div>
               )}
@@ -634,9 +655,10 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
+                      autoComplete="new-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
+                      placeholder="Nhập mật khẩu (tối thiểu 8 ký tự)"
                       className="w-full px-3.5 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-blue-600 focus:bg-white"
                     />
                     <button
@@ -657,9 +679,10 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
                     <input
                       type={showConfirmPassword ? 'text' : 'password'}
                       required
+                      autoComplete="new-password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="••••••••"
+                      placeholder="Nhập lại mật khẩu để xác nhận"
                       className="w-full px-3.5 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-blue-600 focus:bg-white"
                     />
                     <button

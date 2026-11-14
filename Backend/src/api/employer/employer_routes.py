@@ -3,6 +3,13 @@ import uuid
 from flask import Blueprint, request, jsonify
 from pymongo.errors import DuplicateKeyError
 from src.core.database import db_manager
+from src.core.notification_service import (
+    create_and_emit_notification,
+    emit_socket_event,
+    notify_admins,
+    resolve_student_user_id,
+)
+from src.core.socket_service import canonicalize_room_id, get_latest_room_message
 from src.middlewares.auth_middleware import role_required
 
 employer_bp = Blueprint("employer", __name__, url_prefix="/api/employer")
@@ -115,25 +122,20 @@ def update_company_profile():
             {"_id": emp["_id"]},
             {"$set": emp_update}
         )
-        # Đẩy thông báo duyệt lại hồ sơ sang Quản trị viên (FR 3.4.6)
-        try:
-            admin_users = list(db_manager.get_collection("users").find({"role": "admin"}))
-            notif_col = db_manager.get_collection("notifications")
-            for adm in admin_users:
-                notif_col.insert_one({
-                    "_id": f"notif_{uuid.uuid4().hex[:8]}",
-                    "user_id": adm["_id"],
-                    "role": "admin",
-                    "type": "employer_reapproval_gpkd",
-                    "title": f"Doanh nghiệp {comp_name} cập nhật lại Giấy phép kinh doanh (GPKD)",
-                    "message": f"Doanh nghiệp {comp_name} đã cập nhật lại Giấy phép kinh doanh mới và đang chờ Quản trị viên phê duyệt lại.",
-                    "target_id": emp["_id"],
-                    "is_read": False,
-                    "is_deleted": False,
-                    "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
-                })
-        except Exception:
-            pass
+        # Đẩy thông báo duyệt lại hồ sơ sang Quản trị viên kèm Socket.IO tức thì (FR 3.4.6)
+        notify_admins(
+            title=f"Doanh nghiệp {comp_name} cập nhật lại Giấy phép kinh doanh (GPKD)",
+            message=f"Doanh nghiệp {comp_name} đã cập nhật lại Giấy phép kinh doanh mới và đang chờ Quản trị viên phê duyệt lại.",
+            notif_type="employer_reapproval_gpkd",
+            related_id=emp["_id"],
+            target_id=emp["_id"],
+        )
+        emit_socket_event("gpkd-reupload", {
+            "employer_id": emp["_id"],
+            "user_id": user["_id"],
+            "company_name": comp_name,
+            "approval_status": "pending",
+        })
 
     if logo and logo.startswith("data:image/"):
         try:
@@ -211,14 +213,26 @@ def list_my_jobs():
     job_col = db_manager.get_collection("jobs")
     jobs = list(job_col.find({"employer_id": emp["_id"]}).sort("created_at", -1))
     
-    # Kèm số lượng ứng viên hợp lệ cho mỗi job (tự động loại bỏ hồ sơ sinh viên đã hủy - FR 2.5.1)
+    # Kèm số lượng ứng viên hợp lệ + số đã duyệt + tên ngành nghề cho mỗi job (FR 2.5.1)
     app_col = db_manager.get_collection("applications")
+    cat_map = {c.get("_id"): c.get("name") for c in db_manager.get_collection("categories").find({}) if c.get("_id")}
     for j in jobs:
         j["applicant_count"] = app_col.count_documents({
             "job_id": j["_id"],
             "application_status": {"$nin": ["cancelled", "withdrawn"]},
             "is_cancelled": {"$ne": True}
         })
+        j["accepted_count"] = app_col.count_documents({
+            "job_id": j["_id"],
+            "application_status": {"$in": ["accepted", "Đã duyệt"]},
+            "is_deleted_by_student": {"$ne": True}
+        })
+        if not j.get("category_name") and j.get("category_id") in cat_map:
+            j["category_name"] = cat_map[j["category_id"]]
+        if not j.get("status") and j.get("job_status"):
+            j["status"] = j["job_status"]
+        elif not j.get("job_status") and j.get("status"):
+            j["job_status"] = j["status"]
         
     return jsonify({"success": True, "data": jobs})
 
@@ -242,13 +256,23 @@ def create_job():
     
     data = request.get_json() or {}
     title = str(data.get("title", "")).strip()
-    category_id = data.get("category_id", "cat_1")
+    raw_cat = str(data.get("category_id", "")).strip() or "cat_1"
+    cat_col = db_manager.get_collection("categories")
+    matched_cat = cat_col.find_one({"$or": [{"_id": raw_cat}, {"name": raw_cat}]})
+    if matched_cat:
+        category_id = matched_cat.get("_id")
+        category_name = matched_cat.get("name")
+    else:
+        category_id = raw_cat
+        category_name = str(data.get("category_name") or raw_cat).strip()
     location = str(data.get("location", comp.get("address", "TP.HCM"))).strip()
+    branch_name = str(data.get("branch_name") or comp.get("branch_name") or location).strip()
     description = str(data.get("description", "")).strip()
     salary_min = int(data.get("salary_min", 25000))
     salary_max = int(data.get("salary_max", 35000))
     is_negotiable = bool(data.get("is_negotiable", False))
     work_time = str(data.get("work_time", "Ca linh hoạt")).strip()
+    payment_type = str(data.get("payment_type") or data.get("salary_unit") or "").strip()
 
     if not title:
         return jsonify({"success": False, "message": "Tiêu đề tin tuyển dụng không được để trống."}), 400
@@ -260,16 +284,20 @@ def create_job():
         "_id": f"job_{uuid.uuid4().hex[:8]}",
         "employer_id": emp["_id"],
         "category_id": category_id,
+        "category_name": category_name,
         "title": title,
         "company_name": comp.get("company_name", "Doanh nghiệp"),
         "company_logo": comp.get("logo_url", ""),
         "location": location,
+        "branch_name": branch_name,
         "description": description or "Tuyển dụng nhân viên part-time làm việc linh hoạt theo ca.",
         "salary_min": salary_min,
         "salary_max": salary_max,
         "is_negotiable": is_negotiable,
         "work_time": work_time,
-        "job_status": "active",
+        "payment_type": payment_type,
+        "status": "open",
+        "job_status": "open",
         "is_open": True,
         "is_hidden": False,
         "hidden_reason": "",
@@ -277,6 +305,14 @@ def create_job():
     }
 
     db_manager.get_collection("jobs").insert_one(new_job)
+    notify_admins(
+        title="Tin tuyển dụng mới cần giám sát",
+        message=f"Doanh nghiệp {new_job['company_name']} vừa đăng tin tuyển dụng '{title}' ({location}).",
+        notif_type="new_job",
+        related_id=new_job["_id"],
+        target_id=new_job["_id"],
+    )
+    emit_socket_event("new-job", new_job)
     return jsonify({"success": True, "message": "Đăng tin tuyển dụng thành công!", "data": new_job}), 201
 
 @employer_bp.route("/jobs/<job_id>", methods=["PUT"])
@@ -336,15 +372,16 @@ def toggle_job_status(job_id):
 
     if target_status == "filled":
         # Bắt buộc có >= 1 đơn Đã duyệt (accepted)
-        accepted_count = app_col.count_documents({
+        accepted_apps = list(app_col.find({
             "job_id": job_id,
             "application_status": {"$in": ["accepted", "Đã duyệt"]}
-        })
-        if accepted_count == 0:
+        }))
+        if len(accepted_apps) == 0:
             return jsonify({"success": False, "message": "Bắt buộc có ít nhất 1 đơn ứng tuyển Đã duyệt để chốt danh sách Đã nhận người."}), 400
         
         job_col.update_one({"_id": job_id}, {"$set": {"status": "filled", "job_status": "filled", "is_open": False}})
         # Tự động chuyển toàn bộ đơn đang Chờ duyệt sang Từ chối kèm lý do "Tin đã đủ người"
+        pending_apps = list(app_col.find({"job_id": job_id, "application_status": {"$in": ["pending", "Chờ duyệt"]}}))
         app_col.update_many(
             {"job_id": job_id, "application_status": {"$in": ["pending", "Chờ duyệt"]}},
             {
@@ -352,25 +389,59 @@ def toggle_job_status(job_id):
                 "$push": {"status_history": {"status": "rejected", "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"), "note": "Tin đã đủ người"}}
             }
         )
+        for p_app in pending_apps:
+            stu_uid = resolve_student_user_id(p_app.get("student_user_id") or p_app.get("student_id"))
+            if stu_uid:
+                create_and_emit_notification(
+                    user_id=stu_uid,
+                    title="Tin tuyển dụng đã đủ người",
+                    message=f"Vị trí '{job.get('title')}' đã nhận đủ ứng viên. Hồ sơ chờ duyệt của bạn được đóng tự động.",
+                    notif_type="application_status",
+                    related_id=p_app.get("_id"),
+                )
+        emit_socket_event("job-updated", {"job_id": job_id, "status": "filled", "is_open": False})
+        emit_socket_event("application-status-updated", {"job_id": job_id, "status": "rejected"})
         return jsonify({"success": True, "status": "filled", "job_status": "filled", "is_open": False, "message": "Đã chốt danh sách ca làm (Đã nhận đủ người)."})
 
     elif target_status == "completed":
         # Chuyển trạng thái sang Hoàn thành (kết thúc công việc vĩnh viễn và kích hoạt đánh giá 2 chiều)
         job_col.update_one({"_id": job_id}, {"$set": {"status": "completed", "job_status": "completed", "is_open": False, "completed_at": time.strftime("%Y-%m-%d %H:%M:%S")}})
+        accepted_apps = list(app_col.find({"job_id": job_id, "application_status": {"$in": ["accepted", "Đã duyệt"]}}))
+        for a_app in accepted_apps:
+            stu_uid = resolve_student_user_id(a_app.get("student_user_id") or a_app.get("student_id"))
+            if stu_uid:
+                create_and_emit_notification(
+                    user_id=stu_uid,
+                    title="Công việc đã hoàn thành",
+                    message=f"Doanh nghiệp vừa xác nhận hoàn thành công việc '{job.get('title')}'. Bạn có thể gửi đánh giá 2 chiều ngay!",
+                    notif_type="job_completed",
+                    related_id=a_app.get("_id"),
+                )
+        notify_admins(
+            title="Công việc hoàn thành trên hệ thống",
+            message=f"Doanh nghiệp {job.get('company_name', '')} đã hoàn tất công việc '{job.get('title')}'.",
+            notif_type="job_updated",
+            related_id=job_id,
+            target_id=job_id,
+        )
+        emit_socket_event("job-updated", {"job_id": job_id, "status": "completed", "is_open": False})
         return jsonify({"success": True, "status": "completed", "job_status": "completed", "is_open": False, "message": "Đã xác nhận hoàn thành ca làm và kết thúc công việc thành công!"})
 
     elif target_status == "closed":
         job_col.update_one({"_id": job_id}, {"$set": {"status": "closed", "job_status": "closed", "is_open": False}})
+        emit_socket_event("job-updated", {"job_id": job_id, "status": "closed", "is_open": False})
         return jsonify({"success": True, "status": "closed", "job_status": "closed", "is_open": False, "message": "Đã tạm đóng tin tuyển dụng."})
 
     elif target_status == "open":
         job_col.update_one({"_id": job_id}, {"$set": {"status": "open", "job_status": "open", "is_open": True}})
+        emit_socket_event("job-updated", {"job_id": job_id, "status": "open", "is_open": True})
         return jsonify({"success": True, "status": "open", "job_status": "open", "is_open": True, "message": "Đã mở lại tin tuyển dụng."})
 
     # Fallback legacy 2-way toggle
     new_status = not job.get("is_open", True)
     status_label = "open" if new_status else "closed"
     job_col.update_one({"_id": job_id}, {"$set": {"is_open": new_status, "status": status_label, "job_status": status_label}})
+    emit_socket_event("job-updated", {"job_id": job_id, "status": status_label, "is_open": new_status})
     msg = "Đã mở lại tin tuyển dụng." if new_status else "Đã đóng nhận hồ sơ tin tuyển dụng."
     return jsonify({"success": True, "is_open": new_status, "status": status_label, "job_status": status_label, "message": msg})
 
@@ -384,17 +455,58 @@ def list_applicants():
     status = request.args.get("status")
 
     app_col = db_manager.get_collection("applications")
-    query = {"employer_id": emp["_id"]}
+    job_col = db_manager.get_collection("jobs")
+    msg_col = db_manager.get_collection("messages")
+    query = {
+        "$or": [
+            {"employer_id": emp["_id"]},
+            {"employer_id": user["_id"]}
+        ],
+        "is_deleted_by_employer": {"$ne": True}
+    }
     if job_id:
         query["job_id"] = job_id
-    # Ràng buộc FR 2.5.1: Tự động ẩn đi các đơn ứng tuyển mà sinh viên đã chủ động hủy trước đó (1.6.4)
-    if status and status not in ["cancelled", "withdrawn"]:
-        query["application_status"] = status
-    else:
-        query["application_status"] = {"$nin": ["cancelled", "withdrawn"]}
-    query["is_cancelled"] = {"$ne": True}
+    
+    # Lọc theo trạng thái hồ sơ (Hỗ trợ trả về cả đơn rút/hủy cho Cột 4 của Doanh nghiệp)
+    if status and status not in ["all", ""]:
+        if status in ["withdrawn", "cancelled"]:
+            query["application_status"] = {"$in": ["withdrawn", "cancelled"]}
+        else:
+            query["application_status"] = status
 
     applicants = list(app_col.find(query).sort("applied_at", -1))
+
+    # Làm giàu thông tin ca làm, địa điểm từ Jobs, lịch rảnh từ StudentProfiles và trạng thái phản hồi tin nhắn từ Messages
+    stu_col = db_manager.get_collection("student_profiles")
+    jobs_map = {j.get("_id"): j for j in job_col.find({"employer_id": emp["_id"]})}
+    for a in applicants:
+        parent_job = jobs_map.get(a.get("job_id")) or (job_col.find_one({"_id": a.get("job_id")}) if a.get("job_id") else None)
+        if parent_job:
+            a.setdefault("work_time", parent_job.get("work_time") or "Ca linh hoạt")
+            a.setdefault("work_shifts", parent_job.get("work_shifts") or [])
+            a.setdefault("location", parent_job.get("location") or parent_job.get("address") or "")
+            a.setdefault("branch_name", parent_job.get("branch_name") or parent_job.get("location") or "")
+            a.setdefault("salary_min", parent_job.get("salary_min"))
+            a.setdefault("salary_max", parent_job.get("salary_max"))
+            a["job_status"] = parent_job.get("job_status") or parent_job.get("status") or ("open" if parent_job.get("is_open", True) else "closed")
+
+        stu_uid = resolve_student_user_id(a.get("student_user_id") or a.get("student_id"))
+        stu_prof = stu_col.find_one({"$or": [{"_id": a.get("student_id")}, {"user_id": stu_uid}]})
+        if stu_prof and stu_prof.get("free_schedule"):
+            a.setdefault("free_schedule", stu_prof.get("free_schedule"))
+            a["student_free_schedule"] = stu_prof.get("free_schedule")
+        room_id = canonicalize_room_id(f"room_emp_{emp['_id']}_stu_{stu_uid}")
+        lm = get_latest_room_message(room_id)
+        if lm:
+            a["last_sender_role"] = lm.get("sender_role")
+            a["last_message"] = lm.get("clean_content") or lm.get("content", "")
+            a["last_message_at"] = lm.get("created_at", "")
+            a["unreplied"] = lm.get("sender_role") == "student"
+        else:
+            a["last_sender_role"] = None
+            a["last_message_at"] = a.get("applied_at", "")
+            a["unreplied"] = a.get("application_status") == "pending"
+
     return jsonify({"success": True, "data": applicants})
 
 @employer_bp.route("/applicants/<app_id>/status", methods=["PUT"])
@@ -411,7 +523,7 @@ def update_applicant_status(app_id):
         return jsonify({"success": False, "message": f"Trạng thái không hợp lệ. Phải là một trong: {valid_statuses}"}), 400
 
     app_col = db_manager.get_collection("applications")
-    app = app_col.find_one({"_id": app_id, "employer_id": emp["_id"]})
+    app = app_col.find_one({"_id": app_id, "$or": [{"employer_id": emp["_id"]}, {"employer_id": user["_id"]}]})
     if not app:
         return jsonify({"success": False, "message": "Không tìm thấy hồ sơ ứng viên."}), 404
 
@@ -422,7 +534,7 @@ def update_applicant_status(app_id):
     history_item = {
         "status": new_status,
         "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "note": note or ("Nhà tuyển dụng phê duyệt trúng tuyển" if new_status == "accepted" else ("Hồ sơ chưa phù hợp" if new_status == "rejected" else f"Nhà tuyển dụng chuyển trạng thái sang {new_status}"))
+        "note": note or ("Doanh nghiệp phê duyệt trúng tuyển" if new_status == "accepted" else ("Hồ sơ chưa phù hợp" if new_status == "rejected" else f"Doanh nghiệp chuyển trạng thái sang {new_status}"))
     }
 
     app_col.update_one(
@@ -433,24 +545,26 @@ def update_applicant_status(app_id):
         }
     )
 
-    # Đẩy thông báo cho sinh viên
-    notif_col = db_manager.get_collection("notifications")
+    # Đẩy thông báo cho sinh viên & SocketIO tức thì (không dùng broadcast=True sai cú pháp)
     status_text_map = {
         "reviewed": "đã xem hồ sơ của bạn",
         "interview": "mời bạn tham gia phỏng vấn",
         "accepted": "chấp thuận tuyển dụng bạn",
         "rejected": "đã từ chối hồ sơ ứng tuyển"
     }
-    notif_col.insert_one({
-        "_id": f"notif_{uuid.uuid4().hex[:8]}",
-        "user_id": app.get("student_user_id"),
-        "title": "Cập nhật trạng thái ứng tuyển",
-        "message": f"Nhà tuyển dụng {app.get('company_name')} {status_text_map.get(new_status, 'đã cập nhật hồ sơ')} cho công việc '{app.get('job_title')}'.",
-        "type": "application_status",
-        "related_id": app_id,
-        "is_read": False,
-        "is_deleted": False,
-        "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
+    target_student_id = resolve_student_user_id(app.get("student_user_id") or app.get("student_id"))
+
+    create_and_emit_notification(
+        user_id=target_student_id,
+        title="Cập nhật trạng thái ứng tuyển",
+        message=f"Doanh nghiệp {app.get('company_name', 'Doanh nghiệp')} {status_text_map.get(new_status, 'đã cập nhật hồ sơ')} cho công việc '{app.get('job_title')}'.",
+        notif_type="application_status",
+        related_id=app_id,
+    )
+    emit_socket_event("application-status-updated", {
+        "application_id": app_id,
+        "status": new_status,
+        "student_user_id": target_student_id
     })
 
     return jsonify({"success": True, "message": f"Đã cập nhật trạng thái ứng viên sang: {new_status}"})
@@ -525,10 +639,16 @@ def review_student():
         "_id": f"rev_{uuid.uuid4().hex[:8]}",
         "application_id": application_id,
         "reviewer_id": user["_id"],
-        "reviewer_name": "Nhà tuyển dụng",
+        "reviewer_name": emp.get("company_name") or user.get("company_name") or "Nhà tuyển dụng",
         "target_id": app.get("student_user_id") or app.get("student_id"),
+        "target_name": app.get("student_name") or "Sinh viên ứng viên",
+        "job_title": app.get("job_title", "Ca làm việc"),
         "rating": rating,
         "comment": comment,
+        "direction": "employer_to_student",
+        "reviewer_role": "employer",
+        "target_role": "student",
+        "type": "employer_review",
         "is_hidden": False,
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
     }
@@ -547,20 +667,17 @@ def review_student():
         )
         new_rev = rev_col.find_one({"application_id": application_id, "reviewer_id": user["_id"]})
 
-    # Gửi thông báo cho sinh viên
-    student_uid = app.get("student_user_id")
+    # Gửi thông báo cho sinh viên kèm SocketIO tức thì
+    student_uid = resolve_student_user_id(app.get("student_user_id") or app.get("student_id"))
     if student_uid:
-        db_manager.get_collection("notifications").insert_one({
-            "_id": f"notif_{uuid.uuid4().hex[:8]}",
-            "user_id": student_uid,
-            "title": "Đánh giá năng lực mới",
-            "message": f"Nhà tuyển dụng đã gửi đánh giá năng lực ({rating}/5 sao) cho công việc '{app.get('job_title', 'bán thời gian')}'.",
-            "type": "review",
-            "related_id": application_id,
-            "is_read": False,
-            "is_deleted": False,
-            "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
-        })
+        create_and_emit_notification(
+            user_id=student_uid,
+            title="Đánh giá năng lực mới",
+            message=f"Doanh nghiệp đã gửi đánh giá năng lực ({rating}/5 sao) cho công việc '{app.get('job_title', 'bán thời gian')}'.",
+            notif_type="review",
+            related_id=application_id,
+        )
+    emit_socket_event("new-review", new_rev)
 
     return jsonify({"success": True, "message": "Đã gửi đánh giá năng lực sinh viên thành công!", "data": new_rev}), 201
 
@@ -587,8 +704,9 @@ def update_employer_review(rev_id):
     if len(comment) >= 1000:
         return jsonify({"success": False, "message": "Nhận xét đánh giá phải có độ dài dưới 1.000 ký tự."}), 400
 
+    emp = get_employer_record(user["_id"])
     rev_col = db_manager.get_collection("reviews")
-    rev = rev_col.find_one({"_id": rev_id, "reviewer_id": user["_id"]})
+    rev = rev_col.find_one({"_id": rev_id, "$or": [{"reviewer_id": user["_id"]}, {"reviewer_id": emp["_id"]}]})
     if not rev:
         return jsonify({"success": False, "message": "Không tìm thấy đánh giá cần sửa."}), 404
 
@@ -625,14 +743,28 @@ def delete_employer_job(job_id):
     user = request.current_user
     emp = get_employer_record(user["_id"])
     job_col = db_manager.get_collection("jobs")
-    job = job_col.find_one({"_id": job_id, "employer_id": emp["_id"]})
+    job = job_col.find_one({"_id": job_id, "$or": [{"employer_id": emp["_id"]}, {"employer_id": user["_id"]}]})
     if not job:
         return jsonify({"success": False, "message": "Không tìm thấy tin tuyển dụng."}), 404
 
+    app_col = db_manager.get_collection("applications")
+    is_completed_job = job.get("job_status") == "completed" or job.get("status") == "completed"
+    active_app_count = app_col.count_documents({
+        "job_id": job_id,
+        "application_status": {"$in": ["pending", "reviewed", "received", "interview", "accepted"]},
+        "is_cancelled": {"$ne": True},
+    })
+    if not is_completed_job and active_app_count > 0:
+        return jsonify({
+            "success": False,
+            "message": f"Không thể xóa tin đang có {active_app_count} hồ sơ ứng tuyển đang xử lý. Vui lòng tạm đóng tin hoặc hoàn thành ca làm trước khi xóa!"
+        }), 400
+
     db_manager.get_collection("bookmarks").delete_many({"job_id": job_id})
-    db_manager.get_collection("applications").delete_many({"job_id": job_id})
+    app_col.delete_many({"job_id": job_id})
     db_manager.get_collection("reports").delete_many({"target_id": job_id})
     job_col.delete_one({"_id": job_id})
+    emit_socket_event("job-updated", {"job_id": job_id, "deleted": True})
     return jsonify({"success": True, "message": "Đã xóa tin tuyển dụng thành công!"})
 
 # 6. Notifications (FR 2.8)
@@ -640,24 +772,55 @@ def delete_employer_job(job_id):
 @role_required("employer")
 def list_employer_notifications():
     user = request.current_user
+    emp = get_employer_record(user["_id"])
     notif_col = db_manager.get_collection("notifications")
-    notifs = list(notif_col.find({"user_id": user["_id"], "is_deleted": False}).sort("created_at", -1))
+    notifs = list(notif_col.find({
+        "$or": [
+            {"user_id": user["_id"]},
+            {"user_id": emp["_id"]}
+        ],
+        "is_deleted": {"$ne": True}
+    }).sort("created_at", -1))
     return jsonify({"success": True, "data": notifs})
 
 @employer_bp.route("/notifications/<notif_id>/read", methods=["PUT"])
 @role_required("employer")
 def mark_employer_read(notif_id):
     user = request.current_user
+    emp = get_employer_record(user["_id"])
     notif_col = db_manager.get_collection("notifications")
-    notif_col.update_one({"_id": notif_id, "user_id": user["_id"]}, {"$set": {"is_read": True}})
+    notif_col.update_one(
+        {"_id": notif_id, "$or": [{"user_id": user["_id"]}, {"user_id": emp["_id"]}]},
+        {"$set": {"is_read": True}}
+    )
     return jsonify({"success": True, "message": "Đã đọc thông báo."})
+
+@employer_bp.route("/notifications/read-all", methods=["PUT"])
+@role_required("employer")
+def mark_all_employer_read():
+    user = request.current_user
+    emp = get_employer_record(user["_id"])
+    notif_col = db_manager.get_collection("notifications")
+    notif_col.update_many(
+        {
+            "$or": [{"user_id": user["_id"]}, {"user_id": emp["_id"]}],
+            "is_deleted": {"$ne": True},
+            "is_read": {"$ne": True}
+        },
+        {"$set": {"is_read": True}}
+    )
+    return jsonify({"success": True, "message": "Đã đánh dấu tất cả thông báo đã đọc."})
 
 @employer_bp.route("/notifications/<notif_id>", methods=["DELETE"])
 @role_required("employer")
 def delete_employer_notification(notif_id):
     user = request.current_user
+    emp = get_employer_record(user["_id"])
     notif_col = db_manager.get_collection("notifications")
-    notif_col.update_one({"_id": notif_id, "user_id": user["_id"]}, {"$set": {"is_deleted": True}})
+    notif_col.update_one(
+        {"_id": notif_id, "$or": [{"user_id": user["_id"]}, {"user_id": emp["_id"]}]},
+        {"$set": {"is_deleted": True}}
+    )
     return jsonify({"success": True, "message": "Đã xóa thông báo."})
 
 

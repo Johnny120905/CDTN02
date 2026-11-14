@@ -1,11 +1,18 @@
 import time
 import uuid
 import re
+import unicodedata
 from urllib.parse import quote
 from flask import Blueprint, request, jsonify, Response
 from src.core.database import db_manager, MAX_UPLOAD_BYTES
 from src.middlewares.auth_middleware import token_required
-from src.core.socket_service import canonicalize_room_id
+from src.core.socket_service import canonicalize_room_id, get_room_id_variants, chat_msg_sort_key
+from src.core.notification_service import (
+    create_and_emit_notification,
+    emit_socket_event,
+    notify_admins,
+    resolve_chat_partner_user_id,
+)
 
 common_bp = Blueprint("common", __name__, url_prefix="/api")
 
@@ -114,8 +121,18 @@ def health_check():
 @common_bp.route("/categories", methods=["GET"])
 def get_categories():
     cat_col = db_manager.get_collection("categories")
-    cats = list(cat_col.find({"is_active": True}))
-    return jsonify({"success": True, "data": cats})
+    unwanted = {"Bảo hành", "Thời trang"}
+    legacy_loc_ids = {"loc_1", "loc_2", "loc_3", "loc_4", "loc_5"}
+    c_type = request.args.get("type")
+    query = {"is_active": True}
+    if c_type:
+        query["type"] = c_type
+    cats = list(cat_col.find(query))
+    filtered_cats = [
+        c for c in cats
+        if c.get("name") not in unwanted and c.get("_id") not in legacy_loc_ids
+    ]
+    return jsonify({"success": True, "data": filtered_cats})
 
 # 3. Public Job Search (FR 1.5.1, 1.5.2)
 @common_bp.route("/jobs", methods=["GET"])
@@ -126,32 +143,52 @@ def search_jobs():
     min_sal = request.args.get("min_salary")
     work_time = request.args.get("work_time", "").strip()
     payment_type = request.args.get("payment_type", "").strip()
+    include_ids_raw = request.args.get("include_ids", "").strip()
+    include_ids = [jid.strip() for jid in include_ids_raw.split(",") if jid.strip()] if include_ids_raw else []
 
     job_col = db_manager.get_collection("jobs")
-    query = {"is_open": True, "is_hidden": False}
+    base_and = [{"is_hidden": False}]
+    if include_ids:
+        base_and.append({"$or": [{"is_open": True}, {"_id": {"$in": include_ids}}]})
+    else:
+        base_and.append({"is_open": True})
 
     if category_id:
-        query["category_id"] = category_id
+        base_and.append({"category_id": category_id})
     if location:
-        query["location"] = {"$regex": location, "$options": "i"}
+        base_and.append({"location": {"$regex": location, "$options": "i"}})
     if work_time:
-        query["work_time"] = {"$regex": work_time, "$options": "i"}
+        base_and.append({"work_time": {"$regex": work_time, "$options": "i"}})
     if payment_type:
-        query["payment_type"] = {"$regex": payment_type, "$options": "i"}
+        base_and.append({"payment_type": {"$regex": payment_type, "$options": "i"}})
     if min_sal:
         try:
-            query["salary_max"] = {"$gte": int(min_sal)}
+            base_and.append({"salary_max": {"$gte": int(min_sal)}})
         except ValueError:
             pass
 
     if keyword:
-        query["$or"] = [
-            {"title": {"$regex": keyword, "$options": "i"}},
-            {"description": {"$regex": keyword, "$options": "i"}},
-            {"company_name": {"$regex": keyword, "$options": "i"}}
-        ]
+        base_and.append({
+            "$or": [
+                {"title": {"$regex": keyword, "$options": "i"}},
+                {"description": {"$regex": keyword, "$options": "i"}},
+                {"company_name": {"$regex": keyword, "$options": "i"}}
+            ]
+        })
 
+    query = base_and[0] if len(base_and) == 1 else {"$and": base_and}
     jobs = list(job_col.find(query).sort("created_at", -1))
+
+    # Làm giàu category_name để Frontend đồng bộ chính xác bộ lọc ngành nghề
+    cat_map = {c.get("_id"): c.get("name") for c in db_manager.get_collection("categories").find({}) if c.get("_id")}
+    for j in jobs:
+        if not j.get("category_name") and j.get("category_id") in cat_map:
+            j["category_name"] = cat_map[j["category_id"]]
+        if not j.get("status") and j.get("job_status"):
+            j["status"] = j["job_status"]
+        elif not j.get("job_status") and j.get("status"):
+            j["job_status"] = j["status"]
+
     return jsonify({"success": True, "total": len(jobs), "data": jobs})
 
 @common_bp.route("/jobs/<job_id>", methods=["GET"])
@@ -167,21 +204,98 @@ def get_job_detail(job_id):
     return jsonify({"success": True, "data": job})
 
 # 4. Chat & Messaging with Automated Banned Keyword Filter (FR 1.8, 2.7, 3.9)
+def _normalize_with_char_spans(text: str):
+    """Normalize text to lowercase ASCII (no Vietnamese accents) while keeping original [start, end) spans."""
+    chars = []
+    spans = []
+    for i, ch in enumerate(text):
+        if ch in ("đ", "Đ"):
+            chars.append("d")
+            spans.append((i, i + 1))
+            continue
+        decomposed = unicodedata.normalize("NFD", ch)
+        emitted = False
+        for sub in decomposed:
+            if unicodedata.category(sub) == "Mn":
+                continue
+            chars.append("d" if sub in ("đ", "Đ") else sub.lower())
+            spans.append((i, i + 1))
+            emitted = True
+        if not emitted and spans:
+            prev_s, _ = spans[-1]
+            spans[-1] = (prev_s, i + 1)
+    return "".join(chars), spans
+
+def _strip_accents_lower(text: str) -> str:
+    norm, _ = _normalize_with_char_spans(text or "")
+    return norm
+
+def _mask_phrase_inline(text: str, kw: str):
+    """Replace exact and accent-insensitive occurrences of kw inline with '***'."""
+    if not text or not kw:
+        return text, False
+    matched = False
+    exact_pattern = re.compile(re.escape(kw), re.IGNORECASE)
+    if exact_pattern.search(text):
+        text = exact_pattern.sub("***", text)
+        matched = True
+
+    norm_kw = _strip_accents_lower(kw).strip()
+    if not norm_kw:
+        return text, matched
+
+    norm_text, spans = _normalize_with_char_spans(text)
+    if norm_kw not in norm_text:
+        return text, matched
+
+    ranges = []
+    start = 0
+    kw_len = len(norm_kw)
+    while True:
+        idx = norm_text.find(norm_kw, start)
+        if idx == -1:
+            break
+        orig_start = spans[idx][0]
+        orig_end = spans[idx + kw_len - 1][1]
+        ranges.append((orig_start, orig_end))
+        start = idx + kw_len
+
+    if ranges:
+        matched = True
+        for s_idx, e_idx in reversed(ranges):
+            text = text[:s_idx] + "***" + text[e_idx:]
+    return text, matched
+
 def filter_content_banned_words(text: str):
     ban_col = db_manager.get_collection("banned_keywords")
     banned_list = list(ban_col.find({}))
-    censored_text = text
+    # Xử lý cụm từ dài trước để tránh cắt dở cụm từ ghép
+    keywords = sorted(
+        {str(item.get("keyword", "")).strip() for item in banned_list if item.get("keyword")},
+        key=len,
+        reverse=True,
+    )
+    censored_text = text or ""
     flagged = False
     flagged_words = []
-    
-    for item in banned_list:
-        kw = item.get("keyword", "")
-        if kw and re.search(re.escape(kw), text, re.IGNORECASE):
-            censored_text = re.sub(re.escape(kw), "***", censored_text, flags=re.IGNORECASE)
+
+    for kw in keywords:
+        censored_text, hit = _mask_phrase_inline(censored_text, kw)
+        if hit:
             flagged = True
             flagged_words.append(kw)
-            
+
     return censored_text, flagged, flagged_words
+
+@common_bp.route("/banned-keywords", methods=["GET"])
+def get_public_banned_keywords():
+    ban_col = db_manager.get_collection("banned_keywords")
+    kws = [
+        str(item.get("keyword", "")).strip()
+        for item in ban_col.find({})
+        if item.get("keyword")
+    ]
+    return jsonify({"success": True, "data": kws})
 
 def get_user_display_name(user):
     if not user:
@@ -206,20 +320,13 @@ def get_user_display_name(user):
 @common_bp.route("/chat/messages", methods=["GET"])
 @token_required
 def get_messages():
-    user = request.current_user
     raw_room_id = request.args.get("room_id", "default_room")
-    room_id = canonicalize_room_id(raw_room_id)
+    room_variants = get_room_id_variants(raw_room_id)
     msg_col = db_manager.get_collection("messages")
-    messages = list(msg_col.find({"$or": [{"room_id": room_id}, {"room_id": raw_room_id}]}))
-    
-    # Sắp xếp chuẩn hóa để tin nhắn và bản ghi cuộc gọi luôn ở cuối danh sách (phía dưới) theo thứ tự thời gian
-    def get_sort_key(m):
-        ts = str(m.get("created_at", ""))
-        if len(ts) <= 5:  # Ví dụ "17:34"
-            return f"2026-11-01 {ts}:00"
-        return ts
-        
-    messages.sort(key=get_sort_key)
+    messages = list(msg_col.find({"room_id": {"$in": room_variants}}))
+
+    # Sắp xếp chuẩn hóa để tin nhắn và bản ghi cuộc gọi luôn ở cuối danh sách theo thứ tự thời gian
+    messages.sort(key=chat_msg_sort_key)
     return jsonify({"success": True, "data": messages})
 
 @common_bp.route("/chat/messages", methods=["POST"])
@@ -318,34 +425,22 @@ def send_message():
 
     db_manager.get_collection("messages").insert_one(new_msg)
     
-    # Phát tin nhắn mới theo thời gian thực qua WebSocket tới phòng chat
-    try:
-        from src.core.socket_service import socketio
-        socketio.emit("new-chat-message", new_msg, room=room_id)
-        if raw_room_id != room_id:
-            socketio.emit("new-chat-message", new_msg, room=raw_room_id)
-    except Exception as e:
-        pass
-    
-    # Tự động đẩy thông báo thời gian thực cho đối tác bên kia cuộc trò chuyện (FR 1.9 & 2.8)
-    try:
-        users_col = db_manager.get_collection("users")
-        target_role = "employer" if user.get("role") == "student" else "student"
-        target_user = users_col.find_one({"role": target_role})
-        if target_user:
-            notif_sender_name = sender_name
-            db_manager.get_collection("notifications").insert_one({
-                "_id": f"notif_{uuid.uuid4().hex[:8]}",
-                "user_id": target_user.get("_id"),
-                "type": "chat_message",
-                "title": f"Tin nhắn mới từ {notif_sender_name}",
-                "message": clean_content[:90] + ("..." if len(clean_content) > 90 else ""),
-                "is_read": False,
-                "is_deleted": False,
-                "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
-            })
-    except Exception as e:
-        pass
+    # Phát tin nhắn mới theo thời gian thực qua WebSocket tới phòng chat & người nhận
+    emit_socket_event("new-chat-message", new_msg, room=room_id)
+    if raw_room_id != room_id:
+        emit_socket_event("new-chat-message", new_msg, room=raw_room_id)
+
+    # Đẩy thông báo thời gian thực cho đúng đối tác trong phòng chat (FR 1.9 & 2.8)
+    target_user_id = resolve_chat_partner_user_id(room_id, user.get("role", "student"))
+    if target_user_id and target_user_id != user.get("_id"):
+        emit_socket_event("new-chat-message", new_msg, room=f"user_{target_user_id}")
+        create_and_emit_notification(
+            user_id=target_user_id,
+            title=f"Tin nhắn mới từ {sender_name}",
+            message=clean_content[:90] + ("..." if len(clean_content) > 90 else ""),
+            notif_type="chat_message",
+            related_id=room_id,
+        )
 
     warning_note = " (Lưu ý: Tin nhắn chứa từ ngữ nhạy cảm đã được hệ thống tự động lọc.)" if was_flagged else ""
     return jsonify({
@@ -416,44 +511,26 @@ def initiate_call():
         ACTIVE_CALL_SESSIONS[raw_room_id] = call_session
 
     # Đẩy thông báo chuông gọi đến đích danh người nhận
-    try:
-        from src.core.socket_service import socketio
-        socketio.emit("incoming-call", {
-            "room_id": room_id,
-            "raw_room_id": raw_room_id,
-            "caller_name": caller_name,
-            "caller_role": caller_role,
-            "caller_id": user["_id"],
-            "target_role": target_role,
-            "target_user_id": target_user_id,
-            "call_type": call_type,
-            "status": "ringing"
-        }, broadcast=True)
-    except Exception:
-        pass
+    emit_socket_event("incoming-call", {
+        "room_id": room_id,
+        "raw_room_id": raw_room_id,
+        "caller_name": caller_name,
+        "caller_role": caller_role,
+        "caller_id": user["_id"],
+        "target_role": target_role,
+        "target_user_id": target_user_id,
+        "call_type": call_type,
+        "status": "ringing"
+    })
 
-    try:
-        users_col = db_manager.get_collection("users")
-        target_user = None
-        if target_user_id:
-            target_user = users_col.find_one({"_id": target_user_id})
-        if not target_user:
-            target_user = users_col.find_one({"role": target_role})
-            
-        if target_user:
-            db_manager.get_collection("notifications").insert_one({
-                "_id": f"notif_{uuid.uuid4().hex[:8]}",
-                "user_id": target_user.get("_id"),
-                "type": "incoming_call",
-                "title": f"Cuộc gọi {('Video' if call_type == 'video' else 'Thoại')} đến từ {caller_name}",
-                "message": "Có cuộc gọi phỏng vấn trực tuyến đang đổ chuông, vui lòng nhấp vào để nghe máy!",
-                "related_id": room_id,
-                "is_read": False,
-                "is_deleted": False,
-                "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
-            })
-    except Exception:
-        pass
+    if target_user_id:
+        create_and_emit_notification(
+            user_id=target_user_id,
+            title=f"Cuộc gọi {('Video' if call_type == 'video' else 'Thoại')} đến từ {caller_name}",
+            message="Có cuộc gọi phỏng vấn trực tuyến đang đổ chuông, vui lòng nhấp vào để nghe máy!",
+            notif_type="incoming_call",
+            related_id=room_id,
+        )
 
     return jsonify({"success": True, "call": call_session}), 201
 
@@ -633,12 +710,21 @@ def end_call():
 
 
 # 5. Notifications
+def _notif_owner_filter(user, notif_id=None):
+    owner_filter = {"user_id": user["_id"]}
+    if user.get("role") == "admin":
+        owner_filter = {"$or": [{"user_id": user["_id"]}, {"role": "admin"}]}
+    if notif_id:
+        return {"$and": [{"_id": notif_id}, owner_filter]}
+    return owner_filter
+
 @common_bp.route("/notifications", methods=["GET"])
 @token_required
 def get_my_notifications():
     user = request.current_user
     notif_col = db_manager.get_collection("notifications")
-    notifs = list(notif_col.find({"user_id": user["_id"], "is_deleted": False}).sort("created_at", -1))
+    query = {"$and": [_notif_owner_filter(user), {"is_deleted": {"$ne": True}}]}
+    notifs = list(notif_col.find(query).sort("created_at", -1))
     return jsonify({"success": True, "data": notifs})
 
 @common_bp.route("/notifications/<notif_id>/read", methods=["PUT"])
@@ -646,15 +732,24 @@ def get_my_notifications():
 def mark_notification_read(notif_id):
     user = request.current_user
     notif_col = db_manager.get_collection("notifications")
-    notif_col.update_one({"_id": notif_id, "user_id": user["_id"]}, {"$set": {"is_read": True}})
+    notif_col.update_one(_notif_owner_filter(user, notif_id), {"$set": {"is_read": True}})
     return jsonify({"success": True, "message": "Đã đánh dấu đã đọc."})
+
+@common_bp.route("/notifications/read-all", methods=["PUT"])
+@token_required
+def mark_all_notifications_read():
+    user = request.current_user
+    notif_col = db_manager.get_collection("notifications")
+    query = {"$and": [_notif_owner_filter(user), {"is_deleted": {"$ne": True}}, {"is_read": {"$ne": True}}]}
+    notif_col.update_many(query, {"$set": {"is_read": True}})
+    return jsonify({"success": True, "message": "Đã đánh dấu tất cả thông báo đã đọc."})
 
 @common_bp.route("/notifications/<notif_id>", methods=["DELETE"])
 @token_required
 def delete_my_notification(notif_id):
     user = request.current_user
     notif_col = db_manager.get_collection("notifications")
-    notif_col.update_one({"_id": notif_id, "user_id": user["_id"]}, {"$set": {"is_deleted": True}})
+    notif_col.update_one(_notif_owner_filter(user, notif_id), {"$set": {"is_deleted": True}})
     return jsonify({"success": True, "message": "Đã xóa thông báo thành công!"})
 
 # 6. Violation Report Submission (FR 1.5.7, 2.5.6)
@@ -689,7 +784,8 @@ def submit_report():
             }), 400
 
     ticket_code = f"TK-2026-{uuid.uuid4().hex[:4].upper()}"
-    reporter_name = user.get("full_name") or user.get("email")
+    reporter_name = get_user_display_name(user) or user.get("full_name") or user.get("email")
+    reporter_role_label = "Sinh viên" if user.get("role") == "student" else ("Doanh nghiệp" if user.get("role") == "employer" else "Người dùng")
 
     new_report = {
         "_id": f"rep_{uuid.uuid4().hex[:8]}",
@@ -697,6 +793,7 @@ def submit_report():
         "type": report_type,
         "report_type": report_type,
         "reporter_id": user["_id"],
+        "reporter_role": user.get("role", ""),
         "reporter_email": user["email"],
         "reporter_name": reporter_name,
         "target_id": target_id,
@@ -709,25 +806,15 @@ def submit_report():
 
     db_manager.get_collection("reports").insert_one(new_report)
 
-    # Đẩy thông báo phiếu khiếu nại tới Quản trị viên (FR 3.8.2)
-    try:
-        admin_users = list(db_manager.get_collection("users").find({"role": "admin"}))
-        notif_col = db_manager.get_collection("notifications")
-        for adm in admin_users:
-            notif_col.insert_one({
-                "_id": f"notif_{uuid.uuid4().hex[:8]}",
-                "user_id": adm["_id"],
-                "role": "admin",
-                "type": "report_ticket",
-                "title": f"Phiếu khiếu nại vi phạm mới: {ticket_code}",
-                "message": f"Nhà tuyển dụng {reporter_name} vừa tạo khiếu nại về '{new_report['target_title']}'. Lý do: {reason}",
-                "target_id": new_report["_id"],
-                "is_read": False,
-                "is_deleted": False,
-                "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
-            })
-    except Exception:
-        pass
+    # Đẩy thông báo phiếu khiếu nại tới Quản trị viên kèm Socket.IO tức thì (FR 3.8.2)
+    notify_admins(
+        title=f"Phiếu khiếu nại vi phạm mới: {ticket_code}",
+        message=f"{reporter_role_label} {reporter_name} vừa tạo khiếu nại về '{new_report['target_title']}'. Lý do: {reason}",
+        notif_type="report_ticket",
+        related_id=new_report["_id"],
+        target_id=new_report["_id"],
+    )
+    emit_socket_event("new-report", new_report)
 
     return jsonify({"success": True, "message": "Đã tạo phiếu khiếu nại ở trạng thái Chờ xử lý và đẩy trực tiếp sang cho Quản trị viên giải quyết!", "data": new_report}), 201
 

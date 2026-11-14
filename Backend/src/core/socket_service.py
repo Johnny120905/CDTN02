@@ -21,7 +21,7 @@ def canonicalize_room_id(room_id):
         return room_id
 
     try:
-        parts = room_id.split("_stu_")
+        parts = room_id.split("_stu_", 1)
         emp_part = parts[0].replace("room_emp_", "")
         stu_part = parts[1]
 
@@ -41,6 +41,73 @@ def canonicalize_room_id(room_id):
     except Exception:
         return room_id
 
+
+def get_room_id_variants(room_id):
+    """
+    Trả về danh sách các room_id tương đương giữa 2 định dạng (user_id và profile_id)
+    để đảm bảo cả Sinh viên và Nhà tuyển dụng luôn thấy đầy đủ tin nhắn dù được gửi từ id nào.
+    """
+    if not room_id or not isinstance(room_id, str):
+        return [room_id] if room_id else []
+
+    canonical = canonicalize_room_id(room_id)
+    variants = {room_id, canonical}
+    target = canonical if "_stu_" in canonical else room_id
+    if not target.startswith("room_emp_") or "_stu_" not in target:
+        return list(variants)
+
+    try:
+        parts = target.split("_stu_", 1)
+        emp_part = parts[0].replace("room_emp_", "")
+        stu_part = parts[1]
+
+        emp_ids = {emp_part}
+        emp_col = db_manager.get_collection("employers")
+        emp = emp_col.find_one({"$or": [{"_id": emp_part}, {"user_id": emp_part}]})
+        if emp:
+            if emp.get("_id"):
+                emp_ids.add(emp["_id"])
+            if emp.get("user_id"):
+                emp_ids.add(emp["user_id"])
+
+        stu_ids = {stu_part}
+        stu_col = db_manager.get_collection("student_profiles")
+        stu = stu_col.find_one({"$or": [{"_id": stu_part}, {"user_id": stu_part}]})
+        if stu:
+            if stu.get("_id"):
+                stu_ids.add(stu["_id"])
+            if stu.get("user_id"):
+                stu_ids.add(stu["user_id"])
+
+        for eid in emp_ids:
+            for sid in stu_ids:
+                if eid and sid:
+                    variants.add(f"room_emp_{eid}_stu_{sid}")
+    except Exception:
+        pass
+
+    return list(variants)
+
+
+def chat_msg_sort_key(msg):
+    """Chuẩn hóa khóa sắp xếp thời gian tin nhắn (hỗ trợ cả 'HH:MM' và 'YYYY-MM-DD HH:MM:SS')."""
+    ts = str((msg or {}).get("created_at", ""))
+    if len(ts) <= 5:
+        return f"2026-11-01 {ts}:00"
+    return ts
+
+
+def get_latest_room_message(room_id):
+    """Lấy tin nhắn mới nhất của phòng chat trên mọi biến thể room_id."""
+    variants = get_room_id_variants(room_id)
+    if not variants:
+        return None
+    msg_col = db_manager.get_collection("messages")
+    msgs = list(msg_col.find({"room_id": {"$in": variants}}))
+    if not msgs:
+        return None
+    return max(msgs, key=chat_msg_sort_key)
+
 def init_socketio(app):
     """Khởi tạo và cấu hình Socket.IO cho Flask app."""
     socketio.init_app(app)
@@ -58,23 +125,36 @@ def register_socket_events():
         # Client ngắt kết nối
         pass
 
+    @socketio.on("register-user")
+    def handle_register_user(data):
+        if not isinstance(data, dict):
+            return
+        user_id = data.get("user_id")
+        role = data.get("role")
+        if user_id:
+            join_room(f"user_{user_id}")
+        if role:
+            join_room(f"role_{role}")
+
     @socketio.on("join-room")
     def handle_join_room(data):
         raw_room = data.get("room_id") if isinstance(data, dict) else str(data)
+        user_id = data.get("user_id") if isinstance(data, dict) else None
+        role = data.get("role") if isinstance(data, dict) else None
+        if user_id:
+            join_room(f"user_{user_id}")
+        if role:
+            join_room(f"role_{role}")
         if raw_room:
             canonical_room = canonicalize_room_id(raw_room)
             join_room(canonical_room)
             if raw_room != canonical_room:
                 join_room(raw_room)
 
-            user_id = data.get("user_id") if isinstance(data, dict) else None
-            if user_id:
-                join_room(f"user_{user_id}")
-
             emit("user-joined", {
                 "room_id": canonical_room,
                 "user_id": user_id,
-                "role": data.get("role") if isinstance(data, dict) else None
+                "role": role
             }, room=canonical_room, include_self=False)
 
     @socketio.on("leave-room")
