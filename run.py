@@ -81,10 +81,16 @@ def main():
     from src.core.socket_service import socketio
     app = create_app()
 
-    # Tự động mở trình duyệt web sau khi server sẵn sàng
+    # Tự động mở trình duyệt web ngay khi cổng 8002 sẵn sàng nhận kết nối (không mở sớm gây xoay vòng chờ)
     import threading
+    import socket
     def auto_open():
-        time.sleep(1.2)
+        for _ in range(60):
+            try:
+                with socket.create_connection((host, port), timeout=0.25):
+                    break
+            except OSError:
+                time.sleep(0.12)
         try:
             webbrowser.open(url)
         except Exception:

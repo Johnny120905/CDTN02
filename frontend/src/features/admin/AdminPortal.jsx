@@ -1036,16 +1036,16 @@ export default function AdminPortal({
       phone: u.profile?.phone || u.phone || '',
       university: u.profile?.university || u.university || ''
     };
-    const emailMatch = matchKeywordFlexible(userSearchObj, userSearch, ['email', '_id', 'full_name', 'company_name', 'branch_name', 'phone', 'university']);
+    const emailMatch = matchKeywordFlexible(userSearchObj, userSearch, ['email', '_id']);
     const roleMatch = !userRoleFilter || u.role === userRoleFilter;
     const statusMatch = !userStatusFilter || 
       (userStatusFilter === 'banned' && u.is_banned) || 
       (userStatusFilter === 'active' && !u.is_banned && u.status !== 'pending') ||
       (userStatusFilter === 'pending' && u.status === 'pending');
 
-    // FR-QTV-04.10: Lọc theo Trường Đại học / Chi nhánh (Bỏ dấu tiếng Việt)
+    // FR-QTV-04.10: Lọc theo Trường Đại học/ Cao đẳng; Cơ sở/ Chi nhánh (Bỏ dấu tiếng Việt)
     const uniMatch = !userUniFilter || userUniFilter === 'all' || userUniFilter === 'Tất cả các trường đại học / chi nhánh' ||
-      matchKeywordFlexible(userSearchObj, userUniFilter, ['university', 'branch_name', 'company_name', 'address']);
+      matchKeywordFlexible(userSearchObj, userUniFilter, ['university', 'branch_name', 'address']);
 
     // FR-QTV-04.10: Mức độ rủi ro vi phạm (Khớp chuẩn option high_risk >= 1 report, complaints >= 3 khiếu nại, safe = an toàn)
     let riskMatch = true;
@@ -1180,8 +1180,8 @@ export default function AdminPortal({
 
   // Filtered Jobs (FR 3.5 & FR-QTV-05.07)
   const filteredJobs = jobs.filter(j => {
-    // 1. Tìm kiếm linh hoạt đa từ & bỏ dấu tiếng Việt
-    const matchSearch = matchKeywordFlexible(j, jobSearch, ['title', 'company_name', 'description', 'location', 'address', 'branch_name', 'category_name', 'district', 'province']);
+    // 1. Tìm kiếm theo Tên doanh nghiệp; Tiêu đề công việc
+    const matchSearch = matchKeywordFlexible(j, jobSearch, ['company_name', 'title']);
     const jSt = normalizeJobStatus(j);
 
     // 2. Bộ lọc cột Trạng Thái Vận Hành
@@ -1209,7 +1209,7 @@ export default function AdminPortal({
 
   // Filtered Reviews (FR 3.6 & FR-QTV-06.07)
   const filteredReviews = reviews.filter(r => {
-    const matchSearch = matchKeywordFlexible(r, reviewSearch, ['reviewer_name', 'user_name', 'student_name', 'company_name', 'comment', 'target_name', 'job_title']);
+    const matchSearch = matchKeywordFlexible(r, reviewSearch, ['reviewer_name', 'user_name', 'student_name', 'company_name', 'target_name', 'comment']);
       
     let matchStatus = true;
     if (reviewStatusFilter === 'public') {
@@ -1253,7 +1253,7 @@ export default function AdminPortal({
 
   // Filtered Tickets (FR 3.8 & FR-QTV-08.02)
   const filteredTickets = reports.filter(r => {
-    const matchSearch = matchKeywordFlexible(r, ticketSearch, ['ticket_code', 'reason', 'reporter_name', 'target_name', 'type', 'report_type', 'notes', 'description']);
+    const matchSearch = matchKeywordFlexible(r, ticketSearch, ['ticket_code', '_id', 'reason']);
     const matchType = !ticketTab || ticketTab === 'all' || r.type === ticketTab || r.report_type === ticketTab;
     const matchStatus = ticketStatusFilter === 'all' || r.status === ticketStatusFilter || (ticketStatusFilter === 'pending' && (!r.status || r.status === 'chờ xử lý'));
     return matchSearch && matchType && matchStatus;
@@ -2694,7 +2694,7 @@ export default function AdminPortal({
                     type="text"
                     value={userSearch}
                     onChange={(e) => setUserSearch(e.target.value)}
-                    placeholder="Tìm theo ID, Email..."
+                    placeholder="Tìm kiếm (Email; ID)"
                     className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-base sm:text-sm text-slate-900 outline-none focus:border-blue-500 shadow-sm"
                   />
                 </div>
@@ -2732,14 +2732,14 @@ export default function AdminPortal({
                     list="admin-uni-branch-suggestions"
                     value={userUniFilter === 'all' ? '' : userUniFilter}
                     onChange={(e) => setUserUniFilter(e.target.value || 'all')}
-                    placeholder="Tất cả các trường đại học / chi nhánh..."
+                    placeholder="Tìm kiếm hoặc gợi ý dropdown (Trường Đại học/ Cao đẳng; Cơ sở/ Chi nhánh)"
                     className="w-full min-w-0 truncate bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm text-slate-900 outline-none shadow-xs focus:border-blue-600"
                   />
                   <datalist id="admin-uni-branch-suggestions">
                     {Array.from(new Set([
                       ...nonAdminUsers.map(u => u.profile?.university || u.student_profile?.university || u.university || ''),
                       ...nonAdminUsers.map(u => u.profile?.branch_name || u.employer_profile?.branch_name || u.branch_name || ''),
-                      ...nonAdminUsers.map(u => u.profile?.company_name || u.company_name || '')
+                      ...nonAdminUsers.map(u => u.profile?.address || u.employer_profile?.address || u.address || '')
                     ])).filter(Boolean).sort().map((item) => (
                       <option key={item} value={item} />
                     ))}
@@ -2927,7 +2927,7 @@ export default function AdminPortal({
                     type="text"
                     value={jobSearch}
                     onChange={(e) => setJobSearch(e.target.value)}
-                    placeholder="Tìm tên công ty, tiêu đề..."
+                    placeholder="Tìm kiếm (Tên doanh nghiệp; Tiêu đề công việc)"
                     className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-base sm:text-sm text-slate-900 outline-none focus:border-blue-500 shadow-sm"
                   />
                 </div>
@@ -3098,7 +3098,7 @@ export default function AdminPortal({
                     type="text"
                     value={reviewSearch}
                     onChange={(e) => setReviewSearch(e.target.value)}
-                    placeholder="Tìm tên hoặc nội dung..."
+                    placeholder="Tìm kiếm (Tên sinh viên; Tên doanh nghiệp; Nội dung nhận xét)"
                     className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-base sm:text-sm text-slate-900 outline-none focus:border-blue-500 shadow-sm"
                   />
                 </div>
@@ -3291,7 +3291,7 @@ export default function AdminPortal({
                 type="text"
                 value={categorySearch}
                 onChange={(e) => setCategorySearch(e.target.value)}
-                placeholder="Tìm kiếm danh mục theo tên..."
+                placeholder="Tìm kiếm (Tên danh mục)"
                 className="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 shadow-sm"
               />
             </div>
@@ -3342,7 +3342,7 @@ export default function AdminPortal({
                     {(() => {
                       const visibleCats = categories
                         .filter(c => categoryTab === 'all' ? true : (categoryTab === 'job' ? c.type !== 'location' : c.type === 'location'))
-                        .filter(c => matchKeywordFlexible(c, categorySearch, ['name', 'type']));
+                        .filter(c => matchKeywordFlexible(c, categorySearch, ['name']));
 
                       if (visibleCats.length === 0) {
                         return (
@@ -3461,7 +3461,7 @@ export default function AdminPortal({
                     type="text"
                     value={ticketSearch}
                     onChange={(e) => setTicketSearch(e.target.value)}
-                    placeholder="Tìm mã phiếu hoặc lý do..."
+                    placeholder="Tìm kiếm (Mã phiếu; Lý do khiếu nại)"
                     className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs sm:text-sm text-slate-900 outline-none focus:border-blue-500 shadow-sm"
                   />
                 </div>

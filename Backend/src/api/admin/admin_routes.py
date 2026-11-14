@@ -699,6 +699,18 @@ def list_all_reviews():
         if app_item and not rev_copy.get("job_title"):
             rev_copy["job_title"] = app_item.get("job_title", "Ca làm việc")
 
+        # Đảm bảo luôn có đủ student_name và company_name để phục vụ tìm kiếm chính xác
+        if not rev_copy.get("student_name"):
+            if rev_copy.get("direction") == "employer_to_student":
+                rev_copy["student_name"] = rev_copy.get("target_name") or (app_item and (app_item.get("student_name") or (app_item.get("application_snapshot") or {}).get("student_name"))) or (u_target and u_target.get("full_name")) or ""
+            else:
+                rev_copy["student_name"] = rev_copy.get("reviewer_name") or (app_item and (app_item.get("student_name") or (app_item.get("application_snapshot") or {}).get("student_name"))) or (u_reviewer and u_reviewer.get("full_name")) or ""
+        if not rev_copy.get("company_name"):
+            if rev_copy.get("direction") == "employer_to_student":
+                rev_copy["company_name"] = rev_copy.get("reviewer_name") or (app_item and app_item.get("company_name")) or (u_reviewer and u_reviewer.get("company_name")) or ""
+            else:
+                rev_copy["company_name"] = rev_copy.get("target_name") or (app_item and app_item.get("company_name")) or (u_target and u_target.get("company_name")) or ""
+
         enriched.append(rev_copy)
 
     return jsonify({"success": True, "data": enriched})

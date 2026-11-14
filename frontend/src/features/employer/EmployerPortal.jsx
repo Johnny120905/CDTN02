@@ -538,6 +538,7 @@ export default function EmployerPortal({
             uniqueStudents.push({
               id: sId,
               name: app.application_snapshot?.student_name || app.student_name || 'Ứng viên sinh viên',
+              student_name: app.application_snapshot?.student_name || app.student_name || 'Ứng viên sinh viên',
               subtitle: `Ứng tuyển: ${app.job_title}`,
               role: 'student',
               email: app.student_email || '',
@@ -1889,8 +1890,8 @@ export default function EmployerPortal({
 
   // Filter Jobs Table (FR-NTD-04.10: Chi nhánh, Bật/Tắt tuyển dụng & Tiến độ tuyển dụng)
   const filteredJobs = myJobs.filter(j => {
-    // 1. Tìm kiếm theo từ khóa (Tiêu đề, mô tả, chi nhánh, ngành nghề)
-    const matchesSearch = matchKeywordFlexible(j, jobSearch, ['title', 'description', 'location', 'address', 'branch_name', 'category_name']);
+    // 1. Tìm kiếm theo từ khóa (Tin tuyển dụng)
+    const matchesSearch = matchKeywordFlexible(j, jobSearch, ['title']);
 
     // 2. Bộ lọc cột Bật/Tắt Tuyển Dụng
     let matchesToggle = true;
@@ -1928,7 +1929,7 @@ export default function EmployerPortal({
 
   // Filter Kanban Candidates (FR-NTD-05.09, FR-NTD-05.10, FR-NTD-05.11)
   const filteredKanbanApplicants = validApplicants.filter(a => {
-    // 1. Tìm kiếm ứng viên (Tên, Trường ĐH, Chức danh, SĐT, Email - Bỏ dấu tiếng Việt)
+    // 1. Tìm kiếm ứng viên (Tên sinh viên; Vị trí tuyển dụng)
     const applicantObj = {
       ...a,
       student_name: a.application_snapshot?.student_name || a.student_name || '',
@@ -1936,7 +1937,7 @@ export default function EmployerPortal({
       phone: a.application_snapshot?.phone || a.phone || '',
       email: a.application_snapshot?.email || a.email || ''
     };
-    const matchesSearch = matchKeywordFlexible(applicantObj, kanbanSearch, ['student_name', 'job_title', 'university', 'phone', 'email']);
+    const matchesSearch = matchKeywordFlexible(applicantObj, kanbanSearch, ['student_name', 'job_title']);
 
     // 2. Lọc theo Tin tuyển dụng (khớp ID hoặc Tên bài đăng)
     const matchesJob = !kanbanJobFilter || kanbanJobFilter === '' || kanbanJobFilter === 'all' ||
@@ -2017,11 +2018,11 @@ export default function EmployerPortal({
   const filledJobsForCompletion = baseFilledJobs.filter(j => {
     const matchB = (!completionBranchFilter || completionBranchFilter === 'all' || completionBranchFilter === 'Tất cả chi nhánh')
       ? true
-      : matchKeywordFlexible(j, completionBranchFilter, ['location', 'branch_name', 'address', 'district', 'province']);
+      : matchKeywordFlexible(j, completionBranchFilter, ['branch_name', 'location', 'address']);
 
     const matchJ = (!completionJobFilter || completionJobFilter === 'all' || completionJobFilter === 'Tất cả tin tuyển dụng')
       ? true
-      : (j._id === completionJobFilter || matchKeywordFlexible(j, completionJobFilter, ['title', '_id']));
+      : (j._id === completionJobFilter || matchKeywordFlexible(j, completionJobFilter, ['title']));
 
     let matchS = true;
     const jSt = normalizeJobStatus(j);
@@ -3167,7 +3168,7 @@ export default function EmployerPortal({
                         type="text"
                         value={jobSearch}
                         onChange={(e) => setJobSearch(e.target.value)}
-                        placeholder="Tìm tin tuyển dụng..."
+                        placeholder="Tìm kiếm (Tin tuyển dụng)"
                         className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-600 focus:bg-white truncate"
                       />
                     </div>
@@ -3539,7 +3540,7 @@ export default function EmployerPortal({
                         type="text"
                         value={kanbanSearch}
                         onChange={(e) => setKanbanSearch(e.target.value)}
-                        placeholder="Tìm tên sinh viên, trường đại học..."
+                        placeholder="Tìm kiếm (Tên sinh viên; Vị trí tuyển dụng)"
                         className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 outline-none focus:border-blue-600 focus:bg-white"
                       />
                     </div>
@@ -3587,7 +3588,7 @@ export default function EmployerPortal({
                         list="emp-applicant-uni-list"
                         value={applicantUniFilter === 'all' ? '' : applicantUniFilter}
                         onChange={(e) => setApplicantUniFilter(e.target.value || 'all')}
-                        placeholder="Mọi trường đại học / cao đẳng..."
+                        placeholder="Tìm kiếm hoặc gợi ý dropdown (Trường Đại học/ Cao đẳng)"
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-blue-600 truncate"
                         title="Lọc theo trường đại học / cao đẳng (nhập tay hoặc chọn gợi ý)"
                       />
@@ -4104,7 +4105,7 @@ export default function EmployerPortal({
                     type="text"
                     value={interviewSearch}
                     onChange={(e) => setInterviewSearch(e.target.value)}
-                    placeholder="Tìm kiếm ứng viên theo tên, trường đại học, số điện thoại, vị trí tuyển dụng..."
+                    placeholder="Tìm kiếm (Tên sinh viên; Số điện thoại; Vị trí tuyển dụng)"
                     className="w-full bg-white border border-slate-300 rounded-2xl pl-11 pr-4 py-3 text-xs text-slate-900 outline-none focus:border-blue-600 shadow-sm"
                   />
                 </div>
@@ -4159,7 +4160,7 @@ export default function EmployerPortal({
                         university: app.application_snapshot?.university || app.university || '',
                         phone: app.application_snapshot?.phone || app.phone || ''
                       };
-                      return matchKeywordFlexible(interviewObj, interviewSearch, ['student_name', 'university', 'phone', 'job_title']);
+                      return matchKeywordFlexible(interviewObj, interviewSearch, ['student_name', 'phone', 'job_title']);
                     });
 
                   if (filteredInterviewApps.length === 0) {
@@ -4355,7 +4356,7 @@ export default function EmployerPortal({
                       list="emp-completion-branch-list"
                       value={completionBranchFilter === 'all' ? '' : completionBranchFilter}
                       onChange={(e) => setCompletionBranchFilter(e.target.value || 'all')}
-                      placeholder="Tất cả chi nhánh..."
+                      placeholder="Tìm kiếm hoặc gợi ý dropdown (Chi nhánh)"
                       className="w-full min-w-0 truncate bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-blue-600"
                       title="Lọc theo chi nhánh / Cơ sở cửa hàng (nhập tay hoặc chọn gợi ý)"
                     />
@@ -4378,7 +4379,7 @@ export default function EmployerPortal({
                       list="emp-completion-job-list"
                       value={completionJobFilter === 'all' ? '' : completionJobFilter}
                       onChange={(e) => setCompletionJobFilter(e.target.value || 'all')}
-                      placeholder="Tất cả tin tuyển dụng..."
+                      placeholder="Tìm kiếm hoặc gợi ý dropdown (Tin tuyển dụng)"
                       className="w-full min-w-0 truncate bg-slate-50 border border-slate-300 rounded-xl px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-blue-600"
                       title="Lọc theo tin tuyển dụng (nhập tay hoặc chọn gợi ý)"
                     />
@@ -6278,10 +6279,10 @@ function EmployerChatContactsPanel({
   isDrawer = false,
 }) {
   const filteredContacts = contacts.filter(c => {
-    const matchName = matchKeywordFlexible(c, chatSearchQuery, ['name', 'subtitle', 'lastMsg', 'job_title']);
+    const matchName = matchKeywordFlexible(c, chatSearchQuery, ['name', 'student_name', 'job_title', 'subtitle']);
     const selectedFilterJob = myJobs.find(j => j._id === chatJobFilter);
     const matchJob = chatJobFilter === 'all' || !chatJobFilter || c.job_id === chatJobFilter ||
-      (selectedFilterJob ? matchKeywordFlexible(c, selectedFilterJob.title, ['job_title', 'subtitle', 'lastMsg']) : false);
+      (selectedFilterJob ? matchKeywordFlexible(c, selectedFilterJob.title, ['job_title', 'subtitle']) : false);
     const matchUnreplied = !chatUnrepliedOnly || c.unreplied || c.unread_count > 0 || c.status === 'pending';
     return matchName && matchJob && matchUnreplied;
   });
@@ -6296,7 +6297,7 @@ function EmployerChatContactsPanel({
             type="text"
             value={chatSearchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Tìm theo tên Sinh viên..."
+            placeholder="Tìm kiếm (Tên sinh viên; Tin tuyển dụng)"
             className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 placeholder-slate-500 outline-none focus:border-blue-600 focus:bg-white"
           />
         </div>

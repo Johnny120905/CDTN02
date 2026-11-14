@@ -945,6 +945,7 @@ export default function StudentPortal({
               id: empId,
               employer_id: empId,
               job_id: app.job_id,
+              job_title: app.job_title || '',
               name: compName,
               company_name: compName,
               subtitle: `Ứng tuyển: ${app.job_title}`,
@@ -1802,9 +1803,9 @@ export default function StudentPortal({
 
   // Filter Jobs (Chuẩn hóa toàn diện: Đa từ khóa, Không dấu tiếng Việt, Ánh xạ Ngành nghề, Địa lý đa tầng, Parse lương an toàn)
   const filteredJobs = activeOpenJobs.filter(j => {
-    // 1. Tìm kiếm theo từ khóa Chức danh công việc / công ty / địa chỉ / mô tả (Linh hoạt đa từ & Bỏ dấu tiếng Việt)
+    // 1. Tìm kiếm theo từ khóa (Tiêu đề công việc; Tên doanh nghiệp)
     const matchesSearch = matchKeywordFlexible(j, searchQuery, [
-      'title', 'company_name', 'description', 'location', 'address', 'branch_name', 'category_name', 'category', 'work_time'
+      'title', 'company_name'
     ]);
 
     // 2. Ngành nghề: Ánh xạ thông minh giữa Master Data, JOB_CATEGORIES và tiêu đề/mô tả công việc
@@ -1885,7 +1886,7 @@ export default function StudentPortal({
 
   // Filter Applications (FR-SV-06.02: 6 chặng trạng thái chuẩn & FR-SV-06.06: Lọc theo thời gian nộp)
   const filteredApplications = myApplications.filter(app => {
-    const matchesSearch = matchKeywordFlexible(app, appSearchQuery, ['job_title', 'company_name', 'cover_note', 'shift_registered']);
+    const matchesSearch = matchKeywordFlexible(app, appSearchQuery, ['job_title', 'company_name']);
     
     // 6 chặng chuẩn: pending (Chờ xét duyệt), reviewed (Đã tiếp nhận), interview (Mời phỏng vấn), accepted (Trúng tuyển), rejected (Chưa phù hợp), cancelled (Đã rút hồ sơ)
     let matchesStatus = true;
@@ -2671,7 +2672,7 @@ export default function StudentPortal({
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Chức danh, từ khóa..."
+                      placeholder="Tìm kiếm (Tiêu đề công việc; Tên doanh nghiệp)"
                       className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100 font-medium truncate"
                     />
                   </div>
@@ -3134,7 +3135,7 @@ export default function StudentPortal({
                       type="text"
                       value={appSearchQuery}
                       onChange={(e) => setAppSearchQuery(e.target.value)}
-                      placeholder="Tìm kiếm công việc đã nộp..."
+                      placeholder="Tìm kiếm (Tên vị trí; Tên doanh nghiệp)"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 placeholder-slate-400 outline-none focus:border-blue-500"
                     />
                   </div>
@@ -6123,7 +6124,7 @@ function StudentChatContactsPanel({
   isDrawer = false,
 }) {
   const filteredContacts = contacts
-    .filter(c => matchKeywordFlexible(c, chatSearchQuery, ['name', 'company_name', 'lastMsg', 'lastMessage', 'subtitle']))
+    .filter(c => matchKeywordFlexible(c, chatSearchQuery, ['company_name', 'name', 'job_title', 'subtitle']))
     .filter(c => !chatUnrepliedOnly || c.unreplied || c.unread > 0 || c.time === 'Mới ứng tuyển' || c.application_status === 'pending');
 
   return (
@@ -6136,7 +6137,7 @@ function StudentChatContactsPanel({
             type="text"
             value={chatSearchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Tìm theo tên Doanh nghiệp..."
+            placeholder="Tìm kiếm (Tên doanh nghiệp; Vị trí ứng tuyển)"
             className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 placeholder-slate-500 outline-none focus:border-blue-600 focus:bg-white font-medium"
           />
         </div>

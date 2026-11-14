@@ -58,17 +58,20 @@ def create_app():
     # Initialize Realtime Socket.IO Engine (WebRTC Signaling)
     init_socketio(app)
 
-    # Dọn bản ghi cuộc gọi ảo cũ (0:00 lúc 21:57, không có mốc thời gian đầy đủ). Cuộc gọi thật mới luôn có created_at_full nên không bị ảnh hưởng.
-    try:
-        from src.core.database import db_manager as _db
-        _msg_col = _db.get_collection("messages")
-        for _m in list(_msg_col.find({"type": "call_record"})):
-            _dur = _m.get("duration") or 0
-            _ts = str(_m.get("created_at") or "")
-            if _dur == 0 and _ts == "21:57" and not _m.get("created_at_full") and not _m.get("timestamp"):
-                _msg_col.delete_one({"_id": _m["_id"]})
-    except Exception as _e:
-        print(f"[Cleanup] Bỏ qua dọn bản ghi cuộc gọi ảo: {_e}")
+    # Dọn bản ghi cuộc gọi ảo cũ ở luồng ngầm để không làm chậm quá trình mở cổng 8002
+    import threading
+    def _cleanup_legacy_calls():
+        try:
+            from src.core.database import db_manager as _db
+            _msg_col = _db.get_collection("messages")
+            for _m in list(_msg_col.find({"type": "call_record"})):
+                _dur = _m.get("duration") or 0
+                _ts = str(_m.get("created_at") or "")
+                if _dur == 0 and _ts == "21:57" and not _m.get("created_at_full") and not _m.get("timestamp"):
+                    _msg_col.delete_one({"_id": _m["_id"]})
+        except Exception as _e:
+            print(f"[Cleanup] Bỏ qua dọn bản ghi cuộc gọi ảo: {_e}")
+    threading.Thread(target=_cleanup_legacy_calls, daemon=True).start()
     # UNIFIED UPLOADS ROUTE: Phục vụ an toàn các tệp media cũ, tự động map qua GridFS hoặc fallback ảnh sạch (không gây log 404 ở cmd)
     @app.route("/uploads/<path:filename>")
     def serve_uploaded_media(filename):

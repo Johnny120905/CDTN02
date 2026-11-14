@@ -216,20 +216,30 @@ class AtlasCollectionAdapter:
         self._mirror_ts = 0.0
         self._refreshing = False
         self._lock = threading.RLock()
+        self._fetch_lock = threading.Lock()
+
+    def seed_from_snapshot(self, docs):
+        """Nạp tức thì từ bản chụp ổ cứng cục bộ trong lúc chờ luồng ngầm đồng bộ từ MongoDB Atlas."""
+        with self._lock:
+            if self._docs_mirror is None and isinstance(docs, list):
+                self._docs_mirror = [_sanitize_doc_blobs(d) for d in docs if isinstance(d, dict)]
+                self._mirror_ts = time.monotonic() - (self.CACHE_TTL - 30.0)
+                self._cache.clear()
 
     def invalidate_cache(self):
         with self._lock:
             self._cache.clear()
 
     def _load_mirror_from_atlas(self):
-        raw_docs = list(self._col.find({}))
-        cleaned = [_sanitize_doc_blobs(d) for d in raw_docs if isinstance(d, dict)]
-        with self._lock:
-            self._docs_mirror = cleaned
-            self._mirror_ts = time.monotonic()
-            self._cache.clear()
-            self._refreshing = False
-        return cleaned
+        with self._fetch_lock:
+            raw_docs = list(self._col.find({}))
+            cleaned = [_sanitize_doc_blobs(d) for d in raw_docs if isinstance(d, dict)]
+            with self._lock:
+                self._docs_mirror = cleaned
+                self._mirror_ts = time.monotonic()
+                self._cache.clear()
+                self._refreshing = False
+            return cleaned
 
     def _refresh_mirror_async(self):
         def _worker():
@@ -707,21 +717,67 @@ class DatabaseManager:
         self._atlas_adapters = {}
         self.connect()
         if self.is_atlas and not self.is_testing:
-            self._prewarm_atlas_cache()
+            # 1. Nạp nhanh bản chụp trên ổ cứng vào RAM (~0.03s) để có dữ liệu tức thì ngay giây đầu tiên
+            self._Warm_adapters_from_disk_snapshot()
+            # 2. Chạy ngầm đồng bộ 16 collections từ MongoDB Atlas + seed_initial_data (không chặn luồng mở cổng 8002)
+            self._prewarm_atlas_cache_async()
         elif not self.is_atlas and not self.is_testing:
             self._load_local_store()
-        self.seed_initial_data()
+            self.seed_initial_data()
+        else:
+            self.seed_initial_data()
 
-    def _prewarm_atlas_cache(self):
-        """Tự động nạp song song toàn bộ 16 collections vào RAM để mọi thao tác đăng nhập & chuyển tab nhanh tức thì."""
-        if not self.is_atlas or self.db is None:
+    def _Warm_adapters_from_disk_snapshot(self):
+        if not os.path.exists(self.local_db_path):
             return
         try:
-            adapters = [self.get_collection(name) for name in COLLECTIONS]
-            with ThreadPoolExecutor(max_workers=8) as pool:
-                list(pool.map(lambda ad: ad._get_mirror_docs(), adapters))
-        except Exception as e:
-            print(f"[Database] Pre-warm warning: {e}")
+            with open(self.local_db_path, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+            if isinstance(raw, dict):
+                for name in COLLECTIONS:
+                    docs = raw.get(name)
+                    if isinstance(docs, list):
+                        adapter = self.get_collection(name)
+                        if hasattr(adapter, "seed_from_snapshot"):
+                            adapter.seed_from_snapshot(docs)
+        except Exception:
+            pass
+
+    def _save_atlas_snapshot_to_disk(self):
+        if self.is_testing or self._saving_local or not self.is_atlas:
+            return
+        try:
+            self._saving_local = True
+            payload = {}
+            for name in COLLECTIONS:
+                ad = self._atlas_adapters.get(name)
+                if ad is not None and ad._docs_mirror is not None:
+                    payload[name] = ad._docs_mirror
+            if payload:
+                with open(self.local_db_path, "w", encoding="utf-8") as f:
+                    json.dump(payload, f, ensure_ascii=False, separators=(",", ":"), default=str)
+        except Exception:
+            pass
+        finally:
+            self._saving_local = False
+
+    def _prewarm_atlas_cache_async(self):
+        """Tự động nạp ngầm (Non-blocking Daemon Thread) toàn bộ 16 collections từ Atlas vào RAM để server mở cổng 8002 ngay tức thì."""
+        if not self.is_atlas or self.db is None:
+            return
+        def _bg_worker():
+            try:
+                # Ưu tiên nạp trước các bảng nhẹ cần ngay khi vừa mở trang chủ
+                priority_cols = ["categories", "jobs", "users", "employers", "company_profiles", "banned_keywords"]
+                remaining_cols = [c for c in COLLECTIONS if c not in priority_cols]
+                ordered_adapters = [self.get_collection(name) for name in (priority_cols + remaining_cols)]
+                with ThreadPoolExecutor(max_workers=8) as pool:
+                    list(pool.map(lambda ad: ad._load_mirror_from_atlas(), ordered_adapters))
+                self.seed_initial_data()
+                self._save_atlas_snapshot_to_disk()
+            except Exception as e:
+                print(f"[Database] Pre-warm warning: {e}")
+        threading.Thread(target=_bg_worker, daemon=True).start()
 
     def _load_local_store(self):
         if not os.path.exists(self.local_db_path):
@@ -818,7 +874,23 @@ class DatabaseManager:
             return None
         if fid.startswith("inline_"):
             with _INLINE_BLOB_LOCK:
-                return _INLINE_BLOB_STORE.get(fid)
+                blob = _INLINE_BLOB_STORE.get(fid)
+            if blob is not None:
+                return blob
+            # Nếu vừa khởi động từ disk snapshot mà luồng ngầm chưa kịp giải mã Base64 của bảng chứa file, nạp bảng đó ngay
+            if self.is_atlas and self.db is not None:
+                for col_name in ("resumes", "applications", "company_profiles", "messages"):
+                    ad = self.get_collection(col_name)
+                    if hasattr(ad, "_load_mirror_from_atlas"):
+                        try:
+                            ad._load_mirror_from_atlas()
+                        except Exception:
+                            pass
+                    with _INLINE_BLOB_LOCK:
+                        blob = _INLINE_BLOB_STORE.get(fid)
+                    if blob is not None:
+                        return blob
+            return None
         if fid in self._file_ram_cache:
             return self._file_ram_cache[fid]
         if not ObjectId.is_valid(fid):
