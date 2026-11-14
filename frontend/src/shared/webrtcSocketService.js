@@ -48,26 +48,112 @@ export const getSocket = () => {
   return socketInstance;
 };
 
-// Lấy Camera và Micro của máy
-export const getLocalMediaStream = async (callType = 'video') => {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    throw new Error('Trình duyệt không hỗ trợ truy cập MediaDevices (Camera/Micro).');
+// Tạo luồng Media ảo dự phòng (Audio tĩnh / Canvas video) khi máy không có Camera/Mic hoặc bị xung đột thiết bị
+export const createFallbackMediaStream = (callType = 'video') => {
+  const tracks = [];
+
+  // 1. Luồng Audio ảo tĩnh (Silent Audio Track qua Web Audio API)
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (AudioCtx) {
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const dst = ctx.createMediaStreamDestination();
+      const gain = ctx.createGain();
+      gain.gain.value = 0; // Hoàn toàn im lặng
+      osc.connect(gain);
+      gain.connect(dst);
+      osc.start();
+      const audioTrack = dst.stream.getAudioTracks()[0];
+      if (audioTrack) tracks.push(audioTrack);
+    }
+  } catch (e) {
+    console.warn('[WebRTC] Virtual audio fallback error:', e);
   }
 
-  const constraints = {
-    audio: {
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true
-    },
-    video: callType === 'video' ? {
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
-      facingMode: 'user'
-    } : false
+  // 2. Luồng Video ảo qua Canvas (Tránh NotReadableError khi test 2 tab trên cùng 1 máy tính)
+  if (callType === 'video') {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = 640;
+      canvas.height = 480;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, 0, 640, 480);
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 22px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('PARTIME.VN WEBRTC', 320, 220);
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '14px sans-serif';
+        ctx.fillText('Kết nối phỏng vấn trực tuyến 1-1', 320, 260);
+      }
+      const canvasStream = canvas.captureStream ? canvas.captureStream(15) : null;
+      if (canvasStream) {
+        const videoTrack = canvasStream.getVideoTracks()[0];
+        if (videoTrack) tracks.push(videoTrack);
+      }
+    } catch (e) {
+      console.warn('[WebRTC] Virtual video fallback error:', e);
+    }
+  }
+
+  return new MediaStream(tracks);
+};
+
+// Lấy Camera và Micro của máy (có cơ chế Fallback tự động chống crash khi gọi 2 tab trên 1 máy tính)
+export const getLocalMediaStream = async (callType = 'video') => {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    console.warn('[WebRTC] mediaDevices not supported, using fallback stream');
+    return createFallbackMediaStream(callType);
+  }
+
+  const audioConstraints = {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: true
   };
 
-  return await navigator.mediaDevices.getUserMedia(constraints);
+  // 1. Thử xin quyền Camera & Micro đầy đủ
+  try {
+    return await navigator.mediaDevices.getUserMedia({
+      audio: audioConstraints,
+      video: callType === 'video' ? {
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        facingMode: 'user'
+      } : false
+    });
+  } catch (err) {
+    console.warn('[WebRTC] Primary getUserMedia failed (likely in use or device missing):', err.name);
+  }
+
+  // 2. Nếu cuộc gọi Video bị lỗi (do webcam bị tab đối phương chiếm), thử audio thật + video canvas
+  if (callType === 'video') {
+    try {
+      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      const fallback = createFallbackMediaStream('video');
+      const videoTrack = fallback.getVideoTracks()[0];
+      if (videoTrack) audioStream.addTrack(videoTrack);
+      return audioStream;
+    } catch (err2) {
+      console.warn('[WebRTC] Audio-only fallback with canvas video failed:', err2.name);
+    }
+  }
+
+  // 3. Nếu là cuộc gọi Audio, thử xin quyền Audio đơn giản
+  if (callType === 'audio') {
+    try {
+      return await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err3) {
+      console.warn('[WebRTC] Audio getUserMedia failed:', err3.name);
+    }
+  }
+
+  // 4. Nếu máy tính hoàn toàn không có Mic/Camera (PC bàn không cắm tai nghe), dùng luồng ảo để P2P không bao giờ bị đứt
+  console.warn('[WebRTC] Using virtual fallback media stream for call resilience');
+  return createFallbackMediaStream(callType);
 };
 
 // Tạo kết nối WebRTC RTCPeerConnection chuẩn

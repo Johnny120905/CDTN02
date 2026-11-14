@@ -397,7 +397,20 @@ def toggle_job_status(job_id):
                     title="Tin tuyển dụng đã đủ người",
                     message=f"Vị trí '{job.get('title')}' đã nhận đủ ứng viên. Hồ sơ chờ duyệt của bạn được đóng tự động.",
                     notif_type="application_status",
+                    role="student",
                     related_id=p_app.get("_id"),
+                )
+        accepted_apps = list(app_col.find({"job_id": job_id, "application_status": {"$in": ["accepted", "Đã duyệt"]}}))
+        for a_app in accepted_apps:
+            stu_uid = resolve_student_user_id(a_app.get("student_user_id") or a_app.get("student_id"))
+            if stu_uid:
+                create_and_emit_notification(
+                    user_id=stu_uid,
+                    title="Ca làm việc đã chốt nhận người",
+                    message=f"Doanh nghiệp {job.get('company_name', '')} đã chốt danh sách ca làm việc '{job.get('title')}'. Lịch làm của bạn đã sẵn sàng!",
+                    notif_type="shift_status",
+                    role="student",
+                    related_id=a_app.get("_id"),
                 )
         emit_socket_event("job-updated", {"job_id": job_id, "status": "filled", "is_open": False})
         emit_socket_event("application-status-updated", {"job_id": job_id, "status": "rejected"})
@@ -415,6 +428,7 @@ def toggle_job_status(job_id):
                     title="Công việc đã hoàn thành",
                     message=f"Doanh nghiệp vừa xác nhận hoàn thành công việc '{job.get('title')}'. Bạn có thể gửi đánh giá 2 chiều ngay!",
                     notif_type="job_completed",
+                    role="student",
                     related_id=a_app.get("_id"),
                 )
         notify_admins(
@@ -559,7 +573,9 @@ def update_applicant_status(app_id):
         title="Cập nhật trạng thái ứng tuyển",
         message=f"Doanh nghiệp {app.get('company_name', 'Doanh nghiệp')} {status_text_map.get(new_status, 'đã cập nhật hồ sơ')} cho công việc '{app.get('job_title')}'.",
         notif_type="application_status",
+        role="student",
         related_id=app_id,
+        target_id=target_student_id,
     )
     emit_socket_event("application-status-updated", {
         "application_id": app_id,
@@ -675,7 +691,9 @@ def review_student():
             title="Đánh giá năng lực mới",
             message=f"Doanh nghiệp đã gửi đánh giá năng lực ({rating}/5 sao) cho công việc '{app.get('job_title', 'bán thời gian')}'.",
             notif_type="review",
+            role="student",
             related_id=application_id,
+            target_id=student_uid,
         )
     emit_socket_event("new-review", new_rev)
 
@@ -768,18 +786,41 @@ def delete_employer_job(job_id):
     return jsonify({"success": True, "message": "Đã xóa tin tuyển dụng thành công!"})
 
 # 6. Notifications (FR 2.8)
+def _get_employer_identities(user):
+    ids = {str(user["_id"])}
+    if user.get("id"):
+        ids.add(str(user["id"]))
+    try:
+        emp = db_manager.get_collection("employers").find_one({"$or": [{"user_id": user["_id"]}, {"_id": user["_id"]}]})
+        if emp:
+            if emp.get("_id"):
+                ids.add(str(emp["_id"]))
+            if emp.get("user_id"):
+                ids.add(str(emp["user_id"]))
+    except Exception:
+        pass
+    return list(ids)
+
 @employer_bp.route("/notifications", methods=["GET"])
 @role_required("employer")
 def list_employer_notifications():
     user = request.current_user
-    emp = get_employer_record(user["_id"])
+    emp_ids = _get_employer_identities(user)
     notif_col = db_manager.get_collection("notifications")
     notifs = list(notif_col.find({
-        "$or": [
-            {"user_id": user["_id"]},
-            {"user_id": emp["_id"]}
-        ],
-        "is_deleted": {"$ne": True}
+        "$and": [
+            {
+                "$or": [
+                    {"user_id": {"$in": emp_ids}},
+                    {"user_aliases": {"$in": emp_ids}},
+                    {"target_id": {"$in": emp_ids}},
+                    {"related_id": {"$in": emp_ids}},
+                    {"role": "employer"},
+                    {"user_id": "role_employer"}
+                ]
+            },
+            {"is_deleted": {"$ne": True}}
+        ]
     }).sort("created_at", -1))
     return jsonify({"success": True, "data": notifs})
 
@@ -787,10 +828,20 @@ def list_employer_notifications():
 @role_required("employer")
 def mark_employer_read(notif_id):
     user = request.current_user
-    emp = get_employer_record(user["_id"])
+    emp_ids = _get_employer_identities(user)
     notif_col = db_manager.get_collection("notifications")
     notif_col.update_one(
-        {"_id": notif_id, "$or": [{"user_id": user["_id"]}, {"user_id": emp["_id"]}]},
+        {
+            "_id": notif_id,
+            "$or": [
+                {"user_id": {"$in": emp_ids}},
+                {"user_aliases": {"$in": emp_ids}},
+                {"target_id": {"$in": emp_ids}},
+                {"related_id": {"$in": emp_ids}},
+                {"role": "employer"},
+                {"user_id": "role_employer"}
+            ]
+        },
         {"$set": {"is_read": True}}
     )
     return jsonify({"success": True, "message": "Đã đọc thông báo."})
@@ -799,13 +850,24 @@ def mark_employer_read(notif_id):
 @role_required("employer")
 def mark_all_employer_read():
     user = request.current_user
-    emp = get_employer_record(user["_id"])
+    emp_ids = _get_employer_identities(user)
     notif_col = db_manager.get_collection("notifications")
     notif_col.update_many(
         {
-            "$or": [{"user_id": user["_id"]}, {"user_id": emp["_id"]}],
-            "is_deleted": {"$ne": True},
-            "is_read": {"$ne": True}
+            "$and": [
+                {
+                    "$or": [
+                        {"user_id": {"$in": emp_ids}},
+                        {"user_aliases": {"$in": emp_ids}},
+                        {"target_id": {"$in": emp_ids}},
+                        {"related_id": {"$in": emp_ids}},
+                        {"role": "employer"},
+                        {"user_id": "role_employer"}
+                    ]
+                },
+                {"is_deleted": {"$ne": True}},
+                {"is_read": {"$ne": True}}
+            ]
         },
         {"$set": {"is_read": True}}
     )
@@ -815,10 +877,20 @@ def mark_all_employer_read():
 @role_required("employer")
 def delete_employer_notification(notif_id):
     user = request.current_user
-    emp = get_employer_record(user["_id"])
+    emp_ids = _get_employer_identities(user)
     notif_col = db_manager.get_collection("notifications")
     notif_col.update_one(
-        {"_id": notif_id, "$or": [{"user_id": user["_id"]}, {"user_id": emp["_id"]}]},
+        {
+            "_id": notif_id,
+            "$or": [
+                {"user_id": {"$in": emp_ids}},
+                {"user_aliases": {"$in": emp_ids}},
+                {"target_id": {"$in": emp_ids}},
+                {"related_id": {"$in": emp_ids}},
+                {"role": "employer"},
+                {"user_id": "role_employer"}
+            ]
+        },
         {"$set": {"is_deleted": True}}
     )
     return jsonify({"success": True, "message": "Đã xóa thông báo."})

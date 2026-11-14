@@ -318,13 +318,15 @@ def apply_job(url_job_id=None):
 
     # Đẩy thông báo cho Doanh nghiệp & SocketIO tức thì (≤ 3s)
     target_emp_id = job.get("employer_id")
-    emp_user_id = resolve_employer_user_id(target_emp_id)
+    emp_user_id = resolve_employer_user_id(target_emp_id) or target_emp_id
     create_and_emit_notification(
         user_id=emp_user_id,
         title="Hồ sơ ứng tuyển mới",
         message=f"Sinh viên {stu.get('full_name')} vừa nộp hồ sơ vào vị trí '{job.get('title')}'.",
         notif_type="application",
+        role="employer",
         related_id=new_app["_id"],
+        target_id=target_emp_id,
     )
     emit_socket_event("new-application", {
         "application_id": new_app["_id"],
@@ -355,6 +357,8 @@ def list_my_applications():
             a.setdefault("salary_max", job.get("salary_max"))
             a.setdefault("is_negotiable", job.get("is_negotiable", False))
             a["job_status"] = job.get("job_status") or job.get("status") or ("open" if job.get("is_open", True) else "closed")
+            a.setdefault("shift_date", job.get("shift_date") or job.get("work_date") or "")
+            a.setdefault("shift_week", job.get("shift_week") or "")
 
         raw_emp_id = a.get("employer_id") or (job.get("employer_id") if job else "")
         emp_doc = emp_col.find_one({"$or": [{"_id": raw_emp_id}, {"user_id": raw_emp_id}]}) if raw_emp_id else None
@@ -449,7 +453,7 @@ def cancel_application(app_id):
 
     # Gửi thông báo đến Doanh nghiệp và emit SocketIO tức thì
     target_emp_id = app.get("employer_id")
-    emp_user_id = resolve_employer_user_id(target_emp_id)
+    emp_user_id = resolve_employer_user_id(target_emp_id) or target_emp_id
     stu_name = stu.get("full_name") or user.get("name") or "Ứng viên"
     job_title = app.get("job_title") or (job.get("title") if job else "công việc")
 
@@ -458,7 +462,9 @@ def cancel_application(app_id):
         title="Ứng viên rút đơn ứng tuyển",
         message=f"Ứng viên {stu_name} đã chủ động rút đơn ứng tuyển vị trí '{job_title}'.",
         notif_type="applicant_withdrawn",
+        role="employer",
         related_id=app_id,
+        target_id=target_emp_id,
     )
     emit_socket_event("applicant-withdrawn", {
         "application_id": app_id,
@@ -484,9 +490,14 @@ def update_shift_status(app_id):
     if not app:
         return jsonify({"success": False, "message": "Không tìm thấy ca làm việc."}), 404
 
+    update_fields = {"shift_status": shift_status, "shift_updated_at": time.strftime("%Y-%m-%d %H:%M:%S")}
+    if "shift_date" in data:
+        update_fields["shift_date"] = str(data["shift_date"]).strip()
+    if "shift_week" in data:
+        update_fields["shift_week"] = str(data["shift_week"]).strip()
     app_col.update_one(
         {"_id": app_id},
-        {"$set": {"shift_status": shift_status, "shift_updated_at": time.strftime("%Y-%m-%d %H:%M:%S")}}
+        {"$set": update_fields}
     )
     msg_map = {
         "in_progress": "Đã nhận ca làm việc thành công!",
@@ -500,7 +511,7 @@ def update_shift_status(app_id):
         "cancelled": "hủy ca làm",
         "upcoming": "cập nhật ca làm sắp tới",
     }
-    emp_user_id = resolve_employer_user_id(app.get("employer_id"))
+    emp_user_id = resolve_employer_user_id(app.get("employer_id")) or app.get("employer_id")
     stu_name = stu.get("full_name") or user.get("full_name") or "Ứng viên"
     if emp_user_id:
         create_and_emit_notification(
@@ -508,7 +519,9 @@ def update_shift_status(app_id):
             title="Cập nhật trạng thái ca làm việc",
             message=f"Ứng viên {stu_name} vừa {status_label_map.get(shift_status, shift_status)} cho vị trí '{app.get('job_title', 'part-time')}'.",
             notif_type="shift_status",
+            role="employer",
             related_id=app_id,
+            target_id=app.get("employer_id"),
         )
     emit_socket_event("shift-status-updated", {
         "application_id": app_id,
@@ -566,7 +579,7 @@ def delete_my_application(app_id):
 
     # Gửi thông báo đến Doanh nghiệp và emit SocketIO tức thì
     target_emp_id = app.get("employer_id")
-    emp_user_id = resolve_employer_user_id(target_emp_id)
+    emp_user_id = resolve_employer_user_id(target_emp_id) or target_emp_id
     if emp_user_id:
         stu_name = stu.get("full_name") or user.get("name") or "Ứng viên"
         job = db_manager.get_collection("jobs").find_one({"_id": job_id})
@@ -576,7 +589,9 @@ def delete_my_application(app_id):
             title="Ứng viên rút đơn ứng tuyển",
             message=f"Ứng viên {stu_name} đã xóa/rút đơn ứng tuyển vị trí '{job_title}'.",
             notif_type="applicant_withdrawn",
+            role="employer",
             related_id=app_id,
+            target_id=target_emp_id,
         )
         emit_socket_event("applicant-withdrawn", {
             "application_id": app_id,
@@ -635,14 +650,16 @@ def submit_review():
     rev_col.insert_one(new_rev)
 
     # Thông báo cho Doanh nghiệp & Quản trị viên về đánh giá mới
-    emp_user_id = resolve_employer_user_id(app.get("employer_id"))
+    emp_user_id = resolve_employer_user_id(app.get("employer_id")) or app.get("employer_id")
     if emp_user_id:
         create_and_emit_notification(
             user_id=emp_user_id,
             title="Đánh giá mới từ Sinh viên",
             message=f"Sinh viên {new_rev['reviewer_name']} vừa đánh giá {rating}/5 sao cho công việc '{new_rev['job_title']}'.",
             notif_type="review",
+            role="employer",
             related_id=new_rev["_id"],
+            target_id=app.get("employer_id"),
         )
     emit_socket_event("new-review", new_rev)
 
@@ -789,18 +806,41 @@ def delete_cover_letter(cl_id):
     return jsonify({"success": True, "message": "Đã xóa thư giới thiệu."})
 
 # 7. Notifications (FR 1.9)
+def _get_student_identities(user):
+    ids = {str(user["_id"])}
+    if user.get("id"):
+        ids.add(str(user["id"]))
+    try:
+        stu = db_manager.get_collection("student_profiles").find_one({"$or": [{"user_id": user["_id"]}, {"_id": user["_id"]}]})
+        if stu:
+            if stu.get("_id"):
+                ids.add(str(stu["_id"]))
+            if stu.get("user_id"):
+                ids.add(str(stu["user_id"]))
+    except Exception:
+        pass
+    return list(ids)
+
 @student_bp.route("/notifications", methods=["GET"])
 @role_required("student")
 def list_student_notifications():
     user = request.current_user
-    stu = get_student_profile(user["_id"])
+    stu_ids = _get_student_identities(user)
     notif_col = db_manager.get_collection("notifications")
     notifs = list(notif_col.find({
-        "$or": [
-            {"user_id": user["_id"]},
-            {"user_id": stu["_id"]}
-        ],
-        "is_deleted": {"$ne": True}
+        "$and": [
+            {
+                "$or": [
+                    {"user_id": {"$in": stu_ids}},
+                    {"user_aliases": {"$in": stu_ids}},
+                    {"target_id": {"$in": stu_ids}},
+                    {"related_id": {"$in": stu_ids}},
+                    {"role": "student"},
+                    {"user_id": "role_student"}
+                ]
+            },
+            {"is_deleted": {"$ne": True}}
+        ]
     }).sort("created_at", -1))
     return jsonify({"success": True, "data": notifs})
 
@@ -808,10 +848,20 @@ def list_student_notifications():
 @role_required("student")
 def mark_read(notif_id):
     user = request.current_user
-    stu = get_student_profile(user["_id"])
+    stu_ids = _get_student_identities(user)
     notif_col = db_manager.get_collection("notifications")
     notif_col.update_one(
-        {"_id": notif_id, "$or": [{"user_id": user["_id"]}, {"user_id": stu["_id"]}]},
+        {
+            "_id": notif_id,
+            "$or": [
+                {"user_id": {"$in": stu_ids}},
+                {"user_aliases": {"$in": stu_ids}},
+                {"target_id": {"$in": stu_ids}},
+                {"related_id": {"$in": stu_ids}},
+                {"role": "student"},
+                {"user_id": "role_student"}
+            ]
+        },
         {"$set": {"is_read": True}}
     )
     return jsonify({"success": True, "message": "Đã đọc thông báo."})
@@ -820,13 +870,24 @@ def mark_read(notif_id):
 @role_required("student")
 def mark_all_student_read():
     user = request.current_user
-    stu = get_student_profile(user["_id"])
+    stu_ids = _get_student_identities(user)
     notif_col = db_manager.get_collection("notifications")
     notif_col.update_many(
         {
-            "$or": [{"user_id": user["_id"]}, {"user_id": stu["_id"]}],
-            "is_deleted": {"$ne": True},
-            "is_read": {"$ne": True}
+            "$and": [
+                {
+                    "$or": [
+                        {"user_id": {"$in": stu_ids}},
+                        {"user_aliases": {"$in": stu_ids}},
+                        {"target_id": {"$in": stu_ids}},
+                        {"related_id": {"$in": stu_ids}},
+                        {"role": "student"},
+                        {"user_id": "role_student"}
+                    ]
+                },
+                {"is_deleted": {"$ne": True}},
+                {"is_read": {"$ne": True}}
+            ]
         },
         {"$set": {"is_read": True}}
     )
@@ -836,10 +897,20 @@ def mark_all_student_read():
 @role_required("student")
 def delete_notification(notif_id):
     user = request.current_user
-    stu = get_student_profile(user["_id"])
+    stu_ids = _get_student_identities(user)
     notif_col = db_manager.get_collection("notifications")
     notif_col.update_one(
-        {"_id": notif_id, "$or": [{"user_id": user["_id"]}, {"user_id": stu["_id"]}]},
+        {
+            "_id": notif_id,
+            "$or": [
+                {"user_id": {"$in": stu_ids}},
+                {"user_aliases": {"$in": stu_ids}},
+                {"target_id": {"$in": stu_ids}},
+                {"related_id": {"$in": stu_ids}},
+                {"role": "student"},
+                {"user_id": "role_student"}
+            ]
+        },
         {"$set": {"is_deleted": True}}
     )
     return jsonify({"success": True, "message": "Đã xóa thông báo."})

@@ -112,8 +112,25 @@ export default function Header({
     // Kích hoạt nhận thông báo tức thời qua WebRTC Socket.IO (3 role thông nhau)
     const socket = getSocket();
     const registerIdentity = () => {
-      if (currentUserId || role) {
-        socket.emit('register-user', { user_id: currentUserId, role });
+      const allIds = [
+        currentUserId,
+        currentUser?._id,
+        currentUser?.id,
+        currentUser?.employer_id,
+        currentUser?.student_id,
+        currentUser?.employer_record?._id,
+        currentUser?.student_profile?._id,
+        currentUser?.profile?._id,
+        currentUser?.profile?.user_id,
+        currentUser?.profile?.student_id,
+        currentUser?.profile?.employer_id,
+      ].filter(Boolean);
+      if (allIds.length > 0 || role) {
+        socket.emit('register-user', { 
+          user_id: currentUserId, 
+          role,
+          aliases: allIds
+        });
       }
     };
     registerIdentity();
@@ -123,10 +140,43 @@ export default function Header({
     };
 
     const handleNewNotification = (notif) => {
-      const targetMatch = !notif || (currentUserId && notif.user_id === currentUserId) || (isAdmin && notif.role === 'admin');
-      if (!targetMatch) return;
+      if (!notif) {
+        fetchNotifications();
+        return;
+      }
+      const myIdList = [
+        currentUserId,
+        currentUser?._id,
+        currentUser?.id,
+        currentUser?.employer_id,
+        currentUser?.student_id,
+        currentUser?.employer_record?._id,
+        currentUser?.student_profile?._id,
+        currentUser?.profile?._id,
+        currentUser?.profile?.user_id,
+        currentUser?.profile?.student_id,
+        currentUser?.profile?.employer_id,
+      ].filter(Boolean).map(String);
+
+      const notifTargetIds = [
+        notif.user_id,
+        notif.target_id,
+        notif.related_id,
+        ...(Array.isArray(notif.user_aliases) ? notif.user_aliases : [])
+      ].filter(Boolean).map(String);
+
+      const hasIdMatch = myIdList.some(id => notifTargetIds.includes(id));
+      const hasRoleMatch = 
+        (isAdmin && (notif.role === 'admin' || notif.user_id === 'role_admin')) ||
+        (isEmployer && (notif.role === 'employer' || notif.user_id === 'role_employer')) ||
+        (isStudent && (notif.role === 'student' || notif.user_id === 'role_student')) ||
+        notif.user_id === 'all' || notif.user_id === 'broadcast';
+
+      const isTarget = hasIdMatch || hasRoleMatch;
+      if (!isTarget) return;
+
       fetchNotifications();
-      if (notif && notif._id && !seenNotifIdsRef.current.has(notif._id)) {
+      if (notif._id && !seenNotifIdsRef.current.has(notif._id)) {
         seenNotifIdsRef.current.add(notif._id);
         if (onShowBanner && notif.title) {
           onShowBanner(`${notif.title}: ${notif.message || ''}`, 'info');

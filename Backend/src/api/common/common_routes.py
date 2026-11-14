@@ -326,6 +326,9 @@ def get_messages():
     messages = list(msg_col.find({"room_id": {"$in": room_variants}}))
 
     # Sắp xếp chuẩn hóa để tin nhắn và bản ghi cuộc gọi luôn ở cuối danh sách theo thứ tự thời gian
+    for m in messages:
+        if m.get("file_id"):
+            m["media_url"] = f"/api/files/{m['file_id']}"
     messages.sort(key=chat_msg_sort_key)
     return jsonify({"success": True, "data": messages})
 
@@ -490,6 +493,7 @@ def initiate_call():
         ACTIVE_CALL_SESSIONS[raw_room_id] = existing_call
         return jsonify({"success": True, "call": existing_call, "message": "Đã tự động kết nối cuộc gọi hai chiều thành công!"}), 200
 
+    offer = data.get("offer")
     call_id = f"call_{uuid.uuid4().hex[:8]}"
     call_session = {
         "call_id": call_id,
@@ -502,6 +506,7 @@ def initiate_call():
         "target_role": target_role,
         "target_user_id": target_user_id,
         "call_type": call_type,
+        "offer": offer,
         "status": "ringing", # ringing | connected | declined | ended
         "timestamp": time.time(),
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
@@ -520,7 +525,8 @@ def initiate_call():
         "target_role": target_role,
         "target_user_id": target_user_id,
         "call_type": call_type,
-        "status": "ringing"
+        "status": "ringing",
+        "offer": offer
     })
 
     if target_user_id:
@@ -572,18 +578,34 @@ def get_call_status():
             
             # Ghi nhận bản ghi cuộc gọi nhỡ vào lịch sử chat
             try:
-                db_manager.get_collection("messages").insert_one({
+                now_h_m = time.strftime("%H:%M")
+                now_full = time.strftime("%Y-%m-%d %H:%M:%S")
+                target_room_id = call_session.get("room_id", room_id)
+                call_msg = {
                     "_id": f"msg_call_{uuid.uuid4().hex[:8]}",
-                    "room_id": call_session.get("room_id", room_id),
+                    "room_id": target_room_id,
+                    "raw_room_id": raw_room_id,
                     "sender_id": call_session.get("caller_id"),
+                    "caller_id": call_session.get("caller_id"),
                     "sender_name": call_session.get("caller_name"),
+                    "caller_name": call_session.get("caller_name"),
                     "sender_role": call_session.get("caller_role"),
+                    "caller_role": call_session.get("caller_role"),
                     "content": f"Cuộc gọi nhỡ ({'Video' if call_session.get('call_type') == 'video' else 'Thoại'}) - Không trả lời sau 3 phút",
                     "type": "call_record",
                     "call_status": "missed",
                     "call_type": call_session.get("call_type"),
-                    "created_at": time.strftime("%H:%M")
-                })
+                    "duration": 0,
+                    "duration_str": "0:00",
+                    "created_at": now_h_m,
+                    "date": time.strftime("%Y-%m-%d"),
+                    "created_at_full": now_full,
+                    "timestamp": now_full
+                }
+                db_manager.get_collection("messages").insert_one(call_msg)
+                emit_socket_event("new-chat-message", call_msg, room=target_room_id)
+                if raw_room_id != target_room_id:
+                    emit_socket_event("new-chat-message", call_msg, room=raw_room_id)
             except Exception as e:
                 print(f"[Call Log Error] {e}")
             
@@ -597,6 +619,7 @@ def respond_call():
     raw_room_id = data.get("room_id", "default_room")
     room_id = canonicalize_room_id(raw_room_id)
     action = data.get("action", "accept") # 'accept' | 'decline' | 'missed'
+    answer = data.get("answer")
     
     call_session = ACTIVE_CALL_SESSIONS.get(room_id) or ACTIVE_CALL_SESSIONS.get(raw_room_id)
     if not call_session:
@@ -612,13 +635,20 @@ def respond_call():
     if action == "accept":
         call_session["status"] = "connected"
         call_session["connected_at"] = time.time()
+        if answer:
+            call_session["answer"] = answer
+            emit_socket_event("answer-made", {"room_id": room_id, "answer": answer})
     elif action == "missed":
         call_session["status"] = "missed"
         call_session["ended_at"] = time.time()
         try:
-            db_manager.get_collection("messages").insert_one({
+            now_h_m = time.strftime("%H:%M")
+            now_full = time.strftime("%Y-%m-%d %H:%M:%S")
+            target_room_id = call_session.get("room_id", room_id)
+            call_msg = {
                 "_id": f"msg_call_{uuid.uuid4().hex[:8]}",
-                "room_id": call_session.get("room_id", room_id),
+                "room_id": target_room_id,
+                "raw_room_id": raw_room_id,
                 "sender_id": call_session.get("caller_id"),
                 "caller_id": call_session.get("caller_id"),
                 "caller_name": call_session.get("caller_name"),
@@ -627,17 +657,35 @@ def respond_call():
                 "content": f"Cuộc gọi nhỡ ({'Video' if call_session.get('call_type') == 'video' else 'Thoại'}) - Không trả lời sau 3 phút đổ chuông",
                 "type": "call_record",
                 "call_status": "missed",
-                "created_at": time.strftime("%H:%M")
-            })
+                "duration": 0,
+                "duration_str": "0:00",
+                "created_at": now_h_m,
+                "date": time.strftime("%Y-%m-%d"),
+                "created_at_full": now_full,
+                "timestamp": now_full
+            }
+            db_manager.get_collection("messages").insert_one(call_msg)
+            emit_socket_event("new-chat-message", call_msg, room=target_room_id)
+            if raw_room_id != target_room_id:
+                emit_socket_event("new-chat-message", call_msg, room=raw_room_id)
+            target_uid = call_session.get("target_user_id") or resolve_chat_partner_user_id(room_id, user.get("role", "student"))
+            if target_uid:
+                emit_socket_event("new-chat-message", call_msg, room=f"user_{target_uid}")
+            if call_session.get("caller_id"):
+                emit_socket_event("new-chat-message", call_msg, room=f"user_{call_session.get('caller_id')}")
         except Exception:
             pass
     else:
         call_session["status"] = "declined"
         call_session["ended_at"] = time.time()
         try:
+            now_h_m = time.strftime("%H:%M")
+            now_full = time.strftime("%Y-%m-%d %H:%M:%S")
+            target_room_id = call_session.get("room_id", room_id)
             call_msg = {
                 "_id": f"msg_call_{uuid.uuid4().hex[:8]}",
-                "room_id": call_session.get("room_id", room_id),
+                "room_id": target_room_id,
+                "raw_room_id": raw_room_id,
                 "sender_id": call_session.get("caller_id"),
                 "caller_id": call_session.get("caller_id"),
                 "caller_name": call_session.get("caller_name"),
@@ -646,14 +694,22 @@ def respond_call():
                 "content": f"Cuộc gọi ({'Video' if call_session.get('call_type') == 'video' else 'Thoại'}) - Người nhận từ chối cuộc gọi",
                 "type": "call_record",
                 "call_status": "missed",
-                "created_at": time.strftime("%H:%M")
+                "duration": 0,
+                "duration_str": "0:00",
+                "created_at": now_h_m,
+                "date": time.strftime("%Y-%m-%d"),
+                "created_at_full": now_full,
+                "timestamp": now_full
             }
             db_manager.get_collection("messages").insert_one(call_msg)
-            try:
-                from src.core.socket_service import socketio
-                socketio.emit("new-chat-message", call_msg, room=call_session.get("room_id", room_id))
-            except Exception:
-                pass
+            emit_socket_event("new-chat-message", call_msg, room=target_room_id)
+            if raw_room_id != target_room_id:
+                emit_socket_event("new-chat-message", call_msg, room=raw_room_id)
+            target_uid = call_session.get("target_user_id") or resolve_chat_partner_user_id(room_id, user.get("role", "student"))
+            if target_uid:
+                emit_socket_event("new-chat-message", call_msg, room=f"user_{target_uid}")
+            if call_session.get("caller_id"):
+                emit_socket_event("new-chat-message", call_msg, room=f"user_{call_session.get('caller_id')}")
         except Exception:
             pass
         
@@ -670,50 +726,114 @@ def end_call():
     call_session = ACTIVE_CALL_SESSIONS.get(room_id) or ACTIVE_CALL_SESSIONS.get(raw_room_id)
     if not call_session:
         for sess in list(ACTIVE_CALL_SESSIONS.values()):
-            if sess.get("caller_id") == user["_id"] or sess.get("target_user_id") == user["_id"]:
+            if sess.get("status") in ("ringing", "connected") and (sess.get("caller_id") == user["_id"] or sess.get("target_user_id") == user["_id"]):
                 call_session = sess
                 break
+
+    # Không có phiên cuộc gọi thật (hoặc phiên đã kết thúc/ghi nhận rồi) -> không tạo bản ghi cuộc gọi ảo
+    if not call_session or call_session.get("status") in ("ended", "missed", "declined"):
+        return jsonify({"success": True, "message": "Không có cuộc gọi đang diễn ra."})
 
     if call_session:
         call_session["status"] = "ended"
         call_session["ended_at"] = time.time()
-        conn_at = call_session.get("connected_at")
-        duration = int(time.time() - conn_at) if conn_at else 0
-        duration_str = f"{duration // 60}:{duration % 60:02d}"
+
+    caller_id = call_session.get("caller_id") if call_session else user["_id"]
+    caller_role = call_session.get("caller_role") if call_session else user.get("role", "student")
+    caller_name = call_session.get("caller_name") if call_session else (user.get("profile", {}).get("full_name") or user.get("full_name") or "Đối tác")
+    call_type = call_session.get("call_type", "video") if call_session else data.get("call_type", "video")
+
+    conn_at = call_session.get("connected_at") if call_session else None
+    duration = int(time.time() - conn_at) if conn_at else int(data.get("duration", 0))
+    duration_str = f"{duration // 60}:{duration % 60:02d}"
         
-        try:
-            call_msg = {
-                "_id": f"msg_call_{uuid.uuid4().hex[:8]}",
-                "room_id": call_session.get("room_id", room_id),
-                "sender_id": user["_id"],
-                "caller_id": call_session.get("caller_id"),
-                "caller_name": call_session.get("caller_name", "Đối tác"),
-                "caller_role": call_session.get("caller_role", "student"),
-                "call_type": call_session.get("call_type", "video"),
-                "content": f"Cuộc gọi kết thúc (Thời lượng đàm thoại: {duration_str})",
-                "type": "call_record",
-                "call_status": "ended",
-                "duration": duration,
-                "duration_str": duration_str,
-                "created_at": time.strftime("%H:%M")
-            }
-            db_manager.get_collection("messages").insert_one(call_msg)
-            try:
-                from src.core.socket_service import socketio
-                socketio.emit("new-chat-message", call_msg, room=call_session.get("room_id", room_id))
-            except Exception:
-                pass
-        except Exception as e:
-            print(f"[Call End Error] {e}")
-        
+    try:
+        now_h_m = time.strftime("%H:%M")
+        now_full = time.strftime("%Y-%m-%d %H:%M:%S")
+        target_room_id = call_session.get("room_id", room_id)
+        call_msg = {
+            "_id": f"msg_call_{uuid.uuid4().hex[:8]}",
+            "room_id": target_room_id,
+            "raw_room_id": raw_room_id,
+            "sender_id": user["_id"],
+            "caller_id": caller_id,
+            "caller_name": caller_name,
+            "caller_role": caller_role,
+            "call_type": call_type,
+            "content": f"Cuộc gọi kết thúc (Thời lượng đàm thoại: {duration_str})",
+            "type": "call_record",
+            "call_status": "ended",
+            "duration": duration,
+            "duration_str": duration_str,
+            "created_at": now_h_m,
+            "date": time.strftime("%Y-%m-%d"),
+            "created_at_full": now_full,
+            "timestamp": now_full
+        }
+        db_manager.get_collection("messages").insert_one(call_msg)
+        emit_socket_event("new-chat-message", call_msg, room=target_room_id)
+        if raw_room_id != target_room_id:
+            emit_socket_event("new-chat-message", call_msg, room=raw_room_id)
+        target_uid = (call_session.get("target_user_id") if call_session else None) or resolve_chat_partner_user_id(room_id, user.get("role", "student"))
+        if target_uid:
+            emit_socket_event("new-chat-message", call_msg, room=f"user_{target_uid}")
+        if caller_id:
+            emit_socket_event("new-chat-message", call_msg, room=f"user_{caller_id}")
+    except Exception as e:
+        print(f"[Call End Error] {e}")
+
+    # Dọn dẹp session đã kết thúc
+    ACTIVE_CALL_SESSIONS.pop(room_id, None)
+    ACTIVE_CALL_SESSIONS.pop(raw_room_id, None)
+    if call_session and call_session.get("call_id"):
+        for k in list(ACTIVE_CALL_SESSIONS.keys()):
+            if ACTIVE_CALL_SESSIONS[k].get("call_id") == call_session.get("call_id"):
+                ACTIVE_CALL_SESSIONS.pop(k, None)
+    
     return jsonify({"success": True, "message": "Đã kết thúc cuộc gọi."})
 
 
 # 5. Notifications
 def _notif_owner_filter(user, notif_id=None):
-    owner_filter = {"user_id": user["_id"]}
-    if user.get("role") == "admin":
-        owner_filter = {"$or": [{"user_id": user["_id"]}, {"role": "admin"}]}
+    u_id = str(user.get("_id", ""))
+    u_role = user.get("role", "")
+    
+    if u_role == "admin":
+        owner_filter = {
+            "$or": [
+                {"user_id": u_id},
+                {"user_aliases": u_id},
+                {"role": "admin"},
+                {"user_id": "role_admin"}
+            ]
+        }
+    elif u_role == "employer":
+        from src.api.employer.employer_routes import _get_employer_identities
+        emp_ids = _get_employer_identities(user)
+        owner_filter = {
+            "$or": [
+                {"user_id": {"$in": emp_ids}},
+                {"user_aliases": {"$in": emp_ids}},
+                {"target_id": {"$in": emp_ids}},
+                {"role": "employer"},
+                {"user_id": "role_employer"}
+            ]
+        }
+    elif u_role == "student":
+        from src.api.student.student_routes import _get_student_identities
+        stu_ids = _get_student_identities(user)
+        owner_filter = {
+            "$or": [
+                {"user_id": {"$in": stu_ids}},
+                {"user_aliases": {"$in": stu_ids}},
+                {"target_id": {"$in": stu_ids}},
+                {"role": "student"},
+                {"user_id": "role_student"}
+            ]
+        }
+    else:
+        owner_filter = {"$or": [{"user_id": u_id}, {"user_aliases": u_id}]}
+
     if notif_id:
         return {"$and": [{"_id": notif_id}, owner_filter]}
     return owner_filter

@@ -1,4 +1,5 @@
 import logging
+import time
 from flask import request
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from ..core.database import db_manager
@@ -91,9 +92,15 @@ def get_room_id_variants(room_id):
 
 def chat_msg_sort_key(msg):
     """Chuẩn hóa khóa sắp xếp thời gian tin nhắn (hỗ trợ cả 'HH:MM' và 'YYYY-MM-DD HH:MM:SS')."""
-    ts = str((msg or {}).get("created_at", ""))
-    if len(ts) <= 5:
-        return f"2026-11-01 {ts}:00"
+    if not msg:
+        return ""
+    full_ts = str(msg.get("created_at_full") or msg.get("timestamp") or "")
+    if len(full_ts) >= 19:
+        return full_ts
+    ts = str(msg.get("created_at", ""))
+    if len(ts) <= 5 and ":" in ts:
+        date_str = str(msg.get("date") or time.strftime("%Y-%m-%d"))
+        return f"{date_str} {ts}:00"
     return ts
 
 
@@ -131,8 +138,32 @@ def register_socket_events():
             return
         user_id = data.get("user_id")
         role = data.get("role")
+        aliases = data.get("aliases") or []
+        if isinstance(aliases, list):
+            for aid in aliases:
+                if aid:
+                    join_room(f"user_{aid}")
         if user_id:
-            join_room(f"user_{user_id}")
+            uid_str = str(user_id)
+            join_room(f"user_{uid_str}")
+            try:
+                if uid_str.startswith("user_"):
+                    emp = db_manager.get_collection("employers").find_one({"user_id": uid_str})
+                    if emp and emp.get("_id"):
+                        join_room(f"user_{emp['_id']}")
+                    stu = db_manager.get_collection("student_profiles").find_one({"user_id": uid_str})
+                    if stu and stu.get("_id"):
+                        join_room(f"user_{stu['_id']}")
+                elif uid_str.startswith("emp_"):
+                    emp = db_manager.get_collection("employers").find_one({"_id": uid_str})
+                    if emp and emp.get("user_id"):
+                        join_room(f"user_{emp['user_id']}")
+                elif uid_str.startswith("stu_"):
+                    stu = db_manager.get_collection("student_profiles").find_one({"_id": uid_str})
+                    if stu and stu.get("user_id"):
+                        join_room(f"user_{stu['user_id']}")
+            except Exception:
+                pass
         if role:
             join_room(f"role_{role}")
 

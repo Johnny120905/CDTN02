@@ -404,11 +404,9 @@ export default function EmployerPortal({
       fetchCompanyProfile();
     } else if (menuId === 'reviews') {
       fetchReviews();
-    } else if (menuId === 'chat') {
-      fetchChatMessages();
     }
     if (onSectionChange) onSectionChange(sectionTitleMap[menuId] || 'Bảng điều khiển tuyển dụng');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo(0, 0);
   };
 
   // Sync requestedMenu from Header / Logo
@@ -557,7 +555,15 @@ export default function EmployerPortal({
           }
         });
 
-        setContacts(uniqueStudents);
+        setContacts(prev => {
+          if (
+            prev.length === uniqueStudents.length &&
+            prev.every((c, i) => c.id === uniqueStudents[i].id && c.lastMsg === uniqueStudents[i].lastMsg && c.unreplied === uniqueStudents[i].unreplied)
+          ) {
+            return prev;
+          }
+          return uniqueStudents;
+        });
         if (uniqueStudents.length > 0) {
           setSelectedContact(prev => {
             if (!prev) return uniqueStudents[0];
@@ -1273,7 +1279,15 @@ export default function EmployerPortal({
       });
       const data = await res.json();
       if (data.success && data.data) {
-        setChatMessages(prev => prev.map(m => m._id === optimisticMsg._id ? data.data : m));
+        setChatMessages(prev => {
+          const replaced = prev.map(m => m._id === optimisticMsg._id ? data.data : m);
+          const seen = new Set();
+          return replaced.filter(m => {
+            if (seen.has(m._id)) return false;
+            seen.add(m._id);
+            return true;
+          });
+        });
       } else if (!data.success) {
         notify(data.message || 'Không thể gửi tin nhắn.', 'error');
       }
@@ -1300,7 +1314,10 @@ export default function EmployerPortal({
 
     const onIncomingCall = (data) => {
       if (data.caller_role === 'student' && !callActiveRef.current) {
-        setIncomingCall(data);
+        setIncomingCall(prev => {
+          const mergedOffer = data.offer || prev?.offer;
+          return { ...data, offer: mergedOffer };
+        });
         setCallType(data.call_type || 'video');
       }
     };
@@ -1339,17 +1356,21 @@ export default function EmployerPortal({
     const onCallEnded = () => {
       // Người gọi huỷ khi đang đổ chuông -> tắt popup cuộc gọi đến
       setIncomingCall(null);
-      if (!callActiveRef.current) return; // Không có cuộc gọi đang diễn ra -> bỏ qua (tránh lặp vô hạn)
-      handleEndCall(false);
+      if (callActiveRef.current) {
+        handleEndCall(false);
+      }
       if (onShowBanner) onShowBanner(null);
       notify('Ứng viên đã kết thúc cuộc gọi.', 'success');
+      fetchChatMessages();
     };
 
     const onCallRejected = () => {
-      if (!callActiveRef.current) return;
-      handleEndCall(false);
+      if (callActiveRef.current) {
+        handleEndCall(false);
+      }
       if (onShowBanner) onShowBanner(null);
       notify('Ứng viên đã từ chối cuộc gọi.', 'error');
+      fetchChatMessages();
     };
 
     const onNewChatMessage = (msg) => {
@@ -1372,6 +1393,7 @@ export default function EmployerPortal({
     const onRealtimeSync = () => {
       fetchApplicants();
       fetchMyJobs();
+      fetchCompanyProfile();
     };
     socket.on('incoming-call', onIncomingCall);
     socket.on('answer-made', onAnswerMade);
@@ -1416,16 +1438,28 @@ export default function EmployerPortal({
 
   // Kiểm tra cuộc gọi đến dự phòng (3s - chỉ kiểm tra khi rảnh, đọc nhanh từ RAM máy chủ để chắc chắn 100% hiện popup bắt máy)
   useEffect(() => {
-    if (!token || isVideoCalling || incomingCall) return;
+    if (!token) return;
     const checkCallStatus = async () => {
       try {
         const res = await fetch(`/api/chat/call/status?room_id=${getRoomId()}`, { headers });
         const data = await res.json();
         if (data.success && data.call && data.call.status === 'ringing') {
           if (data.call.caller_role === 'student' && !callActiveRef.current) {
-            setIncomingCall(data.call);
+            setIncomingCall(prev => {
+              const mergedOffer = data.call.offer || prev?.offer;
+              return { ...data.call, offer: mergedOffer };
+            });
             setCallType(data.call.call_type || 'video');
           }
+        } else if (callActiveRef.current && peerConnectionRef.current && data?.call?.answer && !peerConnectionRef.current.remoteDescription) {
+          try {
+            await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.call.answer));
+            while (pendingIceCandidatesRef.current.length > 0) {
+              const cand = pendingIceCandidatesRef.current.shift();
+              await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(cand));
+            }
+            setCallStatus('connected');
+          } catch (e) {}
         }
       } catch (e) {}
     };
@@ -1517,7 +1551,7 @@ export default function EmployerPortal({
       await fetch('/api/chat/call/initiate', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ room_id: currentRoomId, call_type: type })
+        body: JSON.stringify({ room_id: currentRoomId, call_type: type, offer: offer })
       });
       notify(`Đang đổ chuông cuộc gọi ${type === 'video' ? 'Video' : 'Thoại'} tới ứng viên ${selectedContact?.name || ''}...`, 'loading');
     } catch (e) {
@@ -1553,6 +1587,7 @@ export default function EmployerPortal({
     setActiveMenu('chat');
 
     setCallType(type);
+    const callToAnswer = { ...incomingCall };
     setIncomingCall(null);
     setIsMuted(false);
     setIsCameraOff(false);
@@ -1587,28 +1622,58 @@ export default function EmployerPortal({
 
       stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
-      if (incomingCall.offer) {
-        await pc.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
+      // Lấy offer: từ callToAnswer hoặc truy vấn từ server nếu socket bị trễ
+      let offer = callToAnswer.offer;
+      if (!offer) {
+        try {
+          const res = await fetch(`/api/chat/call/status?room_id=${encodeURIComponent(currentRoomId)}`, { headers });
+          const statusData = await res.json();
+          if (statusData?.call?.offer) {
+            offer = statusData.call.offer;
+          }
+        } catch (err) {}
+      }
+
+      if (offer) {
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
         while (pendingIceCandidatesRef.current.length > 0) {
           const cand = pendingIceCandidatesRef.current.shift();
           await pc.addIceCandidate(new RTCIceCandidate(cand));
         }
+
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        socket.emit('make-answer', {
+          room_id: currentRoomId,
+          answer: answer
+        });
+
+        // REST persistence kèm answer để dự phòng
+        await fetch('/api/chat/call/respond', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ room_id: currentRoomId, action: 'accept', answer: answer })
+        });
+      } else {
+        // Dự phòng: nếu không tìm thấy offer thì tự tạo offer để kết nối thông suốt 2 chiều
+        const newOffer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: type === 'video' });
+        await pc.setLocalDescription(newOffer);
+        socket.emit('call-user', {
+          room_id: currentRoomId,
+          caller_name: companyInfo?.company_name || 'Doanh nghiệp',
+          caller_role: 'employer',
+          target_user_id: selectedContact?.student_user_id || selectedContact?.id,
+          call_type: type,
+          offer: newOffer
+        });
+        await fetch('/api/chat/call/respond', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ room_id: currentRoomId, action: 'accept' })
+        });
       }
 
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-
-      socket.emit('make-answer', {
-        room_id: currentRoomId,
-        answer: answer
-      });
-
-      // REST persistence
-      await fetch('/api/chat/call/respond', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ room_id: currentRoomId, action: 'accept' })
-      });
       notify('Đã kết nối cuộc gọi phỏng vấn WebRTC thành công!', 'success');
     } catch (e) {
       console.warn('[WebRTC Answer Error]', e);
@@ -1632,6 +1697,7 @@ export default function EmployerPortal({
     setIncomingCall(null);
     if (onShowBanner) onShowBanner(null);
     notify('Đã từ chối cuộc gọi.', 'error');
+    fetchChatMessages();
   };
 
   const handleEndCall = async (notifyBackend = true, silent = false) => {
@@ -1644,6 +1710,8 @@ export default function EmployerPortal({
       socket.emit('end-call', { room_id: currentRoomId });
     }
     const wasActive = callActiveRef.current;
+    const finalDuration = callDuration;
+    const finalType = callType;
     callActiveRef.current = false;
     callRoomIdRef.current = null;
 
@@ -1664,12 +1732,12 @@ export default function EmployerPortal({
     setIsMuted(false);
     setIsCameraOff(false);
 
-    if (notifyBackend && wasActive) {
+    if (notifyBackend) {
       try {
         await fetch('/api/chat/call/end', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ room_id: currentRoomId })
+          body: JSON.stringify({ room_id: currentRoomId, duration: finalDuration, call_type: finalType })
         });
       } catch (e) {}
     }
@@ -1679,8 +1747,8 @@ export default function EmployerPortal({
     if (wasActive && !silent) {
       if (onShowBanner) onShowBanner(null);
       notify('Cuộc gọi phỏng vấn đã kết thúc.', 'success');
-      fetchChatMessages();
     }
+    fetchChatMessages();
   };
 
   // (Đã bỏ effect xin lại getUserMedia mỗi lần bật/tắt mic-cam: nó tạo stream mới không được gửi đi
@@ -2075,9 +2143,7 @@ export default function EmployerPortal({
       )}
 
       {/* ======================= MAIN CONTENT AREA ======================= */}
-      <main className={`flex-1 min-w-0 overflow-y-auto transition-all duration-300 ${
-        activeMenu === 'chat' ? 'p-2.5 sm:p-4 lg:p-5' : 'p-4 sm:p-6 lg:p-8'
-      }`}>
+      <main className="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 lg:p-8">
 
         {/* 1. MÀN HÌNH TRANG CHỦ DOANH NGHIỆP */}
         {activeMenu === 'home' && (
@@ -4619,7 +4685,7 @@ export default function EmployerPortal({
 
         {/* 6. MÀN HÌNH CHAT & GỌI VIDEO PHỎNG VẤN (UI-NTD-CHAT-02, 03, UI-NTD-CALL-01 - 2.7 & 2.9) */}
         {activeMenu === 'chat' && (
-          <div className="w-full max-w-full h-[calc(100vh-112px)] min-h-[580px] sm:h-[calc(100vh-116px)] lg:h-[calc(100vh-120px)] lg:min-h-[650px] flex flex-col lg:flex-row rounded-3xl bg-white border border-slate-200/80 shadow-md overflow-hidden text-slate-900">
+          <div className="w-full max-w-full h-[calc(100vh-112px)] sm:h-[calc(100vh-128px)] lg:h-[calc(100vh-144px)] min-h-[540px] flex flex-col lg:flex-row rounded-3xl bg-white border border-slate-200/80 shadow-md overflow-hidden text-slate-900">
             {/* Cột trái: Danh sách hội thoại ứng viên + Tìm kiếm + Lọc tin tuyển dụng & Chưa phản hồi */}
             {!isGuestMode && (
               <aside className={`${selectedContact ? 'hidden lg:flex' : 'flex flex-1 lg:flex-none'} w-full lg:w-[320px] xl:w-[360px] shrink-0 border-b lg:border-b-0 lg:border-r border-slate-200 bg-slate-50/70 flex-col min-h-0 overflow-hidden`}>
@@ -4968,7 +5034,7 @@ export default function EmployerPortal({
                                       <p className="text-xs font-bold text-slate-900">
                                         {isOutgoing ? `Bạn đã gọi ${callTypeLabel} (Không trả lời)` : `Đã nhỡ cuộc gọi ${callTypeLabel}`}
                                       </p>
-                                      <p className="text-xs text-slate-500 font-mono mt-0.5">{m.created_at}</p>
+                                      <p className="text-xs text-slate-500 font-mono mt-0.5">{m.created_at && m.created_at.includes(' ') ? m.created_at.split(' ')[1].slice(0, 5) : m.created_at}</p>
                                     </div>
                                   </div>
                                   {!isOutgoing && (
@@ -4997,7 +5063,7 @@ export default function EmployerPortal({
                                 <span>
                                   {isOutgoing ? `Cuộc gọi đi (${callTypeLabel})` : `Cuộc gọi đến (${callTypeLabel})`} • {m.duration_str || '0:00'}
                                 </span>
-                                <span className="text-xs text-slate-400 font-mono ml-1">({m.created_at})</span>
+                                <span className="text-xs text-slate-400 font-mono ml-1">({m.created_at && m.created_at.includes(' ') ? m.created_at.split(' ')[1].slice(0, 5) : m.created_at})</span>
                               </div>
                             </div>
                           );
@@ -5065,7 +5131,12 @@ export default function EmployerPortal({
                                   onClick={() => setChatPreviewDoc({ fileUrl: m.media_url, fileName: m.file_name || 'Hinh_Anh.jpg', title: 'Tệp Hình Ảnh Đính Kèm' })}
                                   className="mt-2 rounded-xl overflow-hidden border border-slate-200 max-w-xs sm:max-w-sm cursor-pointer hover:opacity-95 transition-opacity shadow-sm"
                                 >
-                                  <img src={m.media_url} alt={m.file_name || 'Ảnh đính kèm'} className="w-full max-h-[220px] object-cover bg-slate-100" />
+                                  <img 
+                                    src={m.media_url} 
+                                    alt={m.file_name || 'Ảnh đính kèm'} 
+                                    onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }}
+                                    className="w-full max-h-[220px] object-cover bg-slate-100" 
+                                  />
                                   <div className="p-1.5 bg-black/60 text-xs text-white flex items-center justify-between">
                                     <span className="truncate max-w-[220px]">{m.file_name || 'Ảnh đính kèm'}</span>
                                     <Eye className="w-3.5 h-3.5 text-blue-300" />

@@ -287,9 +287,8 @@ export default function StudentPortal({
     else if (menuId === 'profile_cv') fetchResumes();
     else if (menuId === 'student_profile') fetchProfile();
     else if (menuId === 'reviews') fetchReviews();
-    else if (menuId === 'chat') fetchChatMessages();
     if (onSectionChange) onSectionChange(sectionTitleMap[menuId] || 'Trang chủ');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo(0, 0);
   };
 
   // Sync header search
@@ -382,7 +381,10 @@ export default function StudentPortal({
 
     const onIncomingCall = (data) => {
       if (data.caller_role === 'employer' && !callActiveRef.current) {
-        setIncomingCall(data);
+        setIncomingCall(prev => {
+          const mergedOffer = data.offer || prev?.offer;
+          return { ...data, offer: mergedOffer };
+        });
         setCallType(data.call_type || 'video');
       }
     };
@@ -420,15 +422,19 @@ export default function StudentPortal({
     const onCallEnded = () => {
       // Người gọi huỷ khi đang đổ chuông -> tắt popup cuộc gọi đến
       setIncomingCall(null);
-      if (!callActiveRef.current) return; // Không có cuộc gọi đang diễn ra -> bỏ qua (tránh lặp vô hạn)
-      handleEndCall(false);
+      if (callActiveRef.current) {
+        handleEndCall(false);
+      }
       if (onShowBanner) onShowBanner('Doanh nghiệp đã kết thúc cuộc gọi.', 'success');
+      fetchChatMessages();
     };
 
     const onCallRejected = () => {
-      if (!callActiveRef.current) return;
-      handleEndCall(false);
+      if (callActiveRef.current) {
+        handleEndCall(false);
+      }
       if (onShowBanner) onShowBanner('Doanh nghiệp đã từ chối cuộc gọi.', 'error');
+      fetchChatMessages();
     };
 
     const onNewChatMessage = (msg) => {
@@ -499,16 +505,28 @@ export default function StudentPortal({
 
   // Kiểm tra cuộc gọi đến dự phòng (3s - chỉ kiểm tra khi rảnh, đọc nhanh từ RAM máy chủ để chắc chắn 100% hiện popup bắt máy)
   useEffect(() => {
-    if (!token || isVideoCalling || incomingCall) return;
+    if (!token) return;
     const checkCallStatus = async () => {
       try {
         const res = await fetch(`/api/chat/call/status?room_id=${getRoomId()}`, { headers });
         const data = await res.json();
         if (data.success && data.call && data.call.status === 'ringing') {
           if (data.call.caller_role === 'employer' && !callActiveRef.current) {
-            setIncomingCall(data.call);
+            setIncomingCall(prev => {
+              const mergedOffer = data.call.offer || prev?.offer;
+              return { ...data.call, offer: mergedOffer };
+            });
             setCallType(data.call.call_type || 'video');
           }
+        } else if (callActiveRef.current && peerConnectionRef.current && data?.call?.answer && !peerConnectionRef.current.remoteDescription) {
+          try {
+            await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.call.answer));
+            while (pendingIceCandidatesRef.current.length > 0) {
+              const cand = pendingIceCandidatesRef.current.shift();
+              await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(cand));
+            }
+            setCallStatus('connected');
+          } catch (e) {}
         }
       } catch (e) {}
     };
@@ -643,7 +661,7 @@ export default function StudentPortal({
       await fetch('/api/chat/call/initiate', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ room_id: currentRoomId, call_type: type })
+        body: JSON.stringify({ room_id: currentRoomId, call_type: type, offer: offer })
       });
       if (onShowBanner) onShowBanner(`Đang đổ chuông cuộc gọi ${type === 'video' ? 'Video' : 'Thoại'} tới Doanh nghiệp...`, 'loading');
     } catch (e) {
@@ -679,6 +697,7 @@ export default function StudentPortal({
     setActiveMenu('chat');
 
     setCallType(type);
+    const callToAnswer = { ...incomingCall };
     setIncomingCall(null);
     setIsMuted(false);
     setIsCameraOff(false);
@@ -713,28 +732,58 @@ export default function StudentPortal({
 
       stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
-      if (incomingCall.offer) {
-        await pc.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
+      // Lấy offer: từ callToAnswer hoặc truy vấn từ server nếu socket bị trễ
+      let offer = callToAnswer.offer;
+      if (!offer) {
+        try {
+          const res = await fetch(`/api/chat/call/status?room_id=${encodeURIComponent(currentRoomId)}`, { headers });
+          const statusData = await res.json();
+          if (statusData?.call?.offer) {
+            offer = statusData.call.offer;
+          }
+        } catch (err) {}
+      }
+
+      if (offer) {
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
         while (pendingIceCandidatesRef.current.length > 0) {
           const cand = pendingIceCandidatesRef.current.shift();
           await pc.addIceCandidate(new RTCIceCandidate(cand));
         }
+
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        socket.emit('make-answer', {
+          room_id: currentRoomId,
+          answer: answer
+        });
+
+        // REST persistence kèm answer để dự phòng
+        await fetch('/api/chat/call/respond', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ room_id: currentRoomId, action: 'accept', answer: answer })
+        });
+      } else {
+        // Dự phòng: nếu không tìm thấy offer thì tự tạo offer để kết nối thông suốt 2 chiều
+        const newOffer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: type === 'video' });
+        await pc.setLocalDescription(newOffer);
+        socket.emit('call-user', {
+          room_id: currentRoomId,
+          caller_name: currentUser?.profile?.full_name || currentUser?.full_name || 'Sinh viên',
+          caller_role: 'student',
+          target_user_id: selectedContact?.employer_user_id || selectedContact?.employer_id || selectedContact?.id,
+          call_type: type,
+          offer: newOffer
+        });
+        await fetch('/api/chat/call/respond', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ room_id: currentRoomId, action: 'accept' })
+        });
       }
 
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
-
-      socket.emit('make-answer', {
-        room_id: currentRoomId,
-        answer: answer
-      });
-
-      // REST persistence
-      await fetch('/api/chat/call/respond', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ room_id: currentRoomId, action: 'accept' })
-      });
       if (onShowBanner) onShowBanner('Đã kết nối cuộc gọi phỏng vấn thành công!', 'success');
     } catch (e) {
       console.warn('[WebRTC Answer Error]', e);
@@ -757,6 +806,7 @@ export default function StudentPortal({
     } catch (e) { }
     setIncomingCall(null);
     if (onShowBanner) onShowBanner('Đã từ chối cuộc gọi.', 'error');
+    fetchChatMessages();
   };
 
   const handleEndCall = async (notifyBackend = true, silent = false) => {
@@ -769,6 +819,8 @@ export default function StudentPortal({
       socket.emit('end-call', { room_id: currentRoomId });
     }
     const wasActive = callActiveRef.current;
+    const finalDuration = callDuration;
+    const finalType = callType;
     callActiveRef.current = false;
     callRoomIdRef.current = null;
 
@@ -789,12 +841,12 @@ export default function StudentPortal({
     setIsMuted(false);
     setIsCameraOff(false);
 
-    if (notifyBackend && wasActive) {
+    if (notifyBackend) {
       try {
         await fetch('/api/chat/call/end', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ room_id: currentRoomId })
+          body: JSON.stringify({ room_id: currentRoomId, duration: finalDuration, call_type: finalType })
         });
       } catch (e) { }
     }
@@ -806,8 +858,8 @@ export default function StudentPortal({
         onShowBanner(null);
         setTimeout(() => onShowBanner('Cuộc gọi đã kết thúc.', 'success', 2500), 50);
       }
-      fetchChatMessages();
     }
+    fetchChatMessages();
   };
 
   // API Calls
@@ -917,12 +969,20 @@ export default function StudentPortal({
         });
 
         const appJobIds = data.data.map(a => a.job_id).filter(Boolean);
-        if (appJobIds.length > 0) {
+        if (appJobIds.length > 0 && ['home', 'jobs', 'saved_jobs'].includes(activeMenu)) {
           fetchJobs(appJobIds);
         }
 
         if (contactList.length > 0) {
-          setContacts(contactList);
+          setContacts(prev => {
+            if (
+              prev.length === contactList.length &&
+              prev.every((c, i) => c.id === contactList[i].id && c.lastMsg === contactList[i].lastMsg && c.unreplied === contactList[i].unreplied)
+            ) {
+              return prev;
+            }
+            return contactList;
+          });
           setSelectedContact(prev => {
             if (!prev) return contactList[0];
             const matched = contactList.find(c => c.id === prev.id);
@@ -1349,7 +1409,7 @@ export default function StudentPortal({
             headers,
             body: JSON.stringify({
               file_name: newCvName.endsWith('.pdf') ? newCvName : `${newCvName}.pdf`,
-              file_url: `/uploads/${newCvName}.pdf`,
+              file_url: '',
               is_default: myResumes.length === 0
             })
           }).then(res => res.json()).then(d => {
@@ -1697,7 +1757,15 @@ export default function StudentPortal({
       });
       const data = await res.json();
       if (data.success && data.data) {
-        setChatMessages(prev => prev.map(m => m._id === optimisticMsg._id ? data.data : m));
+        setChatMessages(prev => {
+          const replaced = prev.map(m => m._id === optimisticMsg._id ? data.data : m);
+          const seen = new Set();
+          return replaced.filter(m => {
+            if (seen.has(m._id)) return false;
+            seen.add(m._id);
+            return true;
+          });
+        });
       }
     } catch (err) {
       console.warn('Send message error:', err);
@@ -1863,8 +1931,206 @@ export default function StudentPortal({
   // Đơn ứng tuyển đã đạt trạng thái Đã duyệt cho Lịch ca làm đã nhận (my_shifts)
   const acceptedApplications = isGuestMode ? [] : myApplications.filter(a => a.application_status === 'accepted' || a.status === 'accepted');
 
-  // Bộ lọc kết hợp Khung ca / Chi nhánh / Trạng thái ca đồng bộ cho CẢ Thời khóa biểu lẫn Danh sách ca
+  // Trích xuất ngày ca làm thực tế từ hồ sơ ứng tuyển
+  const parseShiftDate = (app) => {
+    if (!app) return null;
+    const rawDate = app.shift_date || app.work_date || app.start_date || app.date;
+    if (rawDate) {
+      if (typeof rawDate === 'string' && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(rawDate.trim())) {
+        const [d, m, y] = rawDate.trim().split('/').map(Number);
+        const parsed = new Date(y, m - 1, d);
+        if (!isNaN(parsed.getTime())) return parsed;
+      }
+      const parsed = new Date(rawDate);
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+
+    const text = `${app.work_time || ''} ${app.shift_registered || ''} ${app.shift_schedule || ''} ${app.cover_note || ''}`;
+    const dmy = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (dmy) {
+      const parsed = new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1]));
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    const ymd = text.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    if (ymd) {
+      const parsed = new Date(Number(ymd[1]), Number(ymd[2]) - 1, Number(ymd[3]));
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+
+    if (Array.isArray(app.status_history)) {
+      const acceptedItem = [...app.status_history].reverse().find(h => h && h.status === 'accepted' && h.updated_at);
+      if (acceptedItem?.updated_at) {
+        const parsed = new Date(acceptedItem.updated_at);
+        if (!isNaN(parsed.getTime())) return parsed;
+      }
+    }
+
+    if (app.applied_at) {
+      const parsed = new Date(app.applied_at);
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+
+    return null;
+  };
+
+  // Trích xuất các thứ trong tuần mà ca làm yêu cầu (0: Thứ 2 ... 6: Chủ Nhật)
+  const getShiftWeekdays = (app) => {
+    if (!app) return [];
+    const text = `${app.work_time || ''} ${app.shift_registered || ''} ${app.shift_schedule || ''}`.toLowerCase();
+    const days = new Set();
+
+    if (text.includes('thứ 2 đến thứ 6') || text.includes('thứ 2 - thứ 6') || text.includes('t2 - t6') || text.includes('t2-t6')) {
+      [0, 1, 2, 3, 4].forEach(d => days.add(d));
+    }
+    if (text.includes('thứ 2 đến thứ 7') || text.includes('thứ 2 - thứ 7') || text.includes('t2 - t7') || text.includes('t2-t7')) {
+      [0, 1, 2, 3, 4, 5].forEach(d => days.add(d));
+    }
+    if (text.includes('cả tuần') || text.includes('hàng ngày') || text.includes('tất cả các ngày') || text.includes('tất cả các thứ')) {
+      [0, 1, 2, 3, 4, 5, 6].forEach(d => days.add(d));
+    }
+    if (text.includes('cuối tuần') || text.includes('t7-cn') || text.includes('t7 - cn') || text.includes('thứ 7 & chủ nhật') || text.includes('thứ 7 và chủ nhật') || text.includes('thứ 7, chủ nhật')) {
+      days.add(5);
+      days.add(6);
+    }
+
+    if (text.match(/thứ\s*2\b|t2\b/) || text.match(/thứ\s*2\s*[,&–\-]/)) days.add(0);
+    if (text.match(/thứ\s*3\b|t3\b/) || text.match(/thứ\s*3\s*[,&–\-]/)) days.add(1);
+    if (text.match(/thứ\s*4\b|t4\b/) || text.match(/,\s*4\b|–\s*4\b|-\s*4\b/)) days.add(2);
+    if (text.match(/thứ\s*5\b|t5\b/) || text.match(/,\s*5\b|–\s*5\b|-\s*5\b/)) days.add(3);
+    if (text.match(/thứ\s*6\b|t6\b/) || text.match(/,\s*6\b|–\s*6\b|-\s*6\b/)) days.add(4);
+    if (text.match(/thứ\s*7\b|t7\b/) || text.match(/,\s*7\b|–\s*7\b|-\s*7\b/)) days.add(5);
+    if (text.match(/chủ\s*nhật\b|chủ\s*nhât\b|\bcn\b/)) days.add(6);
+
+    return Array.from(days);
+  };
+
+  // Kiểm tra ca làm việc có khớp với bộ lọc Tuần này / Tuần tới (FR-SV-11.03)
+  const matchShiftWeek = (app, filterWeek) => {
+    if (!filterWeek || filterWeek === 'all') return true;
+
+    // 1. Thuộc tính chỉ định tuần rõ ràng
+    const explicitWeek = (app.shift_week || app.week || app.week_target || '').toLowerCase();
+    if (explicitWeek) {
+      if (filterWeek === 'current' && (explicitWeek.includes('current') || explicitWeek.includes('this') || explicitWeek.includes('nay') || explicitWeek.includes('này'))) return true;
+      if (filterWeek === 'next' && (explicitWeek.includes('next') || explicitWeek.includes('toi') || explicitWeek.includes('tới') || explicitWeek.includes('sau'))) return true;
+      if (explicitWeek.includes('all')) return true;
+      return false;
+    }
+
+    // 2. Từ khóa tuần trong văn bản mô tả ca
+    const text = `${app.work_time || ''} ${app.shift_registered || ''} ${app.shift_schedule || ''} ${app.cover_note || ''}`.toLowerCase();
+    if (text.includes('tuần tới') || text.includes('tuần sau') || text.includes('tuan toi') || text.includes('tuan sau') || text.includes('next week')) {
+      return filterWeek === 'next';
+    }
+    if (text.includes('tuần này') || text.includes('tuan nay') || text.includes('this week')) {
+      return filterWeek === 'current';
+    }
+
+    // Mốc thời gian thực tế: Tuần này vs Tuần tới (Thứ 2 00:00:00 -> Chủ Nhật 23:59:59)
+    const now = new Date();
+    const currentDay = now.getDay();
+    const diffToCurMonday = (currentDay === 0 ? -6 : 1) - currentDay;
+    const curMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToCurMonday, 0, 0, 0, 0);
+    const curSunday = new Date(curMonday.getFullYear(), curMonday.getMonth(), curMonday.getDate() + 6, 23, 59, 59, 999);
+
+    const nextMonday = new Date(curMonday.getFullYear(), curMonday.getMonth(), curMonday.getDate() + 7, 0, 0, 0, 0);
+    const nextSunday = new Date(curMonday.getFullYear(), curMonday.getMonth(), curMonday.getDate() + 13, 23, 59, 59, 999);
+
+    // 3. Khớp theo ngày tháng cụ thể (shift_date, work_date, date trong text)
+    const hasExplicitDate = Boolean(
+      app.shift_date || app.work_date || app.date || app.start_date ||
+      text.match(/\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}/) || text.match(/\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}/)
+    );
+
+    const parsedDate = parseShiftDate(app);
+    if (hasExplicitDate && parsedDate) {
+      const time = parsedDate.getTime();
+      if (filterWeek === 'current') return time >= curMonday.getTime() && time <= curSunday.getTime();
+      if (filterWeek === 'next') return time >= nextMonday.getTime() && time <= nextSunday.getTime();
+      return true;
+    }
+
+    // 4. Lịch làm việc cố định theo thứ trong tuần (Lặp lại hàng tuần)
+    const weekdays = getShiftWeekdays(app);
+    if (weekdays.length > 0) {
+      return true;
+    }
+
+    // 5. Khung ca chung (sáng/chiều/tối/linh hoạt): kiểm tra theo mốc ngày nộp/bắt đầu
+    if (parsedDate) {
+      const time = parsedDate.getTime();
+      if (time >= nextMonday.getTime() && time <= nextSunday.getTime()) {
+        return filterWeek === 'next';
+      }
+      if (time >= curMonday.getTime() && time <= curSunday.getTime()) {
+        return filterWeek === 'current';
+      }
+      return filterWeek === 'current';
+    }
+
+    return true;
+  };
+
+  // Khớp chính xác ca làm với từng ô ngày trên Lịch Thời Khóa Biểu
+  const isShiftMatchingDay = (app, item, idx) => {
+    if (!app) return false;
+
+    // 1. Khớp ngày cụ thể (shift_date, work_date, ngày trong text)
+    const explicitDateStr = app.shift_date || app.work_date || app.date || app.start_date;
+    if (explicitDateStr) {
+      let appDStr = '';
+      if (typeof explicitDateStr === 'string' && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(explicitDateStr.trim())) {
+        const parts = explicitDateStr.trim().split('/');
+        appDStr = `${String(parts[0]).padStart(2, '0')}/${String(parts[1]).padStart(2, '0')}/${parts[2]}`;
+      } else {
+        const d = new Date(explicitDateStr);
+        if (!isNaN(d.getTime())) {
+          appDStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+        }
+      }
+      if (appDStr) {
+        return appDStr === item.dateStr;
+      }
+    }
+
+    const text = `${app.work_time || ''} ${app.shift_registered || ''} ${app.shift_schedule || ''} ${app.cover_note || ''}`;
+    const dmy = text.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (dmy) {
+      const textDStr = `${String(dmy[1]).padStart(2, '0')}/${String(dmy[2]).padStart(2, '0')}/${dmy[3]}`;
+      return textDStr === item.dateStr;
+    }
+
+    // 2. Khớp theo thứ trong tuần (Thứ 2 đến Chủ Nhật)
+    const weekdays = getShiftWeekdays(app);
+    if (weekdays.length > 0) {
+      return weekdays.includes(idx);
+    }
+
+    // 3. Khớp theo ngày nộp hồ sơ hoặc ngày cập nhật
+    if (app.applied_at) {
+      const d = new Date(app.applied_at);
+      if (!isNaN(d.getTime())) {
+        const appliedDStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+        if (appliedDStr === item.dateStr) return true;
+        const appDayIdx = d.getDay() === 0 ? 6 : d.getDay() - 1;
+        if (appDayIdx === idx) return true;
+      }
+    }
+
+    // 4. Khớp theo chỉ số ngày (day_index / day_of_week)
+    if (app.day_index !== undefined && app.day_index !== null) {
+      return Number(app.day_index) === idx;
+    }
+    if (app.day_of_week !== undefined && app.day_of_week !== null) {
+      return Number(app.day_of_week) === idx;
+    }
+
+    return false;
+  };
+
+  // Bộ lọc kết hợp Tuần / Khung ca / Chi nhánh / Trạng thái ca đồng bộ cho CẢ Thời khóa biểu lẫn Danh sách ca
   const filteredAcceptedShifts = acceptedApplications.filter((app) => {
+    if (!matchShiftWeek(app, shiftFilterWeek)) return false;
     if (!matchShiftFlexible(app, shiftFilterTime)) return false;
     if (shiftFilterBranch && shiftFilterBranch !== 'all') {
       if (!matchKeywordFlexible(app, shiftFilterBranch, ['branch_name', 'location', 'address', 'company_name', 'job_title'])) {
@@ -2019,9 +2285,7 @@ export default function StudentPortal({
       )}
 
       {/* ======================= MAIN CONTENT AREA ======================= */}
-      <main className={`flex-1 min-w-0 overflow-y-auto transition-all duration-300 ${
-        activeMenu === 'chat' ? 'p-2.5 sm:p-4 lg:p-5' : 'p-4 sm:p-6 lg:p-8'
-      }`}>
+      <main className="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 lg:p-8">
 
         {/* 1. MÀN HÌNH TRANG CHỦ (HOME OVERVIEW) */}
         {activeMenu === 'home' && (
@@ -3487,12 +3751,8 @@ export default function StudentPortal({
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
                       {weekDays.map((item, idx) => {
-                        const hasShift = filteredAcceptedShifts.length > 0 && (
-                          shiftFilterWeek === 'next'
-                            ? (idx % 2 === 0 || idx < filteredAcceptedShifts.length)
-                            : (idx < filteredAcceptedShifts.length || (filteredAcceptedShifts.length === 1 && idx % 2 === 0))
-                        );
-                        const assignedApp = hasShift ? filteredAcceptedShifts[idx % filteredAcceptedShifts.length] : null;
+                        const assignedApp = filteredAcceptedShifts.find(app => isShiftMatchingDay(app, item, idx)) || null;
+                        const hasShift = Boolean(assignedApp);
                         const shiftInfo = assignedApp ? getShiftMeta(assignedApp) : null;
                         const shiftKey = assignedApp ? `shift_${assignedApp._id || idx}` : null;
                         const currentStatus = assignedApp ? (assignedApp.shift_status || shiftStatuses[shiftKey] || 'upcoming') : 'upcoming';
@@ -3715,7 +3975,7 @@ export default function StudentPortal({
                 <div className="p-10 rounded-3xl bg-white border border-slate-200 text-center space-y-2 shadow-sm">
                   <CalendarDays className="w-10 h-10 text-slate-300 mx-auto" />
                   <p className="text-xs text-slate-600 font-semibold">
-                    Không tìm thấy ca làm nào phù hợp với bộ lọc (Khung ca / Chi nhánh / Trạng thái) hiện tại.
+                    Không tìm thấy ca làm nào phù hợp với bộ lọc (Tuần / Khung ca / Chi nhánh / Trạng thái) hiện tại.
                   </p>
                 </div>
               ) : (
@@ -4556,7 +4816,7 @@ export default function StudentPortal({
 
         {/* 7. MÀN HÌNH CHAT CHI TIẾT & GỌI VIDEO WEBRTC (UI-SV-CHAT-02, UI-SV-CALL-01 - 1.8 & 1.10) */}
         {activeMenu === 'chat' && (
-          <div className="w-full max-w-full h-[calc(100vh-112px)] min-h-[580px] sm:h-[calc(100vh-116px)] lg:h-[calc(100vh-120px)] lg:min-h-[650px] flex flex-col lg:flex-row rounded-3xl bg-white border border-slate-200/80 shadow-md overflow-hidden text-slate-900">
+          <div className="w-full max-w-full h-[calc(100vh-112px)] sm:h-[calc(100vh-128px)] lg:h-[calc(100vh-144px)] min-h-[540px] flex flex-col lg:flex-row rounded-3xl bg-white border border-slate-200/80 shadow-md overflow-hidden text-slate-900">
             {/* Cột trái: Danh sách hội thoại với Doanh nghiệp + Tìm kiếm & Lọc chưa phản hồi */}
             {!isGuestMode && (
               <aside className={`${selectedContact ? 'hidden lg:flex' : 'flex flex-1 lg:flex-none'} w-full lg:w-[320px] xl:w-[360px] shrink-0 border-b lg:border-b-0 lg:border-r border-slate-200 bg-slate-50/70 flex-col min-h-0 overflow-hidden`}>
@@ -4877,7 +5137,7 @@ export default function StudentPortal({
                                   <p className="text-xs font-bold text-slate-900">
                                     {isOutgoing ? `Bạn đã gọi ${callTypeLabel} (Không trả lời)` : `Đã nhỡ cuộc gọi ${callTypeLabel}`}
                                   </p>
-                                  <p className="text-xs text-slate-500 font-mono mt-0.5">{m.created_at}</p>
+                                  <p className="text-xs text-slate-500 font-mono mt-0.5">{m.created_at && m.created_at.includes(' ') ? m.created_at.split(' ')[1].slice(0, 5) : m.created_at}</p>
                                 </div>
                               </div>
                               {!isOutgoing && (
@@ -4905,7 +5165,7 @@ export default function StudentPortal({
                             <span>
                               {isOutgoing ? `Cuộc gọi đi (${callTypeLabel})` : `Cuộc gọi đến (${callTypeLabel})`} • {m.duration_str || '0:00'}
                             </span>
-                            <span className="text-xs text-slate-400 font-mono ml-1">({m.created_at})</span>
+                            <span className="text-xs text-slate-400 font-mono ml-1">({m.created_at && m.created_at.includes(' ') ? m.created_at.split(' ')[1].slice(0, 5) : m.created_at})</span>
                           </div>
                         </div>
                       );
@@ -4973,7 +5233,12 @@ export default function StudentPortal({
                               onClick={() => setChatPreviewDoc({ fileUrl: m.media_url, fileName: m.file_name || 'Hinh_Anh.jpg', title: 'Tệp Hình Ảnh Đính Kèm' })}
                               className="mt-2 rounded-xl overflow-hidden border border-slate-200 max-w-xs sm:max-w-sm cursor-pointer hover:opacity-95 transition-opacity shadow-sm"
                             >
-                              <img src={m.media_url} alt={m.file_name || 'Ảnh đính kèm'} className="w-full max-h-[220px] object-cover bg-slate-100" />
+                              <img 
+                                src={m.media_url} 
+                                alt={m.file_name || 'Ảnh đính kèm'} 
+                                onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }}
+                                className="w-full max-h-[220px] object-cover bg-slate-100" 
+                              />
                               <div className="p-1.5 bg-black/60 text-xs text-white flex items-center justify-between">
                                 <span className="truncate max-w-[220px]">{m.file_name || 'Ảnh đính kèm'}</span>
                                 <Eye className="w-3.5 h-3.5 text-blue-300" />

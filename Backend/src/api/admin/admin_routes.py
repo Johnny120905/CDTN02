@@ -287,9 +287,15 @@ def review_employer_gpkd(user_id):
         title="Kết quả xét duyệt Giấy phép kinh doanh (GPKD)",
         message=msg_body,
         notif_type="gpkd_status",
+        role="employer",
         related_id=target_user_id,
+        target_id=emp["_id"] if emp else target_user_id,
     )
-    emit_socket_event("gpkd-status-updated", {"user_id": target_user_id, "status": status})
+    emit_socket_event("gpkd-status-updated", {
+        "user_id": target_user_id,
+        "employer_id": emp["_id"] if emp else target_user_id,
+        "status": status
+    })
 
     action_text = "phê duyệt hợp lệ" if status == "approved" else "từ chối"
     return jsonify({"success": True, "message": f"Đã {action_text} Giấy phép kinh doanh của Doanh nghiệp!"})
@@ -334,7 +340,9 @@ def hide_job(job_id):
             title=f"Tin tuyển dụng bị tạm ẩn: {job.get('title')}",
             message=f"Tin tuyển dụng '{job.get('title')}' đã bị Quản trị viên ẩn khỏi hệ thống. Lý do: {reason}",
             notif_type="job",
+            role="employer",
             related_id=job_id,
+            target_id=target_user_id,
         )
     emit_socket_event("job-updated", {"job_id": job_id, "is_hidden": True})
 
@@ -357,7 +365,9 @@ def unhide_job(job_id):
             title=f"Tin tuyển dụng đã hiển thị lại: {job.get('title')}",
             message=f"Tin tuyển dụng '{job.get('title')}' đã được Quản trị viên khôi phục công khai trên sàn việc làm.",
             notif_type="job",
+            role="employer",
             related_id=job_id,
+            target_id=target_user_id,
         )
     emit_socket_event("job-updated", {"job_id": job_id, "is_hidden": False})
     return jsonify({"success": True, "message": "Đã bỏ ẩn, tin tuyển dụng được hiển thị lại."})
@@ -379,7 +389,9 @@ def delete_job(job_id):
             title=f"Tin tuyển dụng đã bị xóa: {job.get('title')}",
             message=f"Tin tuyển dụng '{job.get('title')}' đã bị Quản trị viên xóa khỏi hệ thống.",
             notif_type="job",
+            role="employer",
             related_id=job_id,
+            target_id=target_user_id,
         )
     emit_socket_event("job-updated", {"job_id": job_id, "deleted": True})
     return jsonify({"success": True, "message": "Đã xóa vĩnh viễn tin tuyển dụng thành công!"})

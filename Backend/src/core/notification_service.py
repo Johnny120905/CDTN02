@@ -35,9 +35,49 @@ def create_and_emit_notification(
     if not user_id and not role:
         return None
 
+    # Tự động suy luận role nếu chưa truyền
+    inferred_role = role
+    uid_str = str(user_id or "")
+    if not inferred_role:
+        if uid_str.startswith("user_employer_") or uid_str.startswith("emp_") or uid_str == "role_employer":
+            inferred_role = "employer"
+        elif uid_str.startswith("user_student_") or uid_str.startswith("stu_") or uid_str == "role_student":
+            inferred_role = "student"
+        elif uid_str.startswith("user_admin_") or uid_str == "role_admin":
+            inferred_role = "admin"
+
+    # Tự động thu thập tất cả ID định danh (User ID, Employer ID, Student ID)
+    aliases = set()
+    if user_id:
+        aliases.add(uid_str)
+        try:
+            if uid_str.startswith("user_"):
+                emp = db_manager.get_collection("employers").find_one({"user_id": uid_str})
+                if emp and emp.get("_id"):
+                    aliases.add(str(emp["_id"]))
+                stu = db_manager.get_collection("student_profiles").find_one({"user_id": uid_str})
+                if stu and stu.get("_id"):
+                    aliases.add(str(stu["_id"]))
+            elif uid_str.startswith("emp_"):
+                emp = db_manager.get_collection("employers").find_one({"_id": uid_str})
+                if emp and emp.get("user_id"):
+                    aliases.add(str(emp["user_id"]))
+            elif uid_str.startswith("stu_"):
+                stu = db_manager.get_collection("student_profiles").find_one({"_id": uid_str})
+                if stu and stu.get("user_id"):
+                    aliases.add(str(stu["user_id"]))
+        except Exception:
+            pass
+
+    if target_id:
+        aliases.add(str(target_id))
+    if related_id:
+        aliases.add(str(related_id))
+
     notif_doc = {
         "_id": f"notif_{uuid.uuid4().hex[:8]}",
-        "user_id": user_id or f"role_{role}",
+        "user_id": user_id or f"role_{inferred_role}",
+        "user_aliases": list(aliases),
         "type": notif_type,
         "title": title,
         "message": message,
@@ -45,8 +85,8 @@ def create_and_emit_notification(
         "is_deleted": False,
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
-    if role:
-        notif_doc["role"] = role
+    if inferred_role:
+        notif_doc["role"] = inferred_role
     if related_id:
         notif_doc["related_id"] = related_id
     if target_id:
@@ -59,8 +99,18 @@ def create_and_emit_notification(
     except Exception as exc:
         logger.warning("Notification DB insert failed: %s", exc)
 
-    # Emit global namespace broadcast so client Header filters precisely by user_id/role (< 1s)
+    # 1. Phát tán sự kiện broadcast toàn hệ thống (< 500ms)
     emit_socket_event("new-notification", notif_doc)
+
+    # 2. Phát tán trực tiếp vào room riêng của từng ID người nhận
+    for aid in aliases:
+        if aid and not aid.startswith("role_"):
+            emit_socket_event("new-notification", notif_doc, room=f"user_{aid}")
+
+    # 3. Phát tán vào room theo vai trò
+    if inferred_role:
+        emit_socket_event("new-notification", notif_doc, room=f"role_{inferred_role}")
+
     return notif_doc
 
 
