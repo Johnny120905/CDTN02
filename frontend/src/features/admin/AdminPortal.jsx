@@ -97,7 +97,8 @@ export default function AdminPortal({
   const [banReason, setBanReason] = useState('');
   const [gpkdRejectModal, setGpkdRejectModal] = useState(null); // { userId, companyName, reason }
 
-  // GPKD Moderation Filter (FR-QTV-04.11: MST 10/13 số, Tỉnh thành, Quận huyện, Hồ sơ tồn đọng)
+  // GPKD Moderation Filter (FR-QTV-04.11: MST 10/13 số, Tỉnh thành, Quận huyện, Trạng thái thẩm định)
+  const [gpkdStatusFilter, setGpkdStatusFilter] = useState('all'); // 'all' | 'pending' | 'approved' | 'rejected'
   const [gpkdMstFilter, setGpkdMstFilter] = useState('all'); // 'all' | '10' | '13'
   const [gpkdProvinceFilter, setGpkdProvinceFilter] = useState('all');
   const [gpkdDistrictFilter, setGpkdDistrictFilter] = useState('');
@@ -105,7 +106,8 @@ export default function AdminPortal({
 
   // Job Moderation States (FR 3.5 & FR-QTV-05.07)
   const [jobSearch, setJobSearch] = useState('');
-  const [jobStatusFilter, setJobStatusFilter] = useState('');
+  const [jobStatusFilter, setJobStatusFilter] = useState(''); // Bộ lọc cột Trạng Thái Vận Hành
+  const [jobModerationFilter, setJobModerationFilter] = useState(''); // Bộ lọc cột Trạng Thái Kiểm Duyệt
   const [jobViolationFilter, setJobViolationFilter] = useState('all'); // FR-QTV-05.07: Vi phạm lương 4 vùng, ca >8h, lừa đảo
   const [selectedJobDetail, setSelectedJobDetail] = useState(null);
   const [hideJobModal, setHideJobModal] = useState(null);
@@ -235,12 +237,13 @@ export default function AdminPortal({
     return () => {
       socketHandlers.forEach(([ev, fn]) => socket.off(ev, fn));
     };
-  }, [token, currentUser]);
+  }, [token, currentUser?._id || currentUser?.id]);
 
-  // Fallback polling nhẹ 3s: chỉ làm mới đúng phân hệ đang xem
+  // Đồng bộ nền dự phòng 15s: chỉ làm mới đúng phân hệ đang xem (đã có Socket.IO đẩy realtime tức thì)
   useEffect(() => {
     if (!token) return;
     const fetchActiveTabOnly = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       if (activeMenu === 'dashboard' || activeMenu === 'home') fetchDashboard();
       else if (activeMenu === 'users' || activeMenu === 'gpkd') fetchUsers();
       else if (activeMenu === 'jobs') fetchAllJobs();
@@ -249,7 +252,7 @@ export default function AdminPortal({
       else if (activeMenu === 'categories') fetchCategories();
       else if (activeMenu === 'reports') fetchReports();
     };
-    const interval = setInterval(fetchActiveTabOnly, 3000);
+    const interval = setInterval(fetchActiveTabOnly, 15000);
     return () => clearInterval(interval);
   }, [token, activeMenu]);
 
@@ -734,7 +737,7 @@ export default function AdminPortal({
 
   // View Unmasked Chat History for Ticket
   const handleViewTicketChatHistory = async (ticket) => {
-    setSelectedTicket(ticket);
+    setSelectedTicket(null);
     try {
       const res = await fetch(`/api/admin/reports/${ticket._id}/chat-history`, { headers });
       const data = await res.json();
@@ -1055,10 +1058,19 @@ export default function AdminPortal({
       riskMatch = repCount === 0 && !u.is_reported && !u.is_banned;
     }
 
-    // FR-QTV-04.10: Tình trạng định danh (Khớp chuẩn option verified_otp, has_gpkd, incomplete)
+    // Bộ lọc cột Trạng Thái GPKD (NTD) & Tình trạng định danh
     let idMatch = true;
+    const empApprovalSt = u.employer_record?.approval_status || u.approval_status || 'pending';
     const hasName = Boolean(userSearchObj.full_name || userSearchObj.company_name);
-    if (userIdentityFilter === 'verified_otp' || userIdentityFilter === 'verified_email') {
+    if (userIdentityFilter === 'gpkd_approved') {
+      idMatch = u.role === 'employer' && empApprovalSt === 'approved';
+    } else if (userIdentityFilter === 'gpkd_pending') {
+      idMatch = u.role === 'employer' && empApprovalSt === 'pending';
+    } else if (userIdentityFilter === 'gpkd_rejected') {
+      idMatch = u.role === 'employer' && empApprovalSt === 'rejected';
+    } else if (userIdentityFilter === 'student_na') {
+      idMatch = u.role === 'student';
+    } else if (userIdentityFilter === 'verified_otp' || userIdentityFilter === 'verified_email') {
       idMatch = u.status === 'active' || Boolean(u.is_email_verified);
     } else if (userIdentityFilter === 'has_gpkd') {
       idMatch = u.role === 'employer' && Boolean(u.license_url || u.profile?.business_license_url || u.employer_record?.license_url || u.business_license || u.has_gpkd);
@@ -1146,7 +1158,13 @@ export default function AdminPortal({
         else if (gpkdAgeFilter === 'today') matchAge = ageHours <= 24;
       }
 
-      return matchMst && matchProv && matchDistrict && matchAge;
+      let matchGpkdStatus = true;
+      if (gpkdStatusFilter && gpkdStatusFilter !== 'all') {
+        const approvalSt = u.employer_record?.approval_status || u.approval_status || 'pending';
+        matchGpkdStatus = approvalSt === gpkdStatusFilter;
+      }
+
+      return matchMst && matchProv && matchDistrict && matchAge && matchGpkdStatus;
     })
     .sort((a, b) => {
       const rank = { pending: 0, rejected: 1, approved: 2 };
@@ -1165,46 +1183,28 @@ export default function AdminPortal({
     // 1. Tìm kiếm linh hoạt đa từ & bỏ dấu tiếng Việt
     const matchSearch = matchKeywordFlexible(j, jobSearch, ['title', 'company_name', 'description', 'location', 'address', 'branch_name', 'category_name', 'district', 'province']);
     const jSt = normalizeJobStatus(j);
+
+    // 2. Bộ lọc cột Trạng Thái Vận Hành
     let matchStatus = true;
     if (jobStatusFilter === 'open') {
-      matchStatus = !j.is_hidden && jSt === 'open';
+      matchStatus = jSt === 'open';
     } else if (jobStatusFilter === 'closed') {
-      matchStatus = !j.is_hidden && jSt === 'closed';
+      matchStatus = jSt === 'closed';
     } else if (jobStatusFilter === 'filled') {
-      matchStatus = !j.is_hidden && jSt === 'filled';
+      matchStatus = jSt === 'filled';
     } else if (jobStatusFilter === 'completed') {
-      matchStatus = !j.is_hidden && jSt === 'completed';
-    } else if (jobStatusFilter === 'hidden') {
-      matchStatus = j.is_hidden === true;
+      matchStatus = jSt === 'completed';
     }
 
-    // FR-QTV-05.07: Bộ lọc Tin vi phạm Lương 4 Vùng, Vi phạm giờ làm & Dấu hiệu lừa đảo
-    let matchViolation = true;
-    if (jobViolationFilter === 'under_min_wage') {
-      const sMin = parseSalaryNumber(j.salary_min);
-      const sMax = parseSalaryNumber(j.salary_max);
-      matchViolation = (sMin > 0 && sMin < 20000) || (sMax > 0 && sMax < 20000);
-    } else if (jobViolationFilter === 'over_8h') {
-      const wt = removeVietnameseTones(j.work_time || '');
-      const hoursMatch = wt.match(/(\d+(?:\.\d+)?)\s*(?:tieng|gio|h\b)/);
-      const rangeMatch = wt.match(/(\d{1,2}):\d{2}\s*[-–]\s*(\d{1,2}):\d{2}/);
-      let spanHours = 0;
-      if (rangeMatch) {
-        const startH = Number(rangeMatch[1]);
-        let endH = Number(rangeMatch[2]);
-        if (endH <= startH) endH += 24;
-        spanHours = endH - startH;
-      }
-      matchViolation = (hoursMatch && Number(hoursMatch[1]) > 8) || spanHours > 8 ||
-        wt.includes('10 tieng') || wt.includes('12 tieng') || wt.includes('10h') || wt.includes('12h');
-    } else if (jobViolationFilter === 'scam_keywords') {
-      const desc = removeVietnameseTones((j.title || '') + ' ' + (j.description || ''));
-      matchViolation = desc.includes('coc') || desc.includes('dat coc') || desc.includes('nap tien') || desc.includes('telegram') || desc.includes('thu phi');
-    } else if (jobViolationFilter === 'high_reports') {
-      matchViolation = (j.report_count || 0) >= 2 || (j.violation_reports || 0) >= 2;
+    // 3. Bộ lọc cột Trạng Thái Kiểm Duyệt
+    let matchModeration = true;
+    if (jobModerationFilter === 'public') {
+      matchModeration = !j.is_hidden;
+    } else if (jobModerationFilter === 'hidden') {
+      matchModeration = j.is_hidden === true;
     }
 
-    return matchSearch && matchStatus && matchViolation;
+    return matchSearch && matchStatus && matchModeration;
   });
 
   // Filtered Reviews (FR 3.6 & FR-QTV-06.07)
@@ -1470,8 +1470,22 @@ export default function AdminPortal({
                 </span>
               </div>
 
-              {/* FR-QTV-04.11: Bộ lọc Bàn thẩm định GPKD (MST 10/13 số, Tỉnh thành, Quận huyện, Hồ sơ tồn đọng) */}
+              {/* FR-QTV-04.11: Bộ lọc Bàn thẩm định GPKD (Trạng thái GPKD, MST 10/13 số, Tỉnh thành, Quận huyện) */}
               <div className="p-4 bg-slate-50/50 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Trạng Thái Thẩm Định:</label>
+                  <select
+                    value={gpkdStatusFilter}
+                    onChange={(e) => setGpkdStatusFilter(e.target.value)}
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-900 outline-none focus:border-blue-600 shadow-xs cursor-pointer"
+                  >
+                    <option value="all">Tất cả trạng thái GPKD</option>
+                    <option value="pending">Chờ thẩm định</option>
+                    <option value="approved">Đã phê duyệt</option>
+                    <option value="rejected">Bị từ chối</option>
+                  </select>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Mã Số Thuế (MST):</label>
                   <select
@@ -1523,19 +1537,6 @@ export default function AdminPortal({
                       <option key={`${d}-${i}`} value={d} />
                     ))}
                   </datalist>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Thời Hạn Hồ Sơ Tồn Đọng:</label>
-                  <select
-                    value={gpkdAgeFilter}
-                    onChange={(e) => setGpkdAgeFilter(e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-900 outline-none focus:border-blue-600 shadow-xs cursor-pointer"
-                  >
-                    <option value="all">Tất cả thời hạn hồ sơ</option>
-                    <option value="overdue">Chờ duyệt quá 24 giờ</option>
-                    <option value="today">Nộp trong ngày</option>
-                  </select>
                 </div>
               </div>
 
@@ -1801,19 +1802,20 @@ export default function AdminPortal({
               const histApps = matchedHistBuckets.reduce((s, b) => s + b.apps, 0);
               const histAcceptedApps = matchedHistBuckets.reduce((s, b) => s + b.acceptedApps, 0);
 
-              const studentCount = histStudents + filteredDashStudents.length;
-              const employerCount = histEmployers + filteredDashEmployers.length;
-              const approvedEmployersCount = histApprovedEmployers + filteredDashEmployers.filter(
+              const useHistInKpi = !isAllTime;
+              const studentCount = (useHistInKpi ? histStudents : 0) + filteredDashStudents.length;
+              const employerCount = (useHistInKpi ? histEmployers : 0) + filteredDashEmployers.length;
+              const approvedEmployersCount = (useHistInKpi ? histApprovedEmployers : 0) + filteredDashEmployers.filter(
                 u => (u.employer_record?.approval_status || u.approval_status || 'approved') === 'approved'
               ).length;
-              const jobCount = histJobs + filteredDashJobs.length;
-              const activeJobCount = histActiveJobs + filteredDashActiveJobs.length;
-              const appCount = histApps + (
+              const jobCount = (useHistInKpi ? histJobs : 0) + filteredDashJobs.length;
+              const activeJobCount = (useHistInKpi ? histActiveJobs : 0) + filteredDashActiveJobs.length;
+              const appCount = (useHistInKpi ? histApps : 0) + (
                 (isAllTime && !hasGeoOrCatFilter)
                   ? (allRealApps.length || stats?.metrics?.total_applications || 0)
                   : filteredDashApps.length
               );
-              const acceptedAppCount = histAcceptedApps + filteredDashApps.filter(
+              const acceptedAppCount = (useHistInKpi ? histAcceptedApps : 0) + filteredDashApps.filter(
                 a => ['accepted', 'completed', 'approved'].includes(a.application_status || a.status)
               ).length;
 
@@ -2715,15 +2717,15 @@ export default function AdminPortal({
                     onChange={(e) => setUserStatusFilter(e.target.value)}
                     className="w-full min-w-0 truncate bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-base sm:text-sm text-slate-900 outline-none cursor-pointer shadow-sm"
                   >
-                    <option value="">Tất cả trạng thái tài khoản</option>
+                    <option value="">Tất cả trạng thái khóa</option>
                     <option value="active">Đang hoạt động bình thường</option>
                     <option value="banned">Bị khóa tài khoản</option>
                   </select>
                 </div>
               </div>
 
-              {/* FR-QTV-04.10: Bộ lọc nâng cao Người dùng (Trường ĐH, Mức độ rủi ro, Tình trạng hồ sơ) */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
+              {/* FR-QTV-04.10: Bộ lọc nâng cao Người dùng (Trường ĐH/Chi nhánh & Bộ lọc cột Trạng Thái GPKD NTD) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
                 <div className="min-w-0 relative">
                   <input
                     type="text"
@@ -2746,27 +2748,15 @@ export default function AdminPortal({
 
                 <div className="min-w-0">
                   <select
-                    value={userRiskFilter}
-                    onChange={(e) => setUserRiskFilter(e.target.value)}
-                    className="w-full min-w-0 truncate bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm text-slate-900 outline-none cursor-pointer shadow-xs"
-                  >
-                    <option value="all">Tất cả mức độ rủi ro</option>
-                    <option value="high_risk">Tài khoản có &gt;= 1 lần bị report</option>
-                    <option value="complaints">Tài khoản có &gt;= 3 lần bị khiếu nại (đưa vào diện giám sát khẩn cấp)</option>
-                    <option value="safe">An toàn / Chưa vi phạm</option>
-                  </select>
-                </div>
-
-                <div className="min-w-0">
-                  <select
                     value={userIdentityFilter}
                     onChange={(e) => setUserIdentityFilter(e.target.value)}
                     className="w-full min-w-0 truncate bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm text-slate-900 outline-none cursor-pointer shadow-xs"
                   >
-                    <option value="all">Tất cả tình trạng định danh</option>
-                    <option value="verified_otp">Đã xác thực OTP Email</option>
-                    <option value="has_gpkd">Đã có file GPKD nhị phân thật</option>
-                    <option value="incomplete">Tài khoản ảo chưa cập nhật thông tin</option>
+                    <option value="all">Tất cả trạng thái GPKD (NTD)</option>
+                    <option value="gpkd_approved">Đã duyệt GPKD</option>
+                    <option value="gpkd_pending">Chờ duyệt GPKD</option>
+                    <option value="gpkd_rejected">Bị từ chối GPKD</option>
+                    <option value="student_na">Không áp dụng (Sinh viên)</option>
                   </select>
                 </div>
               </div>
@@ -2942,33 +2932,31 @@ export default function AdminPortal({
                   />
                 </div>
 
-                <div className="sm:col-span-3 min-w-0">
+                {/* Bộ lọc cột 1: Trạng Thái Vận Hành */}
+                <div className="sm:col-span-4 min-w-0">
                   <select
                     value={jobStatusFilter}
                     onChange={(e) => setJobStatusFilter(e.target.value)}
                     className="w-full min-w-0 truncate bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-base sm:text-sm text-slate-900 outline-none cursor-pointer shadow-sm"
                   >
-                    <option value="">Tất cả trạng thái</option>
+                    <option value="">Tất cả trạng thái vận hành</option>
                     <option value="open">Đang tuyển</option>
                     <option value="closed">Tạm đóng</option>
                     <option value="filled">Đã nhận người</option>
                     <option value="completed">Hoàn thành</option>
-                    <option value="hidden">Bị ẩn do vi phạm</option>
                   </select>
                 </div>
 
-                {/* FR-QTV-05.07: Bộ lọc Tin vi phạm */}
-                <div className="sm:col-span-5 min-w-0">
+                {/* Bộ lọc cột 2: Trạng Thái Kiểm Duyệt */}
+                <div className="sm:col-span-4 min-w-0">
                   <select
-                    value={jobViolationFilter}
-                    onChange={(e) => setJobViolationFilter(e.target.value)}
+                    value={jobModerationFilter}
+                    onChange={(e) => setJobModerationFilter(e.target.value)}
                     className="w-full min-w-0 truncate bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-base sm:text-sm text-slate-900 outline-none cursor-pointer shadow-sm"
                   >
-                    <option value="all">Tất cả tin tuyển dụng</option>
-                    <option value="under_min_wage">Tin có mức lương &lt; Lương tối thiểu vùng (&lt; 20.000đ/h)</option>
-                    <option value="over_8h">Tin yêu cầu ca làm kéo dài bất thường (&gt; 8 tiếng/ngày)</option>
-                    <option value="scam_keywords">Tin quét dính Từ khóa nhạy cảm thu phí cọc / giữ chân</option>
-                    <option value="high_reports">Tin có &gt;= 2 lượt phản ánh vi phạm từ sinh viên</option>
+                    <option value="">Tất cả trạng thái kiểm duyệt</option>
+                    <option value="public">Công Khai</option>
+                    <option value="hidden">Đã Ẩn (Vi phạm)</option>
                   </select>
                 </div>
               </div>
@@ -3587,7 +3575,10 @@ export default function AdminPortal({
                       {(ticket.type === 'chat' || ticket.report_type === 'chat') && (
                         <button
                           type="button"
-                          onClick={() => handleViewTicketChatHistory(ticket)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewTicketChatHistory(ticket);
+                          }}
                           className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold border border-slate-300 cursor-pointer inline-flex items-center gap-1.5 transition-colors whitespace-nowrap"
                         >
                           <Eye className="w-3.5 h-3.5" />

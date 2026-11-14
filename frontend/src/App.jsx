@@ -246,7 +246,19 @@ export default function App() {
           const parsed = JSON.parse(roleUser);
           if (parsed.role === targetRole) {
             sessionStorage.setItem('partime_tab_role', targetRole);
-            setCurrentUser(parsed);
+            setCurrentUser(prev => {
+              if (
+                prev &&
+                (prev._id || prev.id) === (parsed._id || parsed.id) &&
+                prev.role === parsed.role &&
+                prev.status === parsed.status &&
+                prev.approval_status === parsed.approval_status &&
+                prev.is_banned === parsed.is_banned
+              ) {
+                return prev;
+              }
+              return parsed;
+            });
             if (roleToken) {
               localStorage.setItem('partime_token', roleToken);
             }
@@ -257,7 +269,7 @@ export default function App() {
     }
 
     // Mặc định cho mọi tab mới dán link: Luôn là CHẾ ĐỘ XEM KHÁCH (currentUser = null)
-    setCurrentUser(null);
+    setCurrentUser(prev => (prev === null ? prev : null));
   };
 
   useEffect(() => {
@@ -300,20 +312,6 @@ export default function App() {
       navigateTo('/employer');
     } else {
       navigateTo('/student');
-    }
-
-    // Sync online status with backend
-    if (token) {
-      const endpoint = user.role === 'student' 
-        ? '/api/student/profile' 
-        : (user.role === 'employer' ? '/api/employer/company' : null);
-      if (endpoint) {
-        fetch(endpoint, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ status: 'active' })
-        }).catch(() => {});
-      }
     }
   };
 

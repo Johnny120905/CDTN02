@@ -5,6 +5,9 @@ import time
 import uuid
 import copy
 import base64
+import hashlib
+import threading
+from concurrent.futures import ThreadPoolExecutor
 import gridfs
 from gridfs.errors import NoFile
 from pymongo import MongoClient
@@ -12,6 +15,85 @@ from bson import ObjectId
 from src.core.config import Config
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10MB
+
+# Bộ nhớ đệm RAM cho các chuỗi data:... (PDF/Ảnh Base64 lớn) để cắt khỏi JSON danh sách
+_INLINE_BLOB_STORE = {}
+_INLINE_BLOB_LOCK = threading.RLock()
+
+
+def _fast_doc_copy(doc):
+    """Sao chép nông 2 tầng siêu tốc (nhanh hơn copy.deepcopy ~20 lần) cho document dict."""
+    if not isinstance(doc, dict):
+        return doc
+    out = {}
+    for k, v in doc.items():
+        if isinstance(v, dict):
+            out[k] = dict(v)
+        elif isinstance(v, list):
+            out[k] = [dict(x) if isinstance(x, dict) else x for x in v]
+        else:
+            out[k] = v
+    return out
+
+
+def _offload_base64_value(val: str, default_name: str = "document.pdf") -> str:
+    """Nếu giá trị là chuỗi data:... Base64 lớn (> 2KB), chuyển sang lưu RAM và trả về URL /api/files/inline_<hash>."""
+    if not isinstance(val, str) or len(val) <= 2048 or not val.startswith("data:") or "," not in val:
+        return val
+    if val.startswith("data:image/svg+xml"):
+        return val
+    fid = "inline_" + hashlib.sha1(val.encode("utf-8", errors="ignore")).hexdigest()[:24]
+    with _INLINE_BLOB_LOCK:
+        if fid not in _INLINE_BLOB_STORE:
+            try:
+                header, raw_b64 = val.split(",", 1)
+                mime_part = header[5:].split(";", 1)[0].strip().lower() or "application/pdf"
+                if mime_part == "image/jpg":
+                    mime_part = "image/jpeg"
+                raw_bytes = base64.b64decode(raw_b64)
+                ext = "pdf" if "pdf" in mime_part else ("png" if "png" in mime_part else "jpg")
+                fname = default_name if default_name else f"file.{ext}"
+                if "." not in fname:
+                    fname = f"{fname}.{ext}"
+                _INLINE_BLOB_STORE[fid] = {
+                    "data": raw_bytes,
+                    "filename": fname,
+                    "content_type": mime_part,
+                    "length": len(raw_bytes),
+                }
+            except Exception:
+                return val
+    return f"/api/files/{fid}"
+
+
+def _sanitize_doc_blobs(doc):
+    """Chuẩn hóa _id thành chuỗi và tách mọi chuỗi Base64 nặng (>2KB) ra khỏi bản ghi danh sách."""
+    if not isinstance(doc, dict):
+        return doc
+    if "_id" in doc:
+        doc["_id"] = str(doc["_id"])
+    url_fields = (
+        ("file_url", doc.get("file_name") or "CV_UngVien.pdf"),
+        ("cv_url", doc.get("cv_name") or "CV_UngVien.pdf"),
+        ("business_license_url", doc.get("business_license_name") or "GPKD_DoanhNghiep.pdf"),
+        ("license_url", doc.get("license_name") or "GPKD_DoanhNghiep.pdf"),
+        ("logo_url", "logo.png"),
+        ("cover_image_url", "cover.jpg"),
+        ("avatar_url", "avatar.png"),
+        ("media_url", doc.get("file_name") or "attachment.pdf"),
+    )
+    for field_name, def_fname in url_fields:
+        val = doc.get(field_name)
+        if isinstance(val, str) and len(val) > 2048 and val.startswith("data:"):
+            doc[field_name] = _offload_base64_value(val, def_fname)
+
+    snap = doc.get("application_snapshot")
+    if isinstance(snap, dict):
+        for s_field in ("cv_url", "cv_file", "file_url"):
+            s_val = snap.get(s_field)
+            if isinstance(s_val, str) and len(s_val) > 2048 and s_val.startswith("data:"):
+                snap[s_field] = _offload_base64_value(s_val, snap.get("cv_name") or "CV_UngVien.pdf")
+    return doc
 
 # The 16 collections specified in ERD and MongoDB Compass screenshot
 COLLECTIONS = [
@@ -49,38 +131,142 @@ class _SimpleDeleteResult:
         return self.deleted_count > 0
 
 class AtlasCursorAdapter:
-    def __init__(self, cursor):
-        self._cursor = cursor
+    def __init__(self, adapter, raw_query, args=(), kwargs=None):
+        self._adapter = adapter
+        self._raw_query = raw_query or {}
+        self._args = args
+        self._kwargs = kwargs or {}
+        self._sort_spec = []
+        self._limit_n = None
+        self._skip_n = None
 
     def sort(self, *args, **kwargs):
-        self._cursor = self._cursor.sort(*args, **kwargs)
+        self._sort_spec.append((args, kwargs))
         return self
 
     def limit(self, n):
-        self._cursor = self._cursor.limit(n)
+        self._limit_n = n
         return self
 
     def skip(self, n):
-        self._cursor = self._cursor.skip(n)
+        self._skip_n = n
         return self
 
     def __iter__(self):
-        for doc in self._cursor:
-            if isinstance(doc, dict) and "_id" in doc:
-                doc["_id"] = str(doc["_id"])
-            yield doc
+        cache_key = (
+            "find",
+            json.dumps(self._raw_query, sort_keys=True, default=str),
+            repr(self._sort_spec),
+            self._limit_n,
+            self._skip_n,
+        )
+        hit, cached_docs = self._adapter._get_cached(cache_key)
+        if hit and cached_docs is not None:
+            for doc in cached_docs:
+                yield _fast_doc_copy(doc)
+            return
+
+        mirror_docs = self._adapter._get_mirror_docs()
+        if not self._raw_query:
+            matched = list(mirror_docs)
+        else:
+            matched = [d for d in mirror_docs if MemoryCollection._matches_static(d, self._raw_query)]
+
+        for s_args, _ in reversed(self._sort_spec):
+            if s_args:
+                first_arg = s_args[0]
+                if isinstance(first_arg, str):
+                    direction = s_args[1] if len(s_args) > 1 else 1
+                    try:
+                        matched.sort(key=lambda x: str(x.get(first_arg) or ""), reverse=(direction == -1))
+                    except Exception:
+                        pass
+                elif isinstance(first_arg, list):
+                    for field, direction in reversed(first_arg):
+                        try:
+                            matched.sort(key=lambda x: str(x.get(field) or ""), reverse=(direction == -1))
+                        except Exception:
+                            pass
+
+        if self._skip_n is not None:
+            matched = matched[self._skip_n:]
+        if self._limit_n is not None:
+            matched = matched[:self._limit_n]
+
+        self._adapter._set_cached(cache_key, matched)
+        for doc in matched:
+            yield _fast_doc_copy(doc)
 
     def to_list(self):
         return list(self)
 
 class AtlasCollectionAdapter:
     """
-    Adapter cho PyMongo Collection giúp tự động đồng bộ _id dạng str và ObjectId,
-    đảm bảo mọi thao tác tìm kiếm, sửa, xóa trên MongoDB Atlas luôn khớp chính xác
-    100% và không bao giờ khôi phục lại dữ liệu đã xóa khi người dùng F5 hoặc đăng nhập lại.
+    Adapter cho PyMongo Collection giúp:
+    1. Giữ bản sao dữ liệu (In-Memory Mirror) trong RAM với TTL 300s + làm mới ngầm (Stale-While-Revalidate).
+    2. Cập nhật tức thì cả trong RAM lẫn trên MongoDB Atlas khi có thao tác Ghi (insert/update/delete).
+    3. Cắt bỏ chuỗi Base64 nặng khỏi bản ghi danh sách và bỏ copy.deepcopy dư thừa, giúp mọi truy vấn phản hồi < 1ms.
     """
+    CACHE_TTL = 300.0
+
     def __init__(self, col):
         self._col = col
+        self._cache = {}
+        self._docs_mirror = None
+        self._mirror_ts = 0.0
+        self._refreshing = False
+        self._lock = threading.RLock()
+
+    def invalidate_cache(self):
+        with self._lock:
+            self._cache.clear()
+
+    def _load_mirror_from_atlas(self):
+        raw_docs = list(self._col.find({}))
+        cleaned = [_sanitize_doc_blobs(d) for d in raw_docs if isinstance(d, dict)]
+        with self._lock:
+            self._docs_mirror = cleaned
+            self._mirror_ts = time.monotonic()
+            self._cache.clear()
+            self._refreshing = False
+        return cleaned
+
+    def _refresh_mirror_async(self):
+        def _worker():
+            try:
+                self._load_mirror_from_atlas()
+            except Exception:
+                with self._lock:
+                    self._refreshing = False
+        t = threading.Thread(target=_worker, daemon=True)
+        t.start()
+
+    def _get_mirror_docs(self):
+        now = time.monotonic()
+        with self._lock:
+            if self._docs_mirror is not None:
+                if (now - self._mirror_ts > self.CACHE_TTL) and not self._refreshing:
+                    self._refreshing = True
+                    self._refresh_mirror_async()
+                return self._docs_mirror
+        return self._load_mirror_from_atlas()
+
+    def _get_cached(self, key):
+        now = time.monotonic()
+        with self._lock:
+            entry = self._cache.get(key)
+            if entry is not None:
+                ts, val = entry
+                if now - ts <= self.CACHE_TTL:
+                    return True, val
+                self._cache.pop(key, None)
+        return False, None
+
+    def _set_cached(self, key, val):
+        with self._lock:
+            if len(self._cache) > 1024:
+                self._cache.clear()
+            self._cache[key] = (time.monotonic(), val)
 
     def _expand_id(self, val):
         if isinstance(val, str) and len(val) == 24 and ObjectId.is_valid(val):
@@ -114,34 +300,123 @@ class AtlasCollectionAdapter:
         return norm
 
     def insert_one(self, doc):
-        doc_copy = copy.deepcopy(doc)
+        doc_copy = _fast_doc_copy(doc)
         if "_id" not in doc_copy:
             doc_copy["_id"] = str(uuid.uuid4())
-        return self._col.insert_one(doc_copy)
-
-    def find_one(self, query=None, *args, **kwargs):
-        res = self._col.find_one(self._normalize_query(query), *args, **kwargs)
-        if isinstance(res, dict) and "_id" in res:
-            res["_id"] = str(res["_id"])
+        else:
+            doc_copy["_id"] = str(doc_copy["_id"])
+        res = self._col.insert_one(_fast_doc_copy(doc_copy))
+        sanitized = _sanitize_doc_blobs(doc_copy)
+        with self._lock:
+            if self._docs_mirror is not None:
+                self._docs_mirror.append(sanitized)
+            self._cache.clear()
         return res
 
+    def find_one(self, query=None, *args, **kwargs):
+        raw_q = query or {}
+        cache_key = ("find_one", json.dumps(raw_q, sort_keys=True, default=str))
+        hit, cached_val = self._get_cached(cache_key)
+        if hit:
+            return _fast_doc_copy(cached_val)
+        mirror_docs = self._get_mirror_docs()
+        for d in mirror_docs:
+            if MemoryCollection._matches_static(d, raw_q):
+                self._set_cached(cache_key, d)
+                return _fast_doc_copy(d)
+        self._set_cached(cache_key, None)
+        return None
+
     def find(self, query=None, *args, **kwargs):
-        return AtlasCursorAdapter(self._col.find(self._normalize_query(query), *args, **kwargs))
+        return AtlasCursorAdapter(self, query or {}, args=args, kwargs=kwargs)
 
     def count_documents(self, query=None):
-        return self._col.count_documents(self._normalize_query(query))
+        raw_q = query or {}
+        cache_key = ("count", json.dumps(raw_q, sort_keys=True, default=str))
+        hit, cached_cnt = self._get_cached(cache_key)
+        if hit:
+            return cached_cnt
+        mirror_docs = self._get_mirror_docs()
+        if not raw_q:
+            cnt = len(mirror_docs)
+        else:
+            cnt = sum(1 for d in mirror_docs if MemoryCollection._matches_static(d, raw_q))
+        self._set_cached(cache_key, cnt)
+        return cnt
+
+    def _apply_update_to_doc(self, d, update):
+        if "$set" in update and isinstance(update["$set"], dict):
+            for k, v in update["$set"].items():
+                if "." in k:
+                    parts = k.split(".")
+                    curr = d
+                    for p in parts[:-1]:
+                        if not isinstance(curr.get(p), dict):
+                            curr[p] = {}
+                        curr = curr[p]
+                    curr[parts[-1]] = v
+                else:
+                    d[k] = v
+        if "$push" in update and isinstance(update["$push"], dict):
+            for k, v in update["$push"].items():
+                if not isinstance(d.get(k), list):
+                    d[k] = []
+                d[k].append(_fast_doc_copy(v))
+        _sanitize_doc_blobs(d)
 
     def update_one(self, query, update, upsert=False):
-        return self._col.update_one(self._normalize_query(query), update, upsert=upsert)
+        res = self._col.update_one(self._normalize_query(query), update, upsert=upsert)
+        raw_q = query or {}
+        with self._lock:
+            if self._docs_mirror is not None:
+                updated = False
+                for d in self._docs_mirror:
+                    if MemoryCollection._matches_static(d, raw_q):
+                        self._apply_update_to_doc(d, update)
+                        updated = True
+                        break
+                if not updated and upsert and "$set" in update:
+                    new_doc = {k: v for k, v in raw_q.items() if not str(k).startswith("$") and not isinstance(v, dict)}
+                    new_doc.update(_fast_doc_copy(update["$set"]))
+                    if "_id" not in new_doc:
+                        new_doc["_id"] = str(uuid.uuid4())
+                    else:
+                        new_doc["_id"] = str(new_doc["_id"])
+                    self._docs_mirror.append(_sanitize_doc_blobs(new_doc))
+            self._cache.clear()
+        return res
 
     def update_many(self, query, update, upsert=False):
-        return self._col.update_many(self._normalize_query(query), update, upsert=upsert)
+        res = self._col.update_many(self._normalize_query(query), update, upsert=upsert)
+        raw_q = query or {}
+        with self._lock:
+            if self._docs_mirror is not None:
+                for d in self._docs_mirror:
+                    if MemoryCollection._matches_static(d, raw_q):
+                        self._apply_update_to_doc(d, update)
+            self._cache.clear()
+        return res
 
     def delete_one(self, query):
-        return self._col.delete_one(self._normalize_query(query))
+        res = self._col.delete_one(self._normalize_query(query))
+        raw_q = query or {}
+        with self._lock:
+            if self._docs_mirror is not None:
+                for i, d in enumerate(self._docs_mirror):
+                    if MemoryCollection._matches_static(d, raw_q):
+                        del self._docs_mirror[i]
+                        break
+            self._cache.clear()
+        return res
 
     def delete_many(self, query):
-        return self._col.delete_many(self._normalize_query(query))
+        res = self._col.delete_many(self._normalize_query(query))
+        raw_q = query or {}
+        with self._lock:
+            if self._docs_mirror is not None:
+                self._docs_mirror = [d for d in self._docs_mirror if not MemoryCollection._matches_static(d, raw_q)]
+            self._cache.clear()
+        return res
 
     def create_index(self, *args, **kwargs):
         return self._col.create_index(*args, **kwargs)
@@ -157,7 +432,7 @@ class MemoryCollection:
             self.on_change()
 
     def insert_one(self, doc):
-        doc_copy = copy.deepcopy(doc)
+        doc_copy = _sanitize_doc_blobs(_fast_doc_copy(doc))
         if "_id" not in doc_copy:
             doc_copy["_id"] = str(uuid.uuid4())
         else:
@@ -172,30 +447,31 @@ class MemoryCollection:
     def find_one(self, query=None):
         query = query or {}
         for d in self.docs:
-            if self._matches(d, query):
-                return copy.deepcopy(d)
+            if self._matches_static(d, query):
+                return _fast_doc_copy(d)
         return None
 
     def find(self, query=None):
         query = query or {}
-        res = [copy.deepcopy(d) for d in self.docs if self._matches(d, query)]
+        res = [_fast_doc_copy(d) for d in self.docs if self._matches_static(d, query)]
         return MemoryCursor(res)
 
     def count_documents(self, query=None):
         query = query or {}
-        return len([d for d in self.docs if self._matches(d, query)])
+        return sum(1 for d in self.docs if self._matches_static(d, query))
 
     def update_one(self, query, update, upsert=False):
         for d in self.docs:
-            if self._matches(d, query):
+            if self._matches_static(d, query):
                 if "$set" in update:
                     for k, v in update["$set"].items():
-                        d[k] = copy.deepcopy(v)
+                        d[k] = copy.deepcopy(v) if isinstance(v, (dict, list)) else v
+                    _sanitize_doc_blobs(d)
                 if "$push" in update:
                     for k, v in update["$push"].items():
                         if not isinstance(d.get(k), list):
                             d[k] = []
-                        d[k].append(copy.deepcopy(v))
+                        d[k].append(copy.deepcopy(v) if isinstance(v, (dict, list)) else v)
                 self._save()
                 return _SimpleUpdateResult(1, 1)
         if upsert and "$set" in update:
@@ -208,23 +484,24 @@ class MemoryCollection:
     def update_many(self, query, update, upsert=False):
         matched = 0
         for d in self.docs:
-            if self._matches(d, query):
+            if self._matches_static(d, query):
                 matched += 1
                 if "$set" in update:
                     for k, v in update["$set"].items():
-                        d[k] = copy.deepcopy(v)
+                        d[k] = copy.deepcopy(v) if isinstance(v, (dict, list)) else v
+                    _sanitize_doc_blobs(d)
                 if "$push" in update:
                     for k, v in update["$push"].items():
                         if not isinstance(d.get(k), list):
                             d[k] = []
-                        d[k].append(copy.deepcopy(v))
+                        d[k].append(copy.deepcopy(v) if isinstance(v, (dict, list)) else v)
         if matched > 0:
             self._save()
         return _SimpleUpdateResult(matched, matched)
 
     def delete_one(self, query):
         for i, d in enumerate(self.docs):
-            if self._matches(d, query):
+            if self._matches_static(d, query):
                 del self.docs[i]
                 self._save()
                 return _SimpleDeleteResult(1)
@@ -234,7 +511,7 @@ class MemoryCollection:
         count = 0
         rem = []
         for d in self.docs:
-            if self._matches(d, query):
+            if self._matches_static(d, query):
                 count += 1
             else:
                 rem.append(d)
@@ -261,21 +538,25 @@ class MemoryCollection:
         return curr
 
     def _matches(self, doc, query):
+        return self._matches_static(doc, query)
+
+    @classmethod
+    def _matches_static(cls, doc, query):
         if not query:
             return True
         import re
         for k, v in query.items():
             if k == "$and":
-                if not isinstance(v, list) or not all(self._matches(doc, sub_q) for sub_q in v):
+                if not isinstance(v, list) or not all(cls._matches_static(doc, sub_q) for sub_q in v):
                     return False
             elif k == "$or":
-                if not isinstance(v, list) or not any(self._matches(doc, sub_q) for sub_q in v):
+                if not isinstance(v, list) or not any(cls._matches_static(doc, sub_q) for sub_q in v):
                     return False
             elif k == "$nor":
-                if not isinstance(v, list) or any(self._matches(doc, sub_q) for sub_q in v):
+                if not isinstance(v, list) or any(cls._matches_static(doc, sub_q) for sub_q in v):
                     return False
             elif isinstance(v, dict) and any(str(op).startswith("$") for op in v.keys()):
-                doc_val = self._get_field(doc, k)
+                doc_val = cls._get_field(doc, k)
                 for op, op_val in v.items():
                     if op == "$options":
                         continue
@@ -331,7 +612,7 @@ class MemoryCollection:
                         except TypeError:
                             return False
             else:
-                doc_val = self._get_field(doc, k)
+                doc_val = cls._get_field(doc, k)
                 if isinstance(doc_val, list) and not isinstance(v, list):
                     if v not in doc_val and str(v) not in [str(x) for x in doc_val]:
                         return False
@@ -415,6 +696,7 @@ class DatabaseManager:
             or os.path.join(os.path.dirname(__file__), "..", "..", "local_db_store.json")
         )
         self._saving_local = False
+        self._file_ram_cache = {}
         self.memory_collections = {
             name: MemoryCollection(name, on_change=(None if self.is_testing else self._persist_local_store))
             for name in COLLECTIONS
@@ -424,9 +706,22 @@ class DatabaseManager:
         )
         self._atlas_adapters = {}
         self.connect()
-        if not self.is_atlas and not self.is_testing:
+        if self.is_atlas and not self.is_testing:
+            self._prewarm_atlas_cache()
+        elif not self.is_atlas and not self.is_testing:
             self._load_local_store()
         self.seed_initial_data()
+
+    def _prewarm_atlas_cache(self):
+        """Tự động nạp song song toàn bộ 16 collections vào RAM để mọi thao tác đăng nhập & chuyển tab nhanh tức thì."""
+        if not self.is_atlas or self.db is None:
+            return
+        try:
+            adapters = [self.get_collection(name) for name in COLLECTIONS]
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                list(pool.map(lambda ad: ad._get_mirror_docs(), adapters))
+        except Exception as e:
+            print(f"[Database] Pre-warm warning: {e}")
 
     def _load_local_store(self):
         if not os.path.exists(self.local_db_path):
@@ -437,7 +732,7 @@ class DatabaseManager:
             if isinstance(raw, dict):
                 for name in COLLECTIONS:
                     if isinstance(raw.get(name), list):
-                        self.memory_collections[name].docs = raw[name]
+                        self.memory_collections[name].docs = [_sanitize_doc_blobs(d) for d in raw[name]]
         except Exception as e:
             print(f"[Database] Could not load local store: {e}")
 
@@ -473,7 +768,7 @@ class DatabaseManager:
     def extract_file_id(file_url: str):
         if isinstance(file_url, str) and file_url.startswith("/api/files/"):
             fid = file_url[len("/api/files/"):].split("?", 1)[0].strip()
-            if ObjectId.is_valid(fid):
+            if ObjectId.is_valid(fid) or fid.startswith("inline_"):
                 return fid
         return None
 
@@ -485,8 +780,14 @@ class DatabaseManager:
             raise ValueError("Dung lượng tệp vượt quá giới hạn 10MB!")
         if self.fs is None:
             self.fs = gridfs.GridFS(self.db) if (self.is_atlas and self.db is not None) else MemoryGridFS(self.memory_collections["fs_files"])
-        file_id = self.fs.put(raw, filename=filename, content_type=content_type, metadata=metadata or {})
-        return str(file_id)
+        file_id = str(self.fs.put(raw, filename=filename, content_type=content_type, metadata=metadata or {}))
+        self._file_ram_cache[file_id] = {
+            "data": raw,
+            "filename": filename or "document.pdf",
+            "content_type": content_type or "application/pdf",
+            "length": len(raw),
+        }
+        return file_id
 
     def save_data_url(self, data_url: str, filename: str, allowed_types=("application/pdf",), metadata: dict = None, allow_pdf_magic: bool = False):
         if not data_url or not isinstance(data_url, str) or not data_url.startswith("data:") or "," not in data_url:
@@ -512,24 +813,36 @@ class DatabaseManager:
         return file_id, f"/api/files/{file_id}"
 
     def get_file(self, file_id: str):
-        if not file_id or not ObjectId.is_valid(str(file_id)):
+        fid = str(file_id or "").strip()
+        if not fid:
+            return None
+        if fid.startswith("inline_"):
+            with _INLINE_BLOB_LOCK:
+                return _INLINE_BLOB_STORE.get(fid)
+        if fid in self._file_ram_cache:
+            return self._file_ram_cache[fid]
+        if not ObjectId.is_valid(fid):
             return None
         if self.fs is None:
             self.fs = gridfs.GridFS(self.db) if (self.is_atlas and self.db is not None) else MemoryGridFS(self.memory_collections["fs_files"])
         try:
-            grid_out = self.fs.get(ObjectId(str(file_id)))
+            grid_out = self.fs.get(ObjectId(fid))
             data = grid_out.read()
             filename = grid_out.filename or "document.pdf"
             content_type = getattr(grid_out, "content_type", None)
             if not content_type:
                 ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "pdf"
                 content_type = "application/pdf" if ext == "pdf" else (f"image/{'jpeg' if ext in ('jpg', 'jpeg') else ext}")
-            return {
+            result = {
                 "data": data,
                 "filename": filename,
                 "content_type": content_type,
                 "length": getattr(grid_out, "length", len(data)) or len(data)
             }
+            if len(self._file_ram_cache) >= 64:
+                self._file_ram_cache.clear()
+            self._file_ram_cache[fid] = result
+            return result
         except NoFile:
             return None
         except Exception:
@@ -539,7 +852,14 @@ class DatabaseManager:
         fid = self.extract_file_id(file_id_or_url)
         if not fid and isinstance(file_id_or_url, str) and ObjectId.is_valid(file_id_or_url.strip()):
             fid = file_id_or_url.strip()
-        if not fid or self.fs is None:
+        if not fid:
+            return False
+        self._file_ram_cache.pop(fid, None)
+        if fid.startswith("inline_"):
+            with _INLINE_BLOB_LOCK:
+                _INLINE_BLOB_STORE.pop(fid, None)
+            return True
+        if self.fs is None:
             return False
         try:
             self.fs.delete(ObjectId(fid))

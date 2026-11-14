@@ -70,9 +70,7 @@ export default function AdminLoginScreen({ onAuthSuccess, onNavigate }) {
         localStorage.setItem('partime_admin_user', JSON.stringify(data.user));
         localStorage.setItem('partime_token', data.token);
         localStorage.setItem('partime_user', JSON.stringify(data.user));
-        setTimeout(() => {
-          onAuthSuccess(data.user);
-        }, 400);
+        onAuthSuccess(data.user);
         return;
       }
 

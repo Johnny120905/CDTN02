@@ -113,9 +113,7 @@ export default function LoginScreen({ onAuthSuccess, onNavigate, initialRole, lo
         localStorage.setItem(`partime_${uRole}_user`, JSON.stringify(data.user));
         localStorage.setItem('partime_token', data.token);
         localStorage.setItem('partime_user', JSON.stringify(data.user));
-        setTimeout(() => {
-          onAuthSuccess(data.user);
-        }, 350);
+        onAuthSuccess(data.user);
         return;
       }
 

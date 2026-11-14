@@ -106,8 +106,11 @@ export default function Header({
   useEffect(() => {
     if (!token || isGuest) return;
     fetchNotifications();
-    // Chuẩn hóa tương tác ≤ 3s: Polling fallback 2.5 giây cho tất cả 3 role
-    const interval = setInterval(fetchNotifications, 2500);
+    // Đồng bộ nền dự phòng 15 giây (đã có Socket.IO đẩy realtime tức thì)
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      fetchNotifications();
+    }, 15000);
 
     // Kích hoạt nhận thông báo tức thời qua WebRTC Socket.IO (3 role thông nhau)
     const socket = getSocket();
@@ -168,8 +171,8 @@ export default function Header({
       const hasIdMatch = myIdList.some(id => notifTargetIds.includes(id));
       const hasRoleMatch = 
         (isAdmin && (notif.role === 'admin' || notif.user_id === 'role_admin')) ||
-        (isEmployer && (notif.role === 'employer' || notif.user_id === 'role_employer')) ||
-        (isStudent && (notif.role === 'student' || notif.user_id === 'role_student')) ||
+        (isEmployer && (notif.user_id === 'role_employer' || notif.target === 'all_employers')) ||
+        (isStudent && (notif.user_id === 'role_student' || notif.target === 'all_students')) ||
         notif.user_id === 'all' || notif.user_id === 'broadcast';
 
       const isTarget = hasIdMatch || hasRoleMatch;

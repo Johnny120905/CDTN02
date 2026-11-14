@@ -214,13 +214,15 @@ def get_bookmarks():
     job_col = db_manager.get_collection("jobs")
     
     bms = list(bm_col.find({"student_id": stu["_id"]}))
-    job_ids = [b["job_id"] for b in bms]
-    
-    jobs = []
-    for jid in job_ids:
-        job = job_col.find_one({"_id": jid, "is_hidden": False})
-        if job:
-            jobs.append(job)
+    job_ids = [b["job_id"] for b in bms if b.get("job_id")]
+    if not job_ids:
+        return jsonify({"success": True, "data": []})
+    jobs_by_id = {
+        j["_id"]: j
+        for j in job_col.find({"_id": {"$in": job_ids}, "is_hidden": False})
+        if j.get("_id")
+    }
+    jobs = [jobs_by_id[jid] for jid in job_ids if jid in jobs_by_id]
     return jsonify({"success": True, "data": jobs})
 
 @student_bp.route("/bookmarks/<job_id>", methods=["POST", "DELETE"])
@@ -260,8 +262,14 @@ def apply_job(url_job_id=None):
 
     job_col = db_manager.get_collection("jobs")
     job = job_col.find_one({"_id": job_id})
-    if not job or job.get("is_hidden") or not job.get("is_open"):
-        return jsonify({"success": False, "message": "Công việc này hiện không còn nhận hồ sơ hoặc đã bị ẩn."}), 400
+    j_status = str((job or {}).get("job_status") or (job or {}).get("status") or "open").strip().lower()
+    if (
+        not job
+        or job.get("is_hidden")
+        or not job.get("is_open", True)
+        or j_status in ("closed", "filled", "completed", "đã đóng", "tạm đóng", "đã nhận người", "hoàn thành")
+    ):
+        return jsonify({"success": False, "message": "Công việc này hiện không còn nhận hồ sơ, đã tạm đóng hoặc đã nhận đủ người."}), 400
 
     app_col = db_manager.get_collection("applications")
     # Ràng buộc chặn nộp trùng
@@ -280,15 +288,43 @@ def apply_job(url_job_id=None):
         cvs = list(res_col.find({"student_id": stu["_id"]}))
         cv = cvs[0] if cvs else None
 
+    shift_reg = data.get("shift_registered") or job.get("work_time") or "Ca linh hoạt"
+    free_sched = stu.get("free_schedule") if isinstance(stu.get("free_schedule"), dict) else {}
+
+    # Tính toán độ khớp lịch học cá nhân với ca làm việc thực tế (SV-07)
+    match_score = 85
+    if free_sched:
+        days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
+        shift_lower = str(shift_reg).lower()
+        target_slots = []
+        if "sáng" in shift_lower or "morning" in shift_lower or "07:" in shift_lower or "08:" in shift_lower:
+            target_slots.append("morning")
+        if "chiều" in shift_lower or "afternoon" in shift_lower or "13:" in shift_lower or "14:" in shift_lower:
+            target_slots.append("afternoon")
+        if "tối" in shift_lower or "evening" in shift_lower or "18:" in shift_lower or "17:" in shift_lower:
+            target_slots.append("evening")
+        matched_days = 0
+        for d in days:
+            d_obj = free_sched.get(d)
+            if isinstance(d_obj, dict):
+                if target_slots:
+                    if any(bool(d_obj.get(s)) for s in target_slots):
+                        matched_days += 1
+                elif any(bool(d_obj.get(s)) for s in ("morning", "afternoon", "evening")):
+                    matched_days += 1
+        match_score = round((matched_days / len(days)) * 100)
+
     # Application Snapshot
     snapshot = {
         "student_name": stu.get("full_name"),
         "phone": stu.get("phone"),
         "university": stu.get("university"),
-        "cv_url": cv.get("file_url") if cv else "",
+        "cv_url": cv.get("file_name") and cv.get("file_url") if cv else (cv.get("file_url") if cv else ""),
         "cv_name": cv.get("file_name") if cv else "Không có file CV",
         "cover_note": cover_note,
-        "shift_registered": data.get("shift_registered") or job.get("work_time") or "Ca linh hoạt",
+        "shift_registered": shift_reg,
+        "free_schedule": free_sched,
+        "match_score": match_score,
     }
 
     new_app = {
@@ -301,7 +337,9 @@ def apply_job(url_job_id=None):
         "student_user_id": user["_id"],
         "student_name": stu.get("full_name"),
         "work_time": job.get("work_time") or "Ca linh hoạt",
-        "shift_registered": data.get("shift_registered") or job.get("work_time") or "Ca linh hoạt",
+        "shift_registered": shift_reg,
+        "free_schedule": free_sched,
+        "match_score": match_score,
         "location": job.get("location") or job.get("address") or "TP. Hồ Chí Minh",
         "branch_name": job.get("branch_name") or job.get("location") or "",
         "salary_min": job.get("salary_min"),
@@ -347,8 +385,18 @@ def list_my_applications():
     emp_col = db_manager.get_collection("employers")
     comp_col = db_manager.get_collection("company_profiles")
     apps = list(app_col.find({"student_id": stu["_id"], "is_deleted_by_student": {"$ne": True}}).sort("applied_at", -1))
+    if not apps:
+        return jsonify({"success": True, "data": []})
+
+    job_ids = list({a.get("job_id") for a in apps if a.get("job_id")})
+    jobs_map = {j["_id"]: j for j in job_col.find({"_id": {"$in": job_ids}}) if j.get("_id")} if job_ids else {}
+    all_emps = list(emp_col.find({}))
+    emp_by_id = {e["_id"]: e for e in all_emps if e.get("_id")}
+    emp_by_uid = {e["user_id"]: e for e in all_emps if e.get("user_id")}
+    comp_by_emp_id = {c.get("employer_id"): c for c in comp_col.find({}) if c.get("employer_id")}
+
     for a in apps:
-        job = job_col.find_one({"_id": a.get("job_id")})
+        job = jobs_map.get(a.get("job_id"))
         if job:
             a.setdefault("work_time", job.get("work_time") or job.get("shift_schedule") or "Ca linh hoạt")
             a.setdefault("location", job.get("location") or job.get("address") or "TP. Hồ Chí Minh")
@@ -361,12 +409,12 @@ def list_my_applications():
             a.setdefault("shift_week", job.get("shift_week") or "")
 
         raw_emp_id = a.get("employer_id") or (job.get("employer_id") if job else "")
-        emp_doc = emp_col.find_one({"$or": [{"_id": raw_emp_id}, {"user_id": raw_emp_id}]}) if raw_emp_id else None
+        emp_doc = (emp_by_id.get(raw_emp_id) or emp_by_uid.get(raw_emp_id)) if raw_emp_id else None
         canonical_emp_id = emp_doc["_id"] if emp_doc else raw_emp_id
         if canonical_emp_id and not a.get("employer_id"):
             a["employer_id"] = canonical_emp_id
 
-        comp_doc = comp_col.find_one({"employer_id": canonical_emp_id}) if canonical_emp_id else None
+        comp_doc = comp_by_emp_id.get(canonical_emp_id) if canonical_emp_id else None
         existing_name = str(a.get("company_name") or "").strip()
         resolved_name = (
             (existing_name if existing_name and existing_name != "Doanh nghiệp" else "")
@@ -379,7 +427,7 @@ def list_my_applications():
         a["company_name"] = resolved_name
 
         if canonical_emp_id:
-            room_id = canonicalize_room_id(f"room_emp_{canonical_emp_id}_stu_{user['_id']}")
+            room_id = f"room_emp_{canonical_emp_id}_stu_{user['_id']}"
             lm = get_latest_room_message(room_id)
             if lm:
                 a["last_sender_role"] = lm.get("sender_role")
@@ -625,6 +673,19 @@ def submit_review():
     if not app:
         return jsonify({"success": False, "message": "Đơn ứng tuyển không hợp lệ."}), 404
 
+    job_doc = db_manager.get_collection("jobs").find_one({"_id": app.get("job_id")}) if app.get("job_id") else None
+    is_work_done = (
+        app.get("shift_status") == "completed"
+        or app.get("application_status") == "completed"
+        or app.get("job_status") == "completed"
+        or (job_doc and (job_doc.get("status") == "completed" or job_doc.get("job_status") == "completed"))
+    )
+    if app.get("application_status") not in ("accepted", "completed", "Đã duyệt") or not is_work_done:
+        return jsonify({
+            "success": False,
+            "message": "Chỉ các công việc đã hoàn thành ca làm mới được phép gửi đánh giá 2 chiều!"
+        }), 400
+
     rev_col = db_manager.get_collection("reviews")
     existing = rev_col.find_one({"application_id": application_id, "reviewer_id": user["_id"]})
     if existing:
@@ -672,9 +733,11 @@ def list_my_reviews():
     rev_col = db_manager.get_collection("reviews")
     app_col = db_manager.get_collection("applications")
     reviews = list(rev_col.find({"reviewer_id": user["_id"]}).sort("created_at", -1))
+    app_ids = list({r.get("application_id") for r in reviews if r.get("application_id")})
+    apps_map = {a["_id"]: a for a in app_col.find({"_id": {"$in": app_ids}}) if a.get("_id")} if app_ids else {}
     for r in reviews:
         if "application_id" in r:
-            app = app_col.find_one({"_id": r["application_id"]})
+            app = apps_map.get(r["application_id"])
             if app:
                 r["job_title"] = app.get("job_title", "Việc làm đã hoàn thành")
                 r["company_name"] = app.get("company_name", "Doanh nghiệp")
@@ -834,9 +897,8 @@ def list_student_notifications():
                     {"user_id": {"$in": stu_ids}},
                     {"user_aliases": {"$in": stu_ids}},
                     {"target_id": {"$in": stu_ids}},
-                    {"related_id": {"$in": stu_ids}},
-                    {"role": "student"},
-                    {"user_id": "role_student"}
+                    {"user_id": "role_student"},
+                    {"target": "all_students"}
                 ]
             },
             {"is_deleted": {"$ne": True}}
@@ -857,9 +919,8 @@ def mark_read(notif_id):
                 {"user_id": {"$in": stu_ids}},
                 {"user_aliases": {"$in": stu_ids}},
                 {"target_id": {"$in": stu_ids}},
-                {"related_id": {"$in": stu_ids}},
-                {"role": "student"},
-                {"user_id": "role_student"}
+                {"user_id": "role_student"},
+                {"target": "all_students"}
             ]
         },
         {"$set": {"is_read": True}}
@@ -880,9 +941,8 @@ def mark_all_student_read():
                         {"user_id": {"$in": stu_ids}},
                         {"user_aliases": {"$in": stu_ids}},
                         {"target_id": {"$in": stu_ids}},
-                        {"related_id": {"$in": stu_ids}},
-                        {"role": "student"},
-                        {"user_id": "role_student"}
+                        {"user_id": "role_student"},
+                        {"target": "all_students"}
                     ]
                 },
                 {"is_deleted": {"$ne": True}},
@@ -906,9 +966,8 @@ def delete_notification(notif_id):
                 {"user_id": {"$in": stu_ids}},
                 {"user_aliases": {"$in": stu_ids}},
                 {"target_id": {"$in": stu_ids}},
-                {"related_id": {"$in": stu_ids}},
-                {"role": "student"},
-                {"user_id": "role_student"}
+                {"user_id": "role_student"},
+                {"target": "all_students"}
             ]
         },
         {"$set": {"is_deleted": True}}

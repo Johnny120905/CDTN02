@@ -69,10 +69,8 @@ def create_and_emit_notification(
         except Exception:
             pass
 
-    if target_id:
+    if target_id and str(target_id).startswith(("user_", "emp_", "stu_")):
         aliases.add(str(target_id))
-    if related_id:
-        aliases.add(str(related_id))
 
     notif_doc = {
         "_id": f"notif_{uuid.uuid4().hex[:8]}",
@@ -99,17 +97,18 @@ def create_and_emit_notification(
     except Exception as exc:
         logger.warning("Notification DB insert failed: %s", exc)
 
-    # 1. Phát tán sự kiện broadcast toàn hệ thống (< 500ms)
-    emit_socket_event("new-notification", notif_doc)
-
-    # 2. Phát tán trực tiếp vào room riêng của từng ID người nhận
+    # 1. Phát tán trực tiếp vào room riêng của từng ID người nhận
     for aid in aliases:
         if aid and not aid.startswith("role_"):
             emit_socket_event("new-notification", notif_doc, room=f"user_{aid}")
 
-    # 3. Phát tán vào room theo vai trò
-    if inferred_role:
+    # 2. Chỉ phát tán vào room theo vai trò nếu là thông báo chung của role hoặc của admin
+    is_role_broadcast = (not user_id) or str(user_id).startswith("role_") or inferred_role == "admin"
+    if inferred_role and is_role_broadcast:
         emit_socket_event("new-notification", notif_doc, room=f"role_{inferred_role}")
+
+    # 3. Phát sự kiện để client đang kết nối đối chiếu user_id/aliases
+    emit_socket_event("new-notification", notif_doc)
 
     return notif_doc
 

@@ -124,7 +124,7 @@ def get_categories():
     unwanted = {"Bảo hành", "Thời trang"}
     legacy_loc_ids = {"loc_1", "loc_2", "loc_3", "loc_4", "loc_5"}
     c_type = request.args.get("type")
-    query = {"is_active": True}
+    query = {"is_active": {"$ne": False}}
     if c_type:
         query["type"] = c_type
     cats = list(cat_col.find(query))
@@ -543,6 +543,8 @@ def initiate_call():
 @common_bp.route("/chat/call/status", methods=["GET"])
 @token_required
 def get_call_status():
+    if not ACTIVE_CALL_SESSIONS:
+        return jsonify({"success": True, "call": None})
     user = request.current_user
     raw_room_id = request.args.get("room_id", "default_room")
     room_id = canonicalize_room_id(raw_room_id)
@@ -815,8 +817,8 @@ def _notif_owner_filter(user, notif_id=None):
                 {"user_id": {"$in": emp_ids}},
                 {"user_aliases": {"$in": emp_ids}},
                 {"target_id": {"$in": emp_ids}},
-                {"role": "employer"},
-                {"user_id": "role_employer"}
+                {"user_id": "role_employer"},
+                {"target": "all_employers"}
             ]
         }
     elif u_role == "student":
@@ -827,8 +829,8 @@ def _notif_owner_filter(user, notif_id=None):
                 {"user_id": {"$in": stu_ids}},
                 {"user_aliases": {"$in": stu_ids}},
                 {"target_id": {"$in": stu_ids}},
-                {"role": "student"},
-                {"user_id": "role_student"}
+                {"user_id": "role_student"},
+                {"target": "all_students"}
             ]
         }
     else:

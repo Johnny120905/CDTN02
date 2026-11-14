@@ -213,20 +213,25 @@ def list_my_jobs():
     job_col = db_manager.get_collection("jobs")
     jobs = list(job_col.find({"employer_id": emp["_id"]}).sort("created_at", -1))
     
-    # Kèm số lượng ứng viên hợp lệ + số đã duyệt + tên ngành nghề cho mỗi job (FR 2.5.1)
+    # Kèm số lượng ứng viên hợp lệ + số đã duyệt + tên ngành nghề cho mỗi job (FR 2.5.1) - Gom truy vấn 1 lần
     app_col = db_manager.get_collection("applications")
     cat_map = {c.get("_id"): c.get("name") for c in db_manager.get_collection("categories").find({}) if c.get("_id")}
+    job_ids = [j["_id"] for j in jobs if j.get("_id")]
+    all_job_apps = list(app_col.find({"job_id": {"$in": job_ids}})) if job_ids else []
+    app_counts = {}
+    acc_counts = {}
+    for a in all_job_apps:
+        jid = a.get("job_id")
+        st = a.get("application_status")
+        if st not in ["cancelled", "withdrawn"] and not a.get("is_cancelled"):
+            app_counts[jid] = app_counts.get(jid, 0) + 1
+        if st in ["accepted", "Đã duyệt"] and not a.get("is_deleted_by_student"):
+            acc_counts[jid] = acc_counts.get(jid, 0) + 1
+
     for j in jobs:
-        j["applicant_count"] = app_col.count_documents({
-            "job_id": j["_id"],
-            "application_status": {"$nin": ["cancelled", "withdrawn"]},
-            "is_cancelled": {"$ne": True}
-        })
-        j["accepted_count"] = app_col.count_documents({
-            "job_id": j["_id"],
-            "application_status": {"$in": ["accepted", "Đã duyệt"]},
-            "is_deleted_by_student": {"$ne": True}
-        })
+        jid = j.get("_id")
+        j["applicant_count"] = app_counts.get(jid, 0)
+        j["accepted_count"] = acc_counts.get(jid, 0)
         if not j.get("category_name") and j.get("category_id") in cat_map:
             j["category_name"] = cat_map[j["category_id"]]
         if not j.get("status") and j.get("job_status"):
@@ -419,7 +424,11 @@ def toggle_job_status(job_id):
     elif target_status == "completed":
         # Chuyển trạng thái sang Hoàn thành (kết thúc công việc vĩnh viễn và kích hoạt đánh giá 2 chiều)
         job_col.update_one({"_id": job_id}, {"$set": {"status": "completed", "job_status": "completed", "is_open": False, "completed_at": time.strftime("%Y-%m-%d %H:%M:%S")}})
-        accepted_apps = list(app_col.find({"job_id": job_id, "application_status": {"$in": ["accepted", "Đã duyệt"]}}))
+        app_col.update_many(
+            {"job_id": job_id, "application_status": {"$in": ["accepted", "Đã duyệt", "completed"]}},
+            {"$set": {"shift_status": "completed", "job_status": "completed"}}
+        )
+        accepted_apps = list(app_col.find({"job_id": job_id, "application_status": {"$in": ["accepted", "Đã duyệt", "completed"]}}))
         for a_app in accepted_apps:
             stu_uid = resolve_student_user_id(a_app.get("student_user_id") or a_app.get("student_id"))
             if stu_uid:
@@ -442,18 +451,28 @@ def toggle_job_status(job_id):
         return jsonify({"success": True, "status": "completed", "job_status": "completed", "is_open": False, "message": "Đã xác nhận hoàn thành ca làm và kết thúc công việc thành công!"})
 
     elif target_status == "closed":
-        job_col.update_one({"_id": job_id}, {"$set": {"status": "closed", "job_status": "closed", "is_open": False}})
-        emit_socket_event("job-updated", {"job_id": job_id, "status": "closed", "is_open": False})
-        return jsonify({"success": True, "status": "closed", "job_status": "closed", "is_open": False, "message": "Đã tạm đóng tin tuyển dụng."})
+        current_st = job.get("job_status") or job.get("status") or "open"
+        preserved_st = current_st if current_st in ("filled", "completed") else "closed"
+        job_col.update_one({"_id": job_id}, {"$set": {"status": preserved_st, "job_status": preserved_st, "is_open": False}})
+        emit_socket_event("job-updated", {"job_id": job_id, "status": preserved_st, "is_open": False})
+        return jsonify({"success": True, "status": preserved_st, "job_status": preserved_st, "is_open": False, "message": "Đã tạm đóng tin tuyển dụng."})
 
     elif target_status == "open":
-        job_col.update_one({"_id": job_id}, {"$set": {"status": "open", "job_status": "open", "is_open": True}})
-        emit_socket_event("job-updated", {"job_id": job_id, "status": "open", "is_open": True})
-        return jsonify({"success": True, "status": "open", "job_status": "open", "is_open": True, "message": "Đã mở lại tin tuyển dụng."})
+        current_st = job.get("job_status") or job.get("status") or "open"
+        preserved_st = current_st if current_st in ("filled", "completed") else "open"
+        job_col.update_one({"_id": job_id}, {"$set": {"status": preserved_st, "job_status": preserved_st, "is_open": True}})
+        emit_socket_event("job-updated", {"job_id": job_id, "status": preserved_st, "is_open": True})
+        return jsonify({"success": True, "status": preserved_st, "job_status": preserved_st, "is_open": True, "message": "Đã mở lại tin tuyển dụng."})
 
-    # Fallback legacy 2-way toggle
+    # Fallback legacy 2-way toggle: giữ nguyên tiến độ tuyển dụng (filled / completed) nếu đã thiết lập
     new_status = not job.get("is_open", True)
-    status_label = "open" if new_status else "closed"
+    current_st = job.get("job_status") or job.get("status") or "open"
+    if current_st in ("filled", "Đã nhận người"):
+        status_label = "filled"
+    elif current_st in ("completed", "Hoàn thành"):
+        status_label = "completed"
+    else:
+        status_label = "open" if new_status else "closed"
     job_col.update_one({"_id": job_id}, {"$set": {"is_open": new_status, "status": status_label, "job_status": status_label}})
     emit_socket_event("job-updated", {"job_id": job_id, "status": status_label, "is_open": new_status})
     msg = "Đã mở lại tin tuyển dụng." if new_status else "Đã đóng nhận hồ sơ tin tuyển dụng."
@@ -490,9 +509,13 @@ def list_applicants():
 
     applicants = list(app_col.find(query).sort("applied_at", -1))
 
-    # Làm giàu thông tin ca làm, địa điểm từ Jobs, lịch rảnh từ StudentProfiles và trạng thái phản hồi tin nhắn từ Messages
+    # Làm giàu thông tin ca làm, địa điểm từ Jobs, lịch rảnh từ StudentProfiles và trạng thái phản hồi tin nhắn từ Messages (Gom truy vấn ngoài vòng lặp)
     stu_col = db_manager.get_collection("student_profiles")
     jobs_map = {j.get("_id"): j for j in job_col.find({"employer_id": emp["_id"]})}
+    all_stus = list(stu_col.find({}))
+    stu_by_id = {s.get("_id"): s for s in all_stus if s.get("_id")}
+    stu_by_uid = {s.get("user_id"): s for s in all_stus if s.get("user_id")}
+
     for a in applicants:
         parent_job = jobs_map.get(a.get("job_id")) or (job_col.find_one({"_id": a.get("job_id")}) if a.get("job_id") else None)
         if parent_job:
@@ -504,12 +527,13 @@ def list_applicants():
             a.setdefault("salary_max", parent_job.get("salary_max"))
             a["job_status"] = parent_job.get("job_status") or parent_job.get("status") or ("open" if parent_job.get("is_open", True) else "closed")
 
-        stu_uid = resolve_student_user_id(a.get("student_user_id") or a.get("student_id"))
-        stu_prof = stu_col.find_one({"$or": [{"_id": a.get("student_id")}, {"user_id": stu_uid}]})
+        raw_stu = str(a.get("student_user_id") or a.get("student_id") or "")
+        stu_prof = stu_by_id.get(a.get("student_id")) or stu_by_id.get(raw_stu) or stu_by_uid.get(raw_stu)
+        stu_uid = (stu_prof.get("user_id") if stu_prof and stu_prof.get("user_id") else raw_stu)
         if stu_prof and stu_prof.get("free_schedule"):
             a.setdefault("free_schedule", stu_prof.get("free_schedule"))
             a["student_free_schedule"] = stu_prof.get("free_schedule")
-        room_id = canonicalize_room_id(f"room_emp_{emp['_id']}_stu_{stu_uid}")
+        room_id = f"room_emp_{emp['_id']}_stu_{stu_uid}"
         lm = get_latest_room_message(room_id)
         if lm:
             a["last_sender_role"] = lm.get("sender_role")
@@ -620,9 +644,11 @@ def review_student():
     app_col = db_manager.get_collection("applications")
     app = app_col.find_one({"_id": application_id, "$or": [{"employer_id": emp["_id"]}, {"employer_id": user["_id"]}]})
     if not app:
-        app = app_col.find_one({"_id": application_id})
-    if not app:
-        return jsonify({"success": False, "message": "Không tìm thấy hồ sơ ứng viên."}), 404
+        return jsonify({"success": False, "message": "Không tìm thấy hồ sơ ứng viên thuộc doanh nghiệp của bạn."}), 404
+
+    app_st = str(app.get("application_status") or "").strip().lower()
+    if app_st not in ("accepted", "completed", "đã duyệt"):
+        return jsonify({"success": False, "message": "Chỉ có thể đánh giá năng lực ứng viên đã trúng tuyển và hoàn thành ca làm việc."}), 400
 
     rev_col = db_manager.get_collection("reviews")
     
@@ -814,9 +840,8 @@ def list_employer_notifications():
                     {"user_id": {"$in": emp_ids}},
                     {"user_aliases": {"$in": emp_ids}},
                     {"target_id": {"$in": emp_ids}},
-                    {"related_id": {"$in": emp_ids}},
-                    {"role": "employer"},
-                    {"user_id": "role_employer"}
+                    {"user_id": "role_employer"},
+                    {"target": "all_employers"}
                 ]
             },
             {"is_deleted": {"$ne": True}}
@@ -837,9 +862,8 @@ def mark_employer_read(notif_id):
                 {"user_id": {"$in": emp_ids}},
                 {"user_aliases": {"$in": emp_ids}},
                 {"target_id": {"$in": emp_ids}},
-                {"related_id": {"$in": emp_ids}},
-                {"role": "employer"},
-                {"user_id": "role_employer"}
+                {"user_id": "role_employer"},
+                {"target": "all_employers"}
             ]
         },
         {"$set": {"is_read": True}}
@@ -860,9 +884,8 @@ def mark_all_employer_read():
                         {"user_id": {"$in": emp_ids}},
                         {"user_aliases": {"$in": emp_ids}},
                         {"target_id": {"$in": emp_ids}},
-                        {"related_id": {"$in": emp_ids}},
-                        {"role": "employer"},
-                        {"user_id": "role_employer"}
+                        {"user_id": "role_employer"},
+                        {"target": "all_employers"}
                     ]
                 },
                 {"is_deleted": {"$ne": True}},
@@ -886,9 +909,8 @@ def delete_employer_notification(notif_id):
                 {"user_id": {"$in": emp_ids}},
                 {"user_aliases": {"$in": emp_ids}},
                 {"target_id": {"$in": emp_ids}},
-                {"related_id": {"$in": emp_ids}},
-                {"role": "employer"},
-                {"user_id": "role_employer"}
+                {"user_id": "role_employer"},
+                {"target": "all_employers"}
             ]
         },
         {"$set": {"is_deleted": True}}

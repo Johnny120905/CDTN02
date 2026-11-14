@@ -43,19 +43,33 @@ def canonicalize_room_id(room_id):
         return room_id
 
 
+_ROOM_VARIANTS_CACHE = {}
+_ROOM_VARIANTS_TS = 0.0
+
 def get_room_id_variants(room_id):
     """
     Trả về danh sách các room_id tương đương giữa 2 định dạng (user_id và profile_id)
     để đảm bảo cả Sinh viên và Nhà tuyển dụng luôn thấy đầy đủ tin nhắn dù được gửi từ id nào.
     """
+    global _ROOM_VARIANTS_TS
     if not room_id or not isinstance(room_id, str):
         return [room_id] if room_id else []
+
+    now = time.monotonic()
+    if now - _ROOM_VARIANTS_TS > 60.0:
+        _ROOM_VARIANTS_CACHE.clear()
+        _ROOM_VARIANTS_TS = now
+    cached = _ROOM_VARIANTS_CACHE.get(room_id)
+    if cached is not None:
+        return cached
 
     canonical = canonicalize_room_id(room_id)
     variants = {room_id, canonical}
     target = canonical if "_stu_" in canonical else room_id
     if not target.startswith("room_emp_") or "_stu_" not in target:
-        return list(variants)
+        res = list(variants)
+        _ROOM_VARIANTS_CACHE[room_id] = res
+        return res
 
     try:
         parts = target.split("_stu_", 1)
@@ -87,7 +101,9 @@ def get_room_id_variants(room_id):
     except Exception:
         pass
 
-    return list(variants)
+    res = list(variants)
+    _ROOM_VARIANTS_CACHE[room_id] = res
+    return res
 
 
 def chat_msg_sort_key(msg):

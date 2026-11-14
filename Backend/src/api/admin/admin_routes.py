@@ -377,8 +377,23 @@ def unhide_job(job_id):
 def delete_job(job_id):
     jobs_col = db_manager.get_collection("jobs")
     job = jobs_col.find_one({"_id": job_id})
+    if not job:
+        return jsonify({"success": False, "message": "Không tìm thấy tin tuyển dụng."}), 404
+
+    app_col = db_manager.get_collection("applications")
+    active_apps = app_col.count_documents({
+        "job_id": job_id,
+        "application_status": {"$nin": ["cancelled", "withdrawn"]},
+        "is_cancelled": {"$ne": True}
+    })
+    if active_apps > 0:
+        return jsonify({
+            "success": False,
+            "message": f"Tin tuyển dụng này đang có {active_apps} hồ sơ ứng tuyển. Theo quy định kiểm duyệt, chỉ xóa cứng tin chưa có người nộp — vui lòng sử dụng chức năng 'Ẩn' đối với tin đã có ứng viên!"
+        }), 400
+
     db_manager.get_collection("bookmarks").delete_many({"job_id": job_id})
-    db_manager.get_collection("applications").delete_many({"job_id": job_id})
+    app_col.delete_many({"job_id": job_id})
     db_manager.get_collection("reports").delete_many({"target_id": job_id})
     jobs_col.delete_one({"_id": job_id})
     if job and job.get("employer_id"):
@@ -558,20 +573,78 @@ def delete_report(rep_id):
 @admin_bp.route("/reports/<rep_id>/chat-history", methods=["GET"])
 @role_required("admin")
 def get_report_chat_history(rep_id):
+    from src.core.socket_service import get_room_id_variants, chat_msg_sort_key
     rep_col = db_manager.get_collection("reports")
     rep = rep_col.find_one({"_id": rep_id})
     if not rep:
         return jsonify({"success": False, "message": "Không tìm thấy ticket."}), 404
 
-    # Trích xuất hội thoại gốc thực tế từ messages collection (không dùng dữ liệu mẫu giả lập)
     msg_col = db_manager.get_collection("messages")
-    msgs = list(msg_col.find({
-        "$or": [
-            {"room_id": rep.get("target_id")},
-            {"sender_id": rep.get("reporter_id")},
-            {"receiver_id": rep.get("reporter_id")}
-        ]
-    }).sort("created_at", 1))
+    target_id = str(rep.get("target_id") or "")
+    reporter_id = str(rep.get("reporter_id") or "")
+    room_candidates = set()
+    party_a_ids = {reporter_id} if reporter_id else set()
+    party_b_ids = {target_id} if target_id else set()
+
+    if target_id.startswith("room_"):
+        for r_var in get_room_id_variants(target_id):
+            room_candidates.add(r_var)
+    else:
+        # Phân giải nếu target_id là job_id, application_id hoặc user_id/profile_id
+        job_doc = db_manager.get_collection("jobs").find_one({"_id": target_id})
+        if job_doc and job_doc.get("employer_id"):
+            emp_id = str(job_doc.get("employer_id"))
+            party_b_ids.add(emp_id)
+            for r_var in get_room_id_variants(f"room_emp_{emp_id}_stu_{reporter_id}"):
+                room_candidates.add(r_var)
+
+        app_doc = db_manager.get_collection("applications").find_one({"_id": target_id})
+        if app_doc:
+            emp_id = str(app_doc.get("employer_id") or "")
+            stu_id = str(app_doc.get("student_user_id") or app_doc.get("student_id") or "")
+            if emp_id and stu_id:
+                party_b_ids.update([emp_id, stu_id])
+                for r_var in get_room_id_variants(f"room_emp_{emp_id}_stu_{stu_id}"):
+                    room_candidates.add(r_var)
+
+        # Thử ghép cặp 2 chiều giữa reporter_id và target_id
+        if reporter_id and target_id:
+            for r_var in get_room_id_variants(f"room_emp_{target_id}_stu_{reporter_id}"):
+                room_candidates.add(r_var)
+            for r_var in get_room_id_variants(f"room_emp_{reporter_id}_stu_{target_id}"):
+                room_candidates.add(r_var)
+
+    # Mở rộng định danh của 2 bên để truy vấn tin nhắn trực tiếp giữa đúng 2 đối tượng trong ticket
+    for pid in list(party_a_ids):
+        emp_doc = db_manager.get_collection("employers").find_one({"$or": [{"_id": pid}, {"user_id": pid}]})
+        if emp_doc:
+            party_a_ids.update([str(emp_doc.get("_id", "")), str(emp_doc.get("user_id", ""))])
+        stu_doc = db_manager.get_collection("student_profiles").find_one({"$or": [{"_id": pid}, {"user_id": pid}]})
+        if stu_doc:
+            party_a_ids.update([str(stu_doc.get("_id", "")), str(stu_doc.get("user_id", ""))])
+
+    for pid in list(party_b_ids):
+        emp_doc = db_manager.get_collection("employers").find_one({"$or": [{"_id": pid}, {"user_id": pid}]})
+        if emp_doc:
+            party_b_ids.update([str(emp_doc.get("_id", "")), str(emp_doc.get("user_id", ""))])
+        stu_doc = db_manager.get_collection("student_profiles").find_one({"$or": [{"_id": pid}, {"user_id": pid}]})
+        if stu_doc:
+            party_b_ids.update([str(stu_doc.get("_id", "")), str(stu_doc.get("user_id", ""))])
+
+    party_a_list = [x for x in party_a_ids if x]
+    party_b_list = [x for x in party_b_ids if x]
+    or_clauses = []
+    if room_candidates:
+        or_clauses.append({"room_id": {"$in": list(room_candidates)}})
+    if party_a_list and party_b_list:
+        or_clauses.append({"sender_id": {"$in": party_a_list}, "receiver_id": {"$in": party_b_list}})
+        or_clauses.append({"sender_id": {"$in": party_b_list}, "receiver_id": {"$in": party_a_list}})
+
+    if or_clauses:
+        msgs = list(msg_col.find({"$or": or_clauses}))
+        msgs.sort(key=chat_msg_sort_key)
+    else:
+        msgs = []
 
     return jsonify({"success": True, "data": msgs, "ticket": rep})
 

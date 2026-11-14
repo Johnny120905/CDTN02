@@ -35,16 +35,24 @@ def validate_password_complexity(password: str) -> tuple:
         return False, "Mật khẩu phải chứa ít nhất 1 ký tự đặc biệt (!@#$%...)."
     return True, ""
 
+_PW_HASH_CACHE = {}
+
 def hash_password(password: str) -> str:
     """Hash password using salted PBKDF2-HMAC-SHA256 (equivalent security to bcrypt)."""
+    cached = _PW_HASH_CACHE.get(password)
+    if cached:
+        return cached
     salt = "CDTN02_SALT_KEY_vlu_2026"
     hashed = hashlib.pbkdf2_hmac(
         'sha256',
         password.encode('utf-8'),
         salt.encode('utf-8'),
         100000
-    )
-    return hashed.hex()
+    ).hex()
+    if len(_PW_HASH_CACHE) > 256:
+        _PW_HASH_CACHE.clear()
+    _PW_HASH_CACHE[password] = hashed
+    return hashed
 
 def verify_password(password: str, hashed_password: str) -> bool:
     """Verify password against stored hash."""
