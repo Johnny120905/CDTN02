@@ -112,7 +112,9 @@ COLLECTIONS = [
     "messages",
     "notifications",
     "reports",
-    "banned_keywords"
+    "banned_keywords",
+    "audit_logs",
+    "announcements"
 ]
 
 class _SimpleUpdateResult:

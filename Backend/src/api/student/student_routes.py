@@ -75,6 +75,19 @@ def get_student_profile(user_id):
 def get_profile():
     user = request.current_user
     stu = get_student_profile(user["_id"])
+    # Tính lại rating_avg thực tế từ đánh giá của Nhà tuyển dụng
+    rev_col = db_manager.get_collection("reviews")
+    received = [
+        r for r in rev_col.find({"is_hidden": {"$ne": True}})
+        if r.get("direction") == "employer_to_student"
+        and r.get("target_id") in (user.get("_id"), stu.get("_id"))
+    ]
+    if received:
+        stu["rating_avg"] = round(sum(float(r.get("rating", 5)) for r in received) / len(received), 1)
+        stu["review_count"] = len(received)
+    else:
+        stu.setdefault("rating_avg", 5.0)
+        stu.setdefault("review_count", 0)
     return jsonify({"success": True, "data": stu})
 
 @student_bp.route("/profile", methods=["PUT"])
@@ -89,17 +102,89 @@ def update_profile():
         "phone": data.get("phone", stu.get("phone")),
         "university": data.get("university", stu.get("university"))
     }
-    for extra_key in ["free_schedule", "skills", "address", "bio", "avatar_url"]:
+    for extra_key in ["free_schedule", "skills", "address", "bio", "avatar_url", "cover_image_url"]:
         if extra_key in data:
             update_fields[extra_key] = data[extra_key]
+
+    # Lưu ảnh đại diện & ảnh bìa sinh viên vào bộ lưu trữ tệp (hỗ trợ png/jpg/jpeg hoặc chuỗi rỗng khôi phục mặc định)
+    for img_field, img_label, img_type in [
+        ("avatar_url", "Ảnh đại diện", "student_avatar"),
+        ("cover_image_url", "Ảnh bìa", "student_cover"),
+    ]:
+        if img_field in update_fields:
+            raw_img = str(update_fields.get(img_field) or "").strip()
+            if raw_img.startswith("data:image/svg+xml"):
+                update_fields[img_field] = ""
+            elif raw_img.startswith("data:image/"):
+                if not (raw_img.startswith("data:image/png") or raw_img.startswith("data:image/jpeg") or raw_img.startswith("data:image/jpg")):
+                    return jsonify({"success": False, "message": f"{img_label} chỉ nhận định dạng ảnh .png, .jpg, .jpeg (≤ 10MB)!"}), 400
+                try:
+                    mime_part = raw_img.split(",", 1)[0]
+                    ext = "png" if "png" in mime_part else "jpg"
+                    _, stored_url = db_manager.save_data_url(
+                        raw_img,
+                        filename=f"{img_type}_{stu['_id']}.{ext}",
+                        allowed_types=("image/png", "image/jpeg", "image/jpg"),
+                        metadata={"type": img_type, "student_id": stu["_id"]},
+                    )
+                    old_url = stu.get(img_field)
+                    if old_url and old_url != stored_url and str(old_url).startswith("/api/files/"):
+                        db_manager.delete_file(old_url)
+                    update_fields[img_field] = stored_url
+                except Exception as e:
+                    return jsonify({"success": False, "message": f"Lỗi lưu {img_label}: {str(e)}"}), 400
+            elif raw_img == "":
+                old_url = stu.get(img_field)
+                if old_url and str(old_url).startswith("/api/files/"):
+                    db_manager.delete_file(old_url)
+                update_fields[img_field] = ""
 
     db_manager.get_collection("student_profiles").update_one(
         {"_id": stu["_id"]},
         {"$set": update_fields}
     )
+    user_sync = {}
     if "full_name" in data:
-        db_manager.get_collection("users").update_one({"_id": user["_id"]}, {"$set": {"full_name": data["full_name"]}})
+        user_sync["full_name"] = data["full_name"]
+    if "avatar_url" in update_fields:
+        user_sync["avatar_url"] = update_fields["avatar_url"]
+    if "cover_image_url" in update_fields:
+        user_sync["cover_image_url"] = update_fields["cover_image_url"]
+    if user_sync:
+        db_manager.get_collection("users").update_one({"_id": user["_id"]}, {"$set": user_sync})
     stu.update(update_fields)
+
+    # Đồng bộ tức thì ảnh đại diện, ảnh bìa và thông tin cơ bản sang các đơn ứng tuyển đã nộp để Nhà tuyển dụng luôn thấy ảnh mới nhất
+    app_sync = {}
+    if "full_name" in update_fields and update_fields["full_name"] is not None:
+        app_sync["student_name"] = update_fields["full_name"]
+        app_sync["application_snapshot.student_name"] = update_fields["full_name"]
+    if "phone" in update_fields and update_fields["phone"] is not None:
+        app_sync["application_snapshot.phone"] = update_fields["phone"]
+    if "university" in update_fields and update_fields["university"] is not None:
+        app_sync["application_snapshot.university"] = update_fields["university"]
+    if "address" in update_fields or "residence_address" in update_fields:
+        res_addr = update_fields.get("residence_address", update_fields.get("address", ""))
+        app_sync["application_snapshot.residence_address"] = res_addr
+    if "avatar_url" in update_fields:
+        app_sync["student_avatar_url"] = update_fields["avatar_url"]
+        app_sync["application_snapshot.avatar_url"] = update_fields["avatar_url"]
+    if "cover_image_url" in update_fields:
+        app_sync["student_cover_image_url"] = update_fields["cover_image_url"]
+        app_sync["application_snapshot.cover_image_url"] = update_fields["cover_image_url"]
+    if app_sync:
+        db_manager.get_collection("applications").update_many(
+            {"$or": [{"student_id": stu["_id"]}, {"student_user_id": user["_id"]}]},
+            {"$set": app_sync}
+        )
+
+    emit_socket_event("student-profile-updated", {
+        "student_id": stu["_id"],
+        "user_id": user["_id"],
+        "full_name": stu.get("full_name", ""),
+        "avatar_url": stu.get("avatar_url", ""),
+        "cover_image_url": stu.get("cover_image_url", ""),
+    })
     return jsonify({"success": True, "message": "Cập nhật hồ sơ thành công!", "data": stu})
 
 # 2. CV Manager (FR 1.4)
@@ -315,10 +400,15 @@ def apply_job(url_job_id=None):
         match_score = round((matched_days / len(days)) * 100)
 
     # Application Snapshot
+    stu_avatar = stu.get("avatar_url") or user.get("avatar_url") or ""
+    stu_cover = stu.get("cover_image_url") or user.get("cover_image_url") or ""
     snapshot = {
         "student_name": stu.get("full_name"),
         "phone": stu.get("phone"),
         "university": stu.get("university"),
+        "residence_address": stu.get("residence_address") or stu.get("address") or "",
+        "avatar_url": stu_avatar,
+        "cover_image_url": stu_cover,
         "cv_url": cv.get("file_name") and cv.get("file_url") if cv else (cv.get("file_url") if cv else ""),
         "cv_name": cv.get("file_name") if cv else "Không có file CV",
         "cover_note": cover_note,
@@ -336,6 +426,8 @@ def apply_job(url_job_id=None):
         "student_id": stu["_id"],
         "student_user_id": user["_id"],
         "student_name": stu.get("full_name"),
+        "student_avatar_url": stu_avatar,
+        "student_cover_image_url": stu_cover,
         "work_time": job.get("work_time") or "Ca linh hoạt",
         "shift_registered": shift_reg,
         "free_schedule": free_sched,
@@ -427,7 +519,8 @@ def list_my_applications():
         a["company_name"] = resolved_name
 
         if canonical_emp_id:
-            room_id = f"room_emp_{canonical_emp_id}_stu_{user['_id']}"
+            room_id = canonicalize_room_id(f"room_emp_{canonical_emp_id}_stu_{user['_id']}_app_{a['_id']}")
+            a["room_id"] = room_id
             lm = get_latest_room_message(room_id)
             if lm:
                 a["last_sender_role"] = lm.get("sender_role")
@@ -726,13 +819,77 @@ def submit_review():
 
     return jsonify({"success": True, "message": "Cảm ơn bạn đã gửi đánh giá!", "data": new_rev}), 201
 
+def _is_employer_to_student_review(rev, student_identities):
+    """Nhận diện đánh giá từ Nhà tuyển dụng gửi cho Sinh viên (bao gồm cả bản ghi cũ chưa gắn direction)."""
+    if not isinstance(rev, dict) or rev.get("is_hidden"):
+        return False
+    if rev.get("direction") == "student_to_employer" or rev.get("reviewer_role") == "student" or rev.get("target_role") == "employer":
+        return False
+    if str(rev.get("reviewer_id") or "") in student_identities:
+        return False
+    target_candidates = {
+        str(rev.get(k) or "")
+        for k in ("target_id", "student_user_id", "student_id")
+        if rev.get(k)
+    }
+    return bool(target_candidates & student_identities)
+
+
+def _enrich_student_received_reviews(received, app_col):
+    """Bổ sung thông tin tên công ty, employer_id và tên công việc thực tế cho đánh giá NTD chấm Sinh viên."""
+    if not received:
+        return received
+    app_ids = list({r.get("application_id") for r in received if r.get("application_id")})
+    apps_map = {a["_id"]: a for a in app_col.find({"_id": {"$in": app_ids}}) if a.get("_id")} if app_ids else {}
+    emp_col = db_manager.get_collection("employers")
+    comp_col = db_manager.get_collection("company_profiles")
+    emp_cache = {}
+    for r in received:
+        app = apps_map.get(r.get("application_id")) if r.get("application_id") else None
+        if app:
+            r.setdefault("job_title", app.get("job_title", "Ca làm việc"))
+            if app.get("employer_id") and not r.get("employer_id"):
+                r["employer_id"] = app.get("employer_id")
+        rev_key = str(r.get("employer_id") or r.get("reviewer_id") or "")
+        if rev_key and rev_key not in emp_cache:
+            emp_doc = emp_col.find_one({"$or": [{"_id": rev_key}, {"user_id": rev_key}]})
+            comp_doc = None
+            if emp_doc:
+                comp_doc = comp_col.find_one({"employer_id": emp_doc["_id"]})
+            emp_cache[rev_key] = (emp_doc, comp_doc)
+        emp_doc, comp_doc = emp_cache.get(rev_key, (None, None))
+        if emp_doc and not r.get("employer_id"):
+            r["employer_id"] = emp_doc["_id"]
+        generic_names = {"", "Doanh nghiệp", "Nhà tuyển dụng"}
+        candidates = (
+            r.get("company_name"),
+            app.get("company_name") if app else None,
+            comp_doc.get("company_name") if comp_doc else None,
+            emp_doc.get("company_name") if emp_doc else None,
+            r.get("reviewer_name"),
+        )
+        real_company_name = next(
+            (str(val).strip() for val in candidates if str(val or "").strip() not in generic_names),
+            "Doanh nghiệp",
+        )
+        r["company_name"] = real_company_name
+    return received
+
+
 @student_bp.route("/reviews", methods=["GET"])
 @role_required("student")
 def list_my_reviews():
     user = request.current_user
+    stu = get_student_profile(user["_id"])
     rev_col = db_manager.get_collection("reviews")
     app_col = db_manager.get_collection("applications")
     reviews = list(rev_col.find({"reviewer_id": user["_id"]}).sort("created_at", -1))
+    target_ids = {str(x) for x in (user.get("_id"), user.get("id"), stu.get("_id"), stu.get("user_id")) if x}
+    received_reviews = [
+        r for r in rev_col.find({"is_hidden": {"$ne": True}}).sort("created_at", -1)
+        if _is_employer_to_student_review(r, target_ids)
+    ]
+
     app_ids = list({r.get("application_id") for r in reviews if r.get("application_id")})
     apps_map = {a["_id"]: a for a in app_col.find({"_id": {"$in": app_ids}}) if a.get("_id")} if app_ids else {}
     for r in reviews:
@@ -741,7 +898,23 @@ def list_my_reviews():
             if app:
                 r["job_title"] = app.get("job_title", "Việc làm đã hoàn thành")
                 r["company_name"] = app.get("company_name", "Doanh nghiệp")
-    return jsonify({"success": True, "data": reviews})
+    _enrich_student_received_reviews(received_reviews, app_col)
+    return jsonify({"success": True, "data": reviews, "received_reviews": received_reviews})
+
+@student_bp.route("/received-reviews", methods=["GET"])
+@role_required("student")
+def list_received_reviews():
+    user = request.current_user
+    stu = get_student_profile(user["_id"])
+    rev_col = db_manager.get_collection("reviews")
+    app_col = db_manager.get_collection("applications")
+    target_ids = {str(x) for x in (user.get("_id"), user.get("id"), stu.get("_id"), stu.get("user_id")) if x}
+    received = [
+        r for r in rev_col.find({"is_hidden": {"$ne": True}}).sort("created_at", -1)
+        if _is_employer_to_student_review(r, target_ids)
+    ]
+    _enrich_student_received_reviews(received, app_col)
+    return jsonify({"success": True, "data": received})
 
 @student_bp.route("/reviews/<rev_id>", methods=["GET"])
 @role_required("student")

@@ -185,14 +185,14 @@ def resolve_student_user_id(student_id_or_user_id: str):
 
 
 def resolve_chat_partner_user_id(raw_room_id: str, sender_role: str):
-    """Resolve the exact partner user_id from a room_emp_<emp>_stu_<stu> room."""
+    """Resolve the exact partner user_id from a room_emp_<emp>_stu_<stu>[_app_<app>] room."""
     room_id = canonicalize_room_id(raw_room_id)
     if not room_id or "_stu_" not in str(room_id):
         return None
     try:
         parts = str(room_id).split("_stu_", 1)
-        emp_part = parts[0].replace("room_emp_", "")
-        stu_part = parts[1]
+        emp_part = parts[0].replace("room_emp_", "", 1)
+        stu_part = parts[1].split("_app_", 1)[0]
         if sender_role == "student":
             return resolve_employer_user_id(emp_part)
         return resolve_student_user_id(stu_part)

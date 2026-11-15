@@ -134,6 +134,21 @@ def get_categories():
     ]
     return jsonify({"success": True, "data": filtered_cats})
 
+def _enrich_job_company_fields(job, comp):
+    """Đồng bộ trực tiếp ảnh Logo, ảnh bìa và tên doanh nghiệp mới nhất lên dữ liệu tin tuyển dụng."""
+    if not comp:
+        return job
+    if "logo_url" in comp:
+        job["company_logo"] = comp.get("logo_url") or ""
+    elif comp.get("logo_url") and not job.get("company_logo"):
+        job["company_logo"] = comp.get("logo_url")
+    if "cover_image_url" in comp:
+        job["company_cover_image"] = comp.get("cover_image_url") or ""
+    if comp.get("company_name") and (not job.get("company_name") or job.get("company_name") == "Doanh nghiệp"):
+        job["company_name"] = comp.get("company_name")
+    return job
+
+
 # 3. Public Job Search (FR 1.5.1, 1.5.2)
 @common_bp.route("/jobs", methods=["GET"])
 def search_jobs():
@@ -179,11 +194,13 @@ def search_jobs():
     query = base_and[0] if len(base_and) == 1 else {"$and": base_and}
     jobs = list(job_col.find(query).sort("created_at", -1))
 
-    # Làm giàu category_name để Frontend đồng bộ chính xác bộ lọc ngành nghề
+    # Làm giàu category_name & company_logo để Frontend đồng bộ chính xác
     cat_map = {c.get("_id"): c.get("name") for c in db_manager.get_collection("categories").find({}) if c.get("_id")}
+    comp_map = {c.get("employer_id"): c for c in db_manager.get_collection("company_profiles").find({}) if c.get("employer_id")}
     for j in jobs:
         if not j.get("category_name") and j.get("category_id") in cat_map:
             j["category_name"] = cat_map[j["category_id"]]
+        _enrich_job_company_fields(j, comp_map.get(j.get("employer_id")))
         if not j.get("status") and j.get("job_status"):
             j["status"] = j["job_status"]
         elif not j.get("job_status") and j.get("status"):
@@ -198,10 +215,80 @@ def get_job_detail(job_id):
     if not job:
         return jsonify({"success": False, "message": "Không tìm thấy tin việc làm này."}), 404
         
-    # Lấy thêm thông tin công ty
+    # Lấy thêm thông tin công ty và đồng bộ logo mới nhất
     comp = db_manager.get_collection("company_profiles").find_one({"employer_id": job.get("employer_id")})
+    _enrich_job_company_fields(job, comp)
     job["company_info"] = comp or {}
     return jsonify({"success": True, "data": job})
+
+@common_bp.route("/companies/<company_ref>", methods=["GET"])
+def get_public_company_profile(company_ref):
+    """Trả về trang hồ sơ công khai doanh nghiệp (ảnh bìa, logo, quy mô, địa chỉ, đánh giá sao, tin tuyển dụng)."""
+    ref = str(company_ref or "").strip()
+    emp_col = db_manager.get_collection("employers")
+    comp_col = db_manager.get_collection("company_profiles")
+    job_col = db_manager.get_collection("jobs")
+    rev_col = db_manager.get_collection("reviews")
+    users_col = db_manager.get_collection("users")
+
+    emp = emp_col.find_one({"$or": [{"_id": ref}, {"user_id": ref}]})
+    comp = comp_col.find_one({"$or": [{"employer_id": ref}, {"_id": ref}]})
+    if not comp and emp:
+        comp = comp_col.find_one({"employer_id": emp.get("_id")})
+    if not comp and not emp:
+        # Fallback match theo tên công ty (trong trường hợp ref là company_name từ query)
+        for c in comp_col.find({}):
+            if str(c.get("company_name", "")).strip().lower() == ref.lower():
+                comp = c
+                break
+    if not emp and comp and comp.get("employer_id"):
+        emp = emp_col.find_one({"_id": comp.get("employer_id")})
+
+    if not comp and not emp:
+        return jsonify({"success": False, "message": "Không tìm thấy hồ sơ doanh nghiệp."}), 404
+
+    emp_id = (emp.get("_id") if emp else None) or (comp.get("employer_id") if comp else ref)
+    emp_user_id = emp.get("user_id") if emp else ""
+    emp_user = users_col.find_one({"_id": emp_user_id}) if emp_user_id else None
+
+    target_ids = {x for x in [emp_id, emp_user_id, comp.get("_id") if comp else None] if x}
+    comp_name = (comp.get("company_name") if comp else None) or (emp.get("company_name") if emp else None) or "Doanh nghiệp"
+
+    open_jobs = [
+        j for j in job_col.find({"employer_id": {"$in": list(target_ids)}, "is_hidden": {"$ne": True}}).sort("created_at", -1)
+    ]
+
+    all_reviews = list(rev_col.find({"is_hidden": {"$ne": True}}).sort("created_at", -1))
+    public_reviews = []
+    for r in all_reviews:
+        is_emp_target = r.get("direction") == "student_to_employer" or r.get("reviewer_role") == "student" or (not r.get("direction") and r.get("target_role") != "student")
+        if not is_emp_target:
+            continue
+        if r.get("target_id") in target_ids or (r.get("company_name") and str(r.get("company_name")).strip().lower() == str(comp_name).strip().lower()):
+            public_reviews.append(r)
+
+    avg_rating = round(sum(float(r.get("rating", 5)) for r in public_reviews) / len(public_reviews), 1) if public_reviews else float((comp or {}).get("rating_avg") or (emp or {}).get("rating_avg") or 5.0)
+
+    profile_payload = {
+        "employer_id": emp_id,
+        "user_id": emp_user_id,
+        "company_name": comp_name,
+        "representative_name": (comp or {}).get("representative_name") or (emp_user or {}).get("full_name") or "",
+        "branch_name": (comp or {}).get("branch_name") or "",
+        "address": (comp or {}).get("address") or "TP. Hồ Chí Minh",
+        "scale": (comp or {}).get("scale") or "10-50 nhân viên",
+        "phone": (comp or {}).get("phone") or (emp_user or {}).get("phone") or "",
+        "website": (comp or {}).get("website") or "",
+        "description": (comp or {}).get("description") or "Chưa có mô tả chi tiết doanh nghiệp.",
+        "logo_url": (comp or {}).get("logo_url") or "",
+        "cover_image_url": (comp or {}).get("cover_image_url") or "",
+        "approval_status": (emp or {}).get("approval_status", "approved"),
+        "rating_avg": avg_rating,
+        "review_count": len(public_reviews),
+        "reviews": public_reviews,
+        "jobs": open_jobs,
+    }
+    return jsonify({"success": True, "data": profile_payload})
 
 # 4. Chat & Messaging with Automated Banned Keyword Filter (FR 1.8, 2.7, 3.9)
 def _normalize_with_char_spans(text: str):
@@ -287,6 +374,51 @@ def filter_content_banned_words(text: str):
 
     return censored_text, flagged, flagged_words
 
+def scan_job_banned_keywords(job: dict, banned_keywords=None) -> list:
+    """Quet tin tuyen dung doi chieu danh sach tu khoa cam dang hoat dong (khong dau & viet lien >= 4 ky tu)."""
+    if not isinstance(job, dict):
+        return []
+
+    if banned_keywords is None:
+        banned_docs = list(db_manager.get_collection("banned_keywords").find({}))
+    else:
+        banned_docs = list(banned_keywords)
+
+    keywords = []
+    seen_orig = set()
+    for item in banned_docs:
+        if isinstance(item, dict):
+            if item.get("is_active", True) is False:
+                continue
+            raw_kw = str(item.get("keyword") or item.get("word") or "").strip()
+        else:
+            raw_kw = str(item or "").strip()
+        if raw_kw and raw_kw not in seen_orig:
+            seen_orig.add(raw_kw)
+            keywords.append(raw_kw)
+
+    if not keywords:
+        return []
+
+    raw_haystack = " ".join(
+        str(job.get(field) or "")
+        for field in ("title", "description", "requirements", "benefits", "company_name", "branch_name", "work_time")
+    )
+    haystack_norm = _strip_accents_lower(raw_haystack)
+    if not haystack_norm.strip():
+        return []
+    haystack_compact = re.sub(r"\s+", "", haystack_norm)
+
+    matched_kws = []
+    for orig_kw in sorted(keywords, key=len, reverse=True):
+        norm_kw = _strip_accents_lower(orig_kw).strip()
+        if not norm_kw:
+            continue
+        compact_kw = re.sub(r"\s+", "", norm_kw)
+        if norm_kw in haystack_norm or (len(compact_kw) >= 4 and compact_kw in haystack_compact):
+            matched_kws.append(orig_kw)
+    return matched_kws
+
 @common_bp.route("/banned-keywords", methods=["GET"])
 def get_public_banned_keywords():
     ban_col = db_manager.get_collection("banned_keywords")
@@ -338,6 +470,9 @@ def send_message():
     user = request.current_user
     data = request.get_json() or {}
     raw_room_id = data.get("room_id", "default_room")
+    app_id = str(data.get("application_id") or "").strip()
+    if app_id and isinstance(raw_room_id, str) and raw_room_id.startswith("room_emp_") and "_app_" not in raw_room_id:
+        raw_room_id = f"{raw_room_id}_app_{app_id}"
     room_id = canonicalize_room_id(raw_room_id)
     content = str(data.get("content", "")).strip()
     media_url = data.get("media_url", "")
@@ -359,7 +494,8 @@ def send_message():
         app_col = db_manager.get_collection("applications")
         emp = db_manager.get_collection("employers").find_one({"user_id": user["_id"]})
         student_id = data.get("student_id") or data.get("target_id")
-        app_id = data.get("application_id")
+        if not app_id and isinstance(room_id, str) and "_app_" in room_id:
+            app_id = room_id.split("_app_", 1)[1].strip()
 
         query_app = {}
         if emp:
@@ -469,20 +605,7 @@ def initiate_call():
     caller_name = get_user_display_name(user)
 
     # Xác định chính xác target_user_id theo phòng
-    target_user_id = None
-    try:
-        if "_stu_" in room_id:
-            parts = room_id.split("_stu_")
-            emp_part = parts[0].replace("room_emp_", "")
-            stu_part = parts[1]
-            if caller_role == "student":
-                emp = db_manager.get_collection("employers").find_one({"$or": [{"_id": emp_part}, {"user_id": emp_part}]})
-                if emp:
-                    target_user_id = emp.get("user_id")
-            else:
-                target_user_id = stu_part
-    except Exception:
-        pass
+    target_user_id = resolve_chat_partner_user_id(room_id, caller_role)
     
     # Nếu đối phương cũng đang đổ chuông tới mình thì lập tức kết nối thông suốt hai chiều
     existing_call = ACTIVE_CALL_SESSIONS.get(room_id) or ACTIVE_CALL_SESSIONS.get(raw_room_id)
@@ -887,24 +1010,6 @@ def submit_report():
     if not reason:
         return jsonify({"success": False, "message": "Vui lòng nhập lý do báo cáo vi phạm."}), 400
 
-    # Ràng buộc FR 2.5.6: Nhà tuyển dụng báo cáo ứng viên vi phạm
-    # Chỉ cho phép thực hiện thao tác báo cáo này đối với những ứng viên đã có đơn ứng tuyển ở trạng thái "Đã duyệt" (accepted)
-    if user.get("role") == "employer" and report_type == "applicant":
-        app_col = db_manager.get_collection("applications")
-        app_id = data.get("application_id")
-        candidate_app = None
-        if app_id:
-            candidate_app = app_col.find_one({"_id": app_id})
-        elif target_id:
-            candidate_app = app_col.find_one({
-                "$or": [{"_id": target_id}, {"student_id": target_id}, {"student_user_id": target_id}]
-            })
-        if candidate_app and candidate_app.get("application_status") != "accepted":
-            return jsonify({
-                "success": False,
-                "message": "Chỉ cho phép gửi báo cáo đối với ứng viên đã có đơn ứng tuyển ở trạng thái 'Đã duyệt'!"
-            }), 400
-
     ticket_code = f"TK-2026-{uuid.uuid4().hex[:4].upper()}"
     reporter_name = get_user_display_name(user) or user.get("full_name") or user.get("email")
     reporter_role_label = "Sinh viên" if user.get("role") == "student" else ("Doanh nghiệp" if user.get("role") == "employer" else "Người dùng")
@@ -919,6 +1024,8 @@ def submit_report():
         "reporter_email": user["email"],
         "reporter_name": reporter_name,
         "target_id": target_id,
+        "application_id": data.get("application_id", ""),
+        "room_id": canonicalize_room_id(data.get("room_id", "")) if data.get("room_id") else "",
         "target_title": data.get("target_title", f"Đối tượng vi phạm ({target_id})"),
         "reason": reason,
         "evidence": data.get("evidence", ""),
@@ -939,4 +1046,36 @@ def submit_report():
     emit_socket_event("new-report", new_report)
 
     return jsonify({"success": True, "message": "Đã tạo phiếu khiếu nại ở trạng thái Chờ xử lý và đẩy trực tiếp sang cho Quản trị viên giải quyết!", "data": new_report}), 201
+
+@common_bp.route("/reports/mine", methods=["GET"])
+@token_required
+def list_my_submitted_reports():
+    """Lấy danh sách báo cáo vi phạm / khiếu nại mà Sinh viên hoặc Nhà tuyển dụng hiện tại đã gửi để theo dõi tiến độ xử lý."""
+    user = request.current_user
+    identities = {str(user.get("_id") or ""), str(user.get("email") or "")}
+    try:
+        if user.get("role") == "student":
+            stu = db_manager.get_collection("student_profiles").find_one({"user_id": user["_id"]})
+            if stu and stu.get("_id"):
+                identities.add(str(stu["_id"]))
+        elif user.get("role") == "employer":
+            emp = db_manager.get_collection("employers").find_one({"user_id": user["_id"]})
+            if emp and emp.get("_id"):
+                identities.add(str(emp["_id"]))
+    except Exception:
+        pass
+    identities = [x for x in identities if x]
+    rep_col = db_manager.get_collection("reports")
+    my_reports = list(rep_col.find({"reporter_id": {"$in": identities}}).sort("created_at", -1))
+    return jsonify({"success": True, "data": my_reports})
+
+@common_bp.route("/announcements", methods=["GET"])
+@token_required
+def list_user_announcements():
+    """Trả về thông báo hệ thống hàng loạt dành cho vai trò người dùng hiện tại."""
+    user = request.current_user
+    role = user.get("role", "student")
+    ann_col = db_manager.get_collection("announcements")
+    items = list(ann_col.find({"target_role": {"$in": ["all", role]}}).sort("created_at", -1))
+    return jsonify({"success": True, "data": items})
 

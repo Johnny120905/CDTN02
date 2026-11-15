@@ -462,7 +462,7 @@ export default function App() {
             onLogout={handleLogout}
             onOpenAccountModal={handleOpenAccountModal}
             onGoHome={handleGoHome}
-            onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })}
+            onNavigateMenu={(menuId, roomId) => setPortalActiveMenu({ id: menuId, roomId: roomId || '', key: Date.now() })}
             onToggleSidebar={handleToggleSidebar}
             onToggleChatDrawer={handleToggleChatDrawer}
             onSearchChange={setHeaderSearchKeyword}
@@ -495,7 +495,7 @@ export default function App() {
 
           <Footer 
             currentUser={currentUser} 
-            onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })} 
+            onNavigateMenu={(menuId, roomId) => setPortalActiveMenu({ id: menuId, roomId: roomId || '', key: Date.now() })} 
           />
         </div>
       </ErrorBoundary>
@@ -551,7 +551,7 @@ export default function App() {
               onLogout={handleLogout}
               onOpenAccountModal={handleOpenAccountModal}
               onGoHome={handleGoHome}
-              onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })}
+              onNavigateMenu={(menuId, roomId) => setPortalActiveMenu({ id: menuId, roomId: roomId || '', key: Date.now() })}
               onToggleSidebar={handleToggleSidebar}
               onToggleChatDrawer={handleToggleChatDrawer}
               onSearchChange={setHeaderSearchKeyword}
@@ -582,7 +582,7 @@ export default function App() {
 
             <Footer 
               currentUser={null} 
-              onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })} 
+              onNavigateMenu={(menuId, roomId) => setPortalActiveMenu({ id: menuId, roomId: roomId || '', key: Date.now() })} 
             />
           </div>
         </ErrorBoundary>
@@ -599,7 +599,7 @@ export default function App() {
             onLogout={handleLogout}
             onOpenAccountModal={handleOpenAccountModal}
             onGoHome={handleGoHome}
-            onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })}
+            onNavigateMenu={(menuId, roomId) => setPortalActiveMenu({ id: menuId, roomId: roomId || '', key: Date.now() })}
             onToggleSidebar={handleToggleSidebar}
             onToggleChatDrawer={handleToggleChatDrawer}
             onSearchChange={setHeaderSearchKeyword}
@@ -638,7 +638,7 @@ export default function App() {
 
           <Footer 
             currentUser={currentUser} 
-            onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })} 
+            onNavigateMenu={(menuId, roomId) => setPortalActiveMenu({ id: menuId, roomId: roomId || '', key: Date.now() })} 
           />
         </div>
       </ErrorBoundary>
@@ -693,7 +693,7 @@ export default function App() {
             onLogout={handleLogout}
             onOpenAccountModal={handleOpenAccountModal}
             onGoHome={handleGoHome}
-            onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })}
+            onNavigateMenu={(menuId, roomId) => setPortalActiveMenu({ id: menuId, roomId: roomId || '', key: Date.now() })}
             onToggleSidebar={handleToggleSidebar}
             onToggleChatDrawer={handleToggleChatDrawer}
             onSearchChange={setHeaderSearchKeyword}
@@ -726,7 +726,7 @@ export default function App() {
 
           <Footer 
             currentUser={null} 
-            onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })} 
+            onNavigateMenu={(menuId, roomId) => setPortalActiveMenu({ id: menuId, roomId: roomId || '', key: Date.now() })} 
           />
         </div>
       </ErrorBoundary>
@@ -743,7 +743,7 @@ export default function App() {
           onLogout={handleLogout}
           onOpenAccountModal={handleOpenAccountModal}
           onGoHome={handleGoHome}
-          onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })}
+          onNavigateMenu={(menuId, roomId) => setPortalActiveMenu({ id: menuId, roomId: roomId || '', key: Date.now() })}
           onToggleSidebar={handleToggleSidebar}
           onToggleChatDrawer={handleToggleChatDrawer}
           onSearchChange={setHeaderSearchKeyword}
@@ -783,7 +783,7 @@ export default function App() {
 
         <Footer 
           currentUser={currentUser} 
-          onNavigateMenu={(menuId) => setPortalActiveMenu({ id: menuId, key: Date.now() })} 
+          onNavigateMenu={(menuId, roomId) => setPortalActiveMenu({ id: menuId, roomId: roomId || '', key: Date.now() })} 
         />
       </div>
     </ErrorBoundary>

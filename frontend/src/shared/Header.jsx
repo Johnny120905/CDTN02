@@ -202,6 +202,9 @@ export default function Header({
     socket.on('new-review', handleSocketUpdate);
     socket.on('review-updated', handleSocketUpdate);
     socket.on('user-status-updated', handleSocketUpdate);
+    socket.on('system-announcement', handleSocketUpdate);
+    socket.on('announcement-deleted', handleSocketUpdate);
+    socket.on('notifications-updated', handleSocketUpdate);
 
     return () => {
       clearInterval(interval);
@@ -220,6 +223,9 @@ export default function Header({
       socket.off('new-review', handleSocketUpdate);
       socket.off('review-updated', handleSocketUpdate);
       socket.off('user-status-updated', handleSocketUpdate);
+      socket.off('system-announcement', handleSocketUpdate);
+      socket.off('announcement-deleted', handleSocketUpdate);
+      socket.off('notifications-updated', handleSocketUpdate);
     };
   }, [token, role, currentUserId, isGuest]);
 
@@ -313,13 +319,13 @@ export default function Header({
     const targetId = (n.target_id || n.related_id || '').toLowerCase();
 
     if (type.includes('call') || title.includes('cuộc gọi')) {
-      if (onNavigateMenu) onNavigateMenu('chat');
+      if (onNavigateMenu) onNavigateMenu('chat', n.related_id || '');
       else if (onToggleChatDrawer) onToggleChatDrawer();
     } else if (type.includes('chat') || title.includes('tin nhắn')) {
-      if (onNavigateMenu) onNavigateMenu('chat');
+      if (onNavigateMenu) onNavigateMenu('chat', n.related_id || '');
       else if (onToggleChatDrawer) onToggleChatDrawer();
     } else if (type.includes('report') || type.includes('ticket') || title.includes('khiếu nại') || title.includes('báo cáo')) {
-      if (onNavigateMenu) onNavigateMenu(isAdmin ? 'reports' : 'home');
+      if (onNavigateMenu) onNavigateMenu(isAdmin ? 'reports' : 'my_reports');
     } else if (type.includes('gpkd') || type.includes('license') || title.includes('giấy phép')) {
       if (onNavigateMenu) onNavigateMenu(isAdmin ? 'gpkd' : 'company');
     } else if (type.includes('shift') || title.includes('ca làm')) {

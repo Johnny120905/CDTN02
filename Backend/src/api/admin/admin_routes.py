@@ -2,10 +2,57 @@ import time
 import uuid
 from flask import Blueprint, request, jsonify
 from src.core.database import db_manager
-from src.core.notification_service import create_and_emit_notification, emit_socket_event
+from src.core.notification_service import (
+    create_and_emit_notification,
+    emit_socket_event,
+    resolve_student_user_id,
+    resolve_employer_user_id,
+)
 from src.middlewares.auth_middleware import role_required
+from src.api.common.common_routes import scan_job_banned_keywords
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
+
+def _record_audit_log(admin_user, action, target_type, target_id, target_label, reason="", metadata=None):
+    """Ghi nhật ký hoạt động quản trị (Audit Log) cho các thao tác kiểm duyệt/khóa/xử lý."""
+    try:
+        admin_doc = admin_user or {}
+        action_labels = {
+            "BAN_USER": "Khóa tài khoản người dùng",
+            "UNBAN_USER": "Mở khóa tài khoản người dùng",
+            "DELETE_USER": "Xóa vĩnh viễn tài khoản",
+            "APPROVE_GPKD": "Phê duyệt Giấy phép kinh doanh (GPKD)",
+            "REJECT_GPKD": "Từ chối Giấy phép kinh doanh (GPKD)",
+            "HIDE_JOB": "Ẩn tin tuyển dụng vi phạm",
+            "UNHIDE_JOB": "Bỏ ẩn / Khôi phục tin tuyển dụng",
+            "DELETE_JOB": "Xóa vĩnh viễn tin tuyển dụng",
+            "APPROVE_JOB_MODERATION": "Xác nhận kiểm duyệt đạt tin tuyển dụng",
+            "UPDATE_REPORT_STATUS": "Cập nhật xử lý phiếu khiếu nại",
+            "DELETE_REPORT": "Xóa phiếu khiếu nại vi phạm",
+            "HIDE_REVIEW": "Ẩn đánh giá vi phạm",
+            "UNHIDE_REVIEW": "Khôi phục đánh giá công khai",
+            "DELETE_REVIEW": "Xóa vĩnh viễn đánh giá",
+            "BROADCAST_ANNOUNCEMENT": "Gửi thông báo hệ thống hàng loạt",
+            "DELETE_ANNOUNCEMENT": "Xóa & thu hồi thông báo hệ thống",
+        }
+        log_doc = {
+            "_id": f"log_{uuid.uuid4().hex[:8]}",
+            "admin_id": str(admin_doc.get("_id") or "admin"),
+            "admin_name": admin_doc.get("full_name") or admin_doc.get("email") or "Quản trị viên",
+            "admin_email": admin_doc.get("email") or "",
+            "action": action,
+            "action_label": action_labels.get(action, action),
+            "target_type": target_type,
+            "target_id": str(target_id or ""),
+            "target_label": str(target_label or target_id or ""),
+            "reason": str(reason or ""),
+            "metadata": metadata or {},
+            "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        db_manager.get_collection("audit_logs").insert_one(log_doc)
+        emit_socket_event("audit-log-added", log_doc)
+    except Exception:
+        pass
 
 # 1. Dashboard Analytics
 @admin_bp.route("/dashboard", methods=["GET"])
@@ -118,6 +165,13 @@ def list_users():
     stu_by_uid = {s.get("user_id"): s for s in db_manager.get_collection("student_profiles").find({}) if s.get("user_id")}
     emp_by_uid = {e.get("user_id"): e for e in db_manager.get_collection("employers").find({}) if e.get("user_id")}
     comp_by_emp_id = {c.get("employer_id"): c for c in db_manager.get_collection("company_profiles").find({}) if c.get("employer_id")}
+    resumes_by_stu_id = {}
+    resumes_by_uid = {}
+    for res_doc in db_manager.get_collection("resumes").find({}):
+        if res_doc.get("student_id"):
+            resumes_by_stu_id.setdefault(res_doc["student_id"], []).append(res_doc)
+        if res_doc.get("student_user_id"):
+            resumes_by_uid.setdefault(res_doc["student_user_id"], []).append(res_doc)
 
     # Loại bỏ hash mật khẩu & làm giàu hồ sơ
     for u in users:
@@ -126,17 +180,39 @@ def list_users():
         # Bổ sung thông tin profile
         if u.get("role") == "student":
             stu = dict(stu_by_uid.get(u["_id"]) or {})
+            stu_avatar = stu.get("avatar_url") if "avatar_url" in stu else (u.get("avatar_url") or "")
+            stu_cover = stu.get("cover_image_url") if "cover_image_url" in stu else (u.get("cover_image_url") or "")
+            stu["avatar_url"] = stu_avatar or ""
+            stu["cover_image_url"] = stu_cover or ""
+            u["avatar_url"] = stu["avatar_url"]
+            u["cover_image_url"] = stu["cover_image_url"]
             u["profile"] = stu
             if stu.get("_id"):
                 target_ids.add(stu["_id"])
             if stu.get("full_name"):
                 u.setdefault("full_name", stu.get("full_name"))
+            stu_resumes = []
+            seen_res_ids = set()
+            for r_item in (resumes_by_stu_id.get(stu.get("_id"), []) + resumes_by_uid.get(u["_id"], [])):
+                rid = r_item.get("_id")
+                if rid and rid not in seen_res_ids:
+                    seen_res_ids.add(rid)
+                    stu_resumes.append(r_item)
+            u["resumes"] = stu_resumes
+            u["resumes_count"] = len(stu_resumes)
         elif u.get("role") == "employer":
             emp = emp_by_uid.get(u["_id"])
             u["employer_record"] = dict(emp) if emp else {}
             if emp:
                 target_ids.add(emp["_id"])
                 comp = dict(comp_by_emp_id.get(emp["_id"]) or {})
+                comp_logo = comp.get("logo_url") if "logo_url" in comp else (u.get("logo_url") or u.get("avatar_url") or "")
+                comp_cover = comp.get("cover_image_url") if "cover_image_url" in comp else (u.get("cover_image_url") or "")
+                comp["logo_url"] = comp_logo or ""
+                comp["cover_image_url"] = comp_cover or ""
+                u["logo_url"] = comp["logo_url"]
+                u["avatar_url"] = comp["logo_url"]
+                u["cover_image_url"] = comp["cover_image_url"]
                 u["profile"] = comp
                 u["company_name"] = comp.get("company_name") or emp.get("company_name") or u.get("full_name") or ""
                 u["branch_name"] = comp.get("branch_name") or emp.get("branch_name") or ""
@@ -217,6 +293,15 @@ def ban_user(user_id):
         related_id=user_id,
     )
     emit_socket_event("user-status-updated", {"user_id": user_id, "is_banned": True, "status": "banned"})
+    target_user = users_col.find_one({"_id": user_id}) or {}
+    _record_audit_log(
+        current_admin,
+        "BAN_USER",
+        "user",
+        user_id,
+        target_user.get("full_name") or target_user.get("email") or user_id,
+        reason=reason,
+    )
 
     return jsonify({"success": True, "message": f"Đã khóa tài khoản thành công. Lý do: {reason}"})
 
@@ -236,6 +321,14 @@ def unban_user(user_id):
         related_id=user_id,
     )
     emit_socket_event("user-status-updated", {"user_id": user_id, "is_banned": False, "status": "active"})
+    target_user = users_col.find_one({"_id": user_id}) or {}
+    _record_audit_log(
+        request.current_user,
+        "UNBAN_USER",
+        "user",
+        user_id,
+        target_user.get("full_name") or target_user.get("email") or user_id,
+    )
     return jsonify({"success": True, "message": "Đã mở khóa tài khoản thành công."})
 
 @admin_bp.route("/users/<user_id>", methods=["DELETE"])
@@ -250,9 +343,55 @@ def delete_user_account(user_id):
     if target_user and target_user.get("role") == "admin":
         return jsonify({"success": False, "message": "Không thể xóa tài khoản Quản trị viên hệ thống."}), 400
 
+    target_label = (target_user or {}).get("full_name") or (target_user or {}).get("email") or user_id
     db_manager.cascade_delete_user(user_id)
     emit_socket_event("user-status-updated", {"user_id": user_id, "deleted": True})
+    _record_audit_log(current_admin, "DELETE_USER", "user", user_id, target_label)
     return jsonify({"success": True, "message": "Đã xóa vĩnh viễn tài khoản người dùng và dữ liệu liên quan thành công!"})
+
+@admin_bp.route("/users/<user_id>/resumes", methods=["GET"])
+@role_required("admin")
+def admin_get_student_resumes(user_id):
+    """Admin xem danh sách tệp CV PDF của sinh viên để kiểm tra báo cáo gian lận hồ sơ."""
+    stu_col = db_manager.get_collection("student_profiles")
+    res_col = db_manager.get_collection("resumes")
+    app_col = db_manager.get_collection("applications")
+    stu = stu_col.find_one({"$or": [{"user_id": user_id}, {"_id": user_id}]})
+    stu_id = stu.get("_id") if stu else user_id
+    uid = stu.get("user_id") if stu else user_id
+    id_candidates = [x for x in {user_id, stu_id, uid} if x]
+
+    resumes = list(res_col.find({
+        "$or": [
+            {"student_id": {"$in": id_candidates}},
+            {"student_user_id": {"$in": id_candidates}},
+        ]
+    }).sort("uploaded_at", -1))
+
+    # Gộp thêm snapshot CV đã nộp trong đơn ứng tuyển nếu chưa có URL trùng lặp
+    existing_urls = {r.get("file_url") for r in resumes if r.get("file_url")}
+    for app in app_col.find({
+        "$or": [
+            {"student_id": {"$in": id_candidates}},
+            {"student_user_id": {"$in": id_candidates}},
+        ]
+    }).sort("applied_at", -1):
+        snap = app.get("application_snapshot") or {}
+        cv_url = snap.get("cv_url") or app.get("cv_url") or ""
+        if cv_url and cv_url not in existing_urls:
+            existing_urls.add(cv_url)
+            resumes.append({
+                "_id": f"appcv_{app.get('_id')}",
+                "student_id": stu_id,
+                "file_name": snap.get("cv_name") or f"CV_{app.get('job_title', 'UngTuyen')}.pdf",
+                "file_url": cv_url,
+                "is_default": False,
+                "source": "application_snapshot",
+                "job_title": app.get("job_title", ""),
+                "uploaded_at": app.get("applied_at", ""),
+            })
+
+    return jsonify({"success": True, "data": resumes})
 
 # 2.1 Duyệt Giấy phép kinh doanh GPKD (FR 3.4.6)
 @admin_bp.route("/employers/<user_id>/gpkd", methods=["PUT"])
@@ -297,6 +436,16 @@ def review_employer_gpkd(user_id):
         "status": status
     })
 
+    comp = db_manager.get_collection("company_profiles").find_one({"employer_id": emp["_id"] if emp else target_user_id}) or {}
+    _record_audit_log(
+        request.current_user,
+        "APPROVE_GPKD" if status == "approved" else "REJECT_GPKD",
+        "employer_gpkd",
+        emp["_id"] if emp else target_user_id,
+        comp.get("company_name") or target_user_id,
+        reason=reason,
+    )
+
     action_text = "phê duyệt hợp lệ" if status == "approved" else "từ chối"
     return jsonify({"success": True, "message": f"Đã {action_text} Giấy phép kinh doanh của Doanh nghiệp!"})
 
@@ -306,6 +455,8 @@ def review_employer_gpkd(user_id):
 def list_all_jobs():
     jobs_col = db_manager.get_collection("jobs")
     cat_map = {c.get("_id"): c.get("name") for c in db_manager.get_collection("categories").find({}) if c.get("_id")}
+    banned_docs = list(db_manager.get_collection("banned_keywords").find({}))
+
     jobs = [
         j for j in list(jobs_col.find({}).sort("created_at", -1))
         if j.get("_id") not in ["job_1", "job_2", "job_3", "job_4", "job_5", "job_6"]
@@ -317,7 +468,63 @@ def list_all_jobs():
             j["status"] = j["job_status"]
         elif not j.get("job_status") and j.get("status"):
             j["job_status"] = j["status"]
+        if "is_admin_reviewed" not in j:
+            j["is_admin_reviewed"] = False
+
+        matched_kws = scan_job_banned_keywords(j, banned_docs)
+        j["matched_banned_keywords"] = matched_kws
+        j["has_sensitive_keywords"] = len(matched_kws) > 0
     return jsonify({"success": True, "data": jobs})
+
+@admin_bp.route("/jobs/<job_id>/approve-moderation", methods=["PUT"])
+@role_required("admin")
+def approve_job_moderation(job_id):
+    """Đánh dấu tin tuyển dụng mới đăng đã được Quản trị viên kiểm duyệt đạt chuẩn."""
+    jobs_col = db_manager.get_collection("jobs")
+    job = jobs_col.find_one({"_id": job_id})
+    if not job:
+        return jsonify({"success": False, "message": "Không tìm thấy tin tuyển dụng."}), 404
+    now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+    jobs_col.update_one(
+        {"_id": job_id},
+        {"$set": {
+            "is_admin_reviewed": True,
+            "is_hidden": False,
+            "hidden_reason": "",
+            "moderation_reviewed_at": now_str,
+            "moderation_reviewed_by": request.current_user.get("email") or request.current_user.get("_id"),
+        }}
+    )
+    _record_audit_log(
+        request.current_user,
+        "APPROVE_JOB_MODERATION",
+        "job",
+        job_id,
+        job.get("title") or job_id,
+    )
+    if job.get("employer_id"):
+        emp = db_manager.get_collection("employers").find_one({
+            "$or": [{"_id": job.get("employer_id")}, {"user_id": job.get("employer_id")}]
+        })
+        target_user_id = emp.get("user_id") if (emp and emp.get("user_id")) else job.get("employer_id")
+        if target_user_id:
+            create_and_emit_notification(
+                user_id=target_user_id,
+                title=f"Quản trị viên đã duyệt tin: {job.get('title', '')}",
+                message=f"Tin tuyển dụng '{job.get('title', '')}' của bạn đã được Quản trị viên kiểm duyệt và đạt chuẩn.",
+                notif_type="job",
+                role="employer",
+                related_id=job_id,
+                target_id=emp.get("_id") if emp else target_user_id,
+            )
+    emit_socket_event("job-updated", {
+        "job_id": job_id,
+        "employer_id": job.get("employer_id"),
+        "title": job.get("title"),
+        "is_admin_reviewed": True,
+        "is_hidden": False,
+    })
+    return jsonify({"success": True, "message": "Đã xác nhận tin tuyển dụng đạt chuẩn kiểm duyệt!"})
 
 @admin_bp.route("/jobs/<job_id>/hide", methods=["PUT"])
 @role_required("admin")
@@ -327,11 +534,19 @@ def hide_job(job_id):
     jobs_col = db_manager.get_collection("jobs")
     jobs_col.update_one(
         {"_id": job_id},
-        {"$set": {"is_hidden": True, "hidden_reason": reason}}
+        {"$set": {"is_hidden": True, "hidden_reason": reason, "is_admin_reviewed": True}}
     )
     
     # Gửi thông báo hệ thống trực tiếp cho Doanh nghiệp đăng tin kèm Socket.IO
     job = jobs_col.find_one({"_id": job_id})
+    _record_audit_log(
+        request.current_user,
+        "HIDE_JOB",
+        "job",
+        job_id,
+        (job or {}).get("title") or job_id,
+        reason=reason,
+    )
     if job and job.get("employer_id"):
         emp = db_manager.get_collection("employers").find_one({"_id": job.get("employer_id")})
         target_user_id = emp.get("user_id") if emp else job.get("employer_id")
@@ -344,7 +559,7 @@ def hide_job(job_id):
             related_id=job_id,
             target_id=target_user_id,
         )
-    emit_socket_event("job-updated", {"job_id": job_id, "is_hidden": True})
+    emit_socket_event("job-updated", {"job_id": job_id, "is_hidden": True, "is_admin_reviewed": True})
 
     return jsonify({"success": True, "message": f"Đã ẩn tin tuyển dụng. Lý do: {reason}"})
 
@@ -354,9 +569,16 @@ def unhide_job(job_id):
     jobs_col = db_manager.get_collection("jobs")
     jobs_col.update_one(
         {"_id": job_id},
-        {"$set": {"is_hidden": False, "hidden_reason": ""}}
+        {"$set": {"is_hidden": False, "hidden_reason": "", "is_admin_reviewed": True}}
     )
     job = jobs_col.find_one({"_id": job_id})
+    _record_audit_log(
+        request.current_user,
+        "UNHIDE_JOB",
+        "job",
+        job_id,
+        (job or {}).get("title") or job_id,
+    )
     if job and job.get("employer_id"):
         emp = db_manager.get_collection("employers").find_one({"_id": job.get("employer_id")})
         target_user_id = emp.get("user_id") if emp else job.get("employer_id")
@@ -369,7 +591,7 @@ def unhide_job(job_id):
             related_id=job_id,
             target_id=target_user_id,
         )
-    emit_socket_event("job-updated", {"job_id": job_id, "is_hidden": False})
+    emit_socket_event("job-updated", {"job_id": job_id, "is_hidden": False, "is_admin_reviewed": True})
     return jsonify({"success": True, "message": "Đã bỏ ẩn, tin tuyển dụng được hiển thị lại."})
 
 @admin_bp.route("/jobs/<job_id>", methods=["DELETE"])
@@ -409,6 +631,13 @@ def delete_job(job_id):
             target_id=target_user_id,
         )
     emit_socket_event("job-updated", {"job_id": job_id, "deleted": True})
+    _record_audit_log(
+        request.current_user,
+        "DELETE_JOB",
+        "job",
+        job_id,
+        (job or {}).get("title") or job_id,
+    )
     return jsonify({"success": True, "message": "Đã xóa vĩnh viễn tin tuyển dụng thành công!"})
 
 # 4. Master Data Categories (FR 3.7)
@@ -550,15 +779,57 @@ def update_report_status(rep_id):
     }
     status_label = status_map.get(new_status, new_status)
     reporter_id = rep.get("reporter_id")
-    if reporter_id:
+    reporter_uid = reporter_id
+    reporter_role = rep.get("reporter_role")
+    if reporter_id and str(reporter_id).startswith("stu_"):
+        reporter_uid = resolve_student_user_id(reporter_id)
+        reporter_role = reporter_role or "student"
+    elif reporter_id and str(reporter_id).startswith("emp_"):
+        reporter_uid = resolve_employer_user_id(reporter_id)
+        reporter_role = reporter_role or "employer"
+    elif reporter_id and str(reporter_id).startswith("user_student_"):
+        reporter_role = reporter_role or "student"
+    elif reporter_id and str(reporter_id).startswith("user_employer_"):
+        reporter_role = reporter_role or "employer"
+
+    if (not reporter_uid or not str(reporter_uid).startswith("user_")) and rep.get("reporter_email"):
+        u_doc = db_manager.get_collection("users").find_one({"email": rep.get("reporter_email")})
+        if u_doc and u_doc.get("_id"):
+            reporter_uid = u_doc["_id"]
+            reporter_role = reporter_role or u_doc.get("role")
+
+    if reporter_uid:
         create_and_emit_notification(
-            user_id=reporter_id,
+            user_id=reporter_uid,
             title=f"Cập nhật Ticket vi phạm {rep.get('ticket_code', rep_id)}",
             message=f"Quản trị viên đã xử lý báo cáo vi phạm của bạn với kết quả: '{status_label}'. {('Ghi chú: ' + note) if note else ''}",
             notif_type="report_status",
+            role=reporter_role,
             related_id=rep_id,
+            target_id=reporter_id or reporter_uid,
         )
-    emit_socket_event("report-updated", {"report_id": rep_id, "status": new_status, "reporter_id": reporter_id})
+    report_event_payload = {
+        "report_id": rep_id,
+        "ticket_code": rep.get("ticket_code", rep_id),
+        "status": new_status,
+        "status_label": status_label,
+        "admin_note": note,
+        "reporter_id": reporter_id,
+        "reporter_user_id": reporter_uid,
+    }
+    emit_socket_event("report-updated", report_event_payload)
+    if reporter_uid:
+        emit_socket_event("report-updated", report_event_payload, room=f"user_{reporter_uid}")
+    if reporter_id and reporter_id != reporter_uid:
+        emit_socket_event("report-updated", report_event_payload, room=f"user_{reporter_id}")
+    _record_audit_log(
+        request.current_user,
+        "UPDATE_REPORT_STATUS",
+        "report",
+        rep_id,
+        rep.get("ticket_code") or rep.get("target_title") or rep_id,
+        reason=f"{status_label}" + (f": {note}" if note else ""),
+    )
 
     return jsonify({"success": True, "message": f"Đã cập nhật trạng thái báo cáo sang: {status_label}"})
 
@@ -566,7 +837,17 @@ def update_report_status(rep_id):
 @role_required("admin")
 def delete_report(rep_id):
     rep_col = db_manager.get_collection("reports")
+    rep = rep_col.find_one({"_id": rep_id})
     rep_col.delete_one({"_id": rep_id})
+    reporter_id = rep.get("reporter_id") if rep else ""
+    emit_socket_event("report-updated", {"report_id": rep_id, "deleted": True, "reporter_id": reporter_id})
+    _record_audit_log(
+        request.current_user,
+        "DELETE_REPORT",
+        "report",
+        rep_id,
+        (rep.get("ticket_code") or rep.get("target_title")) if rep else rep_id,
+    )
     return jsonify({"success": True, "message": "Đã xóa vĩnh viễn báo cáo vi phạm thành công!"})
 
 # FR 3.9.2: Xem lịch sử Chat gốc (Unmasked) để làm chứng cứ phân xử
@@ -582,21 +863,47 @@ def get_report_chat_history(rep_id):
     msg_col = db_manager.get_collection("messages")
     target_id = str(rep.get("target_id") or "")
     reporter_id = str(rep.get("reporter_id") or "")
+    explicit_room_id = str(rep.get("room_id") or "")
+    explicit_app_id = str(rep.get("application_id") or "")
     room_candidates = set()
     party_a_ids = {reporter_id} if reporter_id else set()
     party_b_ids = {target_id} if target_id else set()
 
-    if target_id.startswith("room_"):
+    is_app_scoped = False
+    if explicit_room_id.startswith("room_"):
+        is_app_scoped = "_app_" in explicit_room_id
+        for r_var in get_room_id_variants(explicit_room_id):
+            room_candidates.add(r_var)
+    elif target_id.startswith("room_"):
+        is_app_scoped = "_app_" in target_id
         for r_var in get_room_id_variants(target_id):
             room_candidates.add(r_var)
+    elif explicit_app_id:
+        app_doc = db_manager.get_collection("applications").find_one({"_id": explicit_app_id})
+        if app_doc:
+            emp_id = str(app_doc.get("employer_id") or "")
+            stu_id = str(app_doc.get("student_user_id") or app_doc.get("student_id") or "")
+            if emp_id and stu_id:
+                is_app_scoped = True
+                for r_var in get_room_id_variants(f"room_emp_{emp_id}_stu_{stu_id}_app_{explicit_app_id}"):
+                    room_candidates.add(r_var)
     else:
         # Phân giải nếu target_id là job_id, application_id hoặc user_id/profile_id
         job_doc = db_manager.get_collection("jobs").find_one({"_id": target_id})
         if job_doc and job_doc.get("employer_id"):
             emp_id = str(job_doc.get("employer_id"))
             party_b_ids.add(emp_id)
-            for r_var in get_room_id_variants(f"room_emp_{emp_id}_stu_{reporter_id}"):
-                room_candidates.add(r_var)
+            app_for_job = db_manager.get_collection("applications").find_one({
+                "job_id": target_id,
+                "$or": [{"student_user_id": reporter_id}, {"student_id": reporter_id}],
+            })
+            if app_for_job:
+                is_app_scoped = True
+                for r_var in get_room_id_variants(f"room_emp_{emp_id}_stu_{reporter_id}_app_{app_for_job['_id']}"):
+                    room_candidates.add(r_var)
+            else:
+                for r_var in get_room_id_variants(f"room_emp_{emp_id}_stu_{reporter_id}"):
+                    room_candidates.add(r_var)
 
         app_doc = db_manager.get_collection("applications").find_one({"_id": target_id})
         if app_doc:
@@ -604,39 +911,41 @@ def get_report_chat_history(rep_id):
             stu_id = str(app_doc.get("student_user_id") or app_doc.get("student_id") or "")
             if emp_id and stu_id:
                 party_b_ids.update([emp_id, stu_id])
-                for r_var in get_room_id_variants(f"room_emp_{emp_id}_stu_{stu_id}"):
+                is_app_scoped = True
+                for r_var in get_room_id_variants(f"room_emp_{emp_id}_stu_{stu_id}_app_{app_doc['_id']}"):
                     room_candidates.add(r_var)
 
         # Thử ghép cặp 2 chiều giữa reporter_id và target_id
-        if reporter_id and target_id:
+        if reporter_id and target_id and not is_app_scoped:
             for r_var in get_room_id_variants(f"room_emp_{target_id}_stu_{reporter_id}"):
                 room_candidates.add(r_var)
             for r_var in get_room_id_variants(f"room_emp_{reporter_id}_stu_{target_id}"):
                 room_candidates.add(r_var)
 
     # Mở rộng định danh của 2 bên để truy vấn tin nhắn trực tiếp giữa đúng 2 đối tượng trong ticket
-    for pid in list(party_a_ids):
-        emp_doc = db_manager.get_collection("employers").find_one({"$or": [{"_id": pid}, {"user_id": pid}]})
-        if emp_doc:
-            party_a_ids.update([str(emp_doc.get("_id", "")), str(emp_doc.get("user_id", ""))])
-        stu_doc = db_manager.get_collection("student_profiles").find_one({"$or": [{"_id": pid}, {"user_id": pid}]})
-        if stu_doc:
-            party_a_ids.update([str(stu_doc.get("_id", "")), str(stu_doc.get("user_id", ""))])
+    if not is_app_scoped:
+        for pid in list(party_a_ids):
+            emp_doc = db_manager.get_collection("employers").find_one({"$or": [{"_id": pid}, {"user_id": pid}]})
+            if emp_doc:
+                party_a_ids.update([str(emp_doc.get("_id", "")), str(emp_doc.get("user_id", ""))])
+            stu_doc = db_manager.get_collection("student_profiles").find_one({"$or": [{"_id": pid}, {"user_id": pid}]})
+            if stu_doc:
+                party_a_ids.update([str(stu_doc.get("_id", "")), str(stu_doc.get("user_id", ""))])
 
-    for pid in list(party_b_ids):
-        emp_doc = db_manager.get_collection("employers").find_one({"$or": [{"_id": pid}, {"user_id": pid}]})
-        if emp_doc:
-            party_b_ids.update([str(emp_doc.get("_id", "")), str(emp_doc.get("user_id", ""))])
-        stu_doc = db_manager.get_collection("student_profiles").find_one({"$or": [{"_id": pid}, {"user_id": pid}]})
-        if stu_doc:
-            party_b_ids.update([str(stu_doc.get("_id", "")), str(stu_doc.get("user_id", ""))])
+        for pid in list(party_b_ids):
+            emp_doc = db_manager.get_collection("employers").find_one({"$or": [{"_id": pid}, {"user_id": pid}]})
+            if emp_doc:
+                party_b_ids.update([str(emp_doc.get("_id", "")), str(emp_doc.get("user_id", ""))])
+            stu_doc = db_manager.get_collection("student_profiles").find_one({"$or": [{"_id": pid}, {"user_id": pid}]})
+            if stu_doc:
+                party_b_ids.update([str(stu_doc.get("_id", "")), str(stu_doc.get("user_id", ""))])
 
     party_a_list = [x for x in party_a_ids if x]
     party_b_list = [x for x in party_b_ids if x]
     or_clauses = []
     if room_candidates:
         or_clauses.append({"room_id": {"$in": list(room_candidates)}})
-    if party_a_list and party_b_list:
+    if not is_app_scoped and party_a_list and party_b_list:
         or_clauses.append({"sender_id": {"$in": party_a_list}, "receiver_id": {"$in": party_b_list}})
         or_clauses.append({"sender_id": {"$in": party_b_list}, "receiver_id": {"$in": party_a_list}})
 
@@ -759,6 +1068,13 @@ def toggle_hide_review(rev_id):
             related_id=rev_id,
         )
     emit_socket_event("review-updated", {"review_id": rev_id, "is_hidden": new_state})
+    _record_audit_log(
+        request.current_user,
+        "HIDE_REVIEW" if new_state else "UNHIDE_REVIEW",
+        "review",
+        rev_id,
+        rev.get("job_title") or rev.get("reviewer_name") or rev_id,
+    )
     return jsonify({
         "success": True, 
         "is_hidden": new_state, 
@@ -790,6 +1106,141 @@ def delete_admin_review(rev_id):
         )
 
     emit_socket_event("review-updated", {"review_id": rev_id, "deleted": True})
+    _record_audit_log(
+        request.current_user,
+        "DELETE_REVIEW",
+        "review",
+        rev_id,
+        (rev or {}).get("job_title") or rev_id,
+    )
     return jsonify({"success": True, "message": "Đã xóa vĩnh viễn đánh giá thành công!"})
+
+# 8. Nhật ký hoạt động Quản trị (Audit Log)
+@admin_bp.route("/audit-logs", methods=["GET"])
+@role_required("admin")
+def list_audit_logs():
+    action_filter = str(request.args.get("action") or "").strip()
+    log_col = db_manager.get_collection("audit_logs")
+    query = {"action": action_filter} if action_filter and action_filter != "all" else {}
+    logs = list(log_col.find(query).sort("created_at", -1))
+    return jsonify({"success": True, "data": logs})
+
+# 9. Gửi Thông báo hệ thống hàng loạt (Bulk Broadcast Announcements)
+@admin_bp.route("/announcements", methods=["GET"])
+@role_required("admin")
+def list_admin_announcements():
+    ann_col = db_manager.get_collection("announcements")
+    items = list(ann_col.find({}).sort("created_at", -1))
+    return jsonify({"success": True, "data": items})
+
+@admin_bp.route("/announcements", methods=["POST"])
+@role_required("admin")
+def create_admin_announcement():
+    data = request.get_json() or {}
+    title = str(data.get("title", "")).strip()
+    message = str(data.get("message", "")).strip()
+    target_role = str(data.get("target_role", "all")).strip().lower()
+    severity = str(data.get("severity", "info")).strip().lower()
+
+    if not title or not message:
+        return jsonify({"success": False, "message": "Vui lòng nhập đầy đủ Tiêu đề và Nội dung thông báo hệ thống."}), 400
+    if target_role not in ("all", "student", "employer"):
+        target_role = "all"
+    if severity not in ("info", "warning", "urgent"):
+        severity = "info"
+
+    users_col = db_manager.get_collection("users")
+    role_filter = ["student", "employer"] if target_role == "all" else [target_role]
+    recipients = [
+        u for u in users_col.find({"role": {"$in": role_filter}, "is_banned": {"$ne": True}})
+        if u.get("_id")
+    ]
+
+    ann_id = f"ann_{uuid.uuid4().hex[:8]}"
+    for u in recipients:
+        create_and_emit_notification(
+            user_id=u["_id"],
+            title=title,
+            message=message,
+            notif_type="system_announcement",
+            role=u.get("role"),
+            related_id=ann_id,
+            target_id="system_broadcast",
+        )
+
+    admin_user = request.current_user
+    now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+    ann_doc = {
+        "_id": ann_id,
+        "title": title,
+        "message": message,
+        "target_role": target_role,
+        "severity": severity,
+        "recipient_count": len(recipients),
+        "created_by_id": admin_user.get("_id"),
+        "created_by_name": admin_user.get("full_name") or admin_user.get("email") or "Quản trị viên",
+        "created_at": now_str,
+    }
+    db_manager.get_collection("announcements").insert_one(ann_doc)
+    emit_socket_event("system-announcement", ann_doc)
+    _record_audit_log(
+        admin_user,
+        "BROADCAST_ANNOUNCEMENT",
+        "announcement",
+        ann_doc["_id"],
+        title,
+        reason=f"Gửi tới {target_role} ({len(recipients)} tài khoản)",
+    )
+
+    return jsonify({
+        "success": True,
+        "message": f"Đã phát thông báo hệ thống tới {len(recipients)} người dùng thành công!",
+        "data": ann_doc,
+    }), 201
+
+
+@admin_bp.route("/announcements/<ann_id>", methods=["DELETE"])
+@role_required("admin")
+def delete_admin_announcement(ann_id):
+    """Xóa lịch sử thông báo hệ thống và thu hồi toàn bộ thông báo tương ứng đã gửi tới Sinh viên / NTD."""
+    ann_col = db_manager.get_collection("announcements")
+    ann = ann_col.find_one({"_id": ann_id})
+    if not ann:
+        return jsonify({"success": False, "message": "Không tìm thấy thông báo hệ thống cần xóa."}), 404
+
+    ann_col.delete_one({"_id": ann_id})
+
+    notif_col = db_manager.get_collection("notifications")
+    del_res = notif_col.delete_many({
+        "$or": [
+            {"related_id": ann_id, "type": "system_announcement"},
+            {
+                "type": "system_announcement",
+                "related_id": "system_broadcast",
+                "title": ann.get("title", ""),
+                "message": ann.get("message", ""),
+            },
+        ]
+    })
+    retracted_count = getattr(del_res, "deleted_count", 0)
+
+    admin_user = request.current_user
+    _record_audit_log(
+        admin_user,
+        "DELETE_ANNOUNCEMENT",
+        "announcement",
+        ann_id,
+        ann.get("title") or ann_id,
+        reason=f"Xóa lịch sử & thu hồi {retracted_count} thông báo từ chuông người dùng",
+        metadata={"retracted_count": retracted_count, "target_role": ann.get("target_role", "all")},
+    )
+    emit_socket_event("announcement-deleted", {"announcement_id": ann_id})
+    emit_socket_event("notifications-updated", {"action": "retract", "announcement_id": ann_id})
+
+    return jsonify({
+        "success": True,
+        "message": f"Đã xóa lịch sử và thu hồi {retracted_count} thông báo tương ứng khỏi chuông người dùng!",
+        "retracted_count": retracted_count,
+    })
 
 

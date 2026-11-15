@@ -11,6 +11,7 @@ from src.core.notification_service import (
 )
 from src.core.socket_service import canonicalize_room_id, get_latest_room_message
 from src.middlewares.auth_middleware import role_required
+from src.api.common.common_routes import scan_job_banned_keywords
 
 employer_bp = Blueprint("employer", __name__, url_prefix="/api/employer")
 
@@ -47,7 +48,9 @@ def get_company_profile():
     user = request.current_user
     emp = get_employer_record(user["_id"])
     comp_col = db_manager.get_collection("company_profiles")
-    comp = comp_col.find_one({"employer_id": emp["_id"]}) or {}
+    comp = dict(comp_col.find_one({"employer_id": emp["_id"]}) or {})
+    if not comp.get("phone"):
+        comp["phone"] = emp.get("phone") or user.get("phone") or ""
     return jsonify({
         "success": True,
         "employer_status": emp.get("approval_status"),
@@ -190,6 +193,21 @@ def update_company_profile():
     if "status" in data:
         update_fields["status"] = data["status"]
     comp_col.update_one({"employer_id": emp["_id"]}, {"$set": update_fields}, upsert=True)
+    # Đồng bộ ảnh Logo & tên doanh nghiệp sang các tin tuyển dụng để Sinh viên luôn thấy ảnh mới nhất
+    db_manager.get_collection("jobs").update_many(
+        {"$or": [{"employer_id": emp["_id"]}, {"employer_id": user["_id"]}]},
+        {"$set": {
+            "company_logo": update_fields.get("logo_url", ""),
+            "company_name": update_fields.get("company_name") or comp_name,
+        }}
+    )
+    emit_socket_event("employer-profile-updated", {
+        "employer_id": emp["_id"],
+        "user_id": user["_id"],
+        "company_name": update_fields.get("company_name", ""),
+        "logo_url": update_fields.get("logo_url", ""),
+        "cover_image_url": update_fields.get("cover_image_url", ""),
+    })
     msg = "Cập nhật hồ sơ doanh nghiệp thành công!"
     if is_new_license:
         msg = "Cập nhật hồ sơ thành công! Giấy phép kinh doanh mới đã được ghi nhận. Tài khoản của bạn đã được chuyển sang trạng thái 'Chờ duyệt' để Quản trị viên xem xét lại."
@@ -228,6 +246,7 @@ def list_my_jobs():
         if st in ["accepted", "Đã duyệt"] and not a.get("is_deleted_by_student"):
             acc_counts[jid] = acc_counts.get(jid, 0) + 1
 
+    banned_docs = list(db_manager.get_collection("banned_keywords").find({}))
     for j in jobs:
         jid = j.get("_id")
         j["applicant_count"] = app_counts.get(jid, 0)
@@ -238,6 +257,9 @@ def list_my_jobs():
             j["status"] = j["job_status"]
         elif not j.get("job_status") and j.get("status"):
             j["job_status"] = j["status"]
+        matched_kws = scan_job_banned_keywords(j, banned_docs)
+        j["matched_banned_keywords"] = matched_kws
+        j["has_sensitive_keywords"] = len(matched_kws) > 0
         
     return jsonify({"success": True, "data": jobs})
 
@@ -305,18 +327,31 @@ def create_job():
         "job_status": "open",
         "is_open": True,
         "is_hidden": False,
+        "is_admin_reviewed": False,
         "hidden_reason": "",
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
     }
 
+    matched_kws = scan_job_banned_keywords(new_job)
+    new_job["matched_banned_keywords"] = matched_kws
+    new_job["has_sensitive_keywords"] = len(matched_kws) > 0
     db_manager.get_collection("jobs").insert_one(new_job)
-    notify_admins(
-        title="Tin tuyển dụng mới cần giám sát",
-        message=f"Doanh nghiệp {new_job['company_name']} vừa đăng tin tuyển dụng '{title}' ({location}).",
-        notif_type="new_job",
-        related_id=new_job["_id"],
-        target_id=new_job["_id"],
-    )
+    if matched_kws:
+        notify_admins(
+            title="Cảnh báo tin tuyển dụng mới chứa từ khóa cấm",
+            message=f"Doanh nghiệp {new_job['company_name']} vừa đăng tin '{title}' có từ ngữ nhạy cảm ({', '.join(matched_kws)}). Cần kiểm duyệt.",
+            notif_type="sensitive_job_alert",
+            related_id=new_job["_id"],
+            target_id=new_job["_id"],
+        )
+    else:
+        notify_admins(
+            title="Tin tuyển dụng mới cần giám sát",
+            message=f"Doanh nghiệp {new_job['company_name']} vừa đăng tin tuyển dụng '{title}' ({location}).",
+            notif_type="new_job",
+            related_id=new_job["_id"],
+            target_id=new_job["_id"],
+        )
     emit_socket_event("new-job", new_job)
     return jsonify({"success": True, "message": "Đăng tin tuyển dụng thành công!", "data": new_job}), 201
 
@@ -349,7 +384,7 @@ def update_job(job_id):
             return jsonify({"success": False, "message": "Ảnh bìa Doanh nghiệp chỉ nhận định dạng ảnh .png, .jpg, .jpeg (≤ 10MB)!"}), 400
 
     update_fields = {}
-    for key in ["title", "category_id", "location", "description", "salary_min", "salary_max", "is_negotiable", "work_time", "is_open", "job_status", "status"]:
+    for key in ["title", "category_id", "location", "branch_name", "description", "requirements", "benefits", "salary_min", "salary_max", "is_negotiable", "work_time", "is_open", "job_status", "status"]:
         if key in data:
             update_fields[key] = data[key]
     if "job_status" in update_fields and "status" not in update_fields:
@@ -358,7 +393,33 @@ def update_job(job_id):
         update_fields["job_status"] = update_fields["status"]
 
     job_col.update_one({"_id": job_id}, {"$set": update_fields})
-    return jsonify({"success": True, "message": "Cập nhật tin tuyển dụng thành công!"})
+    updated_job = job_col.find_one({"_id": job_id}) or {}
+    matched_kws = scan_job_banned_keywords(updated_job)
+    has_sensitive = len(matched_kws) > 0
+    extra_sets = {
+        "matched_banned_keywords": matched_kws,
+        "has_sensitive_keywords": has_sensitive,
+    }
+    text_changed = any(
+        k in update_fields
+        for k in ("title", "description", "requirements", "benefits", "work_time", "branch_name")
+    )
+    if text_changed and has_sensitive:
+        extra_sets["is_admin_reviewed"] = False
+        notify_admins(
+            title="Cảnh báo tin tuyển dụng vừa sửa chứa từ khóa cấm",
+            message=f"Tin '{updated_job.get('title', '')}' vừa cập nhật có chứa từ nhạy cảm ({', '.join(matched_kws)}). Vui lòng kiểm duyệt lại.",
+            notif_type="sensitive_job_alert",
+            related_id=job_id,
+            target_id=job_id,
+        )
+    job_col.update_one({"_id": job_id}, {"$set": extra_sets})
+    updated_job.update(extra_sets)
+    emit_socket_event(
+        "job-updated",
+        {"job_id": job_id, "action": "update", "has_sensitive_keywords": has_sensitive},
+    )
+    return jsonify({"success": True, "message": "Cập nhật tin tuyển dụng thành công!", "data": updated_job})
 
 @employer_bp.route("/jobs/<job_id>/status", methods=["PATCH", "PUT"])
 @role_required("employer")
@@ -509,12 +570,15 @@ def list_applicants():
 
     applicants = list(app_col.find(query).sort("applied_at", -1))
 
-    # Làm giàu thông tin ca làm, địa điểm từ Jobs, lịch rảnh từ StudentProfiles và trạng thái phản hồi tin nhắn từ Messages (Gom truy vấn ngoài vòng lặp)
+    # Làm giàu thông tin ca làm, địa điểm từ Jobs, ảnh đại diện/ảnh bìa mới nhất từ StudentProfiles/Users và trạng thái tin nhắn
     stu_col = db_manager.get_collection("student_profiles")
     jobs_map = {j.get("_id"): j for j in job_col.find({"employer_id": emp["_id"]})}
     all_stus = list(stu_col.find({}))
     stu_by_id = {s.get("_id"): s for s in all_stus if s.get("_id")}
     stu_by_uid = {s.get("user_id"): s for s in all_stus if s.get("user_id")}
+    stu_users_by_uid = {
+        u.get("_id"): u for u in db_manager.get_collection("users").find({"role": "student"}) if u.get("_id")
+    }
 
     for a in applicants:
         parent_job = jobs_map.get(a.get("job_id")) or (job_col.find_one({"_id": a.get("job_id")}) if a.get("job_id") else None)
@@ -530,10 +594,39 @@ def list_applicants():
         raw_stu = str(a.get("student_user_id") or a.get("student_id") or "")
         stu_prof = stu_by_id.get(a.get("student_id")) or stu_by_id.get(raw_stu) or stu_by_uid.get(raw_stu)
         stu_uid = (stu_prof.get("user_id") if stu_prof and stu_prof.get("user_id") else raw_stu)
-        if stu_prof and stu_prof.get("free_schedule"):
-            a.setdefault("free_schedule", stu_prof.get("free_schedule"))
-            a["student_free_schedule"] = stu_prof.get("free_schedule")
-        room_id = f"room_emp_{emp['_id']}_stu_{stu_uid}"
+        stu_user = stu_users_by_uid.get(stu_uid)
+        snap = dict(a.get("application_snapshot") or {})
+        if stu_prof and "avatar_url" in stu_prof:
+            live_avatar = stu_prof.get("avatar_url") or ""
+        elif stu_user and "avatar_url" in stu_user:
+            live_avatar = stu_user.get("avatar_url") or ""
+        else:
+            live_avatar = a.get("student_avatar_url") or snap.get("avatar_url") or ""
+        if stu_prof and "cover_image_url" in stu_prof:
+            live_cover = stu_prof.get("cover_image_url") or ""
+        elif stu_user and "cover_image_url" in stu_user:
+            live_cover = stu_user.get("cover_image_url") or ""
+        else:
+            live_cover = a.get("student_cover_image_url") or snap.get("cover_image_url") or ""
+
+        a["student_avatar_url"] = live_avatar
+        a["student_cover_image_url"] = live_cover
+        snap["avatar_url"] = live_avatar
+        snap["cover_image_url"] = live_cover
+        if stu_prof:
+            if stu_prof.get("full_name"):
+                snap["student_name"] = stu_prof.get("full_name")
+                a["student_name"] = stu_prof.get("full_name")
+            if stu_prof.get("university"):
+                snap["university"] = stu_prof.get("university")
+            if stu_prof.get("residence_address") or stu_prof.get("address"):
+                snap["residence_address"] = stu_prof.get("residence_address") or stu_prof.get("address")
+            if stu_prof.get("free_schedule"):
+                a.setdefault("free_schedule", stu_prof.get("free_schedule"))
+                a["student_free_schedule"] = stu_prof.get("free_schedule")
+        a["application_snapshot"] = snap
+        room_id = canonicalize_room_id(f"room_emp_{emp['_id']}_stu_{stu_uid}_app_{a['_id']}")
+        a["room_id"] = room_id
         lm = get_latest_room_message(room_id)
         if lm:
             a["last_sender_role"] = lm.get("sender_role")
@@ -554,7 +647,15 @@ def update_applicant_status(app_id):
     emp = get_employer_record(user["_id"])
     data = request.get_json() or {}
     new_status = data.get("status") # reviewed, interview, accepted, rejected
-    note = data.get("note", "")
+    note = str(data.get("note", "") or "").strip()
+    reject_reason = str(data.get("reject_reason") or note or "").strip()
+
+    interview_date = str(data.get("interview_date", "") or "").strip()
+    interview_time = str(data.get("interview_time", "") or "").strip()
+    interview_method = str(data.get("interview_method", "") or "").strip()
+    interview_location = str(data.get("interview_location", "") or "").strip()
+    interview_note = str(data.get("interview_note", "") or note or "").strip()
+    has_interview_payload = bool(interview_date or interview_time or interview_method or interview_location or interview_note)
 
     valid_statuses = ["reviewed", "interview", "accepted", "rejected"]
     if new_status not in valid_statuses:
@@ -566,24 +667,51 @@ def update_applicant_status(app_id):
         return jsonify({"success": False, "message": "Không tìm thấy hồ sơ ứng viên."}), 404
 
     current_status = app.get("application_status")
-    if current_status == new_status:
+    if current_status == new_status and not (new_status == "interview" and has_interview_payload):
         return jsonify({"success": True, "message": f"Hồ sơ đã ở trạng thái {'trúng tuyển' if new_status == 'accepted' else new_status}."})
+
+    now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+    set_fields = {
+        "application_status": new_status,
+        "reject_reason": (reject_reason or "Chưa phù hợp với yêu cầu ca làm hiện tại") if new_status == "rejected" else "",
+    }
+    if new_status == "interview":
+        set_fields.update({
+            "interview_date": interview_date or app.get("interview_date", ""),
+            "interview_time": interview_time or app.get("interview_time", ""),
+            "interview_method": interview_method or app.get("interview_method", "") or "Phỏng vấn trực tuyến (WebRTC)",
+            "interview_location": interview_location or app.get("interview_location", ""),
+            "interview_note": interview_note or app.get("interview_note", ""),
+            "interview_scheduled_at": now_str,
+        })
+
+    if new_status == "interview":
+        sched_parts = [p for p in [set_fields.get("interview_date"), set_fields.get("interview_time"), set_fields.get("interview_method")] if p]
+        sched_summary = " • ".join(sched_parts)
+        default_note = f"Mời phỏng vấn ({sched_summary})" if sched_summary else "Doanh nghiệp mời tham gia phỏng vấn"
+        timeline_note = note or default_note
+    elif new_status == "rejected":
+        timeline_note = set_fields["reject_reason"]
+    elif new_status == "accepted":
+        timeline_note = note or "Doanh nghiệp phê duyệt trúng tuyển"
+    else:
+        timeline_note = note or f"Doanh nghiệp chuyển trạng thái sang {new_status}"
 
     history_item = {
         "status": new_status,
-        "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "note": note or ("Doanh nghiệp phê duyệt trúng tuyển" if new_status == "accepted" else ("Hồ sơ chưa phù hợp" if new_status == "rejected" else f"Doanh nghiệp chuyển trạng thái sang {new_status}"))
+        "updated_at": now_str,
+        "note": timeline_note
     }
 
     app_col.update_one(
         {"_id": app_id},
         {
-            "$set": {"application_status": new_status, "reject_reason": note if new_status == "rejected" else ""},
+            "$set": set_fields,
             "$push": {"status_history": history_item}
         }
     )
 
-    # Đẩy thông báo cho sinh viên & SocketIO tức thì (không dùng broadcast=True sai cú pháp)
+    # Đẩy thông báo cho sinh viên & SocketIO tức thì
     status_text_map = {
         "reviewed": "đã xem hồ sơ của bạn",
         "interview": "mời bạn tham gia phỏng vấn",
@@ -591,12 +719,17 @@ def update_applicant_status(app_id):
         "rejected": "đã từ chối hồ sơ ứng tuyển"
     }
     target_student_id = resolve_student_user_id(app.get("student_user_id") or app.get("student_id"))
+    extra_msg = ""
+    if new_status == "interview" and (set_fields.get("interview_date") or set_fields.get("interview_time")):
+        extra_msg = f" Lịch hẹn: {set_fields.get('interview_date', '')} lúc {set_fields.get('interview_time', '')} ({set_fields.get('interview_method', 'Phỏng vấn')})."
+    elif new_status == "rejected" and set_fields.get("reject_reason"):
+        extra_msg = f" Lý do: {set_fields['reject_reason']}."
 
     create_and_emit_notification(
         user_id=target_student_id,
-        title="Cập nhật trạng thái ứng tuyển",
-        message=f"Doanh nghiệp {app.get('company_name', 'Doanh nghiệp')} {status_text_map.get(new_status, 'đã cập nhật hồ sơ')} cho công việc '{app.get('job_title')}'.",
-        notif_type="application_status",
+        title="Cập nhật lịch phỏng vấn" if new_status == "interview" else "Cập nhật trạng thái ứng tuyển",
+        message=f"Doanh nghiệp {app.get('company_name', 'Doanh nghiệp')} {status_text_map.get(new_status, 'đã cập nhật hồ sơ')} cho công việc '{app.get('job_title')}'.{extra_msg}",
+        notif_type="interview_schedule" if new_status == "interview" else "application_status",
         role="student",
         related_id=app_id,
         target_id=target_student_id,
@@ -604,10 +737,95 @@ def update_applicant_status(app_id):
     emit_socket_event("application-status-updated", {
         "application_id": app_id,
         "status": new_status,
+        "student_user_id": target_student_id,
+        **({
+            "interview_date": set_fields.get("interview_date"),
+            "interview_time": set_fields.get("interview_time"),
+            "interview_method": set_fields.get("interview_method"),
+            "interview_location": set_fields.get("interview_location"),
+            "interview_note": set_fields.get("interview_note"),
+        } if new_status == "interview" else {})
+    })
+
+    return jsonify({
+        "success": True,
+        "message": "Đã lên lịch phỏng vấn cho ứng viên!" if new_status == "interview" else f"Đã cập nhật trạng thái ứng viên sang: {new_status}",
+        "data": {**app, **set_fields}
+    })
+
+@employer_bp.route("/applicants/<app_id>/attendance", methods=["PUT"])
+@role_required("employer")
+def mark_applicant_shift_attendance(app_id):
+    """Nhà tuyển dụng xác nhận hoàn thành ca làm hoặc ghi nhận vắng mặt cho từng sinh viên cụ thể."""
+    user = request.current_user
+    emp = get_employer_record(user["_id"])
+    data = request.get_json() or {}
+    shift_status = str(data.get("shift_status", "")).strip().lower()
+    hours_worked = data.get("hours_worked")
+    attendance_note = str(data.get("attendance_note", "") or "").strip()
+
+    if shift_status not in ("upcoming", "in_progress", "completed", "absent"):
+        return jsonify({"success": False, "message": "Trạng thái điểm danh ca không hợp lệ (upcoming, in_progress, completed, absent)."}), 400
+
+    app_col = db_manager.get_collection("applications")
+    app = app_col.find_one({"_id": app_id, "$or": [{"employer_id": emp["_id"]}, {"employer_id": user["_id"]}]})
+    if not app:
+        return jsonify({"success": False, "message": "Không tìm thấy hồ sơ ứng viên."}), 404
+
+    if str(app.get("application_status") or "").lower() not in ("accepted", "đã duyệt", "completed"):
+        return jsonify({"success": False, "message": "Chỉ có thể chấm công / xác nhận ca làm cho sinh viên đã Trúng tuyển."}), 400
+
+    now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+    status_vi = {
+        "upcoming": "Sắp diễn ra",
+        "in_progress": "Đang làm việc",
+        "completed": "Đã hoàn thành ca làm",
+        "absent": "Vắng mặt"
+    }.get(shift_status, shift_status)
+
+    set_fields = {
+        "shift_status": shift_status,
+        "attendance_marked_at": now_str,
+        "attendance_note": attendance_note,
+    }
+    if hours_worked is not None:
+        try:
+            set_fields["hours_worked"] = float(hours_worked)
+        except (TypeError, ValueError):
+            pass
+
+    app_col.update_one(
+        {"_id": app_id},
+        {
+            "$set": set_fields,
+            "$push": {
+                "status_history": {
+                    "status": f"shift_{shift_status}",
+                    "updated_at": now_str,
+                    "note": f"Doanh nghiệp điểm danh ca làm: {status_vi}" + (f" ({attendance_note})" if attendance_note else "")
+                }
+            }
+        }
+    )
+
+    target_student_id = resolve_student_user_id(app.get("student_user_id") or app.get("student_id"))
+    if target_student_id:
+        create_and_emit_notification(
+            user_id=target_student_id,
+            title=f"Cập nhật chấm công ca làm: {status_vi}",
+            message=f"Doanh nghiệp {app.get('company_name', 'Doanh nghiệp')} đã xác nhận ca làm vị trí '{app.get('job_title', '')}': {status_vi}." + (" Bạn hiện có thể gửi đánh giá 2 chiều!" if shift_status == "completed" else ""),
+            notif_type="shift_status",
+            role="student",
+            related_id=app_id,
+            target_id=target_student_id,
+        )
+    emit_socket_event("application-status-updated", {
+        "application_id": app_id,
+        "shift_status": shift_status,
         "student_user_id": target_student_id
     })
 
-    return jsonify({"success": True, "message": f"Đã cập nhật trạng thái ứng viên sang: {new_status}"})
+    return jsonify({"success": True, "message": f"Đã cập nhật điểm danh ca cho sinh viên: {status_vi}", "data": {**app, **set_fields}})
 
 @employer_bp.route("/applicants/<app_id>", methods=["DELETE"])
 @role_required("employer")
@@ -651,7 +869,10 @@ def review_student():
         return jsonify({"success": False, "message": "Chỉ có thể đánh giá năng lực ứng viên đã trúng tuyển và hoàn thành ca làm việc."}), 400
 
     rev_col = db_manager.get_collection("reviews")
-    
+    comp = db_manager.get_collection("company_profiles").find_one({"employer_id": emp["_id"]}) or {}
+    company_display_name = comp.get("company_name") or emp.get("company_name") or user.get("company_name") or "Nhà tuyển dụng"
+    student_target_id = app.get("student_user_id") or app.get("student_id")
+
     # Kiểm tra xem đã có đánh giá nào cho application_id này bởi nhà tuyển dụng chưa (tránh DuplicateKeyError)
     existing_rev = rev_col.find_one({
         "$or": [
@@ -667,10 +888,29 @@ def review_student():
             {"$set": {
                 "rating": rating,
                 "comment": comment,
+                "reviewer_name": company_display_name,
+                "employer_id": emp["_id"],
+                "target_id": student_target_id or existing_rev.get("target_id"),
+                "direction": "employer_to_student",
+                "reviewer_role": "employer",
+                "target_role": "student",
+                "type": "employer_review",
                 "updated_at": time.strftime("%Y-%m-%d %H:%M:%S")
             }}
         )
         updated_rev = rev_col.find_one({"_id": existing_rev["_id"]})
+        student_uid = resolve_student_user_id(student_target_id)
+        if student_uid:
+            create_and_emit_notification(
+                user_id=student_uid,
+                title="Cập nhật đánh giá năng lực",
+                message=f"{company_display_name} đã cập nhật đánh giá ({rating}/5 sao) cho công việc '{app.get('job_title', 'bán thời gian')}'.",
+                notif_type="review",
+                role="student",
+                related_id=application_id,
+                target_id=student_uid,
+            )
+        emit_socket_event("review-updated", updated_rev)
         return jsonify({
             "success": True, 
             "message": "Đã cập nhật đánh giá năng lực sinh viên thành công!", 
@@ -680,9 +920,10 @@ def review_student():
     new_rev = {
         "_id": f"rev_{uuid.uuid4().hex[:8]}",
         "application_id": application_id,
+        "employer_id": emp["_id"],
         "reviewer_id": user["_id"],
-        "reviewer_name": emp.get("company_name") or user.get("company_name") or "Nhà tuyển dụng",
-        "target_id": app.get("student_user_id") or app.get("student_id"),
+        "reviewer_name": company_display_name,
+        "target_id": student_target_id,
         "target_name": app.get("student_name") or "Sinh viên ứng viên",
         "job_title": app.get("job_title", "Ca làm việc"),
         "rating": rating,
@@ -729,9 +970,57 @@ def review_student():
 @role_required("employer")
 def list_employer_reviews():
     user = request.current_user
+    emp = get_employer_record(user["_id"])
+    comp = db_manager.get_collection("company_profiles").find_one({"employer_id": emp["_id"]}) or {}
     rev_col = db_manager.get_collection("reviews")
-    reviews = list(rev_col.find({"reviewer_id": user["_id"]}).sort("created_at", -1))
-    return jsonify({"success": True, "data": reviews})
+    app_col = db_manager.get_collection("applications")
+    reviews = list(rev_col.find({"$or": [{"reviewer_id": user["_id"]}, {"reviewer_id": emp["_id"]}]}).sort("created_at", -1))
+
+    target_ids = {x for x in (user.get("_id"), emp.get("_id"), comp.get("_id")) if x}
+    comp_name = str(comp.get("company_name") or emp.get("company_name") or "").strip().lower()
+    received_reviews = []
+    for r in rev_col.find({"is_hidden": {"$ne": True}}).sort("created_at", -1):
+        is_from_stu = r.get("direction") == "student_to_employer" or r.get("reviewer_role") == "student" or (not r.get("direction") and r.get("target_role") != "student" and r.get("reviewer_role") != "employer")
+        if not is_from_stu:
+            continue
+        if r.get("target_id") in target_ids or (comp_name and str(r.get("company_name", "")).strip().lower() == comp_name):
+            received_reviews.append(r)
+
+    app_ids = list({r.get("application_id") for r in received_reviews if r.get("application_id")})
+    apps_map = {a["_id"]: a for a in app_col.find({"_id": {"$in": app_ids}}) if a.get("_id")} if app_ids else {}
+    for r in received_reviews:
+        app = apps_map.get(r.get("application_id")) if r.get("application_id") else None
+        if app:
+            r.setdefault("job_title", app.get("job_title", "Ca làm việc"))
+            r.setdefault("student_name", app.get("student_name") or r.get("reviewer_name") or "Sinh viên")
+
+    return jsonify({"success": True, "data": reviews, "received_reviews": received_reviews})
+
+@employer_bp.route("/received-reviews", methods=["GET"])
+@role_required("employer")
+def list_employer_received_reviews():
+    user = request.current_user
+    emp = get_employer_record(user["_id"])
+    comp = db_manager.get_collection("company_profiles").find_one({"employer_id": emp["_id"]}) or {}
+    rev_col = db_manager.get_collection("reviews")
+    app_col = db_manager.get_collection("applications")
+    target_ids = {x for x in (user.get("_id"), emp.get("_id"), comp.get("_id")) if x}
+    comp_name = str(comp.get("company_name") or emp.get("company_name") or "").strip().lower()
+    received = []
+    for r in rev_col.find({"is_hidden": {"$ne": True}}).sort("created_at", -1):
+        is_from_stu = r.get("direction") == "student_to_employer" or r.get("reviewer_role") == "student" or (not r.get("direction") and r.get("target_role") != "student" and r.get("reviewer_role") != "employer")
+        if not is_from_stu:
+            continue
+        if r.get("target_id") in target_ids or (comp_name and str(r.get("company_name", "")).strip().lower() == comp_name):
+            received.append(r)
+    app_ids = list({r.get("application_id") for r in received if r.get("application_id")})
+    apps_map = {a["_id"]: a for a in app_col.find({"_id": {"$in": app_ids}}) if a.get("_id")} if app_ids else {}
+    for r in received:
+        app = apps_map.get(r.get("application_id")) if r.get("application_id") else None
+        if app:
+            r.setdefault("job_title", app.get("job_title", "Ca làm việc"))
+            r.setdefault("student_name", app.get("student_name") or r.get("reviewer_name") or "Sinh viên")
+    return jsonify({"success": True, "data": received})
 
 @employer_bp.route("/reviews/<rev_id>", methods=["PUT"])
 @role_required("employer")
@@ -763,9 +1052,31 @@ def update_employer_review(rev_id):
 
     rev_col.update_one(
         {"_id": rev_id},
-        {"$set": {"rating": rating, "comment": comment, "updated_at": time.strftime("%Y-%m-%d %H:%M:%S")}}
+        {"$set": {
+            "rating": rating,
+            "comment": comment,
+            "employer_id": emp["_id"],
+            "direction": "employer_to_student",
+            "reviewer_role": "employer",
+            "target_role": "student",
+            "type": "employer_review",
+            "updated_at": time.strftime("%Y-%m-%d %H:%M:%S")
+        }}
     )
-    return jsonify({"success": True, "message": "Đã cập nhật đánh giá sinh viên thành công!"})
+    updated_rev = rev_col.find_one({"_id": rev_id})
+    student_uid = resolve_student_user_id(rev.get("target_id"))
+    if student_uid:
+        create_and_emit_notification(
+            user_id=student_uid,
+            title="Cập nhật đánh giá năng lực",
+            message=f"Doanh nghiệp vừa cập nhật đánh giá ({rating}/5 sao) cho công việc '{rev.get('job_title', 'bán thời gian')}'.",
+            notif_type="review",
+            role="student",
+            related_id=rev.get("application_id") or rev_id,
+            target_id=student_uid,
+        )
+    emit_socket_event("review-updated", updated_rev or {"_id": rev_id, "target_id": rev.get("target_id")})
+    return jsonify({"success": True, "message": "Đã cập nhật đánh giá sinh viên thành công!", "data": updated_rev})
 
 @employer_bp.route("/reviews/<rev_id>", methods=["DELETE"])
 @role_required("employer")

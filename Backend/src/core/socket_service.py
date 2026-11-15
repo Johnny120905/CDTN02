@@ -9,23 +9,34 @@ logger = logging.getLogger("socketio")
 # Khởi tạo SocketIO với async_mode="threading" để tương thích tối đa với Werkzeug / Flask trên Windows
 socketio = SocketIO(cors_allowed_origins="*", async_mode="threading", logger=False, engineio_logger=False)
 
+def parse_room_id_parts(room_id):
+    """Tách emp_part, stu_part và app_part (nếu có) từ room_emp_<emp>_stu_<stu>[_app_<app_id>]."""
+    if not room_id or not isinstance(room_id, str):
+        return None, None, ""
+    if not room_id.startswith("room_emp_") or "_stu_" not in room_id:
+        return None, None, ""
+    parts = room_id.split("_stu_", 1)
+    emp_part = parts[0].replace("room_emp_", "", 1)
+    rest = parts[1]
+    if "_app_" in rest:
+        stu_part, app_part = rest.split("_app_", 1)
+    else:
+        stu_part, app_part = rest, ""
+    return emp_part, stu_part, app_part
+
+
 def canonicalize_room_id(room_id):
     """
     Chuẩn hóa room_id để 2 bên WebRTC (Sinh viên và Nhà tuyển dụng) luôn gặp nhau:
-    Format chuẩn: room_emp_<emp_id>_stu_<stu_user_id>
+    Format chuẩn: room_emp_<emp_id>_stu_<stu_user_id>_app_<app_id> (hoặc không có _app_ với phòng cũ)
     Nếu emp_id bị truyền là user_employer_xxx -> tự động map về emp_xxx tương ứng.
     Nếu stu_id bị truyền là stu_xxx (profile id) -> tự động map về user_student_xxx.
     """
-    if not room_id or not isinstance(room_id, str):
-        return room_id
-    if not room_id.startswith("room_emp_") or "_stu_" not in room_id:
+    emp_part, stu_part, app_part = parse_room_id_parts(room_id)
+    if not emp_part or not stu_part:
         return room_id
 
     try:
-        parts = room_id.split("_stu_", 1)
-        emp_part = parts[0].replace("room_emp_", "")
-        stu_part = parts[1]
-
         # 1. Chuẩn hóa emp_part
         if emp_part.startswith("user_"):
             emp = db_manager.get_collection("employers").find_one({"user_id": emp_part})
@@ -38,7 +49,8 @@ def canonicalize_room_id(room_id):
             if stu and stu.get("user_id"):
                 stu_part = stu["user_id"]
 
-        return f"room_emp_{emp_part}_stu_{stu_part}"
+        base = f"room_emp_{emp_part}_stu_{stu_part}"
+        return f"{base}_app_{app_part}" if app_part else base
     except Exception:
         return room_id
 
@@ -72,9 +84,11 @@ def get_room_id_variants(room_id):
         return res
 
     try:
-        parts = target.split("_stu_", 1)
-        emp_part = parts[0].replace("room_emp_", "")
-        stu_part = parts[1]
+        emp_part, stu_part, app_part = parse_room_id_parts(target)
+        if not emp_part or not stu_part:
+            res = list(variants)
+            _ROOM_VARIANTS_CACHE[room_id] = res
+            return res
 
         emp_ids = {emp_part}
         emp_col = db_manager.get_collection("employers")
@@ -94,10 +108,11 @@ def get_room_id_variants(room_id):
             if stu.get("user_id"):
                 stu_ids.add(stu["user_id"])
 
+        app_suffix = f"_app_{app_part}" if app_part else ""
         for eid in emp_ids:
             for sid in stu_ids:
                 if eid and sid:
-                    variants.add(f"room_emp_{eid}_stu_{sid}")
+                    variants.add(f"room_emp_{eid}_stu_{sid}{app_suffix}")
     except Exception:
         pass
 

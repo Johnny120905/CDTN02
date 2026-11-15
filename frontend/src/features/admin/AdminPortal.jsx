@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import DocumentViewerModal from '../../shared/DocumentViewerModal';
 import ConfirmDialog from '../../shared/ConfirmDialog';
+import SearchableDropdownInput from '../../shared/SearchableDropdownInput';
+import MediaAvatar from '../../shared/MediaAvatar';
 import { 
   ShieldCheck, Users, Briefcase, FileBarChart, AlertTriangle, 
   Lock, Unlock, Eye, EyeOff, Trash2, Plus, CheckCircle2, XCircle, 
@@ -9,7 +11,7 @@ import {
   Server, Database, X, FileText, ChevronRight, ChevronLeft,
   TrendingUp, Calendar, AlertCircle, Building2, GraduationCap,
   PieChart, Activity, FileCheck, Clock, ArrowLeft,
-  Phone, MapPin, Globe, Mail
+  Phone, MapPin, Globe, Mail, Bell
 } from 'lucide-react';
 import { PROFESSION_SUGGESTIONS, filterSuggestions, getStatusBadge } from '../../shared/professionSuggestions';
 import { HISTORICAL_2024_2025_BUCKETS } from './historicalAnalyticsData';
@@ -24,7 +26,8 @@ import {
   matchSalaryBracketFlexible,
   matchLocationFlexible,
   normalizeJobStatus,
-  getRoleToken
+  getRoleToken,
+  matchJobBannedKeywordsClient
 } from '../../shared/searchAndFilterHelper';
 
 export default function AdminPortal({ 
@@ -143,6 +146,22 @@ export default function AdminPortal({
   const [editingKwId, setEditingKwId] = useState(null);
   const [editingKwText, setEditingKwText] = useState('');
 
+  // Parity Enhancements: CV PDF Inspector, Job Quick Filters, Audit Logs, Bulk Announcements
+  const [jobQuickFilter, setJobQuickFilter] = useState('all'); // 'all' | 'pending_review' | 'sensitive'
+  const [adminCvViewer, setAdminCvViewer] = useState(null);
+  const [adminStudentResumes, setAdminStudentResumes] = useState([]);
+  const [ticketStudentResumes, setTicketStudentResumes] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditActionFilter, setAuditActionFilter] = useState('all');
+  const [announcements, setAnnouncements] = useState([]);
+  const [announcementForm, setAnnouncementForm] = useState({
+    title: '',
+    message: '',
+    target_role: 'all',
+    severity: 'info'
+  });
+  const [sendingAnnouncement, setSendingAnnouncement] = useState(false);
+
   // Interactive Dynamic Hover States for 3 Charts (Yêu cầu 2)
   const [hoveredBar, setHoveredBar] = useState(null); // { idx, label, val, pct }
   const [hoveredLinePoint, setHoveredLinePoint] = useState(null); // { idx, label, svVal, jobVal, ratio }
@@ -151,7 +170,7 @@ export default function AdminPortal({
   const token = getRoleToken('admin');
   const headers = token ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } : { 'Content-Type': 'application/json' };
 
-  // Sync section title - 8 phân hệ cốt lõi
+  // Sync section title - Phân hệ Quản trị viên
   const sectionTitleMap = {
     dashboard: 'Trung tâm chỉ huy (Analytics Dashboard)',
     users: 'Quản lý người dùng & Phân quyền',
@@ -161,6 +180,8 @@ export default function AdminPortal({
     reviews: 'Quản lý đánh giá chéo 2 chiều',
     categories: 'Quản trị danh mục Master Data',
     reports: 'Xử lý Khiếu nại & Báo cáo vi phạm',
+    audit_logs: 'Nhật ký hoạt động Quản trị (Audit Log)',
+    announcements: 'Thông báo hệ thống hàng loạt',
     home: 'Trung tâm chỉ huy (Analytics Dashboard)'
   };
 
@@ -223,6 +244,8 @@ export default function AdminPortal({
       ['gpkd-status-updated', onUsersChanged],
       ['user-status-updated', onUsersChanged],
       ['user-registered', onUsersChanged],
+      ['student-profile-updated', onUsersChanged],
+      ['employer-profile-updated', onUsersChanged],
       ['new-job', onJobsChanged],
       ['job-updated', onJobsChanged],
       ['new-report', onReportsChanged],
@@ -230,7 +253,13 @@ export default function AdminPortal({
       ['new-review', fetchReviews],
       ['review-updated', fetchReviews],
       ['categories-updated', fetchCategories],
-      ['banned-keywords-updated', fetchBannedKeywords]
+      ['banned-keywords-updated', () => {
+        fetchBannedKeywords();
+        fetchAllJobs();
+      }],
+      ['audit-log-added', () => fetchAuditLogs()],
+      ['system-announcement', fetchAnnouncements],
+      ['announcement-deleted', fetchAnnouncements]
     ];
     socketHandlers.forEach(([ev, fn]) => socket.on(ev, fn));
 
@@ -239,6 +268,35 @@ export default function AdminPortal({
     };
   }, [token, currentUser?._id || currentUser?.id]);
 
+  // Tải CV PDF sinh viên khi mở Chi tiết User hoặc Ticket Báo cáo gian lận
+  useEffect(() => {
+    if (!selectedUserDetail || selectedUserDetail.role !== 'student' || !token) {
+      setAdminStudentResumes([]);
+      return;
+    }
+    setAdminStudentResumes(Array.isArray(selectedUserDetail.resumes) ? selectedUserDetail.resumes : []);
+    fetch(`/api/admin/users/${encodeURIComponent(selectedUserDetail._id)}/resumes`, { headers })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.data)) setAdminStudentResumes(data.data);
+      })
+      .catch(() => {});
+  }, [selectedUserDetail?._id, token]);
+
+  useEffect(() => {
+    if (!selectedTicket?.target_id || !token) {
+      setTicketStudentResumes([]);
+      return;
+    }
+    fetch(`/api/admin/users/${encodeURIComponent(selectedTicket.target_id)}/resumes`, { headers })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.data)) setTicketStudentResumes(data.data);
+        else setTicketStudentResumes([]);
+      })
+      .catch(() => setTicketStudentResumes([]));
+  }, [selectedTicket?._id, token]);
+
   // Đồng bộ nền dự phòng 15s: chỉ làm mới đúng phân hệ đang xem (đã có Socket.IO đẩy realtime tức thì)
   useEffect(() => {
     if (!token) return;
@@ -246,11 +304,19 @@ export default function AdminPortal({
       if (typeof document !== 'undefined' && document.hidden) return;
       if (activeMenu === 'dashboard' || activeMenu === 'home') fetchDashboard();
       else if (activeMenu === 'users' || activeMenu === 'gpkd') fetchUsers();
-      else if (activeMenu === 'jobs') fetchAllJobs();
-      else if (activeMenu === 'keywords') fetchBannedKeywords();
+      else if (activeMenu === 'jobs') {
+        fetchAllJobs();
+        fetchBannedKeywords();
+      }
+      else if (activeMenu === 'keywords') {
+        fetchBannedKeywords();
+        fetchAllJobs();
+      }
       else if (activeMenu === 'reviews') fetchReviews();
       else if (activeMenu === 'categories') fetchCategories();
       else if (activeMenu === 'reports') fetchReports();
+      else if (activeMenu === 'audit_logs') fetchAuditLogs();
+      else if (activeMenu === 'announcements') fetchAnnouncements();
     };
     const interval = setInterval(fetchActiveTabOnly, 15000);
     return () => clearInterval(interval);
@@ -265,7 +331,105 @@ export default function AdminPortal({
       fetchBannedKeywords();
       fetchReports();
       fetchReviews();
+      fetchAuditLogs();
+      fetchAnnouncements();
     }
+  };
+
+  const fetchAuditLogs = async () => {
+    try {
+      const res = await fetch('/api/admin/audit-logs', { headers });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setAuditLogs(data.data);
+      }
+    } catch (err) {
+      console.warn('Audit logs fetch warning:', err);
+    }
+  };
+
+  const fetchAnnouncements = async () => {
+    try {
+      const res = await fetch('/api/admin/announcements', { headers });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setAnnouncements(data.data);
+      }
+    } catch (err) {
+      console.warn('Announcements fetch warning:', err);
+    }
+  };
+
+  const handleApproveJobModeration = async (jobId) => {
+    try {
+      const res = await fetch(`/api/admin/jobs/${jobId}/approve-moderation`, {
+        method: 'PUT',
+        headers
+      });
+      const data = await res.json();
+      notify(data.message || 'Đã kiểm duyệt đạt tin tuyển dụng.', data.success ? 'success' : 'error');
+      if (data.success) {
+        fetchAllJobs();
+        fetchAuditLogs();
+        fetchDashboard();
+      }
+    } catch (err) {
+      notify('Lỗi kết nối máy chủ khi kiểm duyệt tin.', 'error');
+    }
+  };
+
+  const handleSendAnnouncement = async (e) => {
+    e.preventDefault();
+    if (!announcementForm.title.trim() || !announcementForm.message.trim()) {
+      notify('Vui lòng nhập đầy đủ Tiêu đề và Nội dung thông báo hệ thống.', 'error');
+      return;
+    }
+    setSendingAnnouncement(true);
+    try {
+      const res = await fetch('/api/admin/announcements', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(announcementForm)
+      });
+      const data = await res.json();
+      notify(data.message || 'Đã gửi thông báo hệ thống.', data.success ? 'success' : 'error');
+      if (data.success) {
+        setAnnouncementForm({ title: '', message: '', target_role: 'all', severity: 'info' });
+        fetchAnnouncements();
+        fetchAuditLogs();
+      }
+    } catch (err) {
+      notify('Lỗi máy chủ khi phát thông báo hàng loạt.', 'error');
+    } finally {
+      setSendingAnnouncement(false);
+    }
+  };
+
+  const handleDeleteAnnouncement = (ann) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Xóa & Thu Hồi Thông Báo Hệ Thống',
+      message: `Bạn có chắc muốn xóa "${ann.title}" khỏi lịch sử và thu hồi toàn bộ thông báo tương ứng đã gửi tới Sinh viên / Nhà tuyển dụng?`,
+      type: 'danger',
+      confirmText: 'Xóa & Thu hồi',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        try {
+          const res = await fetch(`/api/admin/announcements/${ann._id}`, {
+            method: 'DELETE',
+            headers
+          });
+          const data = await res.json();
+          notify(data.message || 'Đã xóa và thu hồi thông báo hệ thống.', data.success ? 'success' : 'error');
+          if (data.success) {
+            fetchAnnouncements();
+            fetchAuditLogs();
+          }
+        } catch (err) {
+          notify('Lỗi máy chủ khi xóa thông báo hệ thống.', 'error');
+        }
+      }
+    });
   };
 
   // API Calls
@@ -286,7 +450,9 @@ export default function AdminPortal({
       const res = await fetch('/api/admin/users', { headers });
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
-        setUsers(data.data.filter(u => String(u.email || '').trim().toLowerCase().endsWith('@gmail.com')));
+        const filteredUsers = data.data.filter(u => String(u.email || '').trim().toLowerCase().endsWith('@gmail.com'));
+        setUsers(filteredUsers);
+        setSelectedUserDetail(prev => prev ? (filteredUsers.find(u => u._id === prev._id) || prev) : null);
       }
     } catch (err) {
       console.warn('Users fetch warning:', err);
@@ -332,6 +498,13 @@ export default function AdminPortal({
     } catch (err) {
       console.warn('Keywords fetch warning:', err);
     }
+  };
+
+  const getJobSensitiveKeywords = (job) => matchJobBannedKeywordsClient(job, bannedKeywords);
+  const countJobsMatchingKeyword = (kw) => {
+    const cleanKw = String(kw || '').trim();
+    if (!cleanKw) return 0;
+    return jobs.filter(j => matchJobBannedKeywordsClient(j, [cleanKw]).length > 0).length;
   };
 
   const fetchReports = async () => {
@@ -769,6 +942,7 @@ export default function AdminPortal({
       setKeywordSaveMsg(msg);
       notify(msg, 'success');
       fetchBannedKeywords();
+      fetchAllJobs();
       setTimeout(() => setKeywordSaveMsg(''), 3000);
     } catch (err) {
       setKeywordSaveMsg('Lỗi lưu từ khóa.');
@@ -790,6 +964,7 @@ export default function AdminPortal({
         setEditingKwId(null);
         setEditingKwText('');
         fetchBannedKeywords();
+        fetchAllJobs();
       } else {
         notify(data.message || 'Không thể cập nhật từ khóa cấm.', 'error');
       }
@@ -816,6 +991,7 @@ export default function AdminPortal({
           if (data.success) {
             notify(`Đã xóa từ khóa cấm "${kwName}" thành công!`, 'success');
             fetchBannedKeywords();
+            fetchAllJobs();
           } else {
             notify(data.message || 'Lỗi xóa từ khóa.', 'error');
           }
@@ -1029,18 +1205,19 @@ export default function AdminPortal({
   const filteredUsers = nonAdminUsers.filter(u => {
     const userSearchObj = {
       ...u,
-      full_name: u.profile?.full_name || u.full_name || '',
-      company_name: u.profile?.company_name || u.company_name || '',
-      branch_name: u.profile?.branch_name || u.branch_name || '',
-      address: u.profile?.address || u.address || u.profile?.residence_address || '',
+      full_name: u.profile?.full_name || u.student_profile?.full_name || u.full_name || '',
+      company_name: u.profile?.company_name || u.employer_profile?.company_name || u.company_profile?.company_name || u.company_name || '',
+      branch_name: u.profile?.branch_name || u.employer_profile?.branch_name || u.company_profile?.branch_name || u.branch_name || '',
+      address: u.profile?.address || u.employer_profile?.address || u.company_profile?.address || u.address || u.profile?.residence_address || '',
       phone: u.profile?.phone || u.phone || '',
-      university: u.profile?.university || u.university || ''
+      university: u.profile?.university || u.student_profile?.university || u.university || ''
     };
     const emailMatch = matchKeywordFlexible(userSearchObj, userSearch, ['email', '_id']);
     const roleMatch = !userRoleFilter || u.role === userRoleFilter;
+    const isUserBanned = Boolean(u.is_banned || u.status === 'banned');
     const statusMatch = !userStatusFilter || 
-      (userStatusFilter === 'banned' && u.is_banned) || 
-      (userStatusFilter === 'active' && !u.is_banned && u.status !== 'pending') ||
+      (userStatusFilter === 'banned' && isUserBanned) || 
+      (userStatusFilter === 'active' && !isUserBanned) ||
       (userStatusFilter === 'pending' && u.status === 'pending');
 
     // FR-QTV-04.10: Lọc theo Trường Đại học/ Cao đẳng; Cơ sở/ Chi nhánh (Bỏ dấu tiếng Việt)
@@ -1097,7 +1274,17 @@ export default function AdminPortal({
   const filteredGpkdEmployers = employerUsers
     .filter(u => {
       let matchMst = true;
-      const mst = (u.business_license || u.profile?.business_license || u.company_profile?.business_license || '').replace(/\D/g, '');
+      const mst = String(
+        u.business_license ||
+        u.profile?.business_license ||
+        u.company_profile?.business_license ||
+        u.employer_profile?.business_license ||
+        u.employer_record?.business_license ||
+        u.tax_code ||
+        u.profile?.tax_code ||
+        u.company_profile?.tax_code ||
+        ''
+      ).replace(/\D/g, '');
       if (gpkdMstFilter === '10') matchMst = mst.length === 10;
       else if (gpkdMstFilter === '13') matchMst = mst.length === 13;
 
@@ -1204,12 +1391,31 @@ export default function AdminPortal({
       matchModeration = j.is_hidden === true;
     }
 
-    return matchSearch && matchStatus && matchModeration;
+    // 4. Bộ lọc nhanh Tin mới chờ kiểm duyệt / Cảnh báo từ ngữ nhạy cảm
+    let matchQuick = true;
+    if (jobQuickFilter === 'pending_review') {
+      matchQuick = !j.is_admin_reviewed && !j.is_hidden;
+    } else if (jobQuickFilter === 'sensitive') {
+      matchQuick = getJobSensitiveKeywords(j).length > 0;
+    }
+
+    return matchSearch && matchStatus && matchModeration && matchQuick;
   });
+
+  // Helper chuẩn hóa chiều tương tác Đánh giá chéo 2 chiều (dùng chung cho filter & bảng hiển thị)
+  const isEmployerReview = (r) => Boolean(
+    r?.direction === 'employer_to_student' ||
+    r?.reviewer_role === 'employer' ||
+    r?.type === 'employer_review' ||
+    r?.target_role === 'student' ||
+    String(r?.reviewer_id || '').includes('employer') ||
+    String(r?.reviewer_id || '').startsWith('emp_') ||
+    (r?.reviewer_name && (r.reviewer_name.toLowerCase().includes('nhà tuyển dụng') || r.reviewer_name.toLowerCase().includes('doanh nghiệp')))
+  );
 
   // Filtered Reviews (FR 3.6 & FR-QTV-06.07)
   const filteredReviews = reviews.filter(r => {
-    const matchSearch = matchKeywordFlexible(r, reviewSearch, ['reviewer_name', 'user_name', 'student_name', 'company_name', 'target_name', 'comment']);
+    const matchSearch = matchKeywordFlexible(r, reviewSearch, ['reviewer_name', 'user_name', 'student_name', 'company_name', 'employer_name', 'target_name', 'comment']);
       
     let matchStatus = true;
     if (reviewStatusFilter === 'public') {
@@ -1220,16 +1426,8 @@ export default function AdminPortal({
 
     // FR-QTV-06.07: Chiều tương tác 2 Chiều (SV -> NTD vs NTD -> SV)
     let matchDirection = true;
-    const isEmployerReviewer = r.direction === 'employer_to_student' || 
-                               r.reviewer_role === 'employer' || 
-                               r.type === 'employer_review' || 
-                               (r.reviewer_name && (r.reviewer_name.toLowerCase().includes('nhà tuyển dụng') || r.reviewer_name.toLowerCase().includes('doanh nghiệp'))) ||
-                               r.target_role === 'student';
-
-    const isStudentReviewer = r.direction === 'student_to_employer' || 
-                              r.reviewer_role === 'student' || 
-                              r.type === 'student_review' || 
-                              (!isEmployerReviewer);
+    const isEmployerReviewer = isEmployerReview(r);
+    const isStudentReviewer = r.direction === 'student_to_employer' || r.reviewer_role === 'student' || r.type === 'student_review' || !isEmployerReviewer;
 
     if (reviewDirectionFilter === 'stu_to_emp') {
       matchDirection = isStudentReviewer;
@@ -1239,7 +1437,7 @@ export default function AdminPortal({
 
     // FR-QTV-06.07: Thang điểm sao (Tiêu cực 1-2, Trung bình 3, Tích cực 4-5)
     let matchStars = true;
-    const starScore = Number(r.rating || r.score || 5);
+    const starScore = Number(r.rating ?? r.score ?? 5);
     if (reviewStarsFilter === 'negative') {
       matchStars = starScore <= 2;
     } else if (reviewStarsFilter === 'neutral') {
@@ -1252,10 +1450,19 @@ export default function AdminPortal({
   });
 
   // Filtered Tickets (FR 3.8 & FR-QTV-08.02)
+  const normalizeTicketStatus = (rawSt) => {
+    const s = String(rawSt || 'pending').toLowerCase().trim();
+    if (!s || s === 'pending' || s.includes('chờ xử lý') || s.includes('chờ tiếp nhận') || s === 'cho_xu_ly') return 'pending';
+    if (s === 'investigating' || s.includes('điều tra') || s.includes('đang xử lý') || s === 'dang_xu_ly') return 'investigating';
+    if (s === 'resolved' || s.includes('đã xử lý') || s.includes('thỏa đáng') || s === 'da_xu_ly') return 'resolved';
+    if (s === 'dismissed' || s.includes('bác bỏ') || s.includes('từ chối')) return 'dismissed';
+    return s;
+  };
   const filteredTickets = reports.filter(r => {
     const matchSearch = matchKeywordFlexible(r, ticketSearch, ['ticket_code', '_id', 'reason']);
     const matchType = !ticketTab || ticketTab === 'all' || r.type === ticketTab || r.report_type === ticketTab;
-    const matchStatus = ticketStatusFilter === 'all' || r.status === ticketStatusFilter || (ticketStatusFilter === 'pending' && (!r.status || r.status === 'chờ xử lý'));
+    const normTicketSt = normalizeTicketStatus(r.status);
+    const matchStatus = ticketStatusFilter === 'all' || normTicketSt === ticketStatusFilter;
     return matchSearch && matchType && matchStatus;
   });
 
@@ -1268,7 +1475,9 @@ export default function AdminPortal({
     { id: 'keywords', label: 'Kiểm duyệt từ khoá cấm', icon: <ShieldCheck className="w-4 h-4" />, count: bannedKeywords.length },
     { id: 'reviews', label: 'Quản lý đánh giá chéo 2 chiều', icon: <Star className="w-4 h-4" />, count: reviews.length },
     { id: 'categories', label: 'Quản trị danh mục Master Data', icon: <Tag className="w-4 h-4" />, count: categories.length },
-    { id: 'reports', label: 'Xử lý Khiếu nại & Báo cáo vi phạm', icon: <AlertTriangle className="w-4 h-4" />, count: reports.length }
+    { id: 'reports', label: 'Xử lý Khiếu nại & Báo cáo vi phạm', icon: <AlertTriangle className="w-4 h-4" />, count: reports.length },
+    { id: 'audit_logs', label: 'Nhật ký hoạt động (Audit Log)', icon: <Activity className="w-4 h-4" />, count: auditLogs.length },
+    { id: 'announcements', label: 'Thông báo hệ thống hàng loạt', icon: <Bell className="w-4 h-4" />, count: announcements.length }
   ];
 
   return (
@@ -1518,25 +1727,19 @@ export default function AdminPortal({
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">Lọc Theo Quận / Huyện:</label>
-                  <input
-                    type="text"
-                    list="gpkd-districts-datalist"
+                  <SearchableDropdownInput
                     value={gpkdDistrictFilter}
-                    onChange={(e) => setGpkdDistrictFilter(e.target.value)}
+                    onChange={(val) => setGpkdDistrictFilter(val)}
+                    options={gpkdAvailableDistricts}
                     placeholder={
                       gpkdProvinceFilter === 'Hà Nội'
                         ? 'Gợi ý: Cầu Giấy, Đống Đa, Ba Đình...'
                         : (gpkdProvinceFilter === 'TP. Hồ Chí Minh'
-                          ? 'Gợi ý: Quận 1, Quận 2, Quận 3, Bình Thạnh...'
+                          ? 'Gợi ý: Quận 1, Quận 2...'
                           : (gpkdProvinceFilter !== 'all' ? `Gợi ý: quận/huyện tại ${gpkdProvinceFilter}...` : 'Nhập Quận 1, Cầu Giấy,...'))
                     }
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-900 outline-none focus:border-blue-600 shadow-xs"
+                    className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-600 shadow-xs"
                   />
-                  <datalist id="gpkd-districts-datalist">
-                    {gpkdAvailableDistricts.map((d, i) => (
-                      <option key={`${d}-${i}`} value={d} />
-                    ))}
-                  </datalist>
                 </div>
               </div>
 
@@ -1750,10 +1953,22 @@ export default function AdminPortal({
               // Bộ lọc địa điểm & ngành nghề dùng chung cho Dashboard (tránh trùng lặp logic)
               const matchesDashGeoAndCat = (rawDoc) => {
                 const linkedJob = rawDoc?.job_id ? jobs.find(j => j._id === rawDoc.job_id) : null;
-                const doc = linkedJob ? { ...linkedJob, ...rawDoc } : rawDoc;
+                const doc = linkedJob
+                  ? {
+                      ...linkedJob,
+                      ...rawDoc,
+                      category_id: rawDoc.category_id || linkedJob.category_id,
+                      category_name: rawDoc.category_name || linkedJob.category_name,
+                      location: rawDoc.location || linkedJob.location
+                    }
+                  : rawDoc;
                 if (dashProvinceFilter) {
                   const locObj = {
-                    location: [doc.province, doc.location, doc.address, doc.profile?.address, doc.company_profile?.address, doc.branch_name, doc.profile?.branch_name].filter(Boolean).join(' '),
+                    location: [
+                      doc.province, doc.location, doc.address, doc.profile?.address,
+                      doc.company_profile?.address, doc.branch_name, doc.profile?.branch_name,
+                      doc.university, doc.profile?.university, doc.student_profile?.university
+                    ].filter(Boolean).join(' '),
                     province: doc.province || doc.profile?.province || '',
                     district: doc.district || doc.profile?.district || '',
                     address: doc.address || doc.profile?.address || doc.company_profile?.address || '',
@@ -1979,16 +2194,16 @@ export default function AdminPortal({
 
               // Dữ liệu cho Biểu đồ tròn (Donut Chart) từ Master Data Categories + Tin tuyển dụng
               const slicePalette = ['#10b981', '#0ea5e9', '#f59e0b', '#8b5cf6', '#ef4444', '#ec4899'];
-              const realJobCats = categories.filter(c => c.type === 'job' || !c.type);
+              const realJobCats = categories.filter(c => c.type !== 'location');
               const baseCats = realJobCats.length > 0
                 ? realJobCats
                 : [{ _id: 'default', name: 'Ngành nghề tuyển dụng' }];
               let matchedJobIds = new Set();
               const donutSlices = baseCats.map((cat, idx) => {
                 const catJobs = filteredDashJobs.filter((j) => {
-                  const byId = j.category_id && j.category_id === cat._id;
-                  const byName = j.category_name && String(j.category_name).trim().toLowerCase() === String(cat.name).trim().toLowerCase();
-                  if (byId || byName) {
+                  const byId = j.category_id && (j.category_id === cat._id || String(j.category_id).trim().toLowerCase() === String(cat.name || '').trim().toLowerCase());
+                  const byFlex = cat.name ? matchCategoryFlexible(j, cat.name, categories) : false;
+                  if (byId || byFlex) {
                     matchedJobIds.add(j._id);
                     return true;
                   }
@@ -2025,13 +2240,12 @@ export default function AdminPortal({
               }
 
               const syncYearMonthFromRange = (nextFrom, nextTo) => {
-                if (!nextFrom && !nextTo) {
+                if (!nextFrom || !nextTo) {
                   setFilterYear('');
                   setFilterMonth('');
                   return;
                 }
-                const fStr = nextFrom || nextTo;
-                const tStr = nextTo || nextFrom;
+                const [fStr, tStr] = nextFrom <= nextTo ? [nextFrom, nextTo] : [nextTo, nextFrom];
                 const fParts = fStr.split('-');
                 const tParts = tStr.split('-');
                 if (fParts.length === 3 && tParts.length === 3 && fParts[0] === tParts[0]) {
@@ -2228,7 +2442,12 @@ export default function AdminPortal({
                             className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-sm font-bold text-slate-900 outline-none focus:border-blue-600 shadow-xs cursor-pointer"
                           >
                             <option value="">Toàn quốc (Tất cả Tỉnh/Thành phố)</option>
-                            {VIETNAM_PROVINCES.map((prov) => (
+                            {Array.from(
+                              new Set([
+                                ...VIETNAM_PROVINCES,
+                                ...categories.filter(c => c.type === 'location' && c.is_active !== false && c.name).map(c => c.name.trim())
+                              ])
+                            ).map((prov) => (
                               <option key={prov} value={prov}>
                                 {prov}
                               </option>
@@ -2251,7 +2470,7 @@ export default function AdminPortal({
                                 const n = (cat.name || '').toLowerCase();
                                 const isLoc = ['hồ chí minh', 'bình thạnh', 'gò vấp', 'quận', 'huyện', 'tp.', 'tỉnh'].some(l => n.includes(l));
                                 const isUnwanted = n.includes('bảo hành') || n.includes('thời trang');
-                                return !isLoc && !isUnwanted && (cat.type === 'job' || !cat.type);
+                                return !isLoc && !isUnwanted && cat.type !== 'location';
                               })
                               .map((cat) => (
                                 <option key={cat._id || cat.name} value={cat.name || cat._id}>
@@ -2695,7 +2914,7 @@ export default function AdminPortal({
                     value={userSearch}
                     onChange={(e) => setUserSearch(e.target.value)}
                     placeholder="Tìm kiếm (Email; ID)"
-                    className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-base sm:text-sm text-slate-900 outline-none focus:border-blue-500 shadow-sm"
+                    className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 shadow-sm"
                   />
                 </div>
 
@@ -2727,23 +2946,17 @@ export default function AdminPortal({
               {/* FR-QTV-04.10: Bộ lọc nâng cao Người dùng (Trường ĐH/Chi nhánh & Bộ lọc cột Trạng Thái GPKD NTD) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
                 <div className="min-w-0 relative">
-                  <input
-                    type="text"
-                    list="admin-uni-branch-suggestions"
+                  <SearchableDropdownInput
                     value={userUniFilter === 'all' ? '' : userUniFilter}
-                    onChange={(e) => setUserUniFilter(e.target.value || 'all')}
-                    placeholder="Tìm kiếm hoặc gợi ý dropdown (Trường Đại học/ Cao đẳng; Cơ sở/ Chi nhánh)"
-                    className="w-full min-w-0 truncate bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm text-slate-900 outline-none shadow-xs focus:border-blue-600"
-                  />
-                  <datalist id="admin-uni-branch-suggestions">
-                    {Array.from(new Set([
+                    onChange={(val) => setUserUniFilter(val || 'all')}
+                    options={Array.from(new Set([
                       ...nonAdminUsers.map(u => u.profile?.university || u.student_profile?.university || u.university || ''),
-                      ...nonAdminUsers.map(u => u.profile?.branch_name || u.employer_profile?.branch_name || u.branch_name || ''),
-                      ...nonAdminUsers.map(u => u.profile?.address || u.employer_profile?.address || u.address || '')
-                    ])).filter(Boolean).sort().map((item) => (
-                      <option key={item} value={item} />
-                    ))}
-                  </datalist>
+                      ...nonAdminUsers.map(u => u.profile?.branch_name || u.employer_profile?.branch_name || u.company_profile?.branch_name || u.branch_name || ''),
+                      ...nonAdminUsers.map(u => u.profile?.address || u.employer_profile?.address || u.company_profile?.address || u.address || '')
+                    ])).filter(Boolean).sort()}
+                    placeholder="Tìm kiếm hoặc gợi ý dropdown (Trường Đại học/ Cao đẳng; Cơ sở/ Chi nhánh)"
+                    className="w-full min-w-0 truncate bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none shadow-xs focus:border-blue-600"
+                  />
                 </div>
 
                 <div className="min-w-0">
@@ -2927,8 +3140,8 @@ export default function AdminPortal({
                     type="text"
                     value={jobSearch}
                     onChange={(e) => setJobSearch(e.target.value)}
-                    placeholder="Tìm kiếm (Tên doanh nghiệp; Tiêu đề công việc)"
-                    className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-base sm:text-sm text-slate-900 outline-none focus:border-blue-500 shadow-sm"
+                    placeholder="Tìm kiếm (Tiêu đề công việc; Tên doanh nghiệp)"
+                    className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 shadow-sm"
                   />
                 </div>
 
@@ -2960,6 +3173,100 @@ export default function AdminPortal({
                   </select>
                 </div>
               </div>
+
+              {/* Nhãn lọc nhanh: Tin mới chờ kiểm duyệt & Cảnh báo từ ngữ nhạy cảm */}
+              <div className="flex flex-wrap items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setJobQuickFilter('all')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                    jobQuickFilter === 'all'
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  Tất cả tin ({jobs.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setJobQuickFilter('pending_review')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                    jobQuickFilter === 'pending_review'
+                      ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-xs'
+                      : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Tin mới đăng chờ kiểm duyệt ({jobs.filter(j => !j.is_admin_reviewed && !j.is_hidden).length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setJobQuickFilter('sensitive')}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                    jobQuickFilter === 'sensitive'
+                      ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                      : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                  }`}
+                >
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <span>Cảnh báo từ ngữ nhạy cảm ({jobs.filter(j => getJobSensitiveKeywords(j).length > 0).length})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveMenu('keywords')}
+                  className="ml-auto px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Quản lý từ khóa cấm ({bannedKeywords.filter(b => b.is_active !== false).length})</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="pt-2 flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
+                <span className="font-semibold text-slate-700">Từ khóa đang quét tự động từ mục Kiểm duyệt từ khoá cấm:</span>
+                {bannedKeywords.filter(b => b.is_active !== false).length === 0 ? (
+                  <span className="text-slate-500 italic">Chưa thiết lập từ khóa cấm nào</span>
+                ) : (
+                  <>
+                    {bannedKeywords.filter(b => b.is_active !== false).slice(0, 6).map((b) => (
+                      <button
+                        key={b._id || b.keyword}
+                        type="button"
+                        onClick={() => {
+                          setJobQuickFilter('sensitive');
+                          setJobSearch(b.keyword || '');
+                        }}
+                        title={`Lọc các tin chứa từ khóa "${b.keyword}"`}
+                        className="px-2 py-0.5 rounded-md bg-rose-50/80 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold cursor-pointer transition-colors"
+                      >
+                        {b.keyword}
+                      </button>
+                    ))}
+                    {bannedKeywords.filter(b => b.is_active !== false).length > 6 && (
+                      <button
+                        type="button"
+                        onClick={() => setActiveMenu('keywords')}
+                        className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold cursor-pointer"
+                      >
+                        +{bannedKeywords.filter(b => b.is_active !== false).length - 6} từ khác
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+              {jobQuickFilter === 'sensitive' && jobs.filter(j => getJobSensitiveKeywords(j).length > 0).length === 0 && (
+                <div className="mt-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex flex-wrap items-center justify-between gap-2">
+                  <span>
+                    Hiện chưa có tin tuyển dụng nào chứa cụm từ trong danh mục <strong>Kiểm duyệt từ khoá cấm</strong> ({bannedKeywords.filter(b => b.is_active !== false).length} từ khóa đang bật). Khi Nhà tuyển dụng đăng/sửa tin chứa từ cấm hoặc Admin thêm từ khóa trùng với tin hiện có, tin sẽ tự động xuất hiện tại đây.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveMenu('keywords')}
+                    className="px-2.5 py-1 rounded-lg bg-white border border-amber-300 text-amber-900 font-bold hover:bg-amber-100 transition-colors cursor-pointer shrink-0"
+                  >
+                    Kiểm tra / Thêm từ khóa cấm
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Bảng tin toàn hệ thống */}
@@ -2991,7 +3298,28 @@ export default function AdminPortal({
                       >
                         <td className="px-6 py-4">
                           <p className="font-bold text-slate-900 text-base hover:text-blue-600">{job.title}</p>
-                          <p className="text-xs text-slate-500 font-mono mt-0.5">{job._id}</p>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            <span className="text-xs text-slate-500 font-mono">{job._id}</span>
+                            {!job.is_admin_reviewed && !job.is_hidden ? (
+                              <span className="px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-[11px] font-bold text-amber-800">
+                                Chờ kiểm duyệt
+                              </span>
+                            ) : job.is_admin_reviewed ? (
+                              <span className="px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-[11px] font-bold text-blue-700">
+                                Đã kiểm duyệt
+                              </span>
+                            ) : null}
+                            {(() => {
+                              const matchedKws = getJobSensitiveKeywords(job);
+                              if (matchedKws.length === 0) return null;
+                              return (
+                                <span className="px-2 py-0.5 rounded-md bg-rose-50 border border-rose-200 text-[11px] font-black text-rose-700 flex items-center gap-1">
+                                  <AlertTriangle className="w-3 h-3" />
+                                  Nhạy cảm: {matchedKws.join(', ')}
+                                </span>
+                              );
+                            })()}
+                          </div>
                         </td>
 
                         <td className="px-6 py-4 font-semibold text-emerald-700 whitespace-nowrap">
@@ -3033,6 +3361,17 @@ export default function AdminPortal({
 
                         <td className="px-6 py-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-2">
+                            {!job.is_admin_reviewed && !job.is_hidden && (
+                              <button
+                                type="button"
+                                onClick={() => handleApproveJobModeration(job._id)}
+                                className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold cursor-pointer transition-all inline-flex items-center gap-1.5 whitespace-nowrap shadow-xs"
+                                title="Xác nhận tin mới đạt chuẩn kiểm duyệt"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Duyệt tin</span>
+                              </button>
+                            )}
                             {job.is_hidden ? (
                               <button
                                 type="button"
@@ -3098,8 +3437,8 @@ export default function AdminPortal({
                     type="text"
                     value={reviewSearch}
                     onChange={(e) => setReviewSearch(e.target.value)}
-                    placeholder="Tìm kiếm (Tên sinh viên; Tên doanh nghiệp; Nội dung nhận xét)"
-                    className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-base sm:text-sm text-slate-900 outline-none focus:border-blue-500 shadow-sm"
+                    placeholder="Tìm kiếm (Tên sinh viên/ Doanh nghiệp; Nội dung nhận xét)"
+                    className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 shadow-sm"
                   />
                 </div>
 
@@ -3174,11 +3513,11 @@ export default function AdminPortal({
                           <div className="flex items-center gap-2">
                             <span>{rev.reviewer_name || 'Người đánh giá'}</span>
                             <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${
-                              rev.direction === 'employer_to_student' || rev.reviewer_role === 'employer'
+                              isEmployerReview(rev)
                                 ? 'bg-purple-50 text-purple-700 border-purple-200'
                                 : 'bg-blue-50 text-blue-700 border-blue-200'
                             }`}>
-                              {rev.direction === 'employer_to_student' || rev.reviewer_role === 'employer' ? 'NTD → SV' : 'SV → NTD'}
+                              {isEmployerReview(rev) ? 'NTD → SV' : 'SV → NTD'}
                             </span>
                           </div>
                         </td>
@@ -3292,7 +3631,7 @@ export default function AdminPortal({
                 value={categorySearch}
                 onChange={(e) => setCategorySearch(e.target.value)}
                 placeholder="Tìm kiếm (Tên danh mục)"
-                className="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 shadow-sm"
+                className="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 shadow-sm"
               />
             </div>
 
@@ -3462,7 +3801,7 @@ export default function AdminPortal({
                     value={ticketSearch}
                     onChange={(e) => setTicketSearch(e.target.value)}
                     placeholder="Tìm kiếm (Mã phiếu; Lý do khiếu nại)"
-                    className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs sm:text-sm text-slate-900 outline-none focus:border-blue-500 shadow-sm"
+                    className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 shadow-sm"
                   />
                 </div>
 
@@ -3667,11 +4006,28 @@ export default function AdminPortal({
               {/* BẢNG THỐNG KÊ TỪ KHÓA CẤM ĐANG ÁP DỤNG TRONG CSDL */}
               <div className="pt-6 border-t border-slate-200 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                    <span>Bảng Thống Kê Từ Khóa Cấm Đang Hoạt Động ({bannedKeywords.length})</span>
-                  </h4>
-                  <span className="text-xs text-slate-600">Tự động chặn & ẩn ký tự trên hệ thống Chat</span>
+                  <div className="space-y-0.5">
+                    <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                      <span>Bảng Thống Kê Từ Khóa Cấm Đang Hoạt Động ({bannedKeywords.length})</span>
+                    </h4>
+                    <p className="text-xs text-slate-600">
+                      Liên kết tự động với bộ lọc Cảnh báo từ ngữ nhạy cảm (Kiểm duyệt tin tuyển dụng), cảnh báo Form và chặn Chat
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setJobQuickFilter('sensitive');
+                      setJobSearch('');
+                      setActiveMenu('jobs');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span>Xem tin cảnh báo ({jobs.filter(j => getJobSensitiveKeywords(j).length > 0).length})</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
                 {bannedKeywords.length === 0 ? (
@@ -3687,12 +4043,15 @@ export default function AdminPortal({
                             <th className="py-3.5 px-4 whitespace-nowrap min-w-[70px] text-center">STT</th>
                             <th className="py-3.5 px-4 min-w-[200px]">Từ Khóa / Cụm Từ Cấm</th>
                             <th className="py-3.5 px-4 whitespace-nowrap min-w-[170px]">Mức Độ Cảnh Báo</th>
+                            <th className="py-3.5 px-4 whitespace-nowrap min-w-[170px]">Tin Tuyển Dụng Khớp</th>
                             <th className="py-3.5 px-4 whitespace-nowrap min-w-[150px]">Ngày Cập Nhật</th>
                             <th className="py-3.5 px-4 text-center whitespace-nowrap min-w-[110px]">Thao Tác</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
-                          {bannedKeywords.map((item, idx) => (
+                          {bannedKeywords.map((item, idx) => {
+                            const matchedJobCount = countJobsMatchingKeyword(item.keyword);
+                            return (
                             <tr key={item._id || idx} className="hover:bg-slate-50 transition-colors">
                               <td className="py-3.5 px-4 text-center font-mono text-slate-500 font-bold whitespace-nowrap">
                                 {idx + 1}
@@ -3749,6 +4108,27 @@ export default function AdminPortal({
                                   <span>Lừa đảo / Nhạy cảm</span>
                                 </span>
                               </td>
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                {matchedJobCount > 0 ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setJobQuickFilter('sensitive');
+                                      setJobSearch(item.keyword || '');
+                                      setActiveMenu('jobs');
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 cursor-pointer transition-colors"
+                                    title={`Xem ${matchedJobCount} tin tuyển dụng chứa "${item.keyword}"`}
+                                  >
+                                    <span>{matchedJobCount} tin cảnh báo</span>
+                                    <ChevronRight className="w-3.5 h-3.5" />
+                                  </button>
+                                ) : (
+                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200">
+                                    0 tin khớp
+                                  </span>
+                                )}
+                              </td>
                               <td className="py-3.5 px-4 font-mono text-xs text-slate-600 whitespace-nowrap">
                                 {item.created_at || 'Mặc định hệ thống'}
                               </td>
@@ -3764,7 +4144,7 @@ export default function AdminPortal({
                                 </button>
                               </td>
                             </tr>
-                          ))}
+                          );})}
                         </tbody>
                       </table>
                     </div>
@@ -3775,22 +4155,261 @@ export default function AdminPortal({
             </div>
           )}
 
+        {/* 9. NHẬT KÝ HOẠT ĐỘNG QUẢN TRỊ (AUDIT LOG) */}
+        {activeMenu === 'audit_logs' && (
+          <div className="w-full max-w-full mx-auto space-y-6">
+            <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-blue-600" />
+                  <span>Nhật Ký Hoạt Động Quản Trị (Audit Log)</span>
+                </h3>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  Ghi nhận đầy đủ lịch sử khóa/mở tài khoản, duyệt/từ chối GPKD, ẩn/duyệt tin tuyển dụng, xử lý khiếu nại và phát thông báo.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={auditActionFilter}
+                  onChange={(e) => setAuditActionFilter(e.target.value)}
+                  className="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 cursor-pointer"
+                >
+                  <option value="all">Tất cả hành động quản trị</option>
+                  <option value="LOCK_USER">Khóa tài khoản</option>
+                  <option value="UNLOCK_USER">Mở khóa tài khoản</option>
+                  <option value="DELETE_USER">Xóa tài khoản</option>
+                  <option value="APPROVE_GPKD">Duyệt GPKD</option>
+                  <option value="REJECT_GPKD">Từ chối GPKD</option>
+                  <option value="APPROVE_JOB_MODERATION">Kiểm duyệt đạt tin</option>
+                  <option value="HIDE_JOB">Ẩn tin vi phạm</option>
+                  <option value="UNHIDE_JOB">Khôi phục tin</option>
+                  <option value="DELETE_JOB">Xóa tin tuyển dụng</option>
+                  <option value="UPDATE_REPORT_STATUS">Cập nhật ticket vi phạm</option>
+                  <option value="DELETE_REPORT">Xóa phiếu khiếu nại</option>
+                  <option value="BROADCAST_ANNOUNCEMENT">Phát thông báo hàng loạt</option>
+                  <option value="DELETE_ANNOUNCEMENT">Xóa & thu hồi thông báo hệ thống</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={fetchAuditLogs}
+                  className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-bold text-slate-800 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Làm mới</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-3xl bg-white border border-slate-200/90 shadow-md overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-100 text-slate-800 border-b border-slate-200 uppercase font-bold">
+                    <tr>
+                      <th className="px-5 py-3.5">Thời Gian</th>
+                      <th className="px-5 py-3.5">Quản Trị Viên Thực Hiện</th>
+                      <th className="px-5 py-3.5">Hành Động</th>
+                      <th className="px-5 py-3.5">Đối Tượng Tác Động</th>
+                      <th className="px-5 py-3.5">Lý Do / Chi Tiết</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {(() => {
+                      const rows = auditLogs.filter(l => auditActionFilter === 'all' || l.action === auditActionFilter);
+                      if (rows.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                              Chưa có bản ghi nhật ký hoạt động nào khớp bộ lọc.
+                            </td>
+                          </tr>
+                        );
+                      }
+                      return rows.map((log) => (
+                        <tr key={log._id} className="hover:bg-slate-50">
+                          <td className="px-5 py-3.5 font-mono text-slate-600 whitespace-nowrap">{log.created_at || ''}</td>
+                          <td className="px-5 py-3.5 whitespace-nowrap">
+                            <p className="font-bold text-slate-900">{log.admin_name || 'Quản trị viên'}</p>
+                            <p className="text-[11px] text-slate-500 font-mono">{log.admin_email || ''}</p>
+                          </td>
+                          <td className="px-5 py-3.5 whitespace-nowrap">
+                            <span className="px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 font-bold">
+                              {log.action_label || log.action}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <p className="font-bold text-slate-900">{log.target_label || log.target_id}</p>
+                            <p className="text-[11px] text-slate-500 uppercase">{log.target_type} • {log.target_id}</p>
+                          </td>
+                          <td className="px-5 py-3.5 text-slate-700 max-w-xs">{log.reason || '—'}</td>
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 10. GỬI THÔNG BÁO HỆ THỐNG HÀNG LOẠT (BULK BROADCAST) */}
+        {activeMenu === 'announcements' && (
+          <div className="w-full max-w-full mx-auto space-y-6">
+            <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-5">
+              <div>
+                <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                  <Bell className="w-5 h-5 text-blue-600" />
+                  <span>Gửi Thông Báo Hệ Thống Hàng Loạt (Broadcast)</span>
+                </h3>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  Phát thông báo bảo trì hệ thống, cập nhật chính sách hoặc cảnh báo an toàn tới toàn bộ Sinh viên / Nhà tuyển dụng.
+                </p>
+              </div>
+
+              <form onSubmit={handleSendAnnouncement} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-1">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Đối tượng nhận *</label>
+                    <select
+                      value={announcementForm.target_role}
+                      onChange={(e) => setAnnouncementForm(prev => ({ ...prev, target_role: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none focus:border-blue-500 cursor-pointer"
+                    >
+                      <option value="all">Tất cả người dùng (Sinh viên & Doanh nghiệp)</option>
+                      <option value="student">Chỉ Sinh viên</option>
+                      <option value="employer">Chỉ Nhà tuyển dụng (Doanh nghiệp)</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-1">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Mức độ ưu tiên</label>
+                    <select
+                      value={announcementForm.severity}
+                      onChange={(e) => setAnnouncementForm(prev => ({ ...prev, severity: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none focus:border-blue-500 cursor-pointer"
+                    >
+                      <option value="info">Thông tin chung</option>
+                      <option value="warning">Cảnh báo quan trọng</option>
+                      <option value="urgent">Khẩn cấp / Bảo trì hệ thống</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-1">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Tiêu đề thông báo *</label>
+                    <input
+                      type="text"
+                      required
+                      value={announcementForm.title}
+                      onChange={(e) => setAnnouncementForm(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Ví dụ: Bảo trì nâng cấp hệ thống 00:00..."
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Nội dung thông báo chi tiết *</label>
+                  <textarea
+                    rows={3}
+                    required
+                    value={announcementForm.message}
+                    onChange={(e) => setAnnouncementForm(prev => ({ ...prev, message: e.target.value }))}
+                    placeholder="Nhập thông điệp gửi tới tài khoản người dùng..."
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-xs text-slate-900 outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={sendingAnnouncement}
+                    className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-black shadow-sm cursor-pointer inline-flex items-center gap-2"
+                  >
+                    <Bell className="w-4 h-4" />
+                    <span>{sendingAnnouncement ? 'Đang gửi thông báo...' : 'Phát Thông Báo Hàng Loạt'}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
+              <h4 className="text-sm font-black text-slate-900">Lịch Sử Thông Báo Hệ Thống Đã Phát ({announcements.length})</h4>
+              {announcements.length === 0 ? (
+                <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
+                  Chưa có thông báo hệ thống nào được phát hành.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {announcements.map((ann) => (
+                    <div key={ann._id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`px-2.5 py-0.5 rounded-lg border text-[11px] font-black ${
+                            ann.severity === 'urgent' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                            ann.severity === 'warning' ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                            'bg-blue-50 text-blue-700 border-blue-200'
+                          }`}>
+                            {ann.severity === 'urgent' ? 'Khẩn cấp' : ann.severity === 'warning' ? 'Cảnh báo' : 'Thông tin'}
+                          </span>
+                          <span className="px-2.5 py-0.5 rounded-lg bg-white border border-slate-200 text-[11px] font-bold text-slate-700">
+                            Nhận: {ann.target_role === 'student' ? 'Sinh viên' : ann.target_role === 'employer' ? 'Nhà tuyển dụng' : 'Toàn hệ thống'} ({ann.recipient_count || 0} tài khoản)
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-mono text-slate-500">{ann.created_at || ''}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAnnouncement(ann)}
+                            className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-[11px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                            title="Xóa lịch sử và thu hồi thông báo đã phát"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Xóa & Thu hồi</span>
+                          </button>
+                        </div>
+                      </div>
+                      <h5 className="text-sm font-black text-slate-900">{ann.title}</h5>
+                      <p className="text-xs text-slate-700 leading-relaxed">{ann.message}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </main>
 
       {/* ======================= MODAL CHI TIẾT USER & DUYỆT GPKD ======================= */}
-      {selectedUserDetail && (
+      {selectedUserDetail && (() => {
+        const detailCoverUrl = selectedUserDetail.cover_image_url || selectedUserDetail.profile?.cover_image_url || '';
+        const detailAvatarUrl = selectedUserDetail.role === 'employer'
+          ? (selectedUserDetail.profile?.logo_url || selectedUserDetail.logo_url || selectedUserDetail.avatar_url || '')
+          : (selectedUserDetail.profile?.avatar_url || selectedUserDetail.avatar_url || '');
+        const detailDisplayName = selectedUserDetail.role === 'employer'
+          ? (selectedUserDetail.profile?.company_name || 'Hồ Sơ Doanh Nghiệp')
+          : (selectedUserDetail.profile?.full_name || selectedUserDetail.full_name || 'Hồ Sơ Sinh Viên');
+        return (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto text-slate-800">
+            {detailCoverUrl && (
+              <div className="w-full h-36 rounded-2xl overflow-hidden border border-slate-200 bg-slate-100">
+                <img
+                  src={detailCoverUrl}
+                  alt={`Ảnh bìa của ${detailDisplayName}`}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
             <div className="flex items-start justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700 font-black text-lg">
-                  {selectedUserDetail.role === 'employer' ? <Building2 className="w-6 h-6" /> : <GraduationCap className="w-6 h-6" />}
-                </div>
+                <MediaAvatar
+                  src={detailAvatarUrl}
+                  alt={detailDisplayName}
+                  fallbackIcon={selectedUserDetail.role === 'employer' ? <Building2 className="w-6 h-6" /> : <GraduationCap className="w-6 h-6" />}
+                  className="w-14 h-14 rounded-2xl"
+                  fallbackClassName="bg-blue-50 border border-blue-200 text-blue-700 font-black text-lg"
+                />
                 <div>
                   <h3 className="text-base font-black text-slate-900">
-                    {selectedUserDetail.role === 'employer'
-                      ? (selectedUserDetail.profile?.company_name || 'Hồ Sơ Doanh Nghiệp')
-                      : (selectedUserDetail.profile?.full_name || selectedUserDetail.full_name || 'Hồ Sơ Sinh Viên')}
+                    {detailDisplayName}
                   </h3>
                   <p className="text-xs text-blue-700 font-mono font-semibold mt-0.5">{selectedUserDetail.email}</p>
                 </div>
@@ -3842,10 +4461,6 @@ export default function AdminPortal({
                     <span className="font-bold text-slate-900 text-sm">{selectedUserDetail.profile?.full_name || selectedUserDetail.full_name || 'Chưa cập nhật'}</span>
                   </div>
                   <div>
-                    <span className="text-slate-500 block text-xs">Mã số sinh viên (MSSV):</span>
-                    <span className="font-mono font-bold text-blue-700 text-sm">{selectedUserDetail.profile?.mssv || selectedUserDetail.mssv || 'Chưa cập nhật'}</span>
-                  </div>
-                  <div>
                     <span className="text-slate-500 block text-xs">Trường Đại học:</span>
                     <span className="text-slate-800 font-medium text-xs sm:text-sm">{selectedUserDetail.profile?.university || 'Chưa cập nhật'}</span>
                   </div>
@@ -3857,17 +4472,41 @@ export default function AdminPortal({
                     <span className="text-slate-500 block text-xs">Số điện thoại:</span>
                     <span className="text-slate-800 font-mono font-medium text-xs sm:text-sm">{selectedUserDetail.profile?.phone || 'Chưa cập nhật'}</span>
                   </div>
-                  <div>
-                    <span className="text-slate-500 block text-xs">Kỹ năng nổi bật:</span>
-                    <span className="text-slate-800 font-medium text-xs sm:text-sm">{selectedUserDetail.profile?.skills || 'Chưa cập nhật'}</span>
-                  </div>
                 </div>
-                {selectedUserDetail.profile?.bio && (
-                  <div className="pt-2 border-t border-slate-200/80">
-                    <span className="text-slate-500 block text-xs">Giới thiệu bản thân:</span>
-                    <p className="text-slate-700 italic mt-0.5">{selectedUserDetail.profile?.bio}</p>
-                  </div>
-                )}
+                <div className="pt-3 border-t border-slate-200/80 space-y-2">
+                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
+                    Tệp CV PDF Sinh Viên Đã Tải Lên ({adminStudentResumes.length}):
+                  </span>
+                  {adminStudentResumes.length === 0 ? (
+                    <p className="text-xs text-slate-500 italic">Sinh viên chưa tải lên tệp CV PDF nào.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {adminStudentResumes.map((cv, idx) => (
+                        <div key={cv._id || idx} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-white border border-slate-200">
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-900 truncate">{cv.file_name || `CV_SinhVien_${idx + 1}.pdf`}</p>
+                            <p className="text-[11px] text-slate-500">{cv.created_at || ''} {cv.is_default ? '• CV Mặc định' : ''}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setAdminCvViewer({
+                              studentName: selectedUserDetail.profile?.full_name || selectedUserDetail.full_name || 'Sinh viên',
+                              university: selectedUserDetail.profile?.university || 'Đại học/Cao đẳng',
+                              phone: selectedUserDetail.profile?.phone || '',
+                              email: selectedUserDetail.email || '',
+                              fileName: cv.file_name || 'CV_SinhVien.pdf',
+                              fileUrl: cv.file_url || ''
+                            })}
+                            className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer shrink-0"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Xem CV PDF</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
@@ -3899,16 +4538,6 @@ export default function AdminPortal({
                     <div>
                       <span className="text-slate-500 block text-xs">Địa chỉ trụ sở / chi nhánh:</span>
                       <span className="text-slate-800 font-medium text-xs sm:text-sm">{selectedUserDetail.profile?.address || 'Chưa cập nhật'}</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-500 block text-xs">Trang web doanh nghiệp:</span>
-                      {selectedUserDetail.profile?.website ? (
-                        <a href={selectedUserDetail.profile.website} target="_blank" rel="noreferrer" className="text-blue-700 font-semibold hover:underline">
-                          {selectedUserDetail.profile.website}
-                        </a>
-                      ) : (
-                        <span className="text-slate-500 italic">Chưa cập nhật</span>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -3990,7 +4619,8 @@ export default function AdminPortal({
             )}
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* ======================= MODAL TỪ CHỐI GPKD KÈM LÝ DO ======================= */}
       {gpkdRejectModal && (
@@ -4103,6 +4733,31 @@ export default function AdminPortal({
             </div>
 
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs sm:text-sm">
+              {(() => {
+                const matchedKws = getJobSensitiveKeywords(selectedJobDetail);
+                if (matchedKws.length === 0) return null;
+                return (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong>Phát hiện từ khóa nhạy cảm (từ Kiểm duyệt từ khoá cấm):</strong>{' '}
+                        <span className="font-mono font-bold text-rose-700">{matchedKws.join(', ')}</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedJobDetail(null);
+                        setActiveMenu('keywords');
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-white border border-rose-300 text-rose-800 font-bold hover:bg-rose-100 transition-colors cursor-pointer shrink-0"
+                    >
+                      Quản lý từ khóa cấm
+                    </button>
+                  </div>
+                );
+              })()}
               <div>
                 <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">Mô tả công việc:</span>
                 <p className="text-slate-800 leading-relaxed whitespace-pre-wrap">{selectedJobDetail.description || 'Không có mô tả chi tiết.'}</p>
@@ -4300,6 +4955,33 @@ export default function AdminPortal({
                   {selectedTicket.evidence && (
                     <div className="p-3 rounded-xl bg-white border border-slate-200 text-slate-800 w-full">
                       <strong>Bằng chứng đính kèm:</strong> {selectedTicket.evidence}
+                    </div>
+                  )}
+                  {ticketStudentResumes.length > 0 && (
+                    <div className="p-3 rounded-xl bg-white border border-blue-200 w-full space-y-2">
+                      <p className="font-bold text-blue-800 text-xs">
+                        Hồ sơ CV PDF của sinh viên liên quan ({ticketStudentResumes.length} tệp — Kiểm tra gian lận):
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {ticketStudentResumes.map((cv, idx) => (
+                          <button
+                            key={cv._id || idx}
+                            type="button"
+                            onClick={() => setAdminCvViewer({
+                              studentName: selectedTicket.target_title || 'Sinh viên liên quan',
+                              university: 'Kiểm tra hồ sơ khiếu nại',
+                              phone: '',
+                              email: '',
+                              fileName: cv.file_name || `CV_${idx + 1}.pdf`,
+                              fileUrl: cv.file_url || ''
+                            })}
+                            className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            <span>Mở CV PDF: {cv.file_name || `CV_${idx + 1}.pdf`}</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -4539,6 +5221,15 @@ export default function AdminPortal({
           })(),
           fileUrl: adminGpkdViewer?.business_license_url || adminGpkdViewer?.profile?.business_license_url || adminGpkdViewer?.license_url || adminGpkdViewer?.employer_record?.license_url || ''
         }}
+        onDownloadSuccess={(msg) => notify(msg, 'success')}
+      />
+
+      {/* ======================= MODAL XEM CV PDF SINH VIÊN DÀNH CHO ADMIN (KIỂM TRA GIAN LẬN) ======================= */}
+      <DocumentViewerModal
+        isOpen={!!adminCvViewer}
+        onClose={() => setAdminCvViewer(null)}
+        type="cv"
+        data={adminCvViewer || {}}
         onDownloadSuccess={(msg) => notify(msg, 'success')}
       />
 

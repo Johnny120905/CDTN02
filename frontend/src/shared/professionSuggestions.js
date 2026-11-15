@@ -1,3 +1,5 @@
+import { matchKeywordFlexible } from './searchAndFilterHelper.js';
+
 /**
  * Danh mục chuyên nghiệp, địa bàn hành chính TP.HCM và quy tắc trạng thái (CDTN02)
  */
@@ -112,14 +114,68 @@ export const JOB_STATUS_OPTIONS = [
   { value: 'completed', label: 'Hoàn thành' }
 ];
 
+// DANH SÁCH TRƯỜNG ĐẠI HỌC / CAO ĐẲNG GỢI Ý DROPDOWN
+export const UNIVERSITY_SUGGESTIONS = [
+  "Đại học Văn Lang (VLU)",
+  "Đại học Kinh tế TP.HCM (UEH)",
+  "Đại học Bách khoa - ĐHQG TP.HCM",
+  "Đại học Khoa học Tự nhiên - ĐHQG TP.HCM",
+  "Đại học Khoa học Xã hội và Nhân văn - ĐHQG TP.HCM",
+  "Đại học Công nghệ Thông tin - ĐHQG TP.HCM (UIT)",
+  "Đại học Quốc tế - ĐHQG TP.HCM (IU)",
+  "Đại học Kinh tế - Luật - ĐHQG TP.HCM (UEL)",
+  "Đại học Sư phạm Kỹ thuật TP.HCM (HCMUTE)",
+  "Đại học Công nghiệp TP.HCM (IUH)",
+  "Đại học Tôn Đức Thắng (TDTU)",
+  "Đại học Sài Gòn (SGU)",
+  "Đại học Mở TP.HCM (OU)",
+  "Đại học Hoa Sen (HSU)",
+  "Đại học Công nghệ TP.HCM (HUTECH)",
+  "Đại học FPT TP.HCM",
+  "Đại học RMIT Việt Nam",
+  "Đại học Ngân hàng TP.HCM (HUB)",
+  "Đại học Luật TP.HCM (ULAW)",
+  "Đại học Sư phạm TP.HCM (HCMUE)",
+  "Đại học Y Dược TP.HCM",
+  "Đại học Nông Lâm TP.HCM",
+  "Đại học Công Thương TP.HCM (HUIT)",
+  "Đại học Giao thông Vận tải TP.HCM (UTH)",
+  "Đại học Quốc tế Hồng Bàng (HIU)",
+  "Đại học Gia Định (GDU)",
+  "Đại học Nguyễn Tất Thành (NTTU)",
+  "Cao đẳng Kinh tế TP.HCM",
+  "Cao đẳng Kỹ thuật Cao Thắng",
+  "Cao đẳng FPT Polytechnic",
+  "Cao đẳng Công Thương TP.HCM",
+  "Đại học Quốc gia Hà Nội (VNU)",
+  "Đại học Bách khoa Hà Nội (HUST)",
+  "Đại học Kinh tế Quốc dân (NEU)",
+  "Đại học Ngoại thương (FTU)",
+  "Đại học Đà Nẵng",
+  "Đại học Cần Thơ"
+];
+
+export const REJECT_REASON_PRESETS = [
+  "Chưa phù hợp với yêu cầu ca làm hiện tại",
+  "Khung giờ rảnh chưa khớp với lịch ca tuyển dụng",
+  "Tin tuyển dụng đã tuyển đủ nhân sự cho chi nhánh",
+  "Kỹ năng hoặc kinh nghiệm chưa đáp ứng yêu cầu công việc",
+  "Khoảng cách di chuyển đến nơi làm việc quá xa"
+];
+
+export const INTERVIEW_METHOD_OPTIONS = [
+  "Phỏng vấn trực tuyến (WebRTC Video Call)",
+  "Phỏng vấn trực tiếp tại chi nhánh / cửa hàng",
+  "Phỏng vấn qua cuộc gọi điện thoại"
+];
+
 /**
  * Lọc gợi ý theo từ khóa
  */
 export function filterSuggestions(query, limit = 8) {
   if (!query || !query.trim()) return [];
-  const q = query.trim().toLowerCase();
-  return PROFESSION_SUGGESTIONS.filter(item => 
-    item.toLowerCase().includes(q)
+  return PROFESSION_SUGGESTIONS.filter(item =>
+    matchKeywordFlexible({ label: item }, query, ['label'])
   ).slice(0, limit);
 }
 
