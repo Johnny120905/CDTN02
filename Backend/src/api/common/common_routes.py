@@ -162,7 +162,7 @@ def search_jobs():
     include_ids = [jid.strip() for jid in include_ids_raw.split(",") if jid.strip()] if include_ids_raw else []
 
     job_col = db_manager.get_collection("jobs")
-    base_and = [{"is_hidden": False}]
+    base_and = [{"is_hidden": False}, {"is_admin_reviewed": {"$ne": False}}]
     if include_ids:
         base_and.append({"$or": [{"is_open": True}, {"_id": {"$in": include_ids}}]})
     else:
@@ -211,7 +211,7 @@ def search_jobs():
 @common_bp.route("/jobs/<job_id>", methods=["GET"])
 def get_job_detail(job_id):
     job_col = db_manager.get_collection("jobs")
-    job = job_col.find_one({"_id": job_id, "is_hidden": False})
+    job = job_col.find_one({"_id": job_id, "is_hidden": False, "is_admin_reviewed": {"$ne": False}})
     if not job:
         return jsonify({"success": False, "message": "Không tìm thấy tin việc làm này."}), 404
         
@@ -591,6 +591,34 @@ def send_message():
 # --- WEBRTC TWO-WAY CALL SIGNALING (FR 1.10.4 & 2.9.4) ---
 ACTIVE_CALL_SESSIONS = {}
 
+def _emit_call_event(event_name, payload, sess, room_id, raw_room_id=None, include_caller=True):
+    """Chỉ gửi tín hiệu cuộc gọi tới đúng phòng & đúng 2 người trong cuộc gọi (không phát cho mọi client)."""
+    targets = []
+    for r in (room_id, raw_room_id):
+        if r and r not in targets:
+            targets.append(r)
+    for uid in (sess.get("target_user_id"), sess.get("caller_id") if include_caller else None):
+        if uid and f"user_{uid}" not in targets:
+            targets.append(f"user_{uid}")
+    for tgt in targets:
+        emit_socket_event(event_name, payload, room=tgt)
+
+def _is_call_participant(sess, user):
+    """Chỉ người gọi hoặc đúng người nhận của phiên cuộc gọi mới được xem / phản hồi."""
+    uid = user.get("_id")
+    if not sess or not uid:
+        return False
+    if uid in (sess.get("caller_id"), sess.get("target_user_id")):
+        return True
+    if user.get("role") == sess.get("caller_role"):
+        return False
+    room = str(sess.get("room_id", ""))
+    if user.get("role") == "employer":
+        emp = db_manager.get_collection("employers").find_one({"user_id": uid})
+        emp_id = emp["_id"] if emp else ""
+        return bool(emp_id) and f"room_emp_{emp_id}_stu_" in room
+    return f"_stu_{uid}" in room
+
 @common_bp.route("/chat/call/initiate", methods=["POST"])
 @token_required
 def initiate_call():
@@ -639,7 +667,7 @@ def initiate_call():
         ACTIVE_CALL_SESSIONS[raw_room_id] = call_session
 
     # Đẩy thông báo chuông gọi đến đích danh người nhận
-    emit_socket_event("incoming-call", {
+    _emit_call_event("incoming-call", {
         "room_id": room_id,
         "raw_room_id": raw_room_id,
         "caller_name": caller_name,
@@ -650,7 +678,7 @@ def initiate_call():
         "call_type": call_type,
         "status": "ringing",
         "offer": offer
-    })
+    }, call_session, room_id, raw_room_id if raw_room_id != room_id else None, include_caller=False)
 
     if target_user_id:
         create_and_emit_notification(
@@ -672,23 +700,15 @@ def get_call_status():
     raw_room_id = request.args.get("room_id", "default_room")
     room_id = canonicalize_room_id(raw_room_id)
     call_session = ACTIVE_CALL_SESSIONS.get(room_id) or ACTIVE_CALL_SESSIONS.get(raw_room_id)
+    if call_session and not _is_call_participant(call_session, user):
+        call_session = None
     
     # Nếu không tìm thấy trong phòng cụ thể, kiểm tra xem có bất kỳ cuộc gọi nào đang đổ chuông tới tài khoản này không
     if not call_session or call_session.get("status") not in ["ringing", "connected"]:
         for sess in list(ACTIVE_CALL_SESSIONS.values()):
             if sess.get("status") == "ringing":
                 # Kiểm tra xem user này có phải là đối tượng nhận cuộc gọi không
-                is_target = False
-                if sess.get("target_user_id") and sess.get("target_user_id") == user["_id"]:
-                    is_target = True
-                elif user.get("role") == "employer" and sess.get("target_role") == "employer":
-                    emp = db_manager.get_collection("employers").find_one({"user_id": user["_id"]})
-                    emp_id = emp["_id"] if emp else ""
-                    if (emp_id and emp_id in sess.get("room_id", "")) or (user["_id"] in sess.get("room_id", "")):
-                        is_target = True
-                elif user.get("role") == "student" and sess.get("target_role") == "student":
-                    if user["_id"] in sess.get("room_id", ""):
-                        is_target = True
+                is_target = sess.get("target_role") == user.get("role") and _is_call_participant(sess, user)
                 
                 if is_target:
                     call_session = sess
@@ -750,11 +770,11 @@ def respond_call():
     if not call_session:
         # Fallback tìm cuộc gọi theo session ringing gần nhất cho user này
         for sess in list(ACTIVE_CALL_SESSIONS.values()):
-            if sess.get("target_role") == user.get("role"):
+            if sess.get("target_role") == user.get("role") and _is_call_participant(sess, user):
                 call_session = sess
                 break
 
-    if not call_session:
+    if not call_session or not _is_call_participant(call_session, user):
         return jsonify({"success": False, "message": "Không tìm thấy phiên cuộc gọi."}), 404
         
     if action == "accept":
@@ -762,7 +782,7 @@ def respond_call():
         call_session["connected_at"] = time.time()
         if answer:
             call_session["answer"] = answer
-            emit_socket_event("answer-made", {"room_id": room_id, "answer": answer})
+            _emit_call_event("answer-made", {"room_id": room_id, "answer": answer}, call_session, room_id)
     elif action == "missed":
         call_session["status"] = "missed"
         call_session["ended_at"] = time.time()

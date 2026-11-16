@@ -93,7 +93,15 @@ export default function AdminPortal({
   const [userRiskFilter, setUserRiskFilter] = useState('all'); // FR-QTV-04.10: Mức độ rủi ro vi phạm (>=1 report, >=3 khiếu nại)
   const [userIdentityFilter, setUserIdentityFilter] = useState('all'); // FR-QTV-04.10: Định danh (OTP, GPKD thật, chưa cập nhật)
   const [userPage, setUserPage] = useState(1);
-  const USERS_PER_PAGE = 15;
+  const [usersPerPage, setUsersPerPage] = useState('10'); // '10' | '20' | '50' | 'all'
+  const [jobPage, setJobPage] = useState(1);
+  const [jobsPerPage, setJobsPerPage] = useState('10');
+  const [gpkdPage, setGpkdPage] = useState(1);
+  const [gpkdPerPage, setGpkdPerPage] = useState('10');
+  const [reviewPage, setReviewPage] = useState(1);
+  const [reviewsPerPage, setReviewsPerPage] = useState('10');
+  const [ticketPage, setTicketPage] = useState(1);
+  const [ticketsPerPage, setTicketsPerPage] = useState('10');
   const [selectedUserDetail, setSelectedUserDetail] = useState(null);
   const [adminGpkdViewer, setAdminGpkdViewer] = useState(null);
   const [banModalUser, setBanModalUser] = useState(null);
@@ -148,6 +156,7 @@ export default function AdminPortal({
 
   // Parity Enhancements: CV PDF Inspector, Job Quick Filters, Audit Logs, Bulk Announcements
   const [jobQuickFilter, setJobQuickFilter] = useState('all'); // 'all' | 'pending_review' | 'sensitive'
+  const [selectedSensitiveKeyword, setSelectedSensitiveKeyword] = useState(''); // Lọc tin theo từ khóa nhạy cảm cụ thể mà không ghi đè thanh search doanh nghiệp
   const [adminCvViewer, setAdminCvViewer] = useState(null);
   const [adminStudentResumes, setAdminStudentResumes] = useState([]);
   const [ticketStudentResumes, setTicketStudentResumes] = useState([]);
@@ -1199,7 +1208,23 @@ export default function AdminPortal({
 
   useEffect(() => {
     setUserPage(1);
-  }, [userSearch, userRoleFilter, userStatusFilter, userUniFilter, userRiskFilter, userIdentityFilter]);
+  }, [userSearch, userRoleFilter, userStatusFilter, userUniFilter, userRiskFilter, userIdentityFilter, usersPerPage]);
+
+  useEffect(() => {
+    setJobPage(1);
+  }, [jobSearch, jobStatusFilter, jobModerationFilter, jobQuickFilter, selectedSensitiveKeyword, jobsPerPage]);
+
+  useEffect(() => {
+    setGpkdPage(1);
+  }, [gpkdStatusFilter, gpkdMstFilter, gpkdProvinceFilter, gpkdDistrictFilter, gpkdAgeFilter, gpkdPerPage]);
+
+  useEffect(() => {
+    setReviewPage(1);
+  }, [reviewSearch, reviewStatusFilter, reviewDirectionFilter, reviewStarsFilter, reviewsPerPage]);
+
+  useEffect(() => {
+    setTicketPage(1);
+  }, [ticketSearch, ticketTab, ticketStatusFilter, ticketsPerPage]);
 
   // Filtered Users (FR 3.4 & FR-QTV-04.10)
   const filteredUsers = nonAdminUsers.filter(u => {
@@ -1258,8 +1283,12 @@ export default function AdminPortal({
     return emailMatch && roleMatch && statusMatch && uniMatch && riskMatch && idMatch;
   });
 
-  const totalUserPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE) || 1;
-  const paginatedUsers = filteredUsers.slice((userPage - 1) * USERS_PER_PAGE, userPage * USERS_PER_PAGE);
+  const userLimit = usersPerPage === 'all' ? filteredUsers.length : parseInt(usersPerPage, 10);
+  const totalUserPages = Math.ceil(filteredUsers.length / (userLimit || 1)) || 1;
+  const currentUserPage = Math.min(Math.max(1, userPage), totalUserPages);
+  const paginatedUsers = usersPerPage === 'all'
+    ? filteredUsers
+    : filteredUsers.slice((currentUserPage - 1) * userLimit, currentUserPage * userLimit);
 
   // Danh sách quận/huyện tương ứng với Tỉnh/Thành được chọn trong Thẩm định GPKD
   const gpkdAvailableDistricts = gpkdProvinceFilter && gpkdProvinceFilter !== 'all'
@@ -1365,6 +1394,13 @@ export default function AdminPortal({
       return tb.localeCompare(ta);
     });
 
+  const gpkdLimit = gpkdPerPage === 'all' ? filteredGpkdEmployers.length : parseInt(gpkdPerPage, 10);
+  const totalGpkdPages = Math.ceil(filteredGpkdEmployers.length / (gpkdLimit || 1)) || 1;
+  const currentGpkdPage = Math.min(Math.max(1, gpkdPage), totalGpkdPages);
+  const paginatedGpkdEmployers = gpkdPerPage === 'all'
+    ? filteredGpkdEmployers
+    : filteredGpkdEmployers.slice((currentGpkdPage - 1) * gpkdLimit, currentGpkdPage * gpkdLimit);
+
   // Filtered Jobs (FR 3.5 & FR-QTV-05.07)
   const filteredJobs = jobs.filter(j => {
     // 1. Tìm kiếm theo Tên doanh nghiệp; Tiêu đề công việc
@@ -1385,22 +1421,39 @@ export default function AdminPortal({
 
     // 3. Bộ lọc cột Trạng Thái Kiểm Duyệt
     let matchModeration = true;
-    if (jobModerationFilter === 'public') {
-      matchModeration = !j.is_hidden;
+    if (jobModerationFilter === 'pending') {
+      matchModeration = !j.is_admin_reviewed;
+    } else if (jobModerationFilter === 'public') {
+      matchModeration = !j.is_hidden && j.is_admin_reviewed;
     } else if (jobModerationFilter === 'hidden') {
-      matchModeration = j.is_hidden === true;
+      matchModeration = j.is_hidden === true && j.is_admin_reviewed;
     }
 
     // 4. Bộ lọc nhanh Tin mới chờ kiểm duyệt / Cảnh báo từ ngữ nhạy cảm
     let matchQuick = true;
     if (jobQuickFilter === 'pending_review') {
-      matchQuick = !j.is_admin_reviewed && !j.is_hidden;
+      matchQuick = !j.is_admin_reviewed;
     } else if (jobQuickFilter === 'sensitive') {
-      matchQuick = getJobSensitiveKeywords(j).length > 0;
+      const sensitiveKws = getJobSensitiveKeywords(j);
+      if (selectedSensitiveKeyword) {
+        matchQuick = sensitiveKws.some(kw => 
+          kw.toLowerCase() === selectedSensitiveKeyword.toLowerCase() ||
+          removeVietnameseTones(kw) === removeVietnameseTones(selectedSensitiveKeyword)
+        );
+      } else {
+        matchQuick = sensitiveKws.length > 0;
+      }
     }
 
     return matchSearch && matchStatus && matchModeration && matchQuick;
   });
+
+  const jobLimit = jobsPerPage === 'all' ? filteredJobs.length : parseInt(jobsPerPage, 10);
+  const totalJobPages = Math.ceil(filteredJobs.length / (jobLimit || 1)) || 1;
+  const currentJobPage = Math.min(Math.max(1, jobPage), totalJobPages);
+  const paginatedJobs = jobsPerPage === 'all'
+    ? filteredJobs
+    : filteredJobs.slice((currentJobPage - 1) * jobLimit, currentJobPage * jobLimit);
 
   // Helper chuẩn hóa chiều tương tác Đánh giá chéo 2 chiều (dùng chung cho filter & bảng hiển thị)
   const isEmployerReview = (r) => Boolean(
@@ -1449,6 +1502,13 @@ export default function AdminPortal({
     return matchSearch && matchStatus && matchDirection && matchStars;
   });
 
+  const reviewLimit = reviewsPerPage === 'all' ? filteredReviews.length : parseInt(reviewsPerPage, 10);
+  const totalReviewPages = Math.ceil(filteredReviews.length / (reviewLimit || 1)) || 1;
+  const currentReviewPage = Math.min(Math.max(1, reviewPage), totalReviewPages);
+  const paginatedReviews = reviewsPerPage === 'all'
+    ? filteredReviews
+    : filteredReviews.slice((currentReviewPage - 1) * reviewLimit, currentReviewPage * reviewLimit);
+
   // Filtered Tickets (FR 3.8 & FR-QTV-08.02)
   const normalizeTicketStatus = (rawSt) => {
     const s = String(rawSt || 'pending').toLowerCase().trim();
@@ -1465,6 +1525,13 @@ export default function AdminPortal({
     const matchStatus = ticketStatusFilter === 'all' || normTicketSt === ticketStatusFilter;
     return matchSearch && matchType && matchStatus;
   });
+
+  const ticketLimit = ticketsPerPage === 'all' ? filteredTickets.length : parseInt(ticketsPerPage, 10);
+  const totalTicketPages = Math.ceil(filteredTickets.length / (ticketLimit || 1)) || 1;
+  const currentTicketPage = Math.min(Math.max(1, ticketPage), totalTicketPages);
+  const paginatedTickets = ticketsPerPage === 'all'
+    ? filteredTickets
+    : filteredTickets.slice((currentTicketPage - 1) * ticketLimit, currentTicketPage * ticketLimit);
 
   // Admin Fixed Menu Items (8 Phân hệ Quản trị viên chuẩn - Khớp 100% với Main Content)
   const adminMenuItems = [
@@ -1855,6 +1922,46 @@ export default function AdminPortal({
                     }))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Phân trang & bộ lọc số dòng GPKD (Tất cả; 5; 10; 20; 50) */}
+              <div className="p-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-50/50">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-600 font-semibold">Hiển thị mỗi trang:</span>
+                  <select
+                    value={gpkdPerPage}
+                    onChange={(e) => {
+                      setGpkdPerPage(e.target.value);
+                      setGpkdPage(1);
+                    }}
+                    className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none cursor-pointer"
+                  >
+                    <option value="10">10 / trang</option>
+                    <option value="20">20 / trang</option>
+                    <option value="50">50 / trang</option>
+                    <option value="all">Tất cả ({filteredGpkdEmployers.length})</option>
+                  </select>
+                  <span className="text-slate-500 hidden sm:inline">(Tổng: {filteredGpkdEmployers.length})</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-600 font-semibold">Trang {currentGpkdPage} / {totalGpkdPages}</span>
+                  <button
+                    type="button"
+                    disabled={currentGpkdPage <= 1 || gpkdPerPage === 'all'}
+                    onClick={() => setGpkdPage(p => Math.max(1, p - 1))}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Trước
+                  </button>
+                  <button
+                    type="button"
+                    disabled={currentGpkdPage >= totalGpkdPages || gpkdPerPage === 'all'}
+                    onClick={() => setGpkdPage(p => Math.min(totalGpkdPages, p + 1))}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Sau
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -3092,30 +3199,45 @@ export default function AdminPortal({
                 </table>
               </div>
 
-              {/* Phân trang 15 dòng */}
-              {totalUserPages > 1 && (
-                <div className="p-4 border-t border-slate-200 flex items-center justify-between text-xs">
-                  <span className="text-slate-600 font-semibold">Trang {userPage} / {totalUserPages}</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      disabled={userPage === 1}
-                      onClick={() => setUserPage(p => Math.max(1, p - 1))}
-                      className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 cursor-pointer"
-                    >
-                      Trước
-                    </button>
-                    <button
-                      type="button"
-                      disabled={userPage === totalUserPages}
-                      onClick={() => setUserPage(p => Math.min(totalUserPages, p + 1))}
-                      className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 cursor-pointer"
-                    >
-                      Sau
-                    </button>
-                  </div>
+              {/* Phân trang & bộ lọc số dòng Người dùng (Tất cả; 5; 10; 20; 50) */}
+              <div className="p-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-50/50">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-600 font-semibold">Hiển thị mỗi trang:</span>
+                  <select
+                    value={usersPerPage}
+                    onChange={(e) => {
+                      setUsersPerPage(e.target.value);
+                      setUserPage(1);
+                    }}
+                    className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none cursor-pointer"
+                  >
+                    <option value="10">10 / trang</option>
+                    <option value="20">20 / trang</option>
+                    <option value="50">50 / trang</option>
+                    <option value="all">Tất cả ({filteredUsers.length})</option>
+                  </select>
+                  <span className="text-slate-500 hidden sm:inline">(Tổng: {filteredUsers.length})</span>
                 </div>
-              )}
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-600 font-semibold">Trang {currentUserPage} / {totalUserPages}</span>
+                  <button
+                    type="button"
+                    disabled={currentUserPage <= 1 || usersPerPage === 'all'}
+                    onClick={() => setUserPage(p => Math.max(1, p - 1))}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Trước
+                  </button>
+                  <button
+                    type="button"
+                    disabled={currentUserPage >= totalUserPages || usersPerPage === 'all'}
+                    onClick={() => setUserPage(p => Math.min(totalUserPages, p + 1))}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Sau
+                  </button>
+                </div>
+              </div>
             </div>
 
           </div>
@@ -3168,6 +3290,7 @@ export default function AdminPortal({
                     className="w-full min-w-0 truncate bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-base sm:text-sm text-slate-900 outline-none cursor-pointer shadow-sm"
                   >
                     <option value="">Tất cả trạng thái kiểm duyệt</option>
+                    <option value="pending">Chờ kiểm duyệt</option>
                     <option value="public">Công Khai</option>
                     <option value="hidden">Đã Ẩn (Vi phạm)</option>
                   </select>
@@ -3178,7 +3301,10 @@ export default function AdminPortal({
               <div className="flex flex-wrap items-center gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setJobQuickFilter('all')}
+                  onClick={() => {
+                    setJobQuickFilter('all');
+                    setSelectedSensitiveKeyword('');
+                  }}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                     jobQuickFilter === 'all'
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
@@ -3189,7 +3315,10 @@ export default function AdminPortal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setJobQuickFilter('pending_review')}
+                  onClick={() => {
+                    setJobQuickFilter('pending_review');
+                    setSelectedSensitiveKeyword('');
+                  }}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
                     jobQuickFilter === 'pending_review'
                       ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-xs'
@@ -3197,11 +3326,14 @@ export default function AdminPortal({
                   }`}
                 >
                   <Clock className="w-3.5 h-3.5" />
-                  <span>Tin mới đăng chờ kiểm duyệt ({jobs.filter(j => !j.is_admin_reviewed && !j.is_hidden).length})</span>
+                  <span>Tin mới đăng chờ kiểm duyệt ({jobs.filter(j => !j.is_admin_reviewed).length})</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setJobQuickFilter('sensitive')}
+                  onClick={() => {
+                    setJobQuickFilter('sensitive');
+                    setSelectedSensitiveKeyword('');
+                  }}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
                     jobQuickFilter === 'sensitive'
                       ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
@@ -3227,20 +3359,44 @@ export default function AdminPortal({
                   <span className="text-slate-500 italic">Chưa thiết lập từ khóa cấm nào</span>
                 ) : (
                   <>
-                    {bannedKeywords.filter(b => b.is_active !== false).slice(0, 6).map((b) => (
-                      <button
-                        key={b._id || b.keyword}
-                        type="button"
-                        onClick={() => {
-                          setJobQuickFilter('sensitive');
-                          setJobSearch(b.keyword || '');
-                        }}
-                        title={`Lọc các tin chứa từ khóa "${b.keyword}"`}
-                        className="px-2 py-0.5 rounded-md bg-rose-50/80 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-semibold cursor-pointer transition-colors"
-                      >
-                        {b.keyword}
-                      </button>
-                    ))}
+                    {bannedKeywords.filter(b => b.is_active !== false).slice(0, 6).map((b) => {
+                      const isSelected = jobQuickFilter === 'sensitive' && selectedSensitiveKeyword.toLowerCase() === (b.keyword || '').toLowerCase();
+                      return (
+                        <button
+                          key={b._id || b.keyword}
+                          type="button"
+                          onClick={() => {
+                            setJobQuickFilter('sensitive');
+                            if (isSelected) {
+                              setSelectedSensitiveKeyword('');
+                            } else {
+                              setSelectedSensitiveKeyword(b.keyword || '');
+                            }
+                          }}
+                          title={`Lọc các tin chứa từ khóa "${b.keyword}"`}
+                          className={`px-2 py-0.5 rounded-md text-[11px] font-semibold cursor-pointer transition-colors border ${
+                            isSelected
+                              ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                              : 'bg-rose-50/80 hover:bg-rose-100 text-rose-700 border-rose-200'
+                          }`}
+                        >
+                          {b.keyword}
+                        </button>
+                      );
+                    })}
+                    {jobQuickFilter === 'sensitive' && selectedSensitiveKeyword && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-100 text-rose-900 border border-rose-300 text-[11px] font-bold">
+                        Đang lọc từ cấm: "{selectedSensitiveKeyword}"
+                        <button
+                          type="button"
+                          onClick={() => setSelectedSensitiveKeyword('')}
+                          className="hover:text-rose-600 ml-0.5 cursor-pointer"
+                          title="Bỏ lọc từ cụ thể này để xem tất cả tin nhạy cảm"
+                        >
+                          <X className="w-3 h-3 inline" />
+                        </button>
+                      </span>
+                    )}
                     {bannedKeywords.filter(b => b.is_active !== false).length > 6 && (
                       <button
                         type="button"
@@ -3300,15 +3456,15 @@ export default function AdminPortal({
                           <p className="font-bold text-slate-900 text-base hover:text-blue-600">{job.title}</p>
                           <div className="flex flex-wrap items-center gap-1.5 mt-1">
                             <span className="text-xs text-slate-500 font-mono">{job._id}</span>
-                            {!job.is_admin_reviewed && !job.is_hidden ? (
+                            {!job.is_admin_reviewed ? (
                               <span className="px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-[11px] font-bold text-amber-800">
                                 Chờ kiểm duyệt
                               </span>
-                            ) : job.is_admin_reviewed ? (
+                            ) : (
                               <span className="px-2 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-[11px] font-bold text-blue-700">
                                 Đã kiểm duyệt
                               </span>
-                            ) : null}
+                            )}
                             {(() => {
                               const matchedKws = getJobSensitiveKeywords(job);
                               if (matchedKws.length === 0) return null;
@@ -3351,28 +3507,30 @@ export default function AdminPortal({
 
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${
-                            job.is_hidden 
-                              ? 'bg-rose-100 text-rose-800 border-rose-200' 
-                              : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                            !job.is_admin_reviewed
+                              ? 'bg-amber-100 text-amber-800 border-amber-200'
+                              : (job.is_hidden 
+                                  ? 'bg-rose-100 text-rose-800 border-rose-200' 
+                                  : 'bg-emerald-100 text-emerald-800 border-emerald-200')
                           }`}>
-                            {job.is_hidden ? 'Đã Ẩn (Vi phạm)' : 'Công Khai'}
+                            {!job.is_admin_reviewed ? 'Chờ kiểm duyệt' : (job.is_hidden ? 'Đã Ẩn (Vi phạm)' : 'Công Khai')}
                           </span>
                         </td>
 
                         <td className="px-6 py-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-2">
-                            {!job.is_admin_reviewed && !job.is_hidden && (
+                            {!job.is_admin_reviewed && (
                               <button
                                 type="button"
                                 onClick={() => handleApproveJobModeration(job._id)}
                                 className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold cursor-pointer transition-all inline-flex items-center gap-1.5 whitespace-nowrap shadow-xs"
-                                title="Xác nhận tin mới đạt chuẩn kiểm duyệt"
+                                title="Xác nhận tin đạt chuẩn kiểm duyệt và công khai"
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
                                 <span>Duyệt tin</span>
                               </button>
                             )}
-                            {job.is_hidden ? (
+                            {job.is_admin_reviewed && job.is_hidden ? (
                               <button
                                 type="button"
                                 onClick={() => handleUnhideJob(job._id)}
@@ -3387,7 +3545,7 @@ export default function AdminPortal({
                                 type="button"
                                 onClick={() => {
                                   setHideJobModal(job);
-                                  setHideReason('');
+                                  setHideReason(job.hidden_reason || 'Tin tuyển dụng có dấu hiệu vi phạm');
                                 }}
                                 className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-800 border border-slate-300 hover:border-amber-300 text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap shadow-xs"
                                 title="Ẩn tin vi phạm"
@@ -3412,6 +3570,46 @@ export default function AdminPortal({
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Phân trang & bộ lọc số dòng Tin tuyển dụng (Tất cả; 5; 10; 20; 50) */}
+              <div className="p-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-50/50">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-600 font-semibold">Hiển thị mỗi trang:</span>
+                  <select
+                    value={jobsPerPage}
+                    onChange={(e) => {
+                      setJobsPerPage(e.target.value);
+                      setJobPage(1);
+                    }}
+                    className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none cursor-pointer"
+                  >
+                    <option value="10">10 / trang</option>
+                    <option value="20">20 / trang</option>
+                    <option value="50">50 / trang</option>
+                    <option value="all">Tất cả ({filteredJobs.length})</option>
+                  </select>
+                  <span className="text-slate-500 hidden sm:inline">(Tổng: {filteredJobs.length})</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-600 font-semibold">Trang {currentJobPage} / {totalJobPages}</span>
+                  <button
+                    type="button"
+                    disabled={currentJobPage <= 1 || jobsPerPage === 'all'}
+                    onClick={() => setJobPage(p => Math.max(1, p - 1))}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Trước
+                  </button>
+                  <button
+                    type="button"
+                    disabled={currentJobPage >= totalJobPages || jobsPerPage === 'all'}
+                    onClick={() => setJobPage(p => Math.min(totalJobPages, p + 1))}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Sau
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -3497,13 +3695,13 @@ export default function AdminPortal({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
-                    {filteredReviews.length === 0 ? (
+                    {paginatedReviews.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="px-6 py-12 text-center text-slate-500 text-sm">
                           Chưa có bài đánh giá nào trong danh mục này.
                         </td>
                       </tr>
-                    ) : filteredReviews.map((rev) => (
+                    ) : paginatedReviews.map((rev) => (
                       <tr 
                         key={rev._id}
                         onClick={() => setSelectedReviewDetail(rev)}
@@ -3572,6 +3770,46 @@ export default function AdminPortal({
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Phân trang & Bộ lọc số lượng Đánh giá chéo (Tất cả; 5; 10; 20; 50) */}
+              <div className="p-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-50/50">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-600 font-semibold">Hiển thị mỗi trang:</span>
+                  <select
+                    value={reviewsPerPage}
+                    onChange={(e) => {
+                      setReviewsPerPage(e.target.value);
+                      setReviewPage(1);
+                    }}
+                    className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none cursor-pointer"
+                  >
+                    <option value="10">10 / trang</option>
+                    <option value="20">20 / trang</option>
+                    <option value="50">50 / trang</option>
+                    <option value="all">Tất cả ({filteredReviews.length})</option>
+                  </select>
+                  <span className="text-slate-500 hidden sm:inline">(Tổng: {filteredReviews.length} đánh giá)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-600 font-semibold">Trang {currentReviewPage} / {totalReviewPages}</span>
+                  <button
+                    type="button"
+                    disabled={currentReviewPage <= 1 || reviewsPerPage === 'all'}
+                    onClick={() => setReviewPage(p => Math.max(1, p - 1))}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Trước
+                  </button>
+                  <button
+                    type="button"
+                    disabled={currentReviewPage >= totalReviewPages || reviewsPerPage === 'all'}
+                    onClick={() => setReviewPage(p => Math.min(totalReviewPages, p + 1))}
+                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Sau
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -3865,12 +4103,12 @@ export default function AdminPortal({
 
             {/* Danh sách Báo cáo */}
             <div className="space-y-3">
-              {filteredTickets.length === 0 ? (
+              {paginatedTickets.length === 0 ? (
                 <div className="p-12 text-center rounded-3xl bg-white border border-slate-200 text-sm text-slate-600 shadow-xs">
                   Hiện không có báo cáo vi phạm nào trong danh mục này.
                 </div>
               ) : (
-                filteredTickets.map((ticket) => (
+                paginatedTickets.map((ticket) => (
                   <div
                     key={ticket._id}
                     onClick={() => {
@@ -3953,6 +4191,46 @@ export default function AdminPortal({
               )}
             </div>
 
+            {/* Phân trang & Bộ lọc số lượng Khiếu nại / Báo cáo (Tất cả; 5; 10; 20; 50) */}
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs shadow-xs mt-3">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-600 font-semibold">Hiển thị mỗi trang:</span>
+                <select
+                  value={ticketsPerPage}
+                  onChange={(e) => {
+                    setTicketsPerPage(e.target.value);
+                    setTicketPage(1);
+                  }}
+                  className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none cursor-pointer"
+                >
+                  <option value="10">10 / trang</option>
+                  <option value="20">20 / trang</option>
+                  <option value="50">50 / trang</option>
+                  <option value="all">Tất cả ({filteredTickets.length})</option>
+                </select>
+                <span className="text-slate-500 hidden sm:inline">(Tổng: {filteredTickets.length} phiếu)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-600 font-semibold">Trang {currentTicketPage} / {totalTicketPages}</span>
+                <button
+                  type="button"
+                  disabled={currentTicketPage <= 1 || ticketsPerPage === 'all'}
+                  onClick={() => setTicketPage(p => Math.max(1, p - 1))}
+                  className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Trước
+                </button>
+                <button
+                  type="button"
+                  disabled={currentTicketPage >= totalTicketPages || ticketsPerPage === 'all'}
+                  onClick={() => setTicketPage(p => Math.min(totalTicketPages, p + 1))}
+                  className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Sau
+                </button>
+              </div>
+            </div>
+
           </div>
         )}
 
@@ -4019,7 +4297,7 @@ export default function AdminPortal({
                     type="button"
                     onClick={() => {
                       setJobQuickFilter('sensitive');
-                      setJobSearch('');
+                      setSelectedSensitiveKeyword('');
                       setActiveMenu('jobs');
                     }}
                     className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
@@ -4114,7 +4392,7 @@ export default function AdminPortal({
                                     type="button"
                                     onClick={() => {
                                       setJobQuickFilter('sensitive');
-                                      setJobSearch(item.keyword || '');
+                                      setSelectedSensitiveKeyword(item.keyword || '');
                                       setActiveMenu('jobs');
                                     }}
                                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 cursor-pointer transition-colors"
@@ -4784,7 +5062,20 @@ export default function AdminPortal({
             <div className="flex items-center justify-between pt-2">
               <span className="text-xs text-slate-600 font-mono">Mã tin: {selectedJobDetail._id}</span>
               <div className="flex items-center gap-2">
-                {selectedJobDetail.is_hidden ? (
+                {!selectedJobDetail.is_admin_reviewed && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await handleApproveJobModeration(selectedJobDetail._id);
+                      setSelectedJobDetail(prev => ({ ...prev, is_admin_reviewed: true, is_hidden: false, hidden_reason: '' }));
+                    }}
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Duyệt Tin & Công Khai</span>
+                  </button>
+                )}
+                {selectedJobDetail.is_admin_reviewed && selectedJobDetail.is_hidden ? (
                   <button
                     type="button"
                     onClick={async () => {
@@ -4801,7 +5092,7 @@ export default function AdminPortal({
                     type="button"
                     onClick={() => {
                       setHideJobModal(selectedJobDetail);
-                      setHideReason('');
+                      setHideReason(selectedJobDetail.hidden_reason || 'Tin tuyển dụng có dấu hiệu vi phạm');
                     }}
                     className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap"
                   >

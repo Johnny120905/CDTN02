@@ -256,7 +256,11 @@ export default function EmployerPortal({
   const [jobBranchFilter, setJobBranchFilter] = useState(''); // FR-NTD-04.10: Chi nhánh / Tỉnh thành
   const [jobRoleFilter, setJobRoleFilter] = useState(''); // FR-NTD-04.10: Chức danh chuyên môn
   const [jobPage, setJobPage] = useState(1);
-  const JOBS_PER_PAGE = 10;
+  const [jobsPerPage, setJobsPerPage] = useState('10');
+  const [applicantPage, setApplicantPage] = useState(1);
+  const [applicantsPerPage, setApplicantsPerPage] = useState('10');
+  const [interviewPage, setInterviewPage] = useState(1);
+  const [interviewsPerPage, setInterviewsPerPage] = useState('10');
 
   // Kanban Filter (FR-NTD-05.09, 05.10, 05.11)
   const [kanbanSearch, setKanbanSearch] = useState('');
@@ -2202,8 +2206,12 @@ export default function EmployerPortal({
     return matchesSearch && matchesToggle && matchesStatus && matchesBranch && matchesRole;
   });
 
-  const totalJobPages = Math.ceil(filteredJobs.length / JOBS_PER_PAGE) || 1;
-  const paginatedJobs = filteredJobs.slice((jobPage - 1) * JOBS_PER_PAGE, jobPage * JOBS_PER_PAGE);
+  const jobLimit = jobsPerPage === 'all' ? (filteredJobs.length || 1) : parseInt(jobsPerPage, 10);
+  const totalJobPages = Math.ceil(filteredJobs.length / jobLimit) || 1;
+  const currentJobPage = Math.min(Math.max(1, jobPage), totalJobPages);
+  const paginatedJobs = jobsPerPage === 'all'
+    ? filteredJobs
+    : filteredJobs.slice((currentJobPage - 1) * jobLimit, currentJobPage * jobLimit);
 
   // Danh sách ứng viên (Bao gồm đầy đủ các hồ sơ, kể cả khi sinh viên chủ động rút đơn để Doanh nghiệp nắm bắt)
   const validApplicants = isGuestMode ? [] : applicants;
@@ -2272,6 +2280,13 @@ export default function EmployerPortal({
 
     return matchesSearch && matchesJob && matchesShift && matchesUni && matchesSchedule && matchesDate && matchesAppStatus;
   });
+
+  const applicantLimit = applicantsPerPage === 'all' ? (filteredKanbanApplicants.length || 1) : parseInt(applicantsPerPage, 10);
+  const totalApplicantPages = Math.ceil(filteredKanbanApplicants.length / applicantLimit) || 1;
+  const currentApplicantPage = Math.min(Math.max(1, applicantPage), totalApplicantPages);
+  const paginatedApplicants = applicantsPerPage === 'all'
+    ? filteredKanbanApplicants
+    : filteredKanbanApplicants.slice((currentApplicantPage - 1) * applicantLimit, currentApplicantPage * applicantLimit);
 
   // Kanban Columns (4 Cột chuẩn: Chờ duyệt / Đã tiếp nhận, Đã duyệt, Chưa phù hợp, Sinh viên chủ động rút đơn)
   const pendingApps = filteredKanbanApplicants.filter(a => ['pending', 'reviewed', 'received'].includes(a.application_status) || !a.application_status);
@@ -3710,10 +3725,16 @@ export default function EmployerPortal({
                                     {job.is_admin_reviewed && !job.is_hidden && (
                                       <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                         <CheckCircle2 className="w-3 h-3" />
-                                        Quản trị viên đã duyệt tin
+                                        Đã công khai
                                       </span>
                                     )}
-                                    {job.is_hidden && (
+                                    {!job.is_admin_reviewed && (
+                                      <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                        <AlertTriangle className="w-3 h-3" />
+                                        Chờ kiểm duyệt (Tạm ẩn với Sinh viên)
+                                      </span>
+                                    )}
+                                    {job.is_hidden && job.is_admin_reviewed && (
                                       <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                                         <AlertTriangle className="w-3 h-3" />
                                         Tin đang bị Quản trị viên ẩn
@@ -3854,30 +3875,45 @@ export default function EmployerPortal({
                       </table>
                     </div>
 
-                    {/* Phân trang 10 dòng */}
-                    {totalJobPages > 1 && (
-                      <div className="p-4 border-t border-slate-200 flex items-center justify-between">
-                        <span className="text-xs text-slate-500">Trang {jobPage} / {totalJobPages}</span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            disabled={jobPage === 1}
-                            onClick={() => setJobPage(p => Math.max(1, p - 1))}
-                            className="px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs disabled:opacity-40"
-                          >
-                            Trước
-                          </button>
-                          <button
-                            type="button"
-                            disabled={jobPage === totalJobPages}
-                            onClick={() => setJobPage(p => Math.min(totalJobPages, p + 1))}
-                            className="px-3 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs disabled:opacity-40"
-                          >
-                            Sau
-                          </button>
-                        </div>
+                    {/* Phân trang & bộ lọc số dòng (Tất cả; 5; 10; 20; 50) */}
+                    <div className="p-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-50/50">
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-600 font-semibold">Hiển thị mỗi trang:</span>
+                        <select
+                          value={jobsPerPage}
+                          onChange={(e) => {
+                            setJobsPerPage(e.target.value);
+                            setJobPage(1);
+                          }}
+                          className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none cursor-pointer"
+                        >
+                          <option value="10">10 / trang</option>
+                          <option value="20">20 / trang</option>
+                          <option value="50">50 / trang</option>
+                          <option value="all">Tất cả ({filteredJobs.length})</option>
+                        </select>
+                        <span className="text-slate-500 hidden sm:inline">(Tổng: {filteredJobs.length})</span>
                       </div>
-                    )}
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-600 font-semibold">Trang {currentJobPage} / {totalJobPages}</span>
+                        <button
+                          type="button"
+                          disabled={currentJobPage <= 1 || jobsPerPage === 'all'}
+                          onClick={() => setJobPage(p => Math.max(1, p - 1))}
+                          className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          Trước
+                        </button>
+                        <button
+                          type="button"
+                          disabled={currentJobPage >= totalJobPages || jobsPerPage === 'all'}
+                          onClick={() => setJobPage(p => Math.min(totalJobPages, p + 1))}
+                          className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          Sau
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
               </div>
@@ -4056,7 +4092,7 @@ export default function EmployerPortal({
                               </td>
                             </tr>
                           ) : (
-                            filteredKanbanApplicants.map((app) => (
+                            paginatedApplicants.map((app) => (
                               <tr key={app._id} className="hover:bg-slate-50 transition-colors">
                                 <td className="p-4">
                                   <p className="font-bold text-slate-900 text-xs">{app.application_snapshot?.student_name || 'Ứng viên'}</p>
@@ -4166,6 +4202,46 @@ export default function EmployerPortal({
                           )}
                         </tbody>
                       </table>
+                    </div>
+
+                    {/* Phân trang & bộ lọc số dòng cho ứng viên dạng bảng (Tất cả; 5; 10; 20; 50) */}
+                    <div className="p-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-50/50">
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-600 font-semibold">Hiển thị mỗi trang:</span>
+                        <select
+                          value={applicantsPerPage}
+                          onChange={(e) => {
+                            setApplicantsPerPage(e.target.value);
+                            setApplicantPage(1);
+                          }}
+                          className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none cursor-pointer"
+                        >
+                          <option value="10">10 / trang</option>
+                          <option value="20">20 / trang</option>
+                          <option value="50">50 / trang</option>
+                          <option value="all">Tất cả ({filteredKanbanApplicants.length})</option>
+                        </select>
+                        <span className="text-slate-500 hidden sm:inline">(Tổng: {filteredKanbanApplicants.length})</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-slate-600 font-semibold">Trang {currentApplicantPage} / {totalApplicantPages}</span>
+                        <button
+                          type="button"
+                          disabled={currentApplicantPage <= 1 || applicantsPerPage === 'all'}
+                          onClick={() => setApplicantPage(p => Math.max(1, p - 1))}
+                          className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          Trước
+                        </button>
+                        <button
+                          type="button"
+                          disabled={currentApplicantPage >= totalApplicantPages || applicantsPerPage === 'all'}
+                          onClick={() => setApplicantPage(p => Math.min(totalApplicantPages, p + 1))}
+                          className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          Sau
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -4722,9 +4798,17 @@ export default function EmployerPortal({
                     );
                   }
 
+                  const interviewLimit = interviewsPerPage === 'all' ? (filteredInterviewApps.length || 1) : parseInt(interviewsPerPage, 10);
+                  const totalInterviewPages = Math.ceil(filteredInterviewApps.length / interviewLimit) || 1;
+                  const currentInterviewPage = Math.min(Math.max(1, interviewPage), totalInterviewPages);
+                  const paginatedInterviewApps = interviewsPerPage === 'all'
+                    ? filteredInterviewApps
+                    : filteredInterviewApps.slice((currentInterviewPage - 1) * interviewLimit, currentInterviewPage * interviewLimit);
+
                   return (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredInterviewApps.map((app) => {
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {paginatedInterviewApps.map((app) => {
                       const studentName = app.application_snapshot?.student_name || 'Ứng viên';
                       const callContactObj = {
                         id: app._id,
@@ -4862,7 +4946,48 @@ export default function EmployerPortal({
                         </div>
                       );
                     })}
-                </div>
+                      </div>
+
+                      {/* Phân trang & bộ lọc số dòng cho phỏng vấn (Tất cả; 5; 10; 20; 50) */}
+                      <div className="p-4 rounded-3xl bg-white border border-slate-200/80 shadow-md flex flex-wrap items-center justify-between gap-3 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-600 font-semibold">Hiển thị mỗi trang:</span>
+                          <select
+                            value={interviewsPerPage}
+                            onChange={(e) => {
+                              setInterviewsPerPage(e.target.value);
+                              setInterviewPage(1);
+                            }}
+                            className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none cursor-pointer"
+                          >
+                            <option value="10">10 / trang</option>
+                            <option value="20">20 / trang</option>
+                            <option value="50">50 / trang</option>
+                            <option value="all">Tất cả ({filteredInterviewApps.length})</option>
+                          </select>
+                          <span className="text-slate-500 hidden sm:inline">(Tổng: {filteredInterviewApps.length})</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-600 font-semibold">Trang {currentInterviewPage} / {totalInterviewPages}</span>
+                          <button
+                            type="button"
+                            disabled={currentInterviewPage <= 1 || interviewsPerPage === 'all'}
+                            onClick={() => setInterviewPage(p => Math.max(1, p - 1))}
+                            className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                          >
+                            Trước
+                          </button>
+                          <button
+                            type="button"
+                            disabled={currentInterviewPage >= totalInterviewPages || interviewsPerPage === 'all'}
+                            onClick={() => setInterviewPage(p => Math.min(totalInterviewPages, p + 1))}
+                            className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                          >
+                            Sau
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   );
                 })()}
           </div>

@@ -106,6 +106,13 @@ def update_profile():
         if extra_key in data:
             update_fields[extra_key] = data[extra_key]
 
+    # Trạng thái tài khoản (active / paused) - đồng bộ cả hồ sơ lẫn bảng users khi đăng xuất / đăng nhập
+    new_status = str(data.get("status", "")).strip().lower() if "status" in data else ""
+    if new_status in ("active", "paused"):
+        update_fields["status"] = new_status
+        if not user.get("is_banned") and user.get("status") not in ("deactivated", "banned"):
+            db_manager.get_collection("users").update_one({"_id": user["_id"]}, {"$set": {"status": new_status}})
+
     # Lưu ảnh đại diện & ảnh bìa sinh viên vào bộ lưu trữ tệp (hỗ trợ png/jpg/jpeg hoặc chuỗi rỗng khôi phục mặc định)
     for img_field, img_label, img_type in [
         ("avatar_url", "Ảnh đại diện", "student_avatar"),

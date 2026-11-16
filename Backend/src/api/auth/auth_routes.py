@@ -194,6 +194,11 @@ def login():
             "message": f"Tài khoản '{email}' là vai trò '{role_names.get(user_role, user_role)}'. Vui lòng chọn đúng tab để đăng nhập."
         }), 400
 
+    # Đăng nhập lại -> khôi phục trạng thái "Đang hoạt động" nếu trước đó đã đăng xuất (paused)
+    if user.get("status") == "paused":
+        users_col.update_one({"_id": user["_id"]}, {"$set": {"status": "active"}})
+        user["status"] = "active"
+
     token = generate_jwt_token(user["_id"], user["email"], user_role)
     
     # Lấy thêm thông tin chi tiết
@@ -219,6 +224,8 @@ def login():
             "_id": user["_id"],
             "email": user["email"],
             "role": user_role,
+            "status": user.get("status", "active"),
+            "is_banned": bool(user.get("is_banned", False)),
             "profile": profile_data,
             "employer_id": emp_record["_id"] if emp_record else None,
             "student_id": stu_record["_id"] if stu_record else None
@@ -250,6 +257,8 @@ def get_current_user():
             "_id": user["_id"],
             "email": user["email"],
             "role": user_role,
+            "status": user.get("status", "active"),
+            "is_banned": bool(user.get("is_banned", False)),
             "profile": profile_data,
             "employer_id": emp_record["_id"] if emp_record else None,
             "student_id": stu_record["_id"] if stu_record else None

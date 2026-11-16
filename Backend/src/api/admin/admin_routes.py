@@ -468,12 +468,16 @@ def list_all_jobs():
             j["status"] = j["job_status"]
         elif not j.get("job_status") and j.get("status"):
             j["job_status"] = j["status"]
-        if "is_admin_reviewed" not in j:
-            j["is_admin_reviewed"] = False
-
         matched_kws = scan_job_banned_keywords(j, banned_docs)
         j["matched_banned_keywords"] = matched_kws
         j["has_sensitive_keywords"] = len(matched_kws) > 0
+        if "is_admin_reviewed" not in j or j.get("is_admin_reviewed") is None:
+            if j["has_sensitive_keywords"]:
+                j["is_admin_reviewed"] = False
+                j["is_hidden"] = True
+            else:
+                j["is_admin_reviewed"] = True
+                j["is_hidden"] = False
     return jsonify({"success": True, "data": jobs})
 
 @admin_bp.route("/jobs/<job_id>/approve-moderation", methods=["PUT"])

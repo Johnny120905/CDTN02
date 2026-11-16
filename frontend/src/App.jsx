@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, RefreshCw, AlertTriangle, X } from 'lucide-react';
+import { CheckCircle2, RefreshCw, AlertTriangle, X, Bell } from 'lucide-react';
 import Header from './shared/Header';
 import Footer from './shared/Footer';
 import AccountModal from './shared/AccountModal';
@@ -414,11 +414,16 @@ export default function App() {
             ? 'bg-emerald-50 border-emerald-300 text-emerald-900 shadow-emerald-900/10'
             : bannerInfo.type === 'loading'
             ? 'bg-amber-50 border-amber-300 text-amber-900 shadow-amber-900/10'
+            : bannerInfo.type === 'info'
+            ? 'bg-blue-50 border-blue-300 text-blue-900 shadow-blue-900/10'
+            : bannerInfo.type === 'warning'
+            ? 'bg-amber-50 border-amber-300 text-amber-900 shadow-amber-900/10'
             : 'bg-red-50 border-red-300 text-red-900 shadow-red-900/10'
         }`}>
           <div className="flex items-center gap-2.5 flex-1 min-w-0">
             {bannerInfo.type === 'success' && <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />}
             {bannerInfo.type === 'loading' && <RefreshCw className="w-5 h-5 text-amber-600 shrink-0 animate-spin" />}
+            {bannerInfo.type === 'info' && <Bell className="w-5 h-5 text-blue-600 shrink-0" />}
             {bannerInfo.type === 'error' && <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />}
             <span className="text-xs sm:text-sm font-bold truncate leading-snug">{bannerInfo.message}</span>
           </div>

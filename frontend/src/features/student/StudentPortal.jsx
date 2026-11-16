@@ -186,7 +186,9 @@ export default function StudentPortal({
   const [paymentTypeFilter, setPaymentTypeFilter] = useState(''); // FR-SV-05.10: sau ca, theo tuần, theo tháng
   const [savedJobStatusFilter, setSavedJobStatusFilter] = useState('all'); // FR-SV-05.11: open, expiring_soon, closed
   const [jobPage, setJobPage] = useState(1);
-  const JOBS_PER_PAGE = 10;
+  const [jobsPerPage, setJobsPerPage] = useState('10'); // '10' | '20' | '50' | 'all'
+  const [appPage, setAppPage] = useState(1);
+  const [appsPerPage, setAppsPerPage] = useState('10'); // '10' | '20' | '50' | 'all'
   const [heroKeyword, setHeroKeyword] = useState('');
   const [heroProvince, setHeroProvince] = useState('');
 
@@ -2014,11 +2016,15 @@ export default function StudentPortal({
   // Tự động quay về Trang 1 mỗi khi người dùng thay đổi bất kỳ bộ lọc / tìm kiếm nào (tránh mất dữ liệu khi đang ở trang >= 2)
   useEffect(() => {
     setJobPage(1);
-  }, [searchQuery, selectedCategory, selectedProvince, selectedDistricts, customLocationText, selectedShift, salaryFilter, paymentTypeFilter]);
+  }, [searchQuery, selectedCategory, selectedProvince, selectedDistricts, customLocationText, selectedShift, salaryFilter, paymentTypeFilter, jobsPerPage]);
+
+  useEffect(() => {
+    setAppPage(1);
+  }, [appSearchQuery, appStatusTab, appDateFilter, appFromDate, appToDate, appsPerPage]);
 
   // Danh sách việc làm hiển thị trong Khám phá việc làm (giữ cả tin đã ứng tuyển / đã hoàn thành để SV nhận biết)
   const activeOpenJobs = jobs.filter(j => {
-    if (j.is_hidden || j.status === 'banned') return false;
+    if (j.is_hidden || j.status === 'banned' || j.is_admin_reviewed === false) return false;
     const jSt = normalizeJobStatus(j);
     if (jSt === 'open') return true;
     const isAppliedByMe = !isGuestMode && myApplications.some(
@@ -2092,8 +2098,12 @@ export default function StudentPortal({
     return new Date(b.created_at || 0) - new Date(a.created_at || 0);
   });
 
-  const totalPages = Math.ceil(sortedFilteredJobs.length / JOBS_PER_PAGE) || 1;
-  const paginatedJobs = sortedFilteredJobs.slice((jobPage - 1) * JOBS_PER_PAGE, jobPage * JOBS_PER_PAGE);
+  const jobLimit = jobsPerPage === 'all' ? sortedFilteredJobs.length : parseInt(jobsPerPage, 10);
+  const totalPages = Math.ceil(sortedFilteredJobs.length / (jobLimit || 1)) || 1;
+  const currentJobPage = Math.min(Math.max(1, jobPage), totalPages);
+  const paginatedJobs = jobsPerPage === 'all'
+    ? sortedFilteredJobs
+    : sortedFilteredJobs.slice((currentJobPage - 1) * jobLimit, currentJobPage * jobLimit);
 
   // Filtered Saved Jobs (FR-SV-05.11: Đang mở nhận hồ sơ, Sắp hết hạn <= 48h, Đã đóng / Đã đủ chỉ tiêu)
   const filteredSavedJobs = savedJobs.filter(job => {
@@ -2156,6 +2166,13 @@ export default function StudentPortal({
 
     return matchesSearch && matchesStatus && matchesDate;
   });
+
+  const appLimit = appsPerPage === 'all' ? filteredApplications.length : parseInt(appsPerPage, 10);
+  const totalAppPages = Math.ceil(filteredApplications.length / (appLimit || 1)) || 1;
+  const currentAppPage = Math.min(Math.max(1, appPage), totalAppPages);
+  const paginatedApplications = appsPerPage === 'all'
+    ? filteredApplications
+    : filteredApplications.slice((currentAppPage - 1) * appLimit, currentAppPage * appLimit);
 
   // Completed jobs ready for review (chỉ lấy đơn đã trúng tuyển VÀ đã hoàn thành công việc/ca làm, loại trừ các đơn đã gửi đánh giá)
   const reviewedStudentAppIds = new Set(myReviews.map(r => String(r.application_id || '')));
@@ -3167,30 +3184,45 @@ export default function StudentPortal({
               )}
             </div>
 
-            {/* Phân trang (10 dòng/trang) */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 pt-4">
+            {/* Phân trang & Bộ lọc số lượng hiển thị việc làm (Tất cả; 5; 10; 20; 50) */}
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs shadow-xs mt-4">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-600 font-semibold">Hiển thị mỗi trang:</span>
+                <select
+                  value={jobsPerPage}
+                  onChange={(e) => {
+                    setJobsPerPage(e.target.value);
+                    setJobPage(1);
+                  }}
+                  className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none cursor-pointer"
+                >
+                  <option value="10">10 / trang</option>
+                  <option value="20">20 / trang</option>
+                  <option value="50">50 / trang</option>
+                  <option value="all">Tất cả ({sortedFilteredJobs.length})</option>
+                </select>
+                <span className="text-slate-500 hidden sm:inline">(Tổng: {sortedFilteredJobs.length} việc làm)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-600 font-semibold">Trang {currentJobPage} / {totalPages}</span>
                 <button
                   type="button"
-                  disabled={jobPage === 1}
+                  disabled={currentJobPage <= 1 || jobsPerPage === 'all'}
                   onClick={() => setJobPage(p => Math.max(1, p - 1))}
-                  className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 cursor-pointer shadow-sm"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
                   Trang trước
                 </button>
-                <span className="text-xs text-slate-500 font-mono px-3">
-                  Trang {jobPage} / {totalPages}
-                </span>
                 <button
                   type="button"
-                  disabled={jobPage === totalPages}
+                  disabled={currentJobPage >= totalPages || jobsPerPage === 'all'}
                   onClick={() => setJobPage(p => Math.min(totalPages, p + 1))}
-                  className="px-4 py-2 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 cursor-pointer shadow-sm"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
                   Trang sau
                 </button>
               </div>
-            )}
+            </div>
           </div>
         )}
 
@@ -3533,12 +3565,12 @@ export default function StudentPortal({
 
                   
                 </div>
-              ) : filteredApplications.length === 0 ? (
+              ) : paginatedApplications.length === 0 ? (
                 <div className="p-12 text-center rounded-3xl bg-white border border-slate-200 shadow-sm text-xs text-slate-500">
                   Không có đơn ứng tuyển nào trong mục này.
                 </div>
               ) : (
-                filteredApplications.map((app) => {
+                paginatedApplications.map((app) => {
                   const statusColors = {
                     pending: 'bg-amber-50 text-amber-800 border-amber-200',
                     reviewed: 'bg-blue-50 text-blue-800 border-blue-200',
@@ -3872,6 +3904,46 @@ export default function StudentPortal({
                   );
                 })
               )}
+            </div>
+
+            {/* Phân trang & Bộ lọc số lượng hiển thị Đơn Ứng Tuyển (Tất cả; 5; 10; 20; 50) */}
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs shadow-xs mt-4">
+              <div className="flex items-center gap-2">
+                <span className="text-slate-600 font-semibold">Hiển thị mỗi trang:</span>
+                <select
+                  value={appsPerPage}
+                  onChange={(e) => {
+                    setAppsPerPage(e.target.value);
+                    setAppPage(1);
+                  }}
+                  className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none cursor-pointer"
+                >
+                  <option value="10">10 / trang</option>
+                  <option value="20">20 / trang</option>
+                  <option value="50">50 / trang</option>
+                  <option value="all">Tất cả ({filteredApplications.length})</option>
+                </select>
+                <span className="text-slate-500 hidden sm:inline">(Tổng: {filteredApplications.length} đơn)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-slate-600 font-semibold">Trang {currentAppPage} / {totalAppPages}</span>
+                <button
+                  type="button"
+                  disabled={currentAppPage <= 1 || appsPerPage === 'all'}
+                  onClick={() => setAppPage(p => Math.max(1, p - 1))}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Trang trước
+                </button>
+                <button
+                  type="button"
+                  disabled={currentAppPage >= totalAppPages || appsPerPage === 'all'}
+                  onClick={() => setAppPage(p => Math.min(totalAppPages, p + 1))}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Trang sau
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -6,6 +6,9 @@ from ..core.database import db_manager
 
 logger = logging.getLogger("socketio")
 
+# Theo dõi các bên trong từng cuộc gọi: room_id -> {caller_sid, answerer_sid, target_user_id}
+CALL_PARTIES = {}
+
 # Khởi tạo SocketIO với async_mode="threading" để tương thích tối đa với Werkzeug / Flask trên Windows
 socketio = SocketIO(cors_allowed_origins="*", async_mode="threading", logger=False, engineio_logger=False)
 
@@ -232,67 +235,87 @@ def register_socket_events():
                 "user_id": data.get("user_id") if isinstance(data, dict) else None
             }, room=canonical_room, include_self=False)
 
+    # --- Tín hiệu WebRTC: CHỈ gửi đích danh trong phòng cuộc gọi / người nhận, tuyệt đối không broadcast cho mọi client ---
+    def _emit_call_signal(event, data, canonical_room, raw_room, extra_targets=()):
+        sent = set()
+        for target in [canonical_room, raw_room, *extra_targets]:
+            if target and target not in sent:
+                sent.add(target)
+                emit(event, data, room=target, include_self=False)
+
     # 1. Tín hiệu Bắt đầu gọi (WebRTC Offer)
     @socketio.on("call-user")
     def handle_call_user(data):
         raw_room = data.get("room_id")
-        if raw_room:
-            canonical_room = canonicalize_room_id(raw_room)
-            data["room_id"] = canonical_room
-            emit("incoming-call", data, room=canonical_room, include_self=False)
-            if raw_room != canonical_room:
-                emit("incoming-call", data, room=raw_room, include_self=False)
-            target_user_id = data.get("target_user_id")
-            if target_user_id:
-                emit("incoming-call", data, room=f"user_{target_user_id}", include_self=False)
-        # Phát broadcast để đảm bảo người nhận nhận được tín hiệu bắt máy ngay tức khắc dù ở bất kỳ tab nào
-        emit("incoming-call", data, broadcast=True, include_self=False)
+        if not raw_room:
+            return
+        canonical_room = canonicalize_room_id(raw_room)
+        data["room_id"] = canonical_room
+        target_user_id = data.get("target_user_id")
+        CALL_PARTIES[canonical_room] = {"caller_sid": request.sid, "target_user_id": target_user_id}
+        join_room(canonical_room)
+        extra = [f"user_{target_user_id}"] if target_user_id else []
+        _emit_call_signal("incoming-call", data, canonical_room, raw_room if raw_room != canonical_room else None, extra)
 
     # 2. Tín hiệu Chấp nhận cuộc gọi (WebRTC Answer)
     @socketio.on("make-answer")
     def handle_make_answer(data):
         raw_room = data.get("room_id")
-        if raw_room:
-            canonical_room = canonicalize_room_id(raw_room)
-            data["room_id"] = canonical_room
-            emit("answer-made", data, room=canonical_room, include_self=False)
-            if raw_room != canonical_room:
-                emit("answer-made", data, room=raw_room, include_self=False)
-        emit("answer-made", data, broadcast=True, include_self=False)
+        if not raw_room:
+            return
+        canonical_room = canonicalize_room_id(raw_room)
+        data["room_id"] = canonical_room
+        join_room(canonical_room)
+        party = CALL_PARTIES.get(canonical_room) or {}
+        party["answerer_sid"] = request.sid
+        CALL_PARTIES[canonical_room] = party
+        caller_sid = party.get("caller_sid")
+        if caller_sid and caller_sid != request.sid:
+            emit("answer-made", data, room=caller_sid)
+        else:
+            _emit_call_signal("answer-made", data, canonical_room, raw_room if raw_room != canonical_room else None)
 
     # 3. Tín hiệu ICE Candidate (Địa chỉ mạng P2P)
     @socketio.on("send-candidate")
     def handle_send_candidate(data):
         raw_room = data.get("room_id")
-        if raw_room:
-            canonical_room = canonicalize_room_id(raw_room)
-            data["room_id"] = canonical_room
-            emit("receive-candidate", data, room=canonical_room, include_self=False)
-            if raw_room != canonical_room:
-                emit("receive-candidate", data, room=raw_room, include_self=False)
-        emit("receive-candidate", data, broadcast=True, include_self=False)
+        if not raw_room:
+            return
+        canonical_room = canonicalize_room_id(raw_room)
+        data["room_id"] = canonical_room
+        party = CALL_PARTIES.get(canonical_room) or {}
+        extra = []
+        if party.get("caller_sid") == request.sid:
+            if party.get("answerer_sid"):
+                extra.append(party["answerer_sid"])
+            if party.get("target_user_id"):
+                extra.append(f"user_{party['target_user_id']}")
+        elif party.get("caller_sid"):
+            extra.append(party["caller_sid"])
+        _emit_call_signal("receive-candidate", data, canonical_room, raw_room if raw_room != canonical_room else None, extra)
 
     # 4. Tín hiệu Từ chối cuộc gọi
     @socketio.on("reject-call")
     def handle_reject_call(data):
         raw_room = data.get("room_id")
-        if raw_room:
-            canonical_room = canonicalize_room_id(raw_room)
-            data["room_id"] = canonical_room
-            emit("call-rejected", data, room=canonical_room, include_self=False)
-            if raw_room != canonical_room:
-                emit("call-rejected", data, room=raw_room, include_self=False)
-        emit("call-rejected", data, broadcast=True, include_self=False)
+        if not raw_room:
+            return
+        canonical_room = canonicalize_room_id(raw_room)
+        data["room_id"] = canonical_room
+        party = CALL_PARTIES.pop(canonical_room, None) or {}
+        extra = [party["caller_sid"]] if party.get("caller_sid") else []
+        _emit_call_signal("call-rejected", data, canonical_room, raw_room if raw_room != canonical_room else None, extra)
 
     # 5. Tín hiệu Kết thúc cuộc gọi / Gác máy
     @socketio.on("end-call")
     def handle_end_call(data):
         raw_room = data.get("room_id")
-        if raw_room:
-            canonical_room = canonicalize_room_id(raw_room)
-            data["room_id"] = canonical_room
-            emit("call-ended", data, room=canonical_room, include_self=False)
-            if raw_room != canonical_room:
-                emit("call-ended", data, room=raw_room, include_self=False)
-        emit("call-ended", data, broadcast=True, include_self=False)
-
+        if not raw_room:
+            return
+        canonical_room = canonicalize_room_id(raw_room)
+        data["room_id"] = canonical_room
+        party = CALL_PARTIES.pop(canonical_room, None) or {}
+        extra = [s for s in (party.get("caller_sid"), party.get("answerer_sid")) if s]
+        if party.get("target_user_id"):
+            extra.append(f"user_{party['target_user_id']}")
+        _emit_call_signal("call-ended", data, canonical_room, raw_room if raw_room != canonical_room else None, extra)

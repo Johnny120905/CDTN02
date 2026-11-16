@@ -191,7 +191,11 @@ def update_company_profile():
         "cover_image_url": cover if "cover_image_url" in data else existing_comp.get("cover_image_url", "")
     }
     if "status" in data:
-        update_fields["status"] = data["status"]
+        new_status = str(data["status"]).strip().lower()
+        if new_status in ("active", "paused"):
+            update_fields["status"] = new_status
+            if not user.get("is_banned") and user.get("status") not in ("deactivated", "banned"):
+                db_manager.get_collection("users").update_one({"_id": user["_id"]}, {"$set": {"status": new_status}})
     comp_col.update_one({"employer_id": emp["_id"]}, {"$set": update_fields}, upsert=True)
     # Đồng bộ ảnh Logo & tên doanh nghiệp sang các tin tuyển dụng để Sinh viên luôn thấy ảnh mới nhất
     db_manager.get_collection("jobs").update_many(
@@ -260,6 +264,13 @@ def list_my_jobs():
         matched_kws = scan_job_banned_keywords(j, banned_docs)
         j["matched_banned_keywords"] = matched_kws
         j["has_sensitive_keywords"] = len(matched_kws) > 0
+        if j.get("is_admin_reviewed") is None or "is_admin_reviewed" not in j:
+            if j["has_sensitive_keywords"]:
+                j["is_admin_reviewed"] = False
+                j["is_hidden"] = True
+            else:
+                j["is_admin_reviewed"] = True
+                j["is_hidden"] = False
         
     return jsonify({"success": True, "data": jobs})
 
@@ -335,25 +346,42 @@ def create_job():
     matched_kws = scan_job_banned_keywords(new_job)
     new_job["matched_banned_keywords"] = matched_kws
     new_job["has_sensitive_keywords"] = len(matched_kws) > 0
+
+    if matched_kws:
+        # Tin dính từ khóa nhạy cảm (như đặt cọc, nạp tiền...) -> tự động giữ ở trạng thái Chờ kiểm duyệt (ẩn với Sinh viên)
+        new_job["is_hidden"] = True
+        new_job["is_admin_reviewed"] = False
+        new_job["hidden_reason"] = f"Tin chứa từ khóa nhạy cảm ({', '.join(matched_kws)}), tạm ẩn chờ Quản trị viên kiểm duyệt."
+    else:
+        # Tin sạch (không dính từ cấm) -> tự động Công khai ngay (NTD không phải chờ)
+        new_job["is_hidden"] = False
+        new_job["is_admin_reviewed"] = True
+        new_job["hidden_reason"] = ""
+
     db_manager.get_collection("jobs").insert_one(new_job)
     if matched_kws:
         notify_admins(
             title="Cảnh báo tin tuyển dụng mới chứa từ khóa cấm",
-            message=f"Doanh nghiệp {new_job['company_name']} vừa đăng tin '{title}' có từ ngữ nhạy cảm ({', '.join(matched_kws)}). Cần kiểm duyệt.",
+            message=f"Doanh nghiệp {new_job['company_name']} vừa đăng tin '{title}' có từ ngữ nhạy cảm ({', '.join(matched_kws)}). Đã tự động giữ chờ kiểm duyệt.",
             notif_type="sensitive_job_alert",
             related_id=new_job["_id"],
             target_id=new_job["_id"],
         )
     else:
         notify_admins(
-            title="Tin tuyển dụng mới cần giám sát",
-            message=f"Doanh nghiệp {new_job['company_name']} vừa đăng tin tuyển dụng '{title}' ({location}).",
+            title="Tin tuyển dụng mới tự động công khai",
+            message=f"Doanh nghiệp {new_job['company_name']} vừa đăng tin tuyển dụng hợp lệ '{title}' ({location}). Hệ thống đã tự động công khai ngay.",
             notif_type="new_job",
             related_id=new_job["_id"],
             target_id=new_job["_id"],
         )
     emit_socket_event("new-job", new_job)
-    return jsonify({"success": True, "message": "Đăng tin tuyển dụng thành công!", "data": new_job}), 201
+    success_msg = (
+        f"Đăng tin thành công! Tin có chứa từ khóa nhạy cảm ({', '.join(matched_kws)}) nên tạm thời ở trạng thái Chờ kiểm duyệt và ẩn với Sinh viên."
+        if matched_kws
+        else "Đăng tin tuyển dụng thành công! Tin sạch đã được tự động Công khai ngay."
+    )
+    return jsonify({"success": True, "message": success_msg, "data": new_job}), 201
 
 @employer_bp.route("/jobs/<job_id>", methods=["PUT"])
 @role_required("employer")
@@ -405,14 +433,21 @@ def update_job(job_id):
         for k in ("title", "description", "requirements", "benefits", "work_time", "branch_name")
     )
     if text_changed and has_sensitive:
+        extra_sets["is_hidden"] = True
         extra_sets["is_admin_reviewed"] = False
+        extra_sets["hidden_reason"] = f"Tin cập nhật chứa từ khóa nhạy cảm ({', '.join(matched_kws)}), tạm ẩn chờ Quản trị viên kiểm duyệt."
         notify_admins(
             title="Cảnh báo tin tuyển dụng vừa sửa chứa từ khóa cấm",
-            message=f"Tin '{updated_job.get('title', '')}' vừa cập nhật có chứa từ nhạy cảm ({', '.join(matched_kws)}). Vui lòng kiểm duyệt lại.",
+            message=f"Tin '{updated_job.get('title', '')}' vừa cập nhật có chứa từ nhạy cảm ({', '.join(matched_kws)}). Đã tự động giữ chờ kiểm duyệt.",
             notif_type="sensitive_job_alert",
             related_id=job_id,
             target_id=job_id,
         )
+    elif text_changed and not has_sensitive and not updated_job.get("is_admin_reviewed"):
+        # Nếu trước đó tin đang bị giữ chờ duyệt vì dính từ cấm, nay NTD đã sửa sạch từ cấm -> tự động Công khai ngay
+        extra_sets["is_hidden"] = False
+        extra_sets["is_admin_reviewed"] = True
+        extra_sets["hidden_reason"] = ""
     job_col.update_one({"_id": job_id}, {"$set": extra_sets})
     updated_job.update(extra_sets)
     emit_socket_event(
