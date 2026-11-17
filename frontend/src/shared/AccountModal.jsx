@@ -295,7 +295,7 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
                     <div>
                       <p className="text-xs text-slate-600">Họ và tên Quản trị viên:</p>
                       <p className="font-bold text-slate-900 bg-white px-2.5 py-1 rounded-lg border border-slate-200 mt-1">
-                        {currentUser.profile?.full_name || currentUser.full_name || 'Lê Thị Thúy Ngân'}
+                        {currentUser.profile?.full_name || currentUser.full_name || 'Lê Thị Thuỳ Ngân'}
                       </p>
                     </div>
                   </div>
