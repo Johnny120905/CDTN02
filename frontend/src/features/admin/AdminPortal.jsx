@@ -14,9 +14,10 @@ import {
   Phone, MapPin, Globe, Mail, Bell
 } from 'lucide-react';
 import { PROFESSION_SUGGESTIONS, filterSuggestions, getStatusBadge } from '../../shared/professionSuggestions';
-import { HISTORICAL_2024_2025_BUCKETS } from './historicalAnalyticsData';
 import { VIETNAM_PROVINCES, PROVINCE_DISTRICTS_MAP, getDistrictsByProvince } from '../../shared/vietnamLocations';
 import { getSocket } from '../../shared/webrtcSocketService';
+import PaginationBar from '../../shared/PaginationBar';
+import { emitSync, subscribeSync, SYNC_EVENTS } from '../../shared/syncEventHub';
 import {
   removeVietnameseTones,
   parseSalaryNumber,
@@ -78,7 +79,7 @@ export default function AdminPortal({
   }, [isSidebarCollapsed]);
 
   // Dashboard Time Filter & Geo/Industry Filter (FR-QTV-03.02 & FR-QTV-03.07)
-  const [filterYear, setFilterYear] = useState(''); // '' (Tất cả) | '2024' | '2025' | '2026'
+  const [filterYear, setFilterYear] = useState(''); // '' (Tất cả) | '2026'
   const [filterMonth, setFilterMonth] = useState(''); // '' (Cả năm) | '1' .. '12'
   const [filterFromDate, setFilterFromDate] = useState('');
   const [filterToDate, setFilterToDate] = useState('');
@@ -102,6 +103,14 @@ export default function AdminPortal({
   const [reviewsPerPage, setReviewsPerPage] = useState('10');
   const [ticketPage, setTicketPage] = useState(1);
   const [ticketsPerPage, setTicketsPerPage] = useState('10');
+  const [keywordPage, setKeywordPage] = useState(1);
+  const [keywordsPerPage, setKeywordsPerPage] = useState('10');
+  const [categoryPage, setCategoryPage] = useState(1);
+  const [categoriesPerPage, setCategoriesPerPage] = useState('10');
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditsPerPage, setAuditsPerPage] = useState('10');
+  const [announcementPage, setAnnouncementPage] = useState(1);
+  const [announcementsPerPage, setAnnouncementsPerPage] = useState('10');
   const [selectedUserDetail, setSelectedUserDetail] = useState(null);
   const [adminGpkdViewer, setAdminGpkdViewer] = useState(null);
   const [banModalUser, setBanModalUser] = useState(null);
@@ -378,6 +387,7 @@ export default function AdminPortal({
       const data = await res.json();
       notify(data.message || 'Đã kiểm duyệt đạt tin tuyển dụng.', data.success ? 'success' : 'error');
       if (data.success) {
+        emitSync(SYNC_EVENTS.JOBS, { role: 'admin', action: 'job_approve', jobId });
         fetchAllJobs();
         fetchAuditLogs();
         fetchDashboard();
@@ -404,6 +414,7 @@ export default function AdminPortal({
       notify(data.message || 'Đã gửi thông báo hệ thống.', data.success ? 'success' : 'error');
       if (data.success) {
         setAnnouncementForm({ title: '', message: '', target_role: 'all', severity: 'info' });
+        emitSync(SYNC_EVENTS.SYSTEM, { role: 'admin', action: 'announcement_create' });
         fetchAnnouncements();
         fetchAuditLogs();
       }
@@ -431,6 +442,7 @@ export default function AdminPortal({
           const data = await res.json();
           notify(data.message || 'Đã xóa và thu hồi thông báo hệ thống.', data.success ? 'success' : 'error');
           if (data.success) {
+            emitSync(SYNC_EVENTS.SYSTEM, { role: 'admin', action: 'announcement_delete' });
             fetchAnnouncements();
             fetchAuditLogs();
           }
@@ -540,6 +552,57 @@ export default function AdminPortal({
     }
   };
 
+  // =========================================================================
+  // UNIVERSAL SYNC EVENT HUB - LẮNG NGHE ĐỒNG BỘ TOÀN HỆ THỐNG CHO QUẢN TRỊ VIÊN
+  // Tự động làm mới 100% không cần F5 khi chia đôi màn hình hoặc chuyển tab
+  // =========================================================================
+  useEffect(() => {
+    if (!token) return;
+
+    // 1. JOBS_SYNC: Giám sát tin tuyển dụng & Thống kê Dashboard
+    const unsubJobs = subscribeSync(SYNC_EVENTS.JOBS, () => {
+      fetchAllJobs();
+      fetchDashboard();
+      fetchAuditLogs();
+    });
+
+    // 2. APPLICATIONS_SYNC & 3. SHIFTS_SYNC: Thống kê Dashboard & Giám sát tin tuyển dụng
+    const unsubAppsAndShifts = subscribeSync([SYNC_EVENTS.APPLICATIONS, SYNC_EVENTS.SHIFTS], () => {
+      fetchDashboard();
+      fetchAllJobs();
+    });
+
+    // 4. REVIEWS_SYNC: Quản trị đánh giá & Phản hồi + Thống kê Dashboard
+    const unsubReviews = subscribeSync(SYNC_EVENTS.REVIEWS, () => {
+      fetchReviews();
+      fetchDashboard();
+    });
+
+    // 5. PROFILES_SYNC: Thẩm định GPKD & Quản lý người dùng + Dashboard
+    const unsubProfiles = subscribeSync(SYNC_EVENTS.PROFILES, () => {
+      fetchUsers();
+      fetchDashboard();
+    });
+
+    // 6. SYSTEM_SYNC: Xử lý khiếu nại & Tố cáo, Bộ lọc từ cấm, Thông báo hệ thống, Danh mục
+    const unsubSystem = subscribeSync(SYNC_EVENTS.SYSTEM, () => {
+      fetchReports();
+      fetchBannedKeywords();
+      fetchAnnouncements();
+      fetchCategories();
+      fetchUsers();
+      fetchDashboard();
+    });
+
+    return () => {
+      unsubJobs();
+      unsubAppsAndShifts();
+      unsubReviews();
+      unsubProfiles();
+      unsubSystem();
+    };
+  }, [token]);
+
   // User Ban / Unban (FR 3.4.5)
   const handleBanUserSubmit = async (e) => {
     e.preventDefault();
@@ -555,6 +618,7 @@ export default function AdminPortal({
         notify(data.message, data.success ? 'success' : 'error');
         setBanModalUser(null);
         setBanReason('');
+        emitSync(SYNC_EVENTS.PROFILES, { role: 'admin', action: 'user_ban', userId: banModalUser._id });
         fetchUsers();
         fetchDashboard();
       } else {
@@ -574,6 +638,7 @@ export default function AdminPortal({
       const data = await res.json();
       if (data.success) {
         notify(data.message, data.success ? 'success' : 'error');
+        emitSync(SYNC_EVENTS.PROFILES, { role: 'admin', action: 'user_unban', userId });
         fetchUsers();
         fetchDashboard();
       } else {
@@ -604,6 +669,7 @@ export default function AdminPortal({
           const data = await res.json();
           if (data.success) {
             notify(data.message || 'Đã xóa vĩnh viễn tài khoản người dùng thành công!', 'success');
+            emitSync(SYNC_EVENTS.PROFILES, { role: 'admin', action: 'user_delete', userId: user._id });
             if (selectedUserDetail && selectedUserDetail._id === user._id) {
               setSelectedUserDetail(null);
             }
@@ -645,6 +711,9 @@ export default function AdminPortal({
       });
       const data = await res.json();
       notify(data.message, data.success ? 'success' : 'error');
+      if (data.success) {
+        emitSync(SYNC_EVENTS.PROFILES, { role: 'admin', action: 'gpkd_review', userId, status });
+      }
       fetchUsers();
       if (selectedUserDetail) {
         setSelectedUserDetail(prev => ({
@@ -675,6 +744,7 @@ export default function AdminPortal({
         notify(data.message, data.success ? 'success' : 'error');
         setHideJobModal(null);
         setHideReason('');
+        emitSync(SYNC_EVENTS.JOBS, { role: 'admin', action: 'job_hide', jobId: hideJobModal._id });
         fetchAllJobs();
         fetchDashboard();
       } else {
@@ -694,6 +764,7 @@ export default function AdminPortal({
       const data = await res.json();
       if (data.success) {
         notify(data.message, data.success ? 'success' : 'error');
+        emitSync(SYNC_EVENTS.JOBS, { role: 'admin', action: 'job_unhide', jobId });
         fetchAllJobs();
         fetchDashboard();
       } else {
@@ -721,6 +792,9 @@ export default function AdminPortal({
           });
           const data = await res.json();
           notify(data.message, data.success ? 'success' : 'error');
+          if (data.success) {
+            emitSync(SYNC_EVENTS.JOBS, { role: 'admin', action: 'job_delete', jobId });
+          }
           fetchAllJobs();
           fetchDashboard();
         } catch (err) {
@@ -740,6 +814,7 @@ export default function AdminPortal({
       const data = await res.json();
       if (data.success) {
         notify(data.message, data.success ? 'success' : 'error');
+        emitSync(SYNC_EVENTS.REVIEWS, { role: 'admin', action: 'review_toggle_hide', revId });
         fetchReviews();
       }
     } catch (err) {
@@ -763,6 +838,9 @@ export default function AdminPortal({
           });
           const data = await res.json();
           notify(data.message, data.success ? 'success' : 'error');
+          if (data.success) {
+            emitSync(SYNC_EVENTS.REVIEWS, { role: 'admin', action: 'review_delete', revId });
+          }
           fetchReviews();
         } catch (err) {
           notify('Lỗi máy chủ khi xóa đánh giá.', 'error');
@@ -786,6 +864,7 @@ export default function AdminPortal({
       if (data.success) {
         notify(data.message || 'Đã thêm danh mục mới thành công!', 'success');
         setNewCatName('');
+        emitSync(SYNC_EVENTS.SYSTEM, { role: 'admin', action: 'category_add' });
         fetchCategories();
       } else {
         notify(data.message || 'Không thể thêm danh mục.', 'error');
@@ -807,6 +886,7 @@ export default function AdminPortal({
       if (data.success) {
         notify(data.message || 'Đã cập nhật tên danh mục thành công!', 'success');
         setEditingCatId(null);
+        emitSync(SYNC_EVENTS.SYSTEM, { role: 'admin', action: 'category_update', catId });
         fetchCategories();
       } else {
         notify(data.message || 'Lỗi cập nhật danh mục.', 'error');
@@ -826,6 +906,7 @@ export default function AdminPortal({
       const data = await res.json();
       if (data.success) {
         notify(!cat.is_active ? 'Đã kích hoạt hiển thị danh mục thành công!' : 'Đã tạm ẩn danh mục thành công!', 'success');
+        emitSync(SYNC_EVENTS.SYSTEM, { role: 'admin', action: 'category_toggle', catId: cat._id });
         fetchCategories();
       }
     } catch (err) {
@@ -850,6 +931,7 @@ export default function AdminPortal({
           const data = await res.json();
           if (data.success) {
             notify(data.message, 'success');
+            emitSync(SYNC_EVENTS.SYSTEM, { role: 'admin', action: 'category_delete', catId });
             fetchCategories();
           } else {
             notify(data.message, 'error');
@@ -872,6 +954,7 @@ export default function AdminPortal({
       const data = await res.json();
       if (data.success) {
         notify(data.message, data.success ? 'success' : 'error');
+        emitSync(SYNC_EVENTS.SYSTEM, { role: 'admin', action: 'ticket_update', ticketId, status });
         fetchReports();
         setSelectedTicket(null);
         setTicketChatHistory(null);
@@ -901,6 +984,7 @@ export default function AdminPortal({
           const data = await res.json();
           if (data.success) {
             notify(data.message || 'Đã xóa báo cáo vi phạm thành công!', 'success');
+            emitSync(SYNC_EVENTS.SYSTEM, { role: 'admin', action: 'report_delete', reportId: ticket._id });
             if (selectedTicket && selectedTicket._id === ticket._id) {
               setSelectedTicket(null);
               setTicketChatHistory(null);
@@ -950,6 +1034,7 @@ export default function AdminPortal({
       const msg = 'Đã thêm và áp dụng từ khóa cấm tự động thành công!';
       setKeywordSaveMsg(msg);
       notify(msg, 'success');
+      emitSync(SYNC_EVENTS.SYSTEM, { role: 'admin', action: 'keywords_add' });
       fetchBannedKeywords();
       fetchAllJobs();
       setTimeout(() => setKeywordSaveMsg(''), 3000);
@@ -972,6 +1057,7 @@ export default function AdminPortal({
         notify(data.message || 'Đã cập nhật từ khóa cấm thành công!', 'success');
         setEditingKwId(null);
         setEditingKwText('');
+        emitSync(SYNC_EVENTS.SYSTEM, { role: 'admin', action: 'keywords_update', kwId });
         fetchBannedKeywords();
         fetchAllJobs();
       } else {
@@ -999,6 +1085,7 @@ export default function AdminPortal({
           const data = await res.json();
           if (data.success) {
             notify(`Đã xóa từ khóa cấm "${kwName}" thành công!`, 'success');
+            emitSync(SYNC_EVENTS.SYSTEM, { role: 'admin', action: 'keywords_delete', kwId });
             fetchBannedKeywords();
             fetchAllJobs();
           } else {
@@ -1468,7 +1555,12 @@ export default function AdminPortal({
 
   // Filtered Reviews (FR 3.6 & FR-QTV-06.07)
   const filteredReviews = reviews.filter(r => {
-    const matchSearch = matchKeywordFlexible(r, reviewSearch, ['reviewer_name', 'user_name', 'student_name', 'company_name', 'employer_name', 'target_name', 'comment']);
+    const matchSearch = matchKeywordFlexible(
+      r, 
+      reviewSearch, 
+      ['reviewer_name', 'user_name', 'student_name', 'company_name', 'employer_name', 'target_name', 'comment'],
+      { strictPerField: true }
+    );
       
     let matchStatus = true;
     if (reviewStatusFilter === 'public') {
@@ -1532,6 +1624,42 @@ export default function AdminPortal({
   const paginatedTickets = ticketsPerPage === 'all'
     ? filteredTickets
     : filteredTickets.slice((currentTicketPage - 1) * ticketLimit, currentTicketPage * ticketLimit);
+
+  // Filtered & Paginated Categories
+  const filteredCategories = categories
+    .filter(c => categoryTab === 'all' ? true : (categoryTab === 'job' ? c.type !== 'location' : c.type === 'location'))
+    .filter(c => matchKeywordFlexible(c, categorySearch, ['name']));
+  const categoryLimit = categoriesPerPage === 'all' ? filteredCategories.length : parseInt(categoriesPerPage, 10);
+  const totalCategoryPages = Math.ceil(filteredCategories.length / (categoryLimit || 1)) || 1;
+  const currentCategoryPage = Math.min(Math.max(1, categoryPage), totalCategoryPages);
+  const paginatedCategories = categoriesPerPage === 'all'
+    ? filteredCategories
+    : filteredCategories.slice((currentCategoryPage - 1) * categoryLimit, currentCategoryPage * categoryLimit);
+
+  // Filtered & Paginated Keywords
+  const keywordLimit = keywordsPerPage === 'all' ? bannedKeywords.length : parseInt(keywordsPerPage, 10);
+  const totalKeywordPages = Math.ceil(bannedKeywords.length / (keywordLimit || 1)) || 1;
+  const currentKeywordPage = Math.min(Math.max(1, keywordPage), totalKeywordPages);
+  const paginatedKeywords = keywordsPerPage === 'all'
+    ? bannedKeywords
+    : bannedKeywords.slice((currentKeywordPage - 1) * keywordLimit, currentKeywordPage * keywordLimit);
+
+  // Filtered & Paginated Audit Logs
+  const filteredAuditLogs = auditLogs.filter(l => auditActionFilter === 'all' || l.action === auditActionFilter);
+  const auditLimit = auditsPerPage === 'all' ? filteredAuditLogs.length : parseInt(auditsPerPage, 10);
+  const totalAuditPages = Math.ceil(filteredAuditLogs.length / (auditLimit || 1)) || 1;
+  const currentAuditPage = Math.min(Math.max(1, auditPage), totalAuditPages);
+  const paginatedAuditLogs = auditsPerPage === 'all'
+    ? filteredAuditLogs
+    : filteredAuditLogs.slice((currentAuditPage - 1) * auditLimit, currentAuditPage * auditLimit);
+
+  // Filtered & Paginated Announcements
+  const announcementLimit = announcementsPerPage === 'all' ? announcements.length : parseInt(announcementsPerPage, 10);
+  const totalAnnouncementPages = Math.ceil(announcements.length / (announcementLimit || 1)) || 1;
+  const currentAnnouncementPage = Math.min(Math.max(1, announcementPage), totalAnnouncementPages);
+  const paginatedAnnouncements = announcementsPerPage === 'all'
+    ? announcements
+    : announcements.slice((currentAnnouncementPage - 1) * announcementLimit, currentAnnouncementPage * announcementLimit);
 
   // Admin Fixed Menu Items (8 Phân hệ Quản trị viên chuẩn - Khớp 100% với Main Content)
   const adminMenuItems = [
@@ -1810,6 +1938,19 @@ export default function AdminPortal({
                 </div>
               </div>
 
+              {/* BỘ CHỌN SỐ LƯỢNG VÀ ĐIỀU KHIỂN PHÂN TRANG (ĐẶT GIỮA BỘ LỌC VÀ BẢNG) */}
+              <div className="p-3.5 bg-slate-50/80 border-b border-slate-200">
+                <PaginationBar
+                  currentPage={currentGpkdPage}
+                  totalPages={totalGpkdPages}
+                  pageSize={gpkdPerPage}
+                  totalItems={filteredGpkdEmployers.length}
+                  onPageChange={setGpkdPage}
+                  onPageSizeChange={setGpkdPerPage}
+                  itemLabel="doanh nghiệp"
+                />
+              </div>
+
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead className="bg-slate-100/90 text-slate-800 border-b border-slate-200 uppercase font-bold text-xs sm:text-sm tracking-wider">
@@ -1831,7 +1972,7 @@ export default function AdminPortal({
                         </td>
                       </tr>
                     ) : (
-                      filteredGpkdEmployers.map((emp) => {
+                      paginatedGpkdEmployers.map((emp) => {
                       const status = emp.employer_record?.approval_status || emp.approval_status || 'pending';
                       const gpkdUrl = emp.profile?.business_license_url || emp.license_url || emp.employer_record?.license_url || '';
                       const gpkdName = emp.profile?.business_license_name || emp.license_name || '';
@@ -1923,46 +2064,6 @@ export default function AdminPortal({
                   </tbody>
                 </table>
               </div>
-
-              {/* Phân trang & bộ lọc số dòng GPKD (Tất cả; 5; 10; 20; 50) */}
-              <div className="p-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-50/50">
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-600 font-semibold">Hiển thị mỗi trang:</span>
-                  <select
-                    value={gpkdPerPage}
-                    onChange={(e) => {
-                      setGpkdPerPage(e.target.value);
-                      setGpkdPage(1);
-                    }}
-                    className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none cursor-pointer"
-                  >
-                    <option value="10">10 / trang</option>
-                    <option value="20">20 / trang</option>
-                    <option value="50">50 / trang</option>
-                    <option value="all">Tất cả ({filteredGpkdEmployers.length})</option>
-                  </select>
-                  <span className="text-slate-500 hidden sm:inline">(Tổng: {filteredGpkdEmployers.length})</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-600 font-semibold">Trang {currentGpkdPage} / {totalGpkdPages}</span>
-                  <button
-                    type="button"
-                    disabled={currentGpkdPage <= 1 || gpkdPerPage === 'all'}
-                    onClick={() => setGpkdPage(p => Math.max(1, p - 1))}
-                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    Trước
-                  </button>
-                  <button
-                    type="button"
-                    disabled={currentGpkdPage >= totalGpkdPages || gpkdPerPage === 'all'}
-                    onClick={() => setGpkdPage(p => Math.min(totalGpkdPages, p + 1))}
-                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    Sau
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         )}
@@ -2000,11 +2101,11 @@ export default function AdminPortal({
 
               const allRealApps = Array.isArray(stats?.applications_list) ? stats.applications_list : [];
 
-              // Danh sách năm: 2024 & 2025 (dữ liệu lịch sử) + 2026 (dữ liệu thực tế CSDL)
-              const yearSet = new Set([2026, 2025, 2024]);
+              // Danh sách năm: Năm 2026 (dữ liệu thực tế CSDL) + các năm thực tế có trong CSDL (loại bỏ hoàn toàn năm ảo 2024, 2025)
+              const yearSet = new Set([2026]);
               [...nonAdminUsers, ...jobs, ...allRealApps].forEach((doc) => {
                 const d = parseRecordDate(doc);
-                if (d) yearSet.add(d.getFullYear());
+                if (d && d.getFullYear() >= 2026) yearSet.add(d.getFullYear());
               });
               const availableYears = Array.from(yearSet).sort((a, b) => b - a);
 
@@ -2015,7 +2116,7 @@ export default function AdminPortal({
               let rangeStart = null;
               let rangeEnd = null;
               if (filterFromDate || filterToDate) {
-                const fDt = parseDateInput(filterFromDate) || new Date(2024, 0, 1);
+                const fDt = parseDateInput(filterFromDate) || new Date(2026, 0, 1);
                 const tDt = parseDateInput(filterToDate) || new Date(2026, 11, 31);
                 rangeStart = fDt.getTime() <= tDt.getTime() ? fDt : tDt;
                 rangeEnd = fDt.getTime() <= tDt.getTime() ? tDt : fDt;
@@ -2050,12 +2151,8 @@ export default function AdminPortal({
                 rangeStart.getFullYear() === 2026 && rangeEnd.getFullYear() === 2026
               );
 
-              // Dữ liệu lịch sử 2024 - 2025 (Năm 2026 hoàn toàn bằng 0 trong bộ lịch sử này)
-              const matchedHistBuckets = isAllTime
-                ? HISTORICAL_2024_2025_BUCKETS
-                : HISTORICAL_2024_2025_BUCKETS.filter(
-                    (b) => b.timestamp >= rangeStart.getTime() && b.timestamp <= rangeEnd.getTime()
-                  );
+              // Dữ liệu thực tế 100% CSDL (đã loại bỏ hoàn toàn các năm ảo 2024 - 2025)
+              const matchedHistBuckets = [];
 
               // Bộ lọc địa điểm & ngành nghề dùng chung cho Dashboard (tránh trùng lặp logic)
               const matchesDashGeoAndCat = (rawDoc) => {
@@ -2154,20 +2251,12 @@ export default function AdminPortal({
                   : `${fmtDMY(rangeStart)} - ${fmtDMY(rangeEnd)}`;
               }
 
-              const dataSourceBadge = isPure2026
-                ? 'Số liệu thực tế CSDL (2026)'
-                : (rangeEnd && rangeEnd.getFullYear() <= 2025 ? 'Dữ liệu thống kê lịch sử' : 'Tổng hợp 2024 - 2026');
+              const dataSourceBadge = 'Số liệu thực tế CSDL (2026)';
 
               // Hàm tính tổng trong 1 cửa sổ thời gian bất kỳ [winStart .. winEnd]
               const sumWindow = (winStart, winEnd, includeUndated2026 = false) => {
                 const wStartMs = winStart.getTime();
                 const wEndMs = winEnd.getTime();
-                const hBuckets = HISTORICAL_2024_2025_BUCKETS.filter(
-                  (b) => b.timestamp >= wStartMs && b.timestamp <= wEndMs
-                );
-                const hSv = hBuckets.reduce((s, b) => s + b.students, 0);
-                const hJb = hBuckets.reduce((s, b) => s + b.jobs, 0);
-                const hAp = hBuckets.reduce((s, b) => s + b.apps, 0);
 
                 const inWin = (doc) => {
                   const d = parseRecordDate(doc);
@@ -2183,36 +2272,26 @@ export default function AdminPortal({
                 const rAp = allRealApps.filter(a => inWin(a)).length;
 
                 return {
-                  students: hSv + rSv,
-                  jobs: hJb + rJb,
-                  apps: hAp + rAp
+                  students: rSv,
+                  jobs: rJb,
+                  apps: rAp
                 };
               };
 
               // Dữ liệu cho Biểu đồ cột (Bar Chart) và Biểu đồ đường (Line Chart)
-              let chartTitle = 'Thống Kê Tin Tuyển Dụng & Đơn Ứng Tuyển Theo Năm (2024 - 2026)';
+              let chartTitle = 'Thống Kê Tin Tuyển Dụng & Đơn Ứng Tuyển Năm 2026';
               let bars = [];
               let rawGrowth = [];
 
-              if (isAllTime) {
-                const orderedYears = availableYears.slice().reverse();
-                bars = orderedYears.map((yr) => {
-                  const w = sumWindow(new Date(yr, 0, 1), new Date(yr, 11, 31), yr === 2026);
-                  return { label: `Năm ${yr}`, val: w.jobs + w.apps, jobs: w.jobs, apps: w.apps };
-                });
-                rawGrowth = orderedYears.map((yr) => {
-                  const w = sumWindow(new Date(yr, 0, 1), new Date(yr, 11, 31), yr === 2026);
-                  return { label: `Năm ${yr}`, sv: w.students, jb: w.jobs };
-                });
-              } else if (isFullYearRange) {
-                const yr = rangeStart.getFullYear();
+              if (isAllTime || isFullYearRange) {
+                const yr = (rangeStart && rangeStart.getFullYear()) || 2026;
                 chartTitle = yr === 2026
-                  ? 'Thống Kê Hoạt Động Thực Tế Qua 4 Quý - Năm 2026'
+                  ? 'Thống Kê Tin Tuyển Dụng & Đơn Ứng Tuyển Qua 4 Quý - Năm 2026'
                   : `Thống Kê Hoạt Động Qua 4 Quý - Năm ${yr}`;
                 const curQuarter = Math.floor(new Date().getMonth() / 3) + 1;
                 const qStats = [1, 2, 3, 4].map((q) => {
                   const qStart = new Date(yr, (q - 1) * 3, 1);
-                  const qEnd = new Date(yr, q * 3, 0);
+                  const qEnd = new Date(yr, q * 3, 0, 23, 59, 59, 999);
                   const w = sumWindow(qStart, qEnd, yr === 2026 && q === curQuarter);
                   return { q, ...w };
                 });
@@ -2381,7 +2460,7 @@ export default function AdminPortal({
                           <span>Dashboard Thống Kê & Báo Cáo Tăng Trưởng</span>
                         </h3>
                         <p className="text-xs text-slate-600 mt-0.5">
-                          Thống kê dữ liệu lịch sử 2024 - 2025 và đồng bộ số liệu thực tế năm 2026 từ cơ sở dữ liệu hệ thống
+                          Thống kê và báo cáo tăng trưởng số liệu thực tế năm 2026 từ cơ sở dữ liệu hệ thống
                         </p>
                       </div>
 
@@ -2502,7 +2581,7 @@ export default function AdminPortal({
                         <span className="text-xs sm:text-sm font-bold text-slate-800 whitespace-nowrap">Từ ngày:</span>
                         <input
                           type="date"
-                          min="2024-01-01"
+                          min="2026-01-01"
                           max="2026-12-31"
                           value={filterFromDate}
                           onChange={(e) => {
@@ -2520,7 +2599,7 @@ export default function AdminPortal({
                         <span className="text-xs sm:text-sm font-bold text-slate-800 whitespace-nowrap sm:ml-2">Đến ngày:</span>
                         <input
                           type="date"
-                          min={filterFromDate || '2024-01-01'}
+                          min={filterFromDate || '2026-01-01'}
                           max="2026-12-31"
                           value={filterToDate}
                           onChange={(e) => {
@@ -3082,6 +3161,17 @@ export default function AdminPortal({
               </div>
             </div>
 
+            {/* BỘ CHỌN SỐ LƯỢNG VÀ ĐIỀU KHIỂN PHÂN TRANG (ĐẶT GIỮA BỘ LỌC VÀ BẢNG) */}
+            <PaginationBar
+              currentPage={currentUserPage}
+              totalPages={totalUserPages}
+              pageSize={usersPerPage}
+              totalItems={filteredUsers.length}
+              onPageChange={setUserPage}
+              onPageSizeChange={setUsersPerPage}
+              itemLabel="người dùng"
+            />
+
             {/* Bảng danh sách người dùng */}
             <div className="rounded-3xl bg-white border border-slate-200/90 shadow-md overflow-hidden">
               <div className="overflow-x-auto">
@@ -3197,46 +3287,6 @@ export default function AdminPortal({
                     })}
                   </tbody>
                 </table>
-              </div>
-
-              {/* Phân trang & bộ lọc số dòng Người dùng (Tất cả; 5; 10; 20; 50) */}
-              <div className="p-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-50/50">
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-600 font-semibold">Hiển thị mỗi trang:</span>
-                  <select
-                    value={usersPerPage}
-                    onChange={(e) => {
-                      setUsersPerPage(e.target.value);
-                      setUserPage(1);
-                    }}
-                    className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none cursor-pointer"
-                  >
-                    <option value="10">10 / trang</option>
-                    <option value="20">20 / trang</option>
-                    <option value="50">50 / trang</option>
-                    <option value="all">Tất cả ({filteredUsers.length})</option>
-                  </select>
-                  <span className="text-slate-500 hidden sm:inline">(Tổng: {filteredUsers.length})</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-600 font-semibold">Trang {currentUserPage} / {totalUserPages}</span>
-                  <button
-                    type="button"
-                    disabled={currentUserPage <= 1 || usersPerPage === 'all'}
-                    onClick={() => setUserPage(p => Math.max(1, p - 1))}
-                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    Trước
-                  </button>
-                  <button
-                    type="button"
-                    disabled={currentUserPage >= totalUserPages || usersPerPage === 'all'}
-                    onClick={() => setUserPage(p => Math.min(totalUserPages, p + 1))}
-                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    Sau
-                  </button>
-                </div>
               </div>
             </div>
 
@@ -3425,6 +3475,17 @@ export default function AdminPortal({
               )}
             </div>
 
+            {/* BỘ CHỌN SỐ LƯỢNG VÀ ĐIỀU KHIỂN PHÂN TRANG (ĐẶT GIỮA BỘ LỌC VÀ BẢNG) */}
+            <PaginationBar
+              currentPage={currentJobPage}
+              totalPages={totalJobPages}
+              pageSize={jobsPerPage}
+              totalItems={filteredJobs.length}
+              onPageChange={setJobPage}
+              onPageSizeChange={setJobsPerPage}
+              itemLabel="tin tuyển dụng"
+            />
+
             {/* Bảng tin toàn hệ thống */}
             <div className="rounded-3xl bg-white border border-slate-200/90 shadow-md overflow-hidden">
               <div className="overflow-x-auto">
@@ -3446,7 +3507,7 @@ export default function AdminPortal({
                           Chưa có tin tuyển dụng thực tế nào khớp điều kiện tìm kiếm.
                         </td>
                       </tr>
-                    ) : filteredJobs.map((job) => (
+                    ) : paginatedJobs.map((job) => (
                       <tr 
                         key={job._id}
                         onClick={() => setSelectedJobDetail(job)}
@@ -3571,46 +3632,6 @@ export default function AdminPortal({
                   </tbody>
                 </table>
               </div>
-
-              {/* Phân trang & bộ lọc số dòng Tin tuyển dụng (Tất cả; 5; 10; 20; 50) */}
-              <div className="p-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-50/50">
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-600 font-semibold">Hiển thị mỗi trang:</span>
-                  <select
-                    value={jobsPerPage}
-                    onChange={(e) => {
-                      setJobsPerPage(e.target.value);
-                      setJobPage(1);
-                    }}
-                    className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none cursor-pointer"
-                  >
-                    <option value="10">10 / trang</option>
-                    <option value="20">20 / trang</option>
-                    <option value="50">50 / trang</option>
-                    <option value="all">Tất cả ({filteredJobs.length})</option>
-                  </select>
-                  <span className="text-slate-500 hidden sm:inline">(Tổng: {filteredJobs.length})</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-600 font-semibold">Trang {currentJobPage} / {totalJobPages}</span>
-                  <button
-                    type="button"
-                    disabled={currentJobPage <= 1 || jobsPerPage === 'all'}
-                    onClick={() => setJobPage(p => Math.max(1, p - 1))}
-                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    Trước
-                  </button>
-                  <button
-                    type="button"
-                    disabled={currentJobPage >= totalJobPages || jobsPerPage === 'all'}
-                    onClick={() => setJobPage(p => Math.min(totalJobPages, p + 1))}
-                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    Sau
-                  </button>
-                </div>
-              </div>
             </div>
 
           </div>
@@ -3635,7 +3656,7 @@ export default function AdminPortal({
                     type="text"
                     value={reviewSearch}
                     onChange={(e) => setReviewSearch(e.target.value)}
-                    placeholder="Tìm kiếm (Tên sinh viên/ Doanh nghiệp; Nội dung nhận xét)"
+                    placeholder="Tìm kiếm (Tên sinh viên; Tên doanh nghiệp; Nội dung nhận xét)"
                     className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-base sm:text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 shadow-sm"
                   />
                 </div>
@@ -3681,6 +3702,17 @@ export default function AdminPortal({
               </div>
             </div>
 
+            {/* BỘ CHỌN SỐ LƯỢNG VÀ ĐIỀU KHIỂN PHÂN TRANG (ĐẶT GIỮA BỘ LỌC VÀ BẢNG) */}
+            <PaginationBar
+              currentPage={currentReviewPage}
+              totalPages={totalReviewPages}
+              pageSize={reviewsPerPage}
+              totalItems={filteredReviews.length}
+              onPageChange={setReviewPage}
+              onPageSizeChange={setReviewsPerPage}
+              itemLabel="đánh giá"
+            />
+
             {/* Bảng Reviews */}
             <div className="rounded-3xl bg-white border border-slate-200/90 shadow-md overflow-hidden">
               <div className="overflow-x-auto">
@@ -3708,15 +3740,23 @@ export default function AdminPortal({
                         className="hover:bg-slate-50/80 cursor-pointer transition-colors"
                       >
                         <td className="px-6 py-4 font-bold text-slate-900 text-sm whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <span>{rev.reviewer_name || 'Người đánh giá'}</span>
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${
-                              isEmployerReview(rev)
-                                ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                : 'bg-blue-50 text-blue-700 border-blue-200'
-                            }`}>
-                              {isEmployerReview(rev) ? 'NTD → SV' : 'SV → NTD'}
-                            </span>
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <span>{rev.reviewer_name || 'Người đánh giá'}</span>
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${
+                                isEmployerReview(rev)
+                                  ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                  : 'bg-blue-50 text-blue-700 border-blue-200'
+                              }`}>
+                                {isEmployerReview(rev) ? 'NTD → SV' : 'SV → NTD'}
+                              </span>
+                            </div>
+                            <div className="text-xs font-normal text-slate-500">
+                              {isEmployerReview(rev) ? 'Đánh giá SV: ' : 'Đánh giá DN: '}
+                              <span className="font-semibold text-slate-700">
+                                {rev.target_name || rev.student_name || rev.company_name || 'Đối tượng nhận'}
+                              </span>
+                            </div>
                           </div>
                         </td>
 
@@ -3771,46 +3811,6 @@ export default function AdminPortal({
                   </tbody>
                 </table>
               </div>
-
-              {/* Phân trang & Bộ lọc số lượng Đánh giá chéo (Tất cả; 5; 10; 20; 50) */}
-              <div className="p-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-50/50">
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-600 font-semibold">Hiển thị mỗi trang:</span>
-                  <select
-                    value={reviewsPerPage}
-                    onChange={(e) => {
-                      setReviewsPerPage(e.target.value);
-                      setReviewPage(1);
-                    }}
-                    className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none cursor-pointer"
-                  >
-                    <option value="10">10 / trang</option>
-                    <option value="20">20 / trang</option>
-                    <option value="50">50 / trang</option>
-                    <option value="all">Tất cả ({filteredReviews.length})</option>
-                  </select>
-                  <span className="text-slate-500 hidden sm:inline">(Tổng: {filteredReviews.length} đánh giá)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-600 font-semibold">Trang {currentReviewPage} / {totalReviewPages}</span>
-                  <button
-                    type="button"
-                    disabled={currentReviewPage <= 1 || reviewsPerPage === 'all'}
-                    onClick={() => setReviewPage(p => Math.max(1, p - 1))}
-                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    Trước
-                  </button>
-                  <button
-                    type="button"
-                    disabled={currentReviewPage >= totalReviewPages || reviewsPerPage === 'all'}
-                    onClick={() => setReviewPage(p => Math.min(totalReviewPages, p + 1))}
-                    className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    Sau
-                  </button>
-                </div>
-              </div>
             </div>
 
           </div>
@@ -3833,7 +3833,10 @@ export default function AdminPortal({
               <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 text-xs">
                 <button
                   type="button"
-                  onClick={() => setCategoryTab('all')}
+                  onClick={() => {
+                    setCategoryTab('all');
+                    setCategoryPage(1);
+                  }}
                   className={`px-3.5 py-2 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
                     categoryTab === 'all' ? 'bg-white text-slate-900 border border-slate-300 shadow-sm' : 'text-slate-700 hover:text-slate-950'
                   }`}
@@ -3842,7 +3845,10 @@ export default function AdminPortal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setCategoryTab('job')}
+                  onClick={() => {
+                    setCategoryTab('job');
+                    setCategoryPage(1);
+                  }}
                   className={`px-3.5 py-2 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
                     categoryTab === 'job' ? 'bg-white text-slate-900 border border-slate-300 shadow-sm' : 'text-slate-700 hover:text-slate-950'
                   }`}
@@ -3851,7 +3857,10 @@ export default function AdminPortal({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setCategoryTab('location')}
+                  onClick={() => {
+                    setCategoryTab('location');
+                    setCategoryPage(1);
+                  }}
                   className={`px-3.5 py-2 rounded-xl font-bold transition-all cursor-pointer whitespace-nowrap ${
                     categoryTab === 'location' ? 'bg-white text-slate-900 border border-slate-300 shadow-sm' : 'text-slate-700 hover:text-slate-950'
                   }`}
@@ -3867,7 +3876,10 @@ export default function AdminPortal({
               <input
                 type="text"
                 value={categorySearch}
-                onChange={(e) => setCategorySearch(e.target.value)}
+                onChange={(e) => {
+                  setCategorySearch(e.target.value);
+                  setCategoryPage(1);
+                }}
                 placeholder="Tìm kiếm (Tên danh mục)"
                 className="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 shadow-sm"
               />
@@ -3902,6 +3914,17 @@ export default function AdminPortal({
               </button>
             </form>
 
+            {/* BỘ CHỌN SỐ LƯỢNG VÀ ĐIỀU KHIỂN PHÂN TRANG (ĐẶT GIỮA BỘ LỌC VÀ BẢNG) */}
+            <PaginationBar
+              currentPage={currentCategoryPage}
+              totalPages={totalCategoryPages}
+              pageSize={categoriesPerPage}
+              totalItems={filteredCategories.length}
+              onPageChange={setCategoryPage}
+              onPageSizeChange={setCategoriesPerPage}
+              itemLabel="danh mục"
+            />
+
             {/* Bảng danh sách danh mục */}
             <div className="rounded-3xl bg-white border border-slate-200/90 shadow-md overflow-hidden">
               <div className="overflow-x-auto">
@@ -3917,11 +3940,7 @@ export default function AdminPortal({
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
                     {(() => {
-                      const visibleCats = categories
-                        .filter(c => categoryTab === 'all' ? true : (categoryTab === 'job' ? c.type !== 'location' : c.type === 'location'))
-                        .filter(c => matchKeywordFlexible(c, categorySearch, ['name']));
-
-                      if (visibleCats.length === 0) {
+                      if (filteredCategories.length === 0) {
                         return (
                           <tr>
                             <td colSpan={5} className="px-6 py-10 text-center text-slate-500 text-sm">
@@ -3931,10 +3950,12 @@ export default function AdminPortal({
                         );
                       }
 
-                      return visibleCats.map((cat, idx) => (
+                      return paginatedCategories.map((cat, idx) => {
+                        const stt = (currentCategoryPage - 1) * categoryLimit + idx + 1;
+                        return (
                         <tr key={cat._id} className="hover:bg-slate-50/80 transition-colors">
                           <td className="px-6 py-4 font-mono font-bold text-slate-600 whitespace-nowrap">
-                            {idx + 1}
+                            {stt}
                           </td>
                           <td className="px-6 py-4">
                             {editingCatId === cat._id ? (
@@ -4006,7 +4027,8 @@ export default function AdminPortal({
                             </button>
                           </td>
                         </tr>
-                      ));
+                        );
+                      });
                     })()}
                   </tbody>
                 </table>
@@ -4101,6 +4123,17 @@ export default function AdminPortal({
               </div>
             </div>
 
+            {/* BỘ CHỌN SỐ LƯỢNG VÀ ĐIỀU KHIỂN PHÂN TRANG (ĐẶT GIỮA BỘ LỌC VÀ DANH SÁCH) */}
+            <PaginationBar
+              currentPage={currentTicketPage}
+              totalPages={totalTicketPages}
+              pageSize={ticketsPerPage}
+              totalItems={filteredTickets.length}
+              onPageChange={setTicketPage}
+              onPageSizeChange={setTicketsPerPage}
+              itemLabel="phiếu khiếu nại"
+            />
+
             {/* Danh sách Báo cáo */}
             <div className="space-y-3">
               {paginatedTickets.length === 0 ? (
@@ -4191,46 +4224,6 @@ export default function AdminPortal({
               )}
             </div>
 
-            {/* Phân trang & Bộ lọc số lượng Khiếu nại / Báo cáo (Tất cả; 5; 10; 20; 50) */}
-            <div className="p-4 rounded-2xl bg-white border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs shadow-xs mt-3">
-              <div className="flex items-center gap-2">
-                <span className="text-slate-600 font-semibold">Hiển thị mỗi trang:</span>
-                <select
-                  value={ticketsPerPage}
-                  onChange={(e) => {
-                    setTicketsPerPage(e.target.value);
-                    setTicketPage(1);
-                  }}
-                  className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none cursor-pointer"
-                >
-                  <option value="10">10 / trang</option>
-                  <option value="20">20 / trang</option>
-                  <option value="50">50 / trang</option>
-                  <option value="all">Tất cả ({filteredTickets.length})</option>
-                </select>
-                <span className="text-slate-500 hidden sm:inline">(Tổng: {filteredTickets.length} phiếu)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-slate-600 font-semibold">Trang {currentTicketPage} / {totalTicketPages}</span>
-                <button
-                  type="button"
-                  disabled={currentTicketPage <= 1 || ticketsPerPage === 'all'}
-                  onClick={() => setTicketPage(p => Math.max(1, p - 1))}
-                  className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Trước
-                </button>
-                <button
-                  type="button"
-                  disabled={currentTicketPage >= totalTicketPages || ticketsPerPage === 'all'}
-                  onClick={() => setTicketPage(p => Math.min(totalTicketPages, p + 1))}
-                  className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Sau
-                </button>
-              </div>
-            </div>
-
           </div>
         )}
 
@@ -4308,6 +4301,17 @@ export default function AdminPortal({
                   </button>
                 </div>
 
+                {/* BỘ CHỌN SỐ LƯỢNG VÀ ĐIỀU KHIỂN PHÂN TRANG (ĐẶT TRÊN BẢNG) */}
+                <PaginationBar
+                  currentPage={currentKeywordPage}
+                  totalPages={totalKeywordPages}
+                  pageSize={keywordsPerPage}
+                  totalItems={bannedKeywords.length}
+                  onPageChange={setKeywordPage}
+                  onPageSizeChange={setKeywordsPerPage}
+                  itemLabel="từ khóa cấm"
+                />
+
                 {bannedKeywords.length === 0 ? (
                   <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center text-xs text-slate-600">
                     Chưa có từ khóa cấm nào trong cơ sở dữ liệu. Vui lòng nhập từ khóa ở khung phía trên và nhấn lưu.
@@ -4327,12 +4331,13 @@ export default function AdminPortal({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
-                          {bannedKeywords.map((item, idx) => {
+                          {paginatedKeywords.map((item, idx) => {
                             const matchedJobCount = countJobsMatchingKeyword(item.keyword);
+                            const stt = (currentKeywordPage - 1) * keywordLimit + idx + 1;
                             return (
                             <tr key={item._id || idx} className="hover:bg-slate-50 transition-colors">
                               <td className="py-3.5 px-4 text-center font-mono text-slate-500 font-bold whitespace-nowrap">
-                                {idx + 1}
+                                {stt}
                               </td>
                               <td className="py-3.5 px-4 font-mono font-bold">
                                 {editingKwId === item._id ? (
@@ -4449,7 +4454,10 @@ export default function AdminPortal({
               <div className="flex flex-wrap items-center gap-2">
                 <select
                   value={auditActionFilter}
-                  onChange={(e) => setAuditActionFilter(e.target.value)}
+                  onChange={(e) => {
+                    setAuditActionFilter(e.target.value);
+                    setAuditPage(1);
+                  }}
                   className="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-blue-500 cursor-pointer"
                 >
                   <option value="all">Tất cả hành động quản trị</option>
@@ -4467,16 +4475,19 @@ export default function AdminPortal({
                   <option value="BROADCAST_ANNOUNCEMENT">Phát thông báo hàng loạt</option>
                   <option value="DELETE_ANNOUNCEMENT">Xóa & thu hồi thông báo hệ thống</option>
                 </select>
-                <button
-                  type="button"
-                  onClick={fetchAuditLogs}
-                  className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-bold text-slate-800 flex items-center gap-1.5 cursor-pointer"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Làm mới</span>
-                </button>
               </div>
             </div>
+
+            {/* BỘ CHỌN SỐ LƯỢNG VÀ ĐIỀU KHIỂN PHÂN TRANG (ĐẶT TRÊN BẢNG) */}
+            <PaginationBar
+              currentPage={currentAuditPage}
+              totalPages={totalAuditPages}
+              pageSize={auditsPerPage}
+              totalItems={filteredAuditLogs.length}
+              onPageChange={setAuditPage}
+              onPageSizeChange={setAuditsPerPage}
+              itemLabel="nhật ký hoạt động"
+            />
 
             <div className="rounded-3xl bg-white border border-slate-200/90 shadow-md overflow-hidden">
               <div className="overflow-x-auto">
@@ -4492,8 +4503,7 @@ export default function AdminPortal({
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {(() => {
-                      const rows = auditLogs.filter(l => auditActionFilter === 'all' || l.action === auditActionFilter);
-                      if (rows.length === 0) {
+                      if (filteredAuditLogs.length === 0) {
                         return (
                           <tr>
                             <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
@@ -4502,7 +4512,7 @@ export default function AdminPortal({
                           </tr>
                         );
                       }
-                      return rows.map((log) => (
+                      return paginatedAuditLogs.map((log) => (
                         <tr key={log._id} className="hover:bg-slate-50">
                           <td className="px-5 py-3.5 font-mono text-slate-600 whitespace-nowrap">{log.created_at || ''}</td>
                           <td className="px-5 py-3.5 whitespace-nowrap">
@@ -4609,13 +4619,24 @@ export default function AdminPortal({
 
             <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
               <h4 className="text-sm font-black text-slate-900">Lịch Sử Thông Báo Hệ Thống Đã Phát ({announcements.length})</h4>
+
+              <PaginationBar
+                currentPage={currentAnnouncementPage}
+                totalPages={totalAnnouncementPages}
+                pageSize={announcementsPerPage}
+                totalItems={announcements.length}
+                onPageChange={setAnnouncementPage}
+                onPageSizeChange={setAnnouncementsPerPage}
+                itemLabel="thông báo"
+              />
+
               {announcements.length === 0 ? (
                 <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center">
                   Chưa có thông báo hệ thống nào được phát hành.
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {announcements.map((ann) => (
+                  {paginatedAnnouncements.map((ann) => (
                     <div key={ann._id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex flex-wrap items-center gap-2">

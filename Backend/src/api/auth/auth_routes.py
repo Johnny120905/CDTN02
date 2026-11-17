@@ -215,6 +215,7 @@ def login():
             comp = db_manager.get_collection("company_profiles").find_one({"employer_id": emp_record["_id"]})
             profile_data = comp or {}
 
+    resolved_avatar = user.get("avatar_url") or profile_data.get("avatar_url") or profile_data.get("logo_url") or ""
     return jsonify({
         "success": True,
         "message": "Đăng nhập thành công!",
@@ -225,6 +226,7 @@ def login():
             "email": user["email"],
             "role": user_role,
             "status": user.get("status", "active"),
+            "avatar_url": resolved_avatar,
             "is_banned": bool(user.get("is_banned", False)),
             "profile": profile_data,
             "employer_id": emp_record["_id"] if emp_record else None,
@@ -250,6 +252,7 @@ def get_current_user():
             comp = db_manager.get_collection("company_profiles").find_one({"employer_id": emp_record["_id"]})
             profile_data = comp or {}
 
+    resolved_avatar = user.get("avatar_url") or profile_data.get("avatar_url") or profile_data.get("logo_url") or ""
     return jsonify({
         "success": True,
         "user": {
@@ -258,6 +261,7 @@ def get_current_user():
             "email": user["email"],
             "role": user_role,
             "status": user.get("status", "active"),
+            "avatar_url": resolved_avatar,
             "is_banned": bool(user.get("is_banned", False)),
             "profile": profile_data,
             "employer_id": emp_record["_id"] if emp_record else None,

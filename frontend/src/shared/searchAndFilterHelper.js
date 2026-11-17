@@ -68,9 +68,11 @@ function normalizeSearchSynonyms(textUnaccent) {
   if (!textUnaccent) return '';
   return textUnaccent
     .replace(/[()[\],.;:/\\\-_+&]+/g, ' ')
+    .replace(/\b(?:chi\s+nhanh|co\s+so|khu\s+vuc)\b/g, ' ')
     .replace(/\bdh\b/g, 'dai hoc')
     .replace(/\bcd\b/g, 'cao dang')
-    .replace(/\btp\s*hcm\b|\btphcm\b|\bsai gon\b/g, 'ho chi minh')
+    .replace(/\b(?:tp\s*hcm|tphcm|sai\s*gon|tp\s*ho\s*chi\s*minh|thanh\s*pho\s*ho\s*chi\s*minh)\b/g, 'ho chi minh')
+    .replace(/\b(?:tp\s*ha\s*noi|thanh\s*pho\s*ha\s*noi)\b/g, 'ha noi')
     .replace(/\btp\s+/g, 'thanh pho ')
     .replace(/\bquan\s*0?(\d+)\b/g, 'quan $1')
     .replace(/\bq\s*\.?\s*0?(\d+)\b/g, 'quan $1')
@@ -82,6 +84,25 @@ function normalizeSearchSynonyms(textUnaccent) {
 
 function escapeRegExp(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Kiểm tra xem chuỗi nguồn có chứa từ khóa an toàn không
+ * Đối với các từ khóa ngắn (<= 3 ký tự như "on", "ca", "la", "an", "le"),
+ * bắt buộc phải bảo vệ bằng ranh giới từ (word boundary) để không bao giờ bị khớp nhầm
+ * vào giữa các từ dài khác (ví dụ: "on" không bao giờ được khớp vào "long" hay "cong").
+ */
+export function safeIncludesText(sourceText, targetQuery) {
+  if (!sourceText || !targetQuery) return false;
+  if (/^\d{1,2}$/.test(targetQuery)) {
+    const cleanNum = String(parseInt(targetQuery, 10));
+    return new RegExp(`(?:^|[^a-z0-9])0?${cleanNum}(?:[^a-z0-9]|$)`).test(sourceText);
+  }
+  if (targetQuery.length <= 3) {
+    const re = new RegExp(`(?:^|[^a-z0-9])${escapeRegExp(targetQuery)}(?:[^a-z0-9]|$)`);
+    return re.test(sourceText);
+  }
+  return sourceText.includes(targetQuery);
 }
 
 /**
@@ -106,6 +127,77 @@ function phraseInText(text, phrase) {
     return new RegExp(`(?:^|[^\\da-z])${escapeRegExp(phrase)}(?!\\d)`).test(text);
   }
   return text.includes(phrase);
+}
+
+/**
+ * Kiểm tra khớp linh hoạt một trường cụ thể (Single Field Matching)
+ * Hỗ trợ toàn diện: Chữ hoa, chữ thường, chữ không dấu, chữ bị dính liền, chữ kèm số, chữ hoa + thường lẫn lộn,
+ * chuẩn hóa từ viết tắt (ĐH, CĐ, Q1, TP.HCM), bảo vệ ranh giới từ an toàn.
+ */
+export function matchFieldFlexible(fieldVal, searchQuery) {
+  if (fieldVal === undefined || fieldVal === null) return false;
+  if (!searchQuery || !String(searchQuery).trim()) return true;
+
+  const rawQuery = String(searchQuery).trim();
+  const qLower = rawQuery.toLowerCase();
+  if (qLower === 'all' || qLower === 'tất cả' || qLower.startsWith('mọi ') || qLower.startsWith('tất cả ')) {
+    return true;
+  }
+
+  const valStr = Array.isArray(fieldVal) ? fieldVal.join(' ') : String(fieldVal);
+  if (!valStr.trim()) return false;
+
+  const valLower = valStr.toLowerCase();
+  const valUnaccent = removeVietnameseTones(valStr);
+  const valNorm = normalizeSearchSynonyms(valUnaccent);
+
+  const qUnaccent = removeVietnameseTones(rawQuery);
+  const qNorm = normalizeSearchSynonyms(qUnaccent);
+  const qSpacedNorm = normalizeSearchSynonyms(splitLetterDigit(qUnaccent));
+
+  // 1. Khớp có dấu nguyên vẹn (Exact lowercase phrase, bảo vệ ranh giới số)
+  if (phraseInText(valLower, qLower)) return true;
+
+  // 2. Khớp chuỗi không dấu & chuẩn hóa an toàn (Word-boundary protected if short)
+  if (qUnaccent && phraseInText(valUnaccent, qUnaccent)) return true;
+  if (qNorm && phraseInText(valNorm, qNorm)) return true;
+  if (qSpacedNorm && phraseInText(valNorm, qSpacedNorm)) return true;
+
+  // 3. Khớp chuỗi dính liền & chữ kèm số (compact matching)
+  const valCompact = toCompactAlnum(valUnaccent);
+  const valCompactNorm = toCompactAlnum(valNorm);
+  const qCompact = toCompactAlnum(qUnaccent);
+  const qCompactNorm = toCompactAlnum(qNorm);
+
+  const isAlnumMix = /[a-z]/.test(qCompact) && /\d/.test(qCompact);
+  if (qCompact && (qCompact.length >= 4 || isAlnumMix || valCompact === qCompact)) {
+    if (hasShortTrailingDigits(qCompact)) {
+      const reComp = new RegExp(`${escapeRegExp(qCompact)}(?!\\d)`);
+      if (reComp.test(valCompact)) return true;
+      if (qCompactNorm && reComp.test(valCompactNorm)) return true;
+    } else {
+      if (valCompact.includes(qCompact)) return true;
+      if (valCompactNorm.includes(qCompactNorm)) return true;
+    }
+  }
+
+  // 4. Khớp từng token của query trong CÙNG MỘT TRƯỜNG này
+  const tokens = (qNorm || qUnaccent).split(/\s+/).filter(Boolean);
+  if (tokens.length > 1) {
+    const allTokensMatch = tokens.every(tok => {
+      if (!tok) return true;
+      if (/^\d{1,2}$/.test(tok)) {
+        const cleanNum = String(parseInt(tok, 10));
+        const re = new RegExp(`(?:^|[^a-z0-9])0?${cleanNum}(?:[^a-z0-9]|$)`);
+        return re.test(valNorm) || re.test(valUnaccent);
+      }
+      return safeIncludesText(valNorm, tok) || safeIncludesText(valUnaccent, tok);
+    });
+
+    if (allTokensMatch) return true;
+  }
+
+  return false;
 }
 
 function compactMatchInPool(pool, compactCand) {
@@ -263,27 +355,172 @@ function matchQueryAgainstTargets(targets, searchQuery) {
  * 3. Tìm kiếm từ khóa linh hoạt đa từ (Flexible Keyword Search)
  * Hỗ trợ đầy đủ: Chữ hoa, chữ thường, chữ không dấu, chữ bị dính liền, chữ kèm số, chữ hoa + thường lẫn lộn,
  * từ viết tắt (ĐH, CĐ, Q1, TP.HCM), gợi ý kèm ngoặc đơn và tiền tố chi nhánh.
+ * Tùy chọn strictPerField: true giúp kiểm tra độc lập từng trường, ngăn chặn việc ghép chữ sai giữa các thực thể khác nhau.
  */
-export function matchKeywordFlexible(item, searchQuery, fields = ['title', 'company_name', 'description', 'location', 'address']) {
+export function matchKeywordFlexible(
+  item, 
+  searchQuery, 
+  fields = ['title', 'company_name', 'description', 'location', 'address'],
+  options = {}
+) {
   if (!searchQuery || !String(searchQuery).trim()) return true;
 
-  const rawQuery = String(searchQuery).trim().toLowerCase();
-  if (rawQuery === 'all' || rawQuery === 'tất cả' || rawQuery.startsWith('mọi ') || rawQuery.startsWith('tất cả ')) {
+  const rawQuery = String(searchQuery).trim();
+  const qLower = rawQuery.toLowerCase();
+  if (qLower === 'all' || qLower === 'tất cả' || qLower.startsWith('mọi ') || qLower.startsWith('tất cả ')) {
     return true;
   }
 
-  // Tập hợp toàn bộ nội dung từ các trường được chỉ định
-  const values = [];
-  fields.forEach(f => {
-    const val = item && item[f];
-    if (val !== undefined && val !== null) {
-      if (Array.isArray(val)) values.push(val.join(' '));
-      else values.push(String(val));
-    }
-  });
+  if (!item || !fields || !Array.isArray(fields) || fields.length === 0) return false;
 
-  const targets = buildSearchTargets(values);
-  return matchQueryAgainstTargets(targets, rawQuery);
+  // 1. Khớp độc lập từng trường trước (Per-field matching)
+  // Ngăn chặn triệt để lỗi ghép rác từ ngữ giữa các thực thể khác nhau (như Sinh viên với Doanh nghiệp)
+  for (const f of fields) {
+    const val = item[f];
+    if (val !== undefined && val !== null && matchFieldFlexible(val, rawQuery)) {
+      return true;
+    }
+  }
+
+  // Nếu người dùng yêu cầu chỉ khớp theo từng trường độc lập
+  if (options && options.strictPerField) {
+    return false;
+  }
+
+  // 2. Cho phép khớp toàn văn cho các trường hợp tìm kiếm tổng hợp (VD: "phục vụ phúc long")
+  // nhưng bảo vệ từng token với ranh giới từ an toàn
+  const qUnaccent = removeVietnameseTones(rawQuery);
+  const qNorm = normalizeSearchSynonyms(qUnaccent);
+  const tokens = (qNorm || qUnaccent).split(/\s+/).filter(tok => tok.length >= 2 || /^\d+$/.test(tok));
+
+  if (tokens.length >= 2) {
+    const fieldTexts = fields
+      .map(f => {
+        const val = item && item[f];
+        if (val === undefined || val === null) return '';
+        return normalizeSearchSynonyms(removeVietnameseTones(Array.isArray(val) ? val.join(' ') : String(val)));
+      })
+      .filter(Boolean);
+
+    const allTokensFound = tokens.every(tok => {
+      return fieldTexts.some(text => safeIncludesText(text, tok));
+    });
+
+    if (allTokensFound) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Nhóm ngành nghề chuẩn hóa toàn diện (Unified Semantic Category Groups)
+ * Phân định ranh giới rõ ràng giữa các ngành để loại bỏ triệt để hiện tượng xuyên nhóm
+ * (Ví dụ: Tuyệt đối không để Thu ngân/Bán lẻ lọt vào bộ lọc Gia sư/Giáo dục)
+ */
+export const CATEGORY_GROUPS = [
+  {
+    id: 'fnb',
+    name: 'F&B / Pha chế / Phục vụ café',
+    labels: ['pha che tra sua', 'f&b', 'pha che', 'barista', 'phuc vu cafe', 'phuc vu ca phe', 'tra sua', 'do uong', 'chay ban', 'phuc vu'],
+    keywords: [
+      'pha che', 'barista', 'tra sua', 'ca phe', 'cafe', 'f&b', 'phuc vu',
+      'chay ban', 'order', 'tiep thuc', 'do uong', 'bartender', 'quan ca phe', 'quan nuoc'
+    ]
+  },
+  {
+    id: 'retail',
+    name: 'Bán hàng / Thu ngân / Tiện lợi',
+    labels: ['ban hang', 'thu ngan', 'tien loi', 'ban le', 'sieu thi', 'cua hang', 'tap hoa'],
+    keywords: [
+      'ban hang', 'thu ngan', 'sieu thi', 'tien loi', 'cua hang', 'ban le',
+      'tap hoa', 'co.op', 'winmart', 'circle k', '7-eleven', 'gs25', 'ministop',
+      'family mart', 'cashier', 'quay thu ngan', 'tinh tien'
+    ]
+  },
+  {
+    id: 'education',
+    name: 'Gia sư / Trợ giảng / Giáo dục',
+    labels: ['gia su', 'tro giang', 'giao duc', 'day kem', 'day hoc', 'giang day', 'su pham'],
+    keywords: [
+      'gia su', 'tro giang', 'giao duc', 'day kem', 'giao vien', 'giang day',
+      'day tieng anh', 'gia su tieng anh', 'tro giang tieng anh', 'day toan',
+      'gia su toan', 'day ly', 'gia su ly', 'day hoa', 'gia su hoa', 'day van',
+      'gia su van', 'day tieu hoc', 'gia su tieu hoc', 'luyen thi', 'on thi',
+      'trung tam anh ngu', 'trung tam ngoai ngu', 'teaching assistant', 'tutor'
+    ]
+  },
+  {
+    id: 'cskh',
+    name: 'Chăm sóc khách hàng / Telesales',
+    labels: ['cham soc khach hang', 'telesales', 'cskh', 'tong dai vien', 'tu van tuyen sinh', 'tu van khach hang', 'tu van'],
+    keywords: ['cskh', 'cham soc khach hang', 'telesales', 'tu van', 'tong dai vien', 'customer service', 'call center']
+  },
+  {
+    id: 'office',
+    name: 'Lễ tân / Hành chính / Văn phòng',
+    labels: ['le tan khach san', 'le tan toa nha', 'le tan', 'hanh chinh', 'van phong', 'nhap lieu', 'thu ky', 'thu vien', 'soan thao'],
+    keywords: ['le tan', 'receptionist', 'hanh chinh', 'van phong', 'nhap lieu', 'thu vien', 'toa nha', 'thu ky', 'tro ly van phong', 'soan thao', 'le tan khach san']
+  },
+  {
+    id: 'logistics',
+    name: 'Giao hàng / Kho vận / Logistics',
+    labels: ['giao hang', 'kho van', 'logistics', 'shipper', 'van chuyen', 'dong goi kho', 'dong goi'],
+    keywords: ['giao hang', 'shipper', 'kho', 'logistics', 'van chuyen', 'dong goi', 'giao hang tiet kiem', 'shopee', 'lazada', 'grab']
+  },
+  {
+    id: 'event',
+    name: 'Sự kiện / PG / PB / Sampling',
+    labels: ['su kien', 'pg', 'pb', 'sampling', 'tiep thi'],
+    keywords: ['su kien', 'pg', 'pb', 'sampling', 'tiep thi', 'trien lam', 'event', 'mc']
+  },
+  {
+    id: 'hospitality',
+    name: 'Khách sạn / Nhà hàng / Rạp chiếu phim',
+    labels: ['khach san', 'hotel', 'resort', 'rap chieu phim', 'cgv', 'lotte', 'huong dan vien'],
+    keywords: ['khach san', 'hotel', 'resort', 'rap chieu phim', 'cgv', 'lotte', 'huong dan vien du lich', 'rap phim']
+  },
+  {
+    id: 'security_labor',
+    name: 'An ninh / Bảo vệ / Phụ bếp',
+    labels: ['an ninh', 'bao ve', 'phu bep', 'so che thuc pham', 'so che', 'lao dong pho thong', 've sinh', 'tap vu'],
+    keywords: [
+      'an ninh', 'bao ve', 'security', 'phu bep', 'so che', 'so che thuc pham',
+      'rua chen', 'tap vu', 've sinh', 'lao dong pho thong', 'boc xep', 'phu kho'
+    ]
+  },
+  {
+    id: 'it_design',
+    name: 'IT / Lập trình / Thiết kế / Marketing',
+    labels: [
+      'ho tro ky thuat', 'tong dai ky thuat', 'ky thuat vien', 'it helpdesk', 'it support',
+      'thuc tap sinh', 'thiet ke', 'cntt', 'marketing', 'content', 'lap trinh', 'do hoa', 'ky thuat'
+    ],
+    keywords: [
+      'cntt', 'cong nghe thong tin', 'it', 'lap trinh', 'developer', 'thiet ke', 'do hoa',
+      'design', 'designer', 'photoshop', 'illustrator', 'canva', 'figma', 'video', 'editor',
+      'marketing', 'content', 'social', 'tiktok', 'seo',
+      'ky thuat', 'ho tro ky thuat', 'helpdesk', 'it helpdesk', 'it support', 'tong dai ky thuat',
+      'ky thuat vien', 'sua chua'
+    ]
+  }
+];
+
+export function findCategoryGroup(text) {
+  if (!text) return null;
+  const un = removeVietnameseTones(String(text).toLowerCase().trim());
+  let bestGroup = null;
+  let maxLen = 0;
+  for (const g of CATEGORY_GROUPS) {
+    for (const l of g.labels) {
+      if (un.includes(l) && l.length > maxLen) {
+        maxLen = l.length;
+        bestGroup = g;
+      }
+    }
+  }
+  return bestGroup;
 }
 
 /**
@@ -306,12 +543,13 @@ export function matchCategoryFlexible(job, selectedCat, allCategories = []) {
 
   const jCatId = String(job.category_id || '').trim();
   const jCatName = String(job.category_name || job.category || job.industry || job.job_category || '').trim();
-  const jCatCandidates = [jCatName, jCatId].filter(Boolean);
   const jTitle = String(job.title || '');
-  const jDesc = String(job.description || '');
 
-  // 1. Khớp trực tiếp mã ID hoặc tên lưu thẳng trong category_id
+  // 1. Khớp trực tiếp mã ID hoặc tên lưu thẳng trong category_id / category_name
   if (jCatId && (jCatId === selRaw || jCatId.toLowerCase() === selLower || removeVietnameseTones(jCatId) === selUnaccent)) {
+    return true;
+  }
+  if (jCatName && (jCatName.toLowerCase() === selLower || removeVietnameseTones(jCatName) === selUnaccent)) {
     return true;
   }
 
@@ -326,66 +564,47 @@ export function matchCategoryFlexible(job, selectedCat, allCategories = []) {
     if (jCatId && matchedCatObj._id && jCatId === matchedCatObj._id) return true;
     const catObjNameLower = (matchedCatObj.name || '').toLowerCase().trim();
     const catObjNameUnaccent = removeVietnameseTones(matchedCatObj.name || '');
-    for (const jCand of jCatCandidates) {
-      const jCatLower = jCand.toLowerCase().trim();
-      const jCatUn = removeVietnameseTones(jCand);
-      if (jCatLower === catObjNameLower || jCatLower.includes(catObjNameLower) || catObjNameLower.includes(jCatLower)) return true;
-      if (jCatUn && catObjNameUnaccent && (jCatUn === catObjNameUnaccent || jCatUn.includes(catObjNameUnaccent) || catObjNameUnaccent.includes(jCatUn))) return true;
-    }
+    if (jCatName && (jCatName.toLowerCase() === catObjNameLower || jCatName.toLowerCase().includes(catObjNameLower) || catObjNameLower.includes(jCatName.toLowerCase()))) return true;
+    if (jCatName && (removeVietnameseTones(jCatName) === catObjNameUnaccent || removeVietnameseTones(jCatName).includes(catObjNameUnaccent) || catObjNameUnaccent.includes(removeVietnameseTones(jCatName)))) return true;
   }
 
-  // 3. Khớp theo nhóm ngành nghề tiêu chuẩn (Semantic Category Map - chuẩn hóa không dấu)
-  const categorySemanticKeywords = {
-    'f&b': ['pha che', 'barista', 'phuc vu', 'cafe', 'ca phe', 'f&b', 'do uong', 'tra sua', 'nha hang', 'quan an'],
-    'pha che': ['pha che', 'barista', 'tra sua', 'ca phe', 'cafe', 'f&b'],
-    'phuc vu': ['phuc vu', 'chay ban', 'tiep thuc', 'nha hang', 'cafe', 'ca phe'],
-    'ban hang': ['ban hang', 'thu ngan', 'sieu thi', 'tien loi', 'cua hang', 'ban le', 'co.op', 'winmart', 'circle k', '7-eleven'],
-    'thu ngan': ['thu ngan', 'cashier', 'tinh tien', 'quay thu ngan'],
-    'gia su': ['gia su', 'tro giang', 'giao duc', 'day kem', 'tieng anh', 'toan', 'ly', 'hoa', 'tieu hoc'],
-    'tro giang': ['tro giang', 'teaching assistant', 'trung tam'],
-    'thiet ke': ['thiet ke', 'do hoa', 'design', 'designer', 'photoshop', 'illustrator', 'canva', 'figma', 'video', 'editor'],
-    'rua chen': ['rua chen', 'phu bep', 'tap vu', 'so che', 'kitchen'],
-    'marketing': ['marketing', 'truyen thong', 'content', 'social', 'tiktok', 'pr', 'seeding', 'ads'],
-    'cntt': ['cntt', 'cong nghe thong tin', 'it', 'lap trinh', 'phan mem', 'developer', 'ky thuat', 'ho tro ky thuat', 'truc tong dai'],
-    'giao hang': ['giao hang', 'shipper', 'kho', 'logistics', 'van chuyen', 'dong goi', 'giao hang tiet kiem', 'shopee', 'lazada', 'grab'],
-    'shipper': ['shipper', 'giao hang', 'shopee', 'grab', 'be', 'giao do'],
-    'cham soc khach hang': ['cskh', 'cham soc khach hang', 'telesales', 'tu van', 'truc tong dai', 'customer service'],
-    'le tan': ['le tan', 'receptionist', 'hanh chinh', 'van phong', 'nhap lieu', 'thu vien', 'toa nha'],
-    'su kien': ['su kien', 'pg', 'pb', 'sampling', 'tiep thi', 'trien lam', 'event'],
-    'khach san': ['khach san', 'hotel', 'resort', 'rap chieu phim', 'cgv', 'lotte'],
-    'an ninh': ['an ninh', 'bao ve', 'security', 'phu bep', 'so che', 'tap vu']
-  };
+  // 3. Phân nhóm ngành nghề tiêu chuẩn (Semantic Category Matching)
+  const selGroup = findCategoryGroup(selRaw) || (matchedCatObj ? findCategoryGroup(matchedCatObj.name) : null);
 
-  const fullJobSearchText = removeVietnameseTones(`${jTitle} ${jCatCandidates.join(' ')} ${jDesc}`);
-  const matchSemanticKw = (text, kw) => {
-    if (kw.length <= 3) {
-      return new RegExp(`(?:^|[^a-z0-9])${escapeRegExp(kw)}(?![a-z0-9])`).test(text);
-    }
-    return text.includes(kw);
-  };
+  if (selGroup) {
+    const jobCatGroup = findCategoryGroup(jCatName) || findCategoryGroup(jCatId);
+    const jobTitleGroup = findCategoryGroup(jTitle);
 
-  // Quét các từ khóa của nhóm được chọn
-  for (const [groupKey, keywords] of Object.entries(categorySemanticKeywords)) {
-    if (selUnaccent.includes(groupKey)) {
-      if (keywords.some(kw => matchSemanticKw(fullJobSearchText, kw))) {
-        return true;
+    // Nếu công việc đã thuộc một nhóm ngành nghề khác rõ ràng -> LOẠI BỎ (tránh xuyên nhóm)
+    if (jobCatGroup && jobCatGroup.id !== selGroup.id) {
+      if (!jobTitleGroup || jobTitleGroup.id !== selGroup.id) {
+        return false;
       }
     }
+    if (jobTitleGroup && jobTitleGroup.id !== selGroup.id) {
+      if (!jobCatGroup || jobCatGroup.id !== selGroup.id) {
+        return false;
+      }
+    }
+
+    // Khớp từ khóa nòng cốt của nhóm trên tiêu đề hoặc phân loại công việc
+    const jobKeyText = removeVietnameseTones(`${jTitle} ${jCatName} ${jCatId}`).toLowerCase();
+
+    // Loại trừ kỹ thuật / IT / Helpdesk khỏi Chăm sóc khách hàng / Telesales
+    if (selGroup.id === 'cskh') {
+      const isTechSupport = /\b(ky thuat|ho tro ky thuat|helpdesk|it support|sua chua|lap trinh|cntt)\b/i.test(jobKeyText);
+      if (isTechSupport) {
+        return false;
+      }
+    }
+
+    const hasMatch = selGroup.keywords.some(kw => jobKeyText.includes(kw));
+    return hasMatch;
   }
 
-  // Khớp chuỗi trực tiếp giữa tên danh mục và tên/ID ngành nghề của job
-  for (const jCand of jCatCandidates) {
-    const jCatUn = removeVietnameseTones(jCand);
-    if (jCatUn && selUnaccent && (jCatUn.includes(selUnaccent) || selUnaccent.includes(jCatUn))) return true;
-  }
-
-  // Khớp từ khóa nòng cốt trong tiêu đề công việc
-  const coreWords = selUnaccent.split(/[\/\&,\-]+/).map(s => s.trim()).filter(s => s.length >= 3);
-  if (coreWords.some(w => fullJobSearchText.includes(w))) {
-    return true;
-  }
-
-  return false;
+  // 4. Nếu không thuộc nhóm nào (ngành nghề đặc thù), so khớp từ khóa chính xác trên tiêu đề & tên ngành
+  const jobHeader = removeVietnameseTones(`${jTitle} ${jCatName} ${jCatId}`).toLowerCase();
+  return jobHeader.includes(selUnaccent);
 }
 
 /**
@@ -543,48 +762,121 @@ export function matchSalaryBracketFlexible(job, salaryFilter, salaryBrackets = [
   return (jMax >= bracket.min && jMin <= bracket.max);
 }
 
+// Bảng bí danh tên Tỉnh / Thành phố chuẩn hóa (Province Aliases)
+const PROVINCE_ALIASES = {
+  'TP. Hồ Chí Minh': ['ho chi minh', 'tp ho chi minh', 'thanh pho ho chi minh', 'hcm', 'tphcm', 'tp hcm', 'tp.hcm', 'sai gon'],
+  'Hà Nội': ['ha noi', 'tp ha noi', 'thanh pho ha noi', 'hn', 'thu do ha noi'],
+  'Đà Nẵng': ['da nang', 'tp da nang', 'thanh pho da nang'],
+  'Hải Phòng': ['hai phong', 'tp hai phong', 'thanh pho hai phong'],
+  'Cần Thơ': ['can tho', 'tp can tho', 'thanh pho can tho'],
+  'Bình Dương': ['binh duong', 'tinh binh duong'],
+  'Đồng Nai': ['dong nai', 'tinh dong nai'],
+  'Khánh Hòa': ['khanh hoa', 'tinh khanh hoa', 'nha trang'],
+  'Lâm Đồng': ['lam dong', 'tinh lam dong', 'da lat'],
+  'Thừa Thiên Huế': ['thua thien hue', 'tp. hue', 'tp hue', 'thanh pho hue', 'tinh thua thien hue'],
+  'Bà Rịa - Vũng Tàu': ['ba ria vung tau', 'vung tau', 'ba ria']
+};
+
+export function sanitizeLocText(text) {
+  if (!text) return '';
+  return removeVietnameseTones(text).replace(/\bnguyen\s+hue\b/gi, 'nguyenhue');
+}
+
+export function getProvinceAliases(provName) {
+  if (!provName) return [];
+  if (PROVINCE_ALIASES[provName]) return PROVINCE_ALIASES[provName];
+  const un = removeVietnameseTones(provName);
+  const clean = un.replace(/^(?:tp\.?|thanh pho|tinh)\s+/i, '').trim();
+  return Array.from(new Set([un, clean])).filter(Boolean);
+}
+
+/**
+ * Tự động phát hiện Tỉnh / Thành phố được nhắc đến trong chuỗi địa chỉ
+ */
+export function detectProvincesInText(text) {
+  if (!text) return [];
+  const un = sanitizeLocText(text);
+  const detected = new Set();
+
+  // 1. Quét tên tỉnh thành và các bí danh phổ biến trong 63 tỉnh thành
+  for (const prov of VIETNAM_PROVINCES) {
+    const aliases = getProvinceAliases(prov);
+    for (const alias of aliases) {
+      let re;
+      if (alias === 'hue') {
+        re = /(?:^|[^a-z0-9])(?:tp\.?\s*hue|thanh\s*pho\s*hue|(?<!nguyen\s+)hue)(?![a-z0-9])/i;
+      } else {
+        re = new RegExp(`(?:^|[^a-z0-9])${escapeRegExp(alias)}(?![a-z0-9])`, 'i');
+      }
+      if (re.test(un)) {
+        detected.add(prov);
+        break;
+      }
+    }
+  }
+
+  // 2. Quét tên quận huyện đặc trưng của các tỉnh/thành lớn
+  for (const [prov, dists] of Object.entries(PROVINCE_DISTRICTS_MAP)) {
+    for (const dist of dists) {
+      const dUn = removeVietnameseTones(dist);
+      const dClean = dUn.replace(/^(?:quan|huyen|thi xa|thanh pho|tp\.?)\s+/i, '').trim();
+      let re;
+      if (/^\d+$/.test(dClean)) {
+        re = new RegExp(`(?:^|[^a-z0-9])(?:quan|q\\.?)\\s*0?${parseInt(dClean, 10)}(?![0-9])`, 'i');
+      } else if (dClean === 'hue') {
+        re = /(?:^|[^a-z0-9])(?:tp\.?\s*hue|thanh\s*pho\s*hue|(?<!nguyen\s+)hue)(?![a-z0-9])/i;
+      } else if (dClean.length >= 3) {
+        re = new RegExp(`(?:^|[^a-z0-9])${escapeRegExp(dClean)}(?![a-z0-9])`, 'i');
+      }
+      if (re && re.test(un)) {
+        detected.add(prov);
+        break;
+      }
+    }
+  }
+
+  return Array.from(detected);
+}
+
+function matchDistrictInText(text, districtName) {
+  if (!text || !districtName) return false;
+  const tUn = sanitizeLocText(text);
+  const dUn = removeVietnameseTones(districtName);
+  const dClean = dUn.replace(/^(?:quan|huyen|thi xa|thanh pho|tp\.?)\s+/i, '').trim();
+
+  if (/^\d+$/.test(dClean)) {
+    const num = parseInt(dClean, 10);
+    const re = new RegExp(`(?:^|[^a-z0-9])(?:quan|q\\.?)\\s*0?${num}(?![0-9])`, 'i');
+    return re.test(tUn);
+  }
+
+  if (dClean === 'hue') {
+    const re = /(?:^|[^a-z0-9])(?:tp\.?\s*hue|thanh\s*pho\s*hue|(?<!nguyen\s+)hue)(?![a-z0-9])/i;
+    return re.test(tUn);
+  }
+
+  const re = new RegExp(`(?:^|[^a-z0-9])${escapeRegExp(dClean)}(?![a-z0-9])`, 'i');
+  return re.test(tUn);
+}
+
 /**
  * 7. Khớp địa lý đa tầng thông minh (Location Matching)
- * Tự động nhận diện Tỉnh/Thành qua tên, alias và danh sách 24 quận/huyện
+ * Đảm bảo tính chính xác 100%: Tuyệt đối không để tin làm việc tại Hà Nội lọt vào bộ lọc TP. Hồ Chí Minh
+ * (Ưu tiên số 1 cho địa điểm làm việc thực tế, loại trừ nhiễu từ tên doanh nghiệp hay chi nhánh mặc định)
  */
 export function matchLocationFlexible(job, selectedProvince, selectedDistricts = [], customLocationText = '') {
-  const locTokens = [
-    job.location,
-    job.address,
-    job.branch_name,
-    job.district,
-    job.province,
-    job.city,
-    job.company_name
-  ].filter(Boolean);
+  if (!job || typeof job !== 'object') return false;
 
-  const locTargets = buildSearchTargets(locTokens);
-  const fullLoc = locTargets.fullText;
-  const fullLocUnaccent = locTargets.fullTextUnaccent;
-  const fullLocNorm = locTargets.fullTextNorm;
+  const workLocStr = [job.location, job.address].filter(Boolean).join(' ');
+  const adminLocStr = [job.district, job.province, job.city].filter(Boolean).join(' ');
+  const branchLocStr = String(job.branch_name || '').trim();
 
-  const matchSingleDistrict = (d) => {
-    const dLow = String(d || '').toLowerCase().trim();
-    const dUn = removeVietnameseTones(dLow);
-    const dNorm = normalizeSearchSynonyms(splitLetterDigit(dUn));
-    const dClean = dNorm.replace(/^(quan|huyen|thi xa|thanh pho|tp\.?)\s+/i, '').trim();
-    if (/^\d+$/.test(dClean)) {
-      const cleanNum = String(parseInt(dClean, 10));
-      const isDistrictPrefix = /^(?:quan|q\b|q\.|huyen|thi xa)/i.test(dUn);
-      if (isDistrictPrefix) {
-        return new RegExp(`(?:^|[^\\da-z])(?:quan|q\\.?|huyen)\\s*0?${cleanNum}(?!\\d)`, 'i').test(fullLocUnaccent) ||
-          new RegExp(`\\b(?:quan|huyen)\\s*0?${cleanNum}(?!\\d)`, 'i').test(fullLocNorm);
-      }
-      return new RegExp(`(?:^|[^\\da-z])(?:quan|q\\.?|p\\.?|phuong|huyen)\\s*0?${cleanNum}(?!\\d)`, 'i').test(fullLocUnaccent) ||
-        new RegExp(`\\b(?:quan|huyen|phuong)\\s*0?${cleanNum}(?!\\d)`, 'i').test(fullLocNorm);
-    }
-    return phraseInText(fullLoc, dLow) ||
-      phraseInText(fullLocUnaccent, dUn) ||
-      (dClean && phraseInText(fullLocNorm, dClean)) ||
-      matchQueryAgainstTargets(locTargets, dLow);
-  };
+  // Full location text cho tìm kiếm tự do (Tuyệt đối KHÔNG gộp company_name vào để tránh nhận nhầm tên thương hiệu)
+  const fullLocTokens = [workLocStr, adminLocStr, branchLocStr].filter(Boolean);
+  const fullLocText = fullLocTokens.join(' ');
+  const fullLocUnaccent = sanitizeLocText(fullLocText);
 
-  // 1. Kiểm tra Tỉnh / Thành phố (hoặc Địa điểm Master Data động)
+  // 1. Kiểm tra Tỉnh / Thành phố
   if (
     selectedProvince &&
     selectedProvince !== 'all' &&
@@ -593,47 +885,68 @@ export function matchLocationFlexible(job, selectedProvince, selectedDistricts =
     selectedProvince !== 'Tất cả' &&
     selectedProvince !== 'Tất cả địa điểm'
   ) {
-    const provLower = String(selectedProvince).trim().toLowerCase();
-    const provUnaccent = removeVietnameseTones(selectedProvince);
-    const isKnownProvince = Object.prototype.hasOwnProperty.call(PROVINCE_DISTRICTS_MAP, selectedProvince);
+    const selProvName = String(selectedProvince).trim();
 
-    let matchProv = false;
-
-    if (selectedProvince === 'TP. Hồ Chí Minh' || provUnaccent.includes('ho chi minh') || provUnaccent === 'tphcm' || provUnaccent === 'tp.hcm') {
-      matchProv = /\b(?:ho chi minh|hcm|tphcm|tp\s*\.?\s*hcm|sai gon|ben nghe)\b/i.test(fullLocUnaccent);
-      if (!matchProv) {
-        const hcmDistricts = PROVINCE_DISTRICTS_MAP['TP. Hồ Chí Minh'] || [];
-        matchProv = hcmDistricts.some(matchSingleDistrict);
-      }
-    } else if (selectedProvince === 'Hà Nội' || provUnaccent === 'ha noi') {
-      matchProv = /\b(?:ha noi|hn|cau giay|dong da|ba dinh|hoan kiem|hai ba trung|thanh xuan|tay ho|hoang mai|long bien|ha dong|nam tu liem|bac tu liem)\b/i.test(fullLocUnaccent);
-    } else if (isKnownProvince) {
-      matchProv = phraseInText(fullLoc, provLower) || phraseInText(fullLocUnaccent, provUnaccent);
-      if (!matchProv) {
-        const distList = PROVINCE_DISTRICTS_MAP[selectedProvince] || [];
-        matchProv = distList.some(matchSingleDistrict);
+    // Bước 1.1: Nhận diện tỉnh/thành tại địa điểm làm việc thực tế (job.location, job.address)
+    const workProvinces = detectProvincesInText(workLocStr);
+    if (workProvinces.length > 0) {
+      if (!workProvinces.includes(selProvName)) {
+        // Địa điểm làm việc ghi rõ một tỉnh/thành khác (VD: "Quận Cầu Giấy, Hà Nội" != "TP. Hồ Chí Minh")
+        // => Loại bỏ dứt khoát, branch_name hoặc trụ sở công ty không được phép ghi đè!
+        return false;
       }
     } else {
-      // Địa điểm tùy chỉnh do Admin tạo (VD: "Quận 1", "Bình Thạnh", "TP. Thủ Đức") -> khớp có ranh giới để không lẫn Quận 1 vs Quận 10
-      matchProv = matchSingleDistrict(selectedProvince);
+      // Nếu địa điểm làm việc chưa đủ thông tin, kiểm tra trường hành chính (job.district, job.province, job.city)
+      const adminProvinces = detectProvincesInText(adminLocStr);
+      if (adminProvinces.length > 0) {
+        if (!adminProvinces.includes(selProvName)) {
+          return false;
+        }
+      } else {
+        // Fallback kiểm tra chi nhánh
+        const branchProvinces = detectProvincesInText(branchLocStr);
+        if (branchProvinces.length > 0) {
+          if (!branchProvinces.includes(selProvName)) {
+            return false;
+          }
+        } else {
+          // Trường hợp địa điểm đặc thù / Master Data động do Admin tạo
+          const pAliases = getProvinceAliases(selProvName);
+          const hasProvAlias = pAliases.some(alias => {
+            let re;
+            if (alias === 'hue') {
+              re = /(?:^|[^a-z0-9])(?:tp\.?\s*hue|thanh\s*pho\s*hue|(?<!nguyen\s+)hue)(?![a-z0-9])/i;
+            } else {
+              re = new RegExp(`(?:^|[^a-z0-9])${escapeRegExp(alias)}(?![a-z0-9])`, 'i');
+            }
+            return re.test(fullLocUnaccent);
+          });
+          if (!hasProvAlias) {
+            return false;
+          }
+        }
+      }
     }
-
-    if (!matchProv) return false;
   }
 
-  // 2. Nếu người dùng chọn lọc thêm danh sách Quận / Huyện (kể cả khi đang để Toàn quốc)
+  // 2. Kiểm tra Quận / Huyện (nếu có chọn)
   if (selectedDistricts && selectedDistricts.length > 0) {
     const validDistricts = selectedDistricts.filter(d => d && String(d).trim() && String(d).toLowerCase() !== 'all');
-    if (validDistricts.length > 0 && !validDistricts.some(matchSingleDistrict)) {
-      return false;
+    if (validDistricts.length > 0) {
+      const targetText = workLocStr || adminLocStr || branchLocStr;
+      const hasDistrictMatch = validDistricts.some(d => matchDistrictInText(targetText, d));
+      if (!hasDistrictMatch) {
+        return false;
+      }
     }
   }
 
-  // 3. Ô nhập tay tùy chỉnh địa điểm (hỗ trợ đầy đủ viết hoa/thường, không dấu, dính liền, chữ kèm số, tiền tố Chi nhánh)
+  // 3. Kiểm tra ô nhập tay tùy chỉnh
   if (customLocationText && customLocationText.trim()) {
     const rawCustom = customLocationText.trim().toLowerCase();
     if (rawCustom !== 'all' && rawCustom !== 'tất cả' && !rawCustom.startsWith('tất cả ')) {
-      if (!matchQueryAgainstTargets(locTargets, rawCustom)) {
+      const customUn = removeVietnameseTones(rawCustom);
+      if (!fullLocUnaccent.includes(customUn)) {
         return false;
       }
     }
@@ -944,9 +1257,19 @@ export function doesRoomMatchApplication(roomId, { employerId, studentUserId, ap
  * Dùng chung cho Cổng Sinh Viên (my_shifts) và Cổng Nhà Tuyển Dụng (Lịch ca theo tuần T2 - CN)
  */
 export function normalizeShiftStatus(appOrStatus, localOverrideStatus = null) {
-  const raw = typeof appOrStatus === 'object' && appOrStatus !== null
-    ? (appOrStatus.shift_status || localOverrideStatus || 'upcoming')
-    : (appOrStatus || localOverrideStatus || 'upcoming');
+  if (typeof appOrStatus === 'object' && appOrStatus !== null) {
+    if (appOrStatus.is_cancelled || appOrStatus.application_status === 'cancelled' || appOrStatus.application_status === 'withdrawn') {
+      return 'cancelled';
+    }
+    const raw = localOverrideStatus || appOrStatus.shift_status || appOrStatus.student_shift_status || 'upcoming';
+    const s = String(raw).toLowerCase().trim();
+    if (s === 'working' || s === 'in_progress') return 'in_progress';
+    if (s === 'completed') return 'completed';
+    if (s === 'absent') return 'absent';
+    if (s === 'cancelled' || s === 'canceled') return 'cancelled';
+    return 'upcoming';
+  }
+  const raw = appOrStatus || localOverrideStatus || 'upcoming';
   const s = String(raw).toLowerCase().trim();
   if (s === 'working' || s === 'in_progress') return 'in_progress';
   if (s === 'completed') return 'completed';
@@ -1286,3 +1609,116 @@ export function computeAcceptedShiftsSummary(applicationsList = [], jobsList = [
     hasWageData,
   };
 }
+
+/**
+ * BẢN ĐỒ CÁC QUẬN/HUYỆN LIỀN KỀ (ADJACENCY MATRIX) - TP. HỒ CHÍ MINH
+ * Phục vụ phân tầng ưu tiên khoảng cách lân cận địa chỉ cư trú của sinh viên
+ */
+export const HCMC_DISTRICT_ADJACENCY = {
+  "quận 1": ["quận 3", "quận 4", "quận bình thạnh", "quận phú nhuận", "quận 5", "tp. thủ đức", "quận 2"],
+  "quận 3": ["quận 1", "quận 10", "quận phú nhuận", "quận tân bình"],
+  "quận 4": ["quận 1", "quận 7", "quận 8", "tp. thủ đức", "quận 2"],
+  "quận 5": ["quận 1", "quận 6", "quận 8", "quận 10", "quận 11"],
+  "quận 6": ["quận 5", "quận 8", "quận 11", "quận bình tân"],
+  "quận 7": ["quận 4", "quận 8", "huyện nhà bè", "huyện bình chánh", "tp. thủ đức", "quận 2"],
+  "quận 8": ["quận 4", "quận 5", "quận 6", "quận 7", "huyện bình chánh"],
+  "quận 10": ["quận 3", "quận 5", "quận 11", "quận tân bình", "quận 1"],
+  "quận 11": ["quận 5", "quận 6", "quận 10", "quận tân bình", "quận tân phú"],
+  "quận 12": ["quận gò vấp", "quận tân bình", "quận tân phú", "quận bình tân", "huyện hóc môn", "tp. thủ đức"],
+  "quận bình tân": ["quận 6", "quận 8", "quận 12", "quận tân phú", "huyện bình chánh"],
+  "quận bình thạnh": ["quận 1", "quận phú nhuận", "quận gò vấp", "tp. thủ đức", "quận 2"],
+  "quận gò vấp": ["quận 12", "quận bình thạnh", "quận phú nhuận", "quận tân bình"],
+  "quận phú nhuận": ["quận 1", "quận 3", "quận bình thạnh", "quận gò vấp", "quận tân bình"],
+  "quận tân bình": ["quận 3", "quận 10", "quận 11", "quận 12", "quận gò vấp", "quận phú nhuận", "quận tân phú"],
+  "quận tân phú": ["quận 11", "quận 12", "quận bình tân", "quận tân bình"],
+  "tp. thủ đức": ["quận 1", "quận 4", "quận 7", "quận bình thạnh", "quận 12"],
+  "quận 2": ["quận 1", "quận 4", "quận 7", "quận bình thạnh"],
+  "quận 9": ["tp. thủ đức"],
+  "huyện bình chánh": ["quận 7", "quận 8", "quận bình tân", "huyện nhà bè", "huyện hóc môn"],
+  "huyện hóc môn": ["quận 12", "huyện củ chi", "huyện bình chánh"],
+  "huyện củ chi": ["huyện hóc môn"],
+  "huyện nhà bè": ["quận 7", "huyện bình chánh", "huyện cần giờ"],
+  "huyện cần giờ": ["huyện nhà bè"]
+};
+
+/**
+ * BẢN ĐỒ CÁC QUẬN/HUYỆN LIỀN KỀ - HÀ NỘI
+ */
+export const HANOI_DISTRICT_ADJACENCY = {
+  "quận ba đình": ["quận tây hồ", "quận đống đa", "quận hoàn kiếm", "quận cầu giấy"],
+  "quận cầu giấy": ["quận ba đình", "quận đống đa", "quận nam từ liêm", "quận bắc từ liêm", "quận thanh xuân", "quận tây hồ"],
+  "quận đống đa": ["quận ba đình", "quận hoàn kiếm", "quận hai bà trưng", "quận thanh xuân", "quận cầu giấy"],
+  "quận hai bà trưng": ["quận hoàn kiếm", "quận đống đa", "quận hoàng mai", "quận long biên"],
+  "quận hoàn kiếm": ["quận ba đình", "quận đống đa", "quận hai bà trưng", "quận long biên", "quận tây hồ"],
+  "quận hoàng mai": ["quận hai bà trưng", "quận thanh xuân", "quận long biên", "huyện thanh trì"],
+  "quận long biên": ["quận hoàn kiếm", "quận hai bà trưng", "quận ba đình", "quận tây hồ", "huyện gia lâm"],
+  "quận tây hồ": ["quận ba đình", "quận cầu giấy", "quận bắc từ liêm", "quận long biên"],
+  "quận thanh xuân": ["quận đống đa", "quận cầu giấy", "quận hai bà trưng", "quận hoàng mai", "quận nam từ liêm", "quận hà đông"],
+  "quận bắc từ liêm": ["quận cầu giấy", "quận nam từ liêm", "quận tây hồ", "huyện đan phượng", "huyện hoài đức"],
+  "quận nam từ liêm": ["quận cầu giấy", "quận bắc từ liêm", "quận thanh xuân", "quận hà đông", "huyện hoài đức"],
+  "quận hà đông": ["quận thanh xuân", "quận nam từ liêm", "huyện thanh trì", "huyện hoài đức"]
+};
+
+/**
+ * THUẬT TOÁN TÍNH ĐIỂM ƯU TIÊN THEO ĐỊA CHỈ CƯ TRÚ CỦA SINH VIÊN
+ * Phân tầng chuẩn xác:
+ * - Level 1: Cùng đúng Quận/Huyện cư trú: 10.000 điểm
+ * - Level 2: Quận/Huyện giáp ranh lân cận trực tiếp: 7.000 điểm
+ * - Level 3: Quận lân cận kế cận (cách 1 quận trong cùng TP): 5.000 điểm
+ * - Level 4: Quận/Huyện khác trong cùng Tỉnh/TP: 3.000 điểm
+ * - Level 5: Khác Tỉnh/Thành phố: 0 điểm
+ */
+export function calculateLocationProximityScore(jobLocStr, userAddrStr, categories = []) {
+  if (!userAddrStr || !userAddrStr.trim() || !jobLocStr || !jobLocStr.trim()) return 0;
+  const uLoc = extractProvinceAndDistrict(userAddrStr, categories);
+  const jLoc = extractProvinceAndDistrict(jobLocStr, categories);
+
+  const cleanDist = (d) => {
+    if (!d) return '';
+    return removeVietnameseTones(String(d).toLowerCase().replace(/^(quận|huyện|tp\.?|thành phố|thị xã)\s+/i, '')).trim();
+  };
+
+  if (!uLoc.province || !jLoc.province) {
+    const uLow = removeVietnameseTones(userAddrStr.toLowerCase());
+    const jLow = removeVietnameseTones(jobLocStr.toLowerCase());
+    const segs = uLow.split(/[,;\-\/]+/).map(s => s.trim()).filter(s => s.length >= 2);
+    for (const seg of segs) {
+      if (jLow.includes(seg)) return 3000;
+    }
+    return 0;
+  }
+
+  // Khác Tỉnh/Thành phố -> 0 điểm
+  if (uLoc.province !== jLoc.province) {
+    return 0;
+  }
+
+  const uDistNorm = cleanDist(uLoc.district);
+  const jDistNorm = cleanDist(jLoc.district);
+
+  // Level 1: Cùng đúng Quận/Huyện
+  if (uDistNorm && jDistNorm && uDistNorm === jDistNorm) {
+    return 10000;
+  }
+
+  const uFullDist = (uLoc.district || '').toLowerCase().trim();
+  const adjMap = uLoc.province.includes('Hà Nội') ? HANOI_DISTRICT_ADJACENCY : HCMC_DISTRICT_ADJACENCY;
+  const uNeighbors = adjMap[uFullDist] || [];
+
+  // Level 2: Quận giáp ranh trực tiếp
+  if (uNeighbors.some(n => cleanDist(n) === jDistNorm)) {
+    return 7000;
+  }
+
+  // Level 3: Quận lân cận kế cận (cách 1 quận)
+  for (const n of uNeighbors) {
+    const secondNeighbors = adjMap[n] || [];
+    if (secondNeighbors.some(sn => cleanDist(sn) === jDistNorm)) {
+      return 5000;
+    }
+  }
+
+  // Level 4: Khác quận nhưng cùng Tỉnh/Thành phố
+  return 3000;
+}
+

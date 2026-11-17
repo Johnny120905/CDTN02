@@ -9,7 +9,7 @@ from src.core.notification_service import (
     resolve_employer_user_id,
 )
 from src.middlewares.auth_middleware import role_required
-from src.api.common.common_routes import scan_job_banned_keywords
+from src.api.common.common_routes import scan_job_banned_keywords, auto_adjust_job_moderation
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 
@@ -468,16 +468,7 @@ def list_all_jobs():
             j["status"] = j["job_status"]
         elif not j.get("job_status") and j.get("status"):
             j["job_status"] = j["status"]
-        matched_kws = scan_job_banned_keywords(j, banned_docs)
-        j["matched_banned_keywords"] = matched_kws
-        j["has_sensitive_keywords"] = len(matched_kws) > 0
-        if "is_admin_reviewed" not in j or j.get("is_admin_reviewed") is None:
-            if j["has_sensitive_keywords"]:
-                j["is_admin_reviewed"] = False
-                j["is_hidden"] = True
-            else:
-                j["is_admin_reviewed"] = True
-                j["is_hidden"] = False
+        auto_adjust_job_moderation(j, banned_docs, persist=True)
     return jsonify({"success": True, "data": jobs})
 
 @admin_bp.route("/jobs/<job_id>/approve-moderation", methods=["PUT"])
@@ -973,11 +964,44 @@ def list_all_reviews():
     
     reviews = list(rev_col.find({}).sort("created_at", -1))
     
-    # Tạo map cache người dùng để tối ưu hiệu năng
+    # Tạo map cache người dùng và hồ sơ để tối ưu hiệu năng
     all_users = {u["_id"]: u for u in user_col.find({})}
     all_apps = {a["_id"]: a for a in app_col.find({})}
-    all_comps = {c.get("employer_id", c["_id"]): c for c in comp_col.find({})}
-    all_stus = {s.get("student_id", s["_id"]): s for s in stu_col.find({})}
+    all_comps = list(comp_col.find({}))
+    all_emps = list(db_manager.get_collection("employers").find({}))
+    all_stus = list(stu_col.find({}))
+
+    # Ánh xạ ID sang tên doanh nghiệp chính xác
+    emp_to_comp = {}
+    for c in all_comps:
+        c_name = c.get("company_name")
+        if c_name:
+            if c.get("employer_id"):
+                emp_to_comp[c["employer_id"]] = c_name
+            if c.get("_id"):
+                emp_to_comp[c["_id"]] = c_name
+    for e in all_emps:
+        c_name = emp_to_comp.get(e.get("_id"))
+        if c_name and e.get("user_id"):
+            emp_to_comp[e["user_id"]] = c_name
+
+    # Ánh xạ ID sang tên sinh viên chính xác
+    stu_to_name = {}
+    for s in all_stus:
+        s_name = s.get("full_name")
+        if s_name:
+            if s.get("student_id"):
+                stu_to_name[s["student_id"]] = s_name
+            if s.get("user_id"):
+                stu_to_name[s["user_id"]] = s_name
+            if s.get("_id"):
+                stu_to_name[s["_id"]] = s_name
+
+    def resolve_company(uid, default_val=None):
+        return emp_to_comp.get(uid) or (all_users.get(uid) and all_users[uid].get("company_name")) or default_val
+
+    def resolve_student(uid, default_val=None):
+        return stu_to_name.get(uid) or (all_users.get(uid) and all_users[uid].get("full_name")) or default_val
 
     enriched = []
     for r in reviews:
@@ -992,37 +1016,51 @@ def list_all_reviews():
 
         # Xác định chiều tương tác (Direction)
         if not rev_copy.get("direction"):
-            if (u_reviewer and u_reviewer.get("role") == "employer") or (rev_copy.get("reviewer_name") == "Nhà tuyển dụng"):
+            if (u_reviewer and u_reviewer.get("role") == "employer") or (rev_copy.get("reviewer_name") == "Nhà tuyển dụng") or (rev_id in emp_to_comp):
                 rev_copy["direction"] = "employer_to_student"
                 rev_copy["reviewer_role"] = "employer"
                 rev_copy["target_role"] = "student"
                 if not rev_copy.get("reviewer_name") or rev_copy["reviewer_name"] == "Nhà tuyển dụng":
-                    rev_copy["reviewer_name"] = (u_reviewer and (u_reviewer.get("company_name") or u_reviewer.get("full_name"))) or (app_item and app_item.get("company_name")) or "Doanh nghiệp tuyển dụng"
+                    rev_copy["reviewer_name"] = resolve_company(rev_id) or (app_item and app_item.get("company_name")) or (u_reviewer and u_reviewer.get("full_name")) or "Công ty tuyển dụng"
                 if not rev_copy.get("target_name"):
-                    rev_copy["target_name"] = (u_target and u_target.get("full_name")) or (app_item and app_item.get("student_name")) or "Sinh viên ứng viên"
+                    rev_copy["target_name"] = resolve_student(tgt_id) or (app_item and app_item.get("student_name")) or "Sinh viên ứng viên"
             else:
                 rev_copy["direction"] = "student_to_employer"
                 rev_copy["reviewer_role"] = "student"
                 rev_copy["target_role"] = "employer"
                 if not rev_copy.get("reviewer_name"):
-                    rev_copy["reviewer_name"] = (u_reviewer and u_reviewer.get("full_name")) or (app_item and app_item.get("student_name")) or "Sinh viên"
+                    rev_copy["reviewer_name"] = resolve_student(rev_id) or (app_item and app_item.get("student_name")) or "Sinh viên"
                 if not rev_copy.get("target_name"):
-                    rev_copy["target_name"] = (u_target and (u_target.get("company_name") or u_target.get("full_name"))) or (app_item and app_item.get("company_name")) or "Doanh nghiệp"
+                    rev_copy["target_name"] = resolve_company(tgt_id) or (app_item and app_item.get("company_name")) or (u_target and u_target.get("full_name")) or "Doanh nghiệp"
 
         if app_item and not rev_copy.get("job_title"):
             rev_copy["job_title"] = app_item.get("job_title", "Ca làm việc")
 
-        # Đảm bảo luôn có đủ student_name và company_name để phục vụ tìm kiếm chính xác
+        # Đảm bảo luôn có đủ student_name và company_name chuẩn hóa để phục vụ tìm kiếm chính xác
         if not rev_copy.get("student_name"):
             if rev_copy.get("direction") == "employer_to_student":
-                rev_copy["student_name"] = rev_copy.get("target_name") or (app_item and (app_item.get("student_name") or (app_item.get("application_snapshot") or {}).get("student_name"))) or (u_target and u_target.get("full_name")) or ""
+                rev_copy["student_name"] = rev_copy.get("target_name") or resolve_student(tgt_id) or (app_item and (app_item.get("student_name") or (app_item.get("application_snapshot") or {}).get("student_name"))) or ""
             else:
-                rev_copy["student_name"] = rev_copy.get("reviewer_name") or (app_item and (app_item.get("student_name") or (app_item.get("application_snapshot") or {}).get("student_name"))) or (u_reviewer and u_reviewer.get("full_name")) or ""
+                rev_copy["student_name"] = rev_copy.get("reviewer_name") or resolve_student(rev_id) or (app_item and (app_item.get("student_name") or (app_item.get("application_snapshot") or {}).get("student_name"))) or ""
         if not rev_copy.get("company_name"):
             if rev_copy.get("direction") == "employer_to_student":
-                rev_copy["company_name"] = rev_copy.get("reviewer_name") or (app_item and app_item.get("company_name")) or (u_reviewer and u_reviewer.get("company_name")) or ""
+                rev_copy["company_name"] = rev_copy.get("reviewer_name") or resolve_company(rev_id) or (app_item and app_item.get("company_name")) or ""
             else:
-                rev_copy["company_name"] = rev_copy.get("target_name") or (app_item and app_item.get("company_name")) or (u_target and u_target.get("company_name")) or ""
+                rev_copy["company_name"] = rev_copy.get("target_name") or resolve_company(tgt_id) or (app_item and app_item.get("company_name")) or ""
+
+        # Nếu reviewer_name hoặc target_name còn là chữ chung chung, ưu tiên tên chính xác
+        if rev_copy.get("direction") == "employer_to_student":
+            if rev_copy.get("reviewer_name") in ["Nhà tuyển dụng", "Doanh nghiệp", "Doanh nghiệp tuyển dụng"]:
+                real_cname = resolve_company(rev_id) or (app_item and app_item.get("company_name"))
+                if real_cname:
+                    rev_copy["reviewer_name"] = real_cname
+                    rev_copy["company_name"] = real_cname
+        else:
+            if rev_copy.get("target_name") in ["Doanh nghiệp", "Doanh nghiệp tuyển dụng"]:
+                real_cname = resolve_company(tgt_id) or (app_item and app_item.get("company_name"))
+                if real_cname:
+                    rev_copy["target_name"] = real_cname
+                    rev_copy["company_name"] = real_cname
 
         enriched.append(rev_copy)
 
@@ -1107,6 +1145,17 @@ def delete_admin_review(rev_id):
         db_manager.get_collection("student_profiles").update_many(
             {"$or": [{"student_id": target_id}, {"user_id": target_id}]},
             {"$set": {"rating_avg": avg_score, "review_count": len(active_reviews)}}
+        )
+
+    if rev and rev.get("reviewer_id"):
+        create_and_emit_notification(
+            user_id=rev["reviewer_id"],
+            title="Đánh giá đã bị gỡ bỏ",
+            message=f"Đánh giá của bạn cho '{rev.get('job_title', 'công việc')}' đã bị Quản trị viên xóa vĩnh viễn khỏi hệ thống do vi phạm chính sách.",
+            notif_type="review",
+            role=rev.get("reviewer_role", "student"),
+            related_id=rev_id,
+            target_id=rev["reviewer_id"],
         )
 
     emit_socket_event("review-updated", {"review_id": rev_id, "deleted": True})

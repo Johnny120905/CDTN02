@@ -495,6 +495,9 @@ def list_my_applications():
     comp_by_emp_id = {c.get("employer_id"): c for c in comp_col.find({}) if c.get("employer_id")}
 
     for a in apps:
+        raw_title = a.get("job_title", "")
+        if "pha chế & thu ngân" in raw_title.lower():
+            a["job_title"] = "Nhân viên Pha chế Part-time Ca Linh Hoạt"
         job = jobs_map.get(a.get("job_id"))
         if job:
             a.setdefault("work_time", job.get("work_time") or job.get("shift_schedule") or "Ca linh hoạt")
@@ -524,6 +527,14 @@ def list_my_applications():
             or "Doanh nghiệp"
         )
         a["company_name"] = resolved_name
+        resolved_logo = (
+            (comp_doc.get("logo_url") if comp_doc else "")
+            or (job.get("company_logo") if job else "")
+            or a.get("company_logo")
+            or ""
+        )
+        a["company_logo"] = resolved_logo
+        a["logo_url"] = resolved_logo
 
         if canonical_emp_id:
             room_id = canonicalize_room_id(f"room_emp_{canonical_emp_id}_stu_{user['_id']}_app_{a['_id']}")
@@ -638,27 +649,57 @@ def update_shift_status(app_id):
     if not app:
         return jsonify({"success": False, "message": "Không tìm thấy ca làm việc."}), 404
 
-    update_fields = {"shift_status": shift_status, "shift_updated_at": time.strftime("%Y-%m-%d %H:%M:%S")}
+    now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+    update_fields = {"shift_updated_at": now_str}
+    if shift_status == "in_progress":
+        update_fields["shift_status"] = "in_progress"
+        update_fields["student_shift_status"] = "in_progress"
+        update_fields["started_at"] = now_str
+        update_fields["student_completed"] = False
+        update_fields["employer_confirmed"] = False
+    elif shift_status == "completed":
+        # Sinh viên xác nhận xong ca làm -> chuyển sang chờ Doanh nghiệp nghiệm thu
+        update_fields["shift_status"] = "completed"
+        update_fields["student_completed"] = True
+        update_fields["student_shift_status"] = "completed"
+        update_fields["student_completed_at"] = now_str
+        if not app.get("employer_confirmed"):
+            update_fields["employer_confirmed"] = False
+    elif shift_status == "cancelled":
+        update_fields["shift_status"] = "cancelled"
+        update_fields["student_shift_status"] = "cancelled"
+        update_fields["is_cancelled"] = True
+        update_fields["cancelled_at"] = now_str
+    elif shift_status == "upcoming":
+        update_fields["shift_status"] = "upcoming"
+        update_fields["student_shift_status"] = "upcoming"
+        update_fields["student_completed"] = False
+        update_fields["employer_confirmed"] = False
+
     if "shift_date" in data:
         update_fields["shift_date"] = str(data["shift_date"]).strip()
     if "shift_week" in data:
         update_fields["shift_week"] = str(data["shift_week"]).strip()
+    
+    status_label_map = {
+        "in_progress": "bắt đầu vào ca làm việc",
+        "completed": "xác nhận hoàn thành ca làm (chờ Doanh nghiệp nghiệm thu)",
+        "cancelled": "hủy ca làm việc",
+        "upcoming": "cập nhật ca làm việc sắp tới",
+    }
     app_col.update_one(
         {"_id": app_id},
-        {"$set": update_fields}
+        {
+            "$set": update_fields,
+            "$push": {
+                "status_history": {
+                    "status": f"shift_{shift_status}",
+                    "updated_at": now_str,
+                    "note": f"Sinh viên {status_label_map.get(shift_status, shift_status)}"
+                }
+            }
+        }
     )
-    msg_map = {
-        "in_progress": "Đã nhận ca làm việc thành công!",
-        "completed": "Đã xác nhận hoàn thành ca làm việc!",
-        "cancelled": "Đã hủy ca làm việc thành công!",
-        "upcoming": "Đã cập nhật trạng thái ca làm việc!"
-    }
-    status_label_map = {
-        "in_progress": "bắt đầu thực hiện ca làm",
-        "completed": "xác nhận hoàn thành ca làm",
-        "cancelled": "hủy ca làm",
-        "upcoming": "cập nhật ca làm sắp tới",
-    }
     emp_user_id = resolve_employer_user_id(app.get("employer_id")) or app.get("employer_id")
     stu_name = stu.get("full_name") or user.get("full_name") or "Ứng viên"
     if emp_user_id:
@@ -671,13 +712,26 @@ def update_shift_status(app_id):
             related_id=app_id,
             target_id=app.get("employer_id"),
         )
-    emit_socket_event("shift-status-updated", {
+    socket_payload = {
         "application_id": app_id,
-        "job_id": app.get("job_id"),
         "shift_status": shift_status,
-        "employer_user_id": emp_user_id,
-    })
-    return jsonify({"success": True, "shift_status": shift_status, "message": msg_map.get(shift_status, "Đã cập nhật trạng thái ca làm!")})
+        "student_completed": update_fields.get("student_completed", False),
+        "student_shift_status": update_fields.get("student_shift_status", shift_status),
+        "employer_confirmed": update_fields.get("employer_confirmed", False),
+        "is_cancelled": shift_status == "cancelled",
+        "shift_updated_at": now_str,
+        "student_user_id": user["_id"],
+        "employer_id": app.get("employer_id")
+    }
+    msg_map = {
+        "in_progress": "Đã bắt đầu vào ca làm việc thành công!",
+        "completed": "Đã xác nhận hoàn thành ca làm! Đang chờ Doanh nghiệp nghiệm thu.",
+        "cancelled": "Đã hủy ca làm việc thành công!",
+        "upcoming": "Đã cập nhật trạng thái ca làm việc!"
+    }
+    emit_socket_event("shift-status-updated", socket_payload)
+    emit_socket_event("application-status-updated", socket_payload)
+    return jsonify({"success": True, "shift_status": shift_status, "data": update_fields, "message": msg_map.get(shift_status, "Đã cập nhật trạng thái ca làm!")})
 
 @student_bp.route("/applications/<app_id>", methods=["DELETE"])
 @role_required("student")
@@ -775,7 +829,8 @@ def submit_review():
 
     job_doc = db_manager.get_collection("jobs").find_one({"_id": app.get("job_id")}) if app.get("job_id") else None
     is_work_done = (
-        app.get("shift_status") == "completed"
+        bool(app.get("employer_confirmed"))
+        or bool(app.get("attendance_marked_at"))
         or app.get("application_status") == "completed"
         or app.get("job_status") == "completed"
         or (job_doc and (job_doc.get("status") == "completed" or job_doc.get("job_status") == "completed"))
@@ -783,7 +838,7 @@ def submit_review():
     if app.get("application_status") not in ("accepted", "completed", "Đã duyệt") or not is_work_done:
         return jsonify({
             "success": False,
-            "message": "Chỉ các công việc đã hoàn thành ca làm mới được phép gửi đánh giá 2 chiều!"
+            "message": "Chỉ các ca làm đã được Doanh nghiệp nghiệm thu xong mới được phép gửi đánh giá 2 chiều!"
         }), 400
 
     rev_col = db_manager.get_collection("reviews")
@@ -970,6 +1025,18 @@ def update_review(rev_id):
         {"_id": rev_id},
         {"$set": {"rating": rating, "comment": comment, "updated_at": time.strftime("%Y-%m-%d %H:%M:%S")}}
     )
+    emp_user_id = resolve_employer_user_id(rev.get("target_id")) or rev.get("target_id")
+    if emp_user_id:
+        create_and_emit_notification(
+            user_id=emp_user_id,
+            title="Cập nhật đánh giá từ Sinh viên",
+            message=f"Sinh viên {rev.get('reviewer_name') or user.get('full_name', 'Sinh viên')} đã cập nhật đánh giá ({rating}/5 sao) cho công việc '{rev.get('job_title', 'Ca làm việc')}'.",
+            notif_type="review",
+            role="employer",
+            related_id=rev_id,
+            target_id=rev.get("target_id"),
+        )
+    emit_socket_event("review-updated", {"_id": rev_id, "rating": rating, "comment": comment, "target_id": rev.get("target_id")})
     return jsonify({"success": True, "message": "Đã cập nhật nội dung đánh giá thành công!"})
 
 @student_bp.route("/reviews/<rev_id>", methods=["DELETE"])
@@ -982,6 +1049,30 @@ def delete_my_review(rev_id):
         return jsonify({"success": False, "message": "Không tìm thấy đánh giá cần xóa."}), 404
 
     rev_col.delete_one({"_id": rev_id})
+    target_id = rev.get("target_id")
+    if target_id:
+        active_reviews = list(rev_col.find({"target_id": target_id, "is_hidden": {"$ne": True}}))
+        avg_score = round(sum(r.get("rating", 5) for r in active_reviews) / len(active_reviews), 1) if active_reviews else 5.0
+        db_manager.get_collection("company_profiles").update_many(
+            {"$or": [{"employer_id": target_id}, {"_id": target_id}]},
+            {"$set": {"rating_avg": avg_score, "review_count": len(active_reviews)}}
+        )
+        db_manager.get_collection("employers").update_many(
+            {"$or": [{"_id": target_id}, {"user_id": target_id}]},
+            {"$set": {"rating_avg": avg_score, "review_count": len(active_reviews)}}
+        )
+    emp_user_id = resolve_employer_user_id(target_id) or target_id
+    if emp_user_id:
+        create_and_emit_notification(
+            user_id=emp_user_id,
+            title="Đánh giá đã được gỡ bỏ",
+            message=f"Sinh viên {rev.get('reviewer_name') or user.get('full_name', 'Sinh viên')} đã gỡ bỏ đánh giá cho công việc '{rev.get('job_title', 'Ca làm việc')}'.",
+            notif_type="review",
+            role="employer",
+            related_id=rev_id,
+            target_id=target_id,
+        )
+    emit_socket_event("review-updated", {"_id": rev_id, "deleted": True, "target_id": target_id})
     return jsonify({"success": True, "message": "Đã xóa đánh giá thành công!"})
 
 # 6. Cover Letters (FR 1.3.3, 1.3.4, 1.3.5)

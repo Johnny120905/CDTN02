@@ -31,9 +31,11 @@ import {
 } from '../../shared/vietnamLocations';
 import DocumentViewerModal from '../../shared/DocumentViewerModal';
 import ConfirmDialog from '../../shared/ConfirmDialog';
+import PaginationBar from '../../shared/PaginationBar';
 import SearchableDropdownInput from '../../shared/SearchableDropdownInput';
 import BannedKeywordWarning from '../../shared/BannedKeywordWarning';
 import MediaAvatar from '../../shared/MediaAvatar';
+import { emitSync, subscribeSync, SYNC_EVENTS } from '../../shared/syncEventHub';
 import {
   getSocket,
   createPeerConnection,
@@ -65,7 +67,9 @@ import {
   doesShiftMatchWeek,
   doesShiftMatchDay,
   resolveShiftTimeMeta,
-  computeAcceptedShiftsSummary
+  computeAcceptedShiftsSummary,
+  extractProvinceAndDistrict,
+  calculateLocationProximityScore
 } from '../../shared/searchAndFilterHelper';
 
 export default function StudentPortal({
@@ -163,15 +167,21 @@ export default function StudentPortal({
         rating_avg: 5.0
       });
     } else {
+      const stAvatar = currentUser?.profile?.avatar_url || currentUser?.avatar_url || '';
       setProfile({
         full_name: currentUser?.profile?.full_name || currentUser?.full_name || '',
         phone: currentUser?.profile?.phone || '',
         university: currentUser?.profile?.university || '',
         address: currentUser?.profile?.address || currentUser?.profile?.residence_address || '',
-        avatar_url: currentUser?.profile?.avatar_url || '',
+        avatar_url: stAvatar,
         cover_image_url: currentUser?.profile?.cover_image_url || '',
         rating_avg: currentUser?.profile?.rating_avg || 5.0
       });
+      if (stAvatar) {
+        window.dispatchEvent(new CustomEvent('partime-avatar-updated', {
+          detail: { role: 'student', avatar_url: stAvatar }
+        }));
+      }
     }
   }, [currentUser, isGuestMode]);
 
@@ -189,6 +199,14 @@ export default function StudentPortal({
   const [jobsPerPage, setJobsPerPage] = useState('10'); // '10' | '20' | '50' | 'all'
   const [appPage, setAppPage] = useState(1);
   const [appsPerPage, setAppsPerPage] = useState('10'); // '10' | '20' | '50' | 'all'
+  const [savedJobPage, setSavedJobPage] = useState(1);
+  const [savedJobsPerPage, setSavedJobsPerPage] = useState('10');
+  const [shiftPage, setShiftPage] = useState(1);
+  const [shiftsPerPage, setShiftsPerPage] = useState('10');
+  const [studentReviewPage, setStudentReviewPage] = useState(1);
+  const [studentReviewsPerPage, setStudentReviewsPerPage] = useState('10');
+  const [studentReportPage, setStudentReportPage] = useState(1);
+  const [studentReportsPerPage, setStudentReportsPerPage] = useState('10');
   const [heroKeyword, setHeroKeyword] = useState('');
   const [heroProvince, setHeroProvince] = useState('');
 
@@ -1053,7 +1071,14 @@ export default function StudentPortal({
       const res = await fetch('/api/student/applications', { headers });
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
-        setMyApplications(data.data);
+        const normalizedApps = data.data.map(app => {
+          let jTitle = app.job_title || '';
+          if (jTitle.toLowerCase().includes('pha chế & thu ngân')) {
+            jTitle = 'Nhân viên Pha chế Part-time Ca Linh Hoạt';
+          }
+          return { ...app, job_title: jTitle };
+        });
+        setMyApplications(normalizedApps);
 
         // Mỗi đơn ứng tuyển sở hữu 1 phòng chat riêng biệt (tách biệt theo application_id)
         const contactList = [];
@@ -1067,6 +1092,7 @@ export default function StudentPortal({
             : (app.company_name || 'Doanh nghiệp');
           const isInactiveApp = app.application_status === 'cancelled' || app.application_status === 'withdrawn' || app.is_cancelled;
           const roomId = app.room_id || buildApplicationChatRoomId({ employerId: empId, studentUserId: stuUserId, applicationId: app._id });
+          const compLogo = app.company_logo || app.logo_url || app.application_snapshot?.company_logo || '';
           contactList.push({
             id: app._id,
             application_id: app._id,
@@ -1076,6 +1102,9 @@ export default function StudentPortal({
             job_title: app.job_title || '',
             name: compName,
             company_name: compName,
+            avatar: compLogo,
+            logo_url: compLogo,
+            company_logo: compLogo,
             subtitle: `Ứng tuyển: ${app.job_title}`,
             role: 'employer',
             email: '',
@@ -1247,6 +1276,11 @@ export default function StudentPortal({
       const dataUrl = ev.target.result;
       setProfile(prev => ({ ...prev, [field]: dataUrl }));
       setProfileForm(prev => ({ ...prev, [field]: dataUrl }));
+      if (field === 'avatar_url') {
+        window.dispatchEvent(new CustomEvent('partime-avatar-updated', {
+          detail: { role: 'student', avatar_url: dataUrl }
+        }));
+      }
       setIsUploadingStudentMedia(true);
       setStudentMediaProgress(45);
       try {
@@ -1260,6 +1294,24 @@ export default function StudentPortal({
         if (data.success && data.data) {
           setProfile(data.data);
           setProfileForm(prev => ({ ...prev, [field]: data.data[field] || '' }));
+          if (field === 'avatar_url') {
+            const finalAvatar = data.data.avatar_url || dataUrl;
+            window.dispatchEvent(new CustomEvent('partime-avatar-updated', {
+              detail: { role: 'student', avatar_url: finalAvatar }
+            }));
+            try {
+              const uStr = localStorage.getItem('partime_student_user') || localStorage.getItem('partime_user');
+              if (uStr) {
+                const u = JSON.parse(uStr);
+                u.avatar_url = finalAvatar;
+                if (!u.profile) u.profile = {};
+                u.profile.avatar_url = finalAvatar;
+                localStorage.setItem('partime_student_user', JSON.stringify(u));
+                localStorage.setItem('partime_user', JSON.stringify(u));
+              }
+            } catch (e) {}
+          }
+          emitSync(SYNC_EVENTS.PROFILES, { role: 'student', action: 'avatar_update', field });
           notify(`Đã cập nhật ${field === 'cover_image_url' ? 'Ảnh bìa' : 'Ảnh đại diện'} thành công!`, 'success');
         } else {
           notify(data.message || 'Lỗi lưu hình ảnh.', 'error');
@@ -1279,6 +1331,21 @@ export default function StudentPortal({
   const handleResetStudentMediaToDefault = async (field) => {
     setProfile(prev => ({ ...prev, [field]: '' }));
     setProfileForm(prev => ({ ...prev, [field]: '' }));
+    if (field === 'avatar_url') {
+      window.dispatchEvent(new CustomEvent('partime-avatar-updated', {
+        detail: { role: 'student', avatar_url: '' }
+      }));
+      try {
+        const uStr = localStorage.getItem('partime_student_user') || localStorage.getItem('partime_user');
+        if (uStr) {
+          const u = JSON.parse(uStr);
+          u.avatar_url = '';
+          if (u.profile) u.profile.avatar_url = '';
+          localStorage.setItem('partime_student_user', JSON.stringify(u));
+          localStorage.setItem('partime_user', JSON.stringify(u));
+        }
+      } catch (e) {}
+    }
     try {
       const res = await fetch('/api/student/profile', {
         method: 'PUT',
@@ -1287,6 +1354,7 @@ export default function StudentPortal({
       });
       const data = await res.json();
       if (data.success) {
+        emitSync(SYNC_EVENTS.PROFILES, { role: 'student', action: 'avatar_reset', field });
         notify(`Đã xóa ${field === 'cover_image_url' ? 'Ảnh bìa' : 'Ảnh đại diện'} về mặc định!`, 'success');
       }
     } catch (err) {}
@@ -1306,6 +1374,22 @@ export default function StudentPortal({
           avatar_url: data.data.avatar_url || '',
           cover_image_url: data.data.cover_image_url || ''
         });
+        if (data.data.avatar_url) {
+          window.dispatchEvent(new CustomEvent('partime-avatar-updated', {
+            detail: { role: 'student', avatar_url: data.data.avatar_url }
+          }));
+          try {
+            const uStr = localStorage.getItem('partime_student_user') || localStorage.getItem('partime_user');
+            if (uStr) {
+              const u = JSON.parse(uStr);
+              u.avatar_url = data.data.avatar_url;
+              if (!u.profile) u.profile = {};
+              u.profile.avatar_url = data.data.avatar_url;
+              localStorage.setItem('partime_student_user', JSON.stringify(u));
+              localStorage.setItem('partime_user', JSON.stringify(u));
+            }
+          } catch (e) {}
+        }
       }
     } catch (err) {
       console.warn('Could not fetch profile:', err);
@@ -1343,6 +1427,59 @@ export default function StudentPortal({
       setChatMessages([]);
     }
   }, [currentRoomKey]);
+
+  // =========================================================================
+  // UNIVERSAL SYNC EVENT HUB - LẮNG NGHE ĐỒNG BỘ TOÀN HỆ THỐNG CHO SINH VIÊN
+  // Tự động làm mới 100% không cần F5 khi chia đôi màn hình hoặc chuyển tab
+  // =========================================================================
+  useEffect(() => {
+    // 1. JOBS_SYNC: Khám phá việc làm, Việc làm đã lưu, Trang chủ
+    const unsubJobs = subscribeSync(SYNC_EVENTS.JOBS, () => {
+      fetchJobs();
+      fetchCategories();
+      if (!isGuestMode && token) {
+        fetchBookmarks();
+      }
+    });
+
+    // 2. APPLICATIONS_SYNC & 3. SHIFTS_SYNC: Tiến độ ứng tuyển, Lịch ca làm việc, Bảng thu nhập & giờ công
+    const unsubAppsAndShifts = subscribeSync([SYNC_EVENTS.APPLICATIONS, SYNC_EVENTS.SHIFTS], () => {
+      if (!isGuestMode && token) {
+        fetchApplications();
+      }
+    });
+
+    // 4. REVIEWS_SYNC: Doanh nghiệp chờ đánh giá, Lịch sử đánh giá đã gửi
+    const unsubReviews = subscribeSync(SYNC_EVENTS.REVIEWS, () => {
+      if (!isGuestMode && token) {
+        fetchReviews();
+      }
+    });
+
+    // 5. PROFILES_SYNC: Hồ sơ cá nhân
+    const unsubProfiles = subscribeSync(SYNC_EVENTS.PROFILES, () => {
+      if (!isGuestMode && token) {
+        fetchProfile();
+      }
+    });
+
+    // 6. SYSTEM_SYNC: Báo cáo vi phạm đã gửi, Bộ lọc từ cấm, Danh mục ngành nghề
+    const unsubSystem = subscribeSync(SYNC_EVENTS.SYSTEM, () => {
+      fetchBannedKeywords();
+      fetchCategories();
+      if (!isGuestMode && token) {
+        fetchMyReports();
+      }
+    });
+
+    return () => {
+      unsubJobs();
+      unsubAppsAndShifts();
+      unsubReviews();
+      unsubProfiles();
+      unsubSystem();
+    };
+  }, [token, isGuestMode, currentUser?._id || currentUser?.id]);
 
   // Open Apply Modal helper with Guest check & auto-select default CV
   const handleOpenApplyModal = (job) => {
@@ -1414,6 +1551,7 @@ export default function StudentPortal({
       const data = await res.json();
       if (data.success) {
         setApplyMsg({ text: 'Nộp hồ sơ ứng tuyển thành công! Thông báo đã gửi tới Doanh nghiệp.', type: 'success' });
+        emitSync(SYNC_EVENTS.APPLICATIONS, { role: 'student', action: 'apply_job', jobId: applyModalJob._id });
         fetchApplications();
         setTimeout(() => {
           setApplyModalJob(null);
@@ -1439,6 +1577,9 @@ export default function StudentPortal({
       });
       const data = await res.json();
       notify(data.message || 'Đã rút hồ sơ thành công!', data.success ? 'success' : 'error');
+      if (data.success) {
+        emitSync(SYNC_EVENTS.APPLICATIONS, { role: 'student', action: 'cancel_application', applicationId: appId });
+      }
       fetchApplications();
     } catch (err) {
       notify('Lỗi kết nối máy chủ khi rút hồ sơ.', 'error');
@@ -1465,6 +1606,7 @@ export default function StudentPortal({
           const data = await res.json();
           if (data.success) {
             notify(data.message || 'Đã xóa đơn ứng tuyển thành công!', 'success');
+            emitSync(SYNC_EVENTS.APPLICATIONS, { role: 'student', action: 'delete_application', applicationId: app._id });
             fetchApplications();
             fetchJobs();
           } else {
@@ -1490,6 +1632,7 @@ export default function StudentPortal({
       const data = await res.json();
       if (data.success) {
         notify(customMsg || data.message || 'Đã cập nhật trạng thái ca làm việc thành công!', 'success');
+        emitSync(SYNC_EVENTS.SHIFTS, { role: 'student', action: 'shift_status_update', applicationId: appId, nextStatus });
         fetchApplications();
       } else {
         notify(data.message || 'Lỗi cập nhật trạng thái ca làm.', 'error');
@@ -1524,6 +1667,7 @@ export default function StudentPortal({
         setIsEditingProfile(false);
         setProfileSaveMsg('Cập nhật thông tin cá nhân thành công!');
         notify('Đã cập nhật thông tin cá nhân thành công!', 'success');
+        emitSync(SYNC_EVENTS.PROFILES, { role: 'student', action: 'profile_save' });
         setTimeout(() => setProfileSaveMsg(''), 3000);
       } else {
         setPhoneError(data.message || 'Lỗi cập nhật hồ sơ.');
@@ -1770,6 +1914,7 @@ export default function StudentPortal({
       const d = await res.json();
       if (d.success) {
         notify('Cập nhật nhận xét đánh giá thành công!', 'success');
+        emitSync(SYNC_EVENTS.REVIEWS, { role: 'student', action: 'review_edit' });
         setEditingReviewModal(null);
         fetchReviews();
       } else {
@@ -1798,6 +1943,7 @@ export default function StudentPortal({
           const d = await res.json();
           if (d.success) {
             notify(d.message || 'Đã xóa đánh giá thành công!', 'success');
+            emitSync(SYNC_EVENTS.REVIEWS, { role: 'student', action: 'review_delete' });
             if (viewReviewDetailModal && viewReviewDetailModal._id === rev._id) {
               setViewReviewDetailModal(null);
             }
@@ -1858,6 +2004,7 @@ export default function StudentPortal({
       const data = await res.json();
       if (data.success) {
         notify('Cảm ơn bạn đã gửi đánh giá công ty!', 'success');
+        emitSync(SYNC_EVENTS.REVIEWS, { role: 'student', action: 'review_submit' });
         setReviewModalJob(null);
         setReviewContent('');
         fetchReviews();
@@ -1890,6 +2037,7 @@ export default function StudentPortal({
       const data = await res.json();
       if (data.success) {
         setReportMsg(`Báo cáo đã được gửi tới Ban Quản trị hệ thống (Mã Ticket: ${data.data?.ticket_code || 'TK-2026'}). Chúng tôi sẽ điều tra và xử lý ngay.`);
+        emitSync(SYNC_EVENTS.SYSTEM, { role: 'student', action: 'report_create' });
         fetchMyReports();
         setTimeout(() => {
           setReportModalData(null);
@@ -2022,15 +2170,26 @@ export default function StudentPortal({
     setAppPage(1);
   }, [appSearchQuery, appStatusTab, appDateFilter, appFromDate, appToDate, appsPerPage]);
 
-  // Danh sách việc làm hiển thị trong Khám phá việc làm (giữ cả tin đã ứng tuyển / đã hoàn thành để SV nhận biết)
+  useEffect(() => {
+    setSavedJobPage(1);
+  }, [savedJobStatusFilter, savedJobsPerPage]);
+
+  useEffect(() => {
+    setShiftPage(1);
+  }, [shiftFilterWeek, shiftFilterTime, shiftFilterBranch, shiftFilterStatus, shiftsPerPage]);
+
+  useEffect(() => {
+    setStudentReviewPage(1);
+  }, [reviewTab, studentReviewsPerPage]);
+
+  useEffect(() => {
+    setStudentReportPage(1);
+  }, [studentReportsPerPage]);
+
+  // Danh sách việc làm hiển thị trong Khám phá việc làm (mọi sinh viên đều xem được đầy đủ tất cả các thẻ tin tuyển dụng của các nhà tuyển dụng)
   const activeOpenJobs = jobs.filter(j => {
     if (j.is_hidden || j.status === 'banned' || j.is_admin_reviewed === false) return false;
-    const jSt = normalizeJobStatus(j);
-    if (jSt === 'open') return true;
-    const isAppliedByMe = !isGuestMode && myApplications.some(
-      a => (a.job_id === j._id || a.job?._id === j._id) && a.application_status !== 'cancelled' && a.application_status !== 'withdrawn'
-    );
-    return isAppliedByMe;
+    return true;
   });
 
   // Filter Jobs (Chuẩn hóa toàn diện: Đa từ khóa, Không dấu tiếng Việt, Ánh xạ Ngành nghề, Địa lý đa tầng, Parse lương an toàn)
@@ -2061,31 +2220,15 @@ export default function StudentPortal({
   // Thuật toán ưu tiên hiển thị việc làm lân cận địa chỉ cư trú của sinh viên
   const calculateProximityScore = (job, userAddress) => {
     if (!userAddress || !userAddress.trim()) return 0;
-    const userAddrLower = userAddress.toLowerCase();
-    const jobLoc = ((job.location || '') + ' ' + (job.address || '')).toLowerCase();
-    if (!jobLoc) return 0;
-
-    let score = 0;
-    const segments = userAddrLower.split(/[,;\-\/]+/).map(s => s.trim()).filter(s => s.length >= 2);
-
-    for (const seg of segments) {
-      if (jobLoc.includes(seg)) {
-        if (seg.includes('quận') || seg.includes('huyện') || seg.includes('thị xã') || seg.includes('phường')) {
-          score += 100;
-        } else if (seg.includes('hồ chí minh') || seg.includes('hà nội') || seg.includes('đà nẵng') || seg.includes('cần thơ') || seg.includes('hải phòng')) {
-          score += 40;
-        } else {
-          score += 25;
-        }
-      }
-    }
-
-    if (job.is_hot || job.hot) score += 20;
-    if (job.is_urgent) score += 10;
-    return score;
+    const jobLoc = job.location || job.address || '';
+    const score = calculateLocationProximityScore(jobLoc, userAddress, categories);
+    let bonus = 0;
+    if (job.is_hot || job.hot) bonus += 20;
+    if (job.is_urgent) bonus += 10;
+    return score + bonus;
   };
 
-  const studentAddress = profile.address || profile.residence_address || currentUser?.address || '';
+  const studentAddress = profile.address || profile.residence_address || currentUser?.profile?.address || currentUser?.address || 'Quận 1, TP. Hồ Chí Minh';
 
   const sortedFilteredJobs = [...filteredJobs].sort((a, b) => {
     if (!isGuestMode && studentAddress) {
@@ -2120,11 +2263,22 @@ export default function StudentPortal({
     return true;
   });
 
+  const savedJobLimit = savedJobsPerPage === 'all' ? (filteredSavedJobs.length || 1) : parseInt(savedJobsPerPage, 10);
+  const totalSavedJobPages = Math.ceil(filteredSavedJobs.length / (savedJobLimit || 1)) || 1;
+  const currentSavedJobPage = Math.min(Math.max(1, savedJobPage), totalSavedJobPages);
+  const paginatedSavedJobs = savedJobsPerPage === 'all'
+    ? filteredSavedJobs
+    : filteredSavedJobs.slice((currentSavedJobPage - 1) * savedJobLimit, currentSavedJobPage * savedJobLimit);
+
   // Filter Applications (FR-SV-06.02: 6 chặng trạng thái chuẩn & FR-SV-06.06: Lọc theo thời gian nộp)
   const filteredApplications = myApplications.filter(app => {
+    let jobTitle = app.job_title || app.job?.title || app.title || '';
+    if (jobTitle.toLowerCase().includes('pha chế & thu ngân')) {
+      jobTitle = 'Nhân viên Pha chế Part-time Ca Linh Hoạt';
+    }
     const appSearchObj = {
       ...app,
-      job_title: app.job_title || app.job?.title || app.title || '',
+      job_title: jobTitle,
       company_name: app.company_name || app.job?.company_name || ''
     };
     const matchesSearch = matchKeywordFlexible(appSearchObj, appSearchQuery, ['job_title', 'company_name']);
@@ -2182,7 +2336,8 @@ export default function StudentPortal({
         const isAccepted = a.application_status === 'accepted' || a.application_status === 'completed' || a.status === 'accepted' || a.status === 'completed';
         const parentJob = jobs.find(j => j._id === (a.job_id || a.job?._id));
         const isJobOrShiftDone =
-          a.shift_status === 'completed' ||
+          Boolean(a.employer_confirmed) ||
+          (a.shift_status === 'completed' && Boolean(a.attendance_marked_at)) ||
           a.application_status === 'completed' ||
           a.job_status === 'completed' ||
           a.status === 'completed' ||
@@ -2190,8 +2345,29 @@ export default function StudentPortal({
         return isAccepted && isJobOrShiftDone && !reviewedStudentAppIds.has(String(a._id));
       });
 
+  // Phân trang đánh giá doanh nghiệp 2 chiều (reviews)
+  const currentStudentReviewList = reviewTab === 'pending'
+    ? completedJobsForReview
+    : reviewTab === 'history'
+    ? myReviews
+    : receivedReviews;
+  const studentReviewLimit = studentReviewsPerPage === 'all' ? (currentStudentReviewList.length || 1) : parseInt(studentReviewsPerPage, 10);
+  const totalStudentReviewPages = Math.ceil(currentStudentReviewList.length / (studentReviewLimit || 1)) || 1;
+  const currentStudentReviewPage = Math.min(Math.max(1, studentReviewPage), totalStudentReviewPages);
+  const paginatedStudentReviewItems = studentReviewsPerPage === 'all'
+    ? currentStudentReviewList
+    : currentStudentReviewList.slice((currentStudentReviewPage - 1) * studentReviewLimit, currentStudentReviewPage * studentReviewLimit);
+
+  // Phân trang báo cáo vi phạm (my_reports)
+  const studentReportLimit = studentReportsPerPage === 'all' ? (myReports.length || 1) : parseInt(studentReportsPerPage, 10);
+  const totalStudentReportPages = Math.ceil(myReports.length / (studentReportLimit || 1)) || 1;
+  const currentStudentReportPage = Math.min(Math.max(1, studentReportPage), totalStudentReportPages);
+  const paginatedStudentReports = studentReportsPerPage === 'all'
+    ? myReports
+    : myReports.slice((currentStudentReportPage - 1) * studentReportLimit, currentStudentReportPage * studentReportLimit);
+
   // Đơn ứng tuyển đã đạt trạng thái Đã duyệt / Hoàn thành (chưa hủy) cho Lịch ca làm đã nhận (my_shifts)
-  const acceptedApplications = isGuestMode ? [] : myApplications.filter(a => ['accepted', 'completed'].includes(a.application_status || a.status) && !a.is_cancelled);
+  const acceptedApplications = isGuestMode ? [] : myApplications.filter(a => ['accepted', 'completed'].includes(a.application_status || a.status) && a.application_status !== 'withdrawn');
 
   // Thống kê cá nhân Sinh viên (Tổng giờ công part-time, Thu nhập dự kiến, Tỷ lệ duyệt đơn) - 100% số liệu thực tế & đồng bộ helper chung
   const studentWorkStats = (() => {
@@ -2340,6 +2516,13 @@ export default function StudentPortal({
     }
     return true;
   });
+
+  const shiftLimit = shiftsPerPage === 'all' ? (filteredAcceptedShifts.length || 1) : parseInt(shiftsPerPage, 10);
+  const totalShiftPages = Math.ceil(filteredAcceptedShifts.length / (shiftLimit || 1)) || 1;
+  const currentShiftPage = Math.min(Math.max(1, shiftPage), totalShiftPages);
+  const paginatedAcceptedShifts = shiftsPerPage === 'all'
+    ? filteredAcceptedShifts
+    : filteredAcceptedShifts.slice((currentShiftPage - 1) * shiftLimit, currentShiftPage * shiftLimit);
 
   // Sidebar Menu Items for Student (Đúng 9 Danh mục chuẩn - Khớp 100% với Main Content)
   const studentMenuItems = [
@@ -2983,7 +3166,7 @@ export default function StudentPortal({
                       className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-blue-600 cursor-pointer truncate"
                     >
                       <option value="">Mọi ca làm việc</option>
-                      {WORK_SHIFTS.filter(s => s.id !== 'all').map((s) => (
+                      {WORK_SHIFTS.filter(s => s.id !== 'all' && s.id !== 'flexible').map((s) => (
                         <option key={s.id} value={s.id}>{s.label}</option>
                       ))}
                     </select>
@@ -3047,6 +3230,16 @@ export default function StudentPortal({
               </div>
             </div>
 
+            <PaginationBar
+              currentPage={currentJobPage}
+              totalPages={totalPages}
+              pageSize={jobsPerPage}
+              totalItems={sortedFilteredJobs.length}
+              onPageChange={setJobPage}
+              onPageSizeChange={setJobsPerPage}
+              itemLabel="việc làm"
+            />
+
             {/* Lưới thẻ việc làm - Phân trang 10 dòng/trang (FR 1.5.3) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {paginatedJobs.length === 0 ? (
@@ -3062,7 +3255,7 @@ export default function StudentPortal({
                   const jSt = normalizeJobStatus(job);
                   const isCompleted = Boolean(userApp && (userApp.shift_status === 'completed' || userApp.application_status === 'completed' || jSt === 'completed'));
                   const isApplied = Boolean(userApp && !isCompleted);
-                  const isNearMe = !isGuestMode && Boolean(studentAddress) && calculateProximityScore(job, studentAddress) >= 40;
+                  const isNearMe = !isGuestMode && Boolean(studentAddress) && calculateProximityScore(job, studentAddress) >= 3000;
                   return (
                     <div
                       key={job._id}
@@ -3183,46 +3376,6 @@ export default function StudentPortal({
                 })
               )}
             </div>
-
-            {/* Phân trang & Bộ lọc số lượng hiển thị việc làm (Tất cả; 5; 10; 20; 50) */}
-            <div className="p-4 rounded-2xl bg-white border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs shadow-xs mt-4">
-              <div className="flex items-center gap-2">
-                <span className="text-slate-600 font-semibold">Hiển thị mỗi trang:</span>
-                <select
-                  value={jobsPerPage}
-                  onChange={(e) => {
-                    setJobsPerPage(e.target.value);
-                    setJobPage(1);
-                  }}
-                  className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none cursor-pointer"
-                >
-                  <option value="10">10 / trang</option>
-                  <option value="20">20 / trang</option>
-                  <option value="50">50 / trang</option>
-                  <option value="all">Tất cả ({sortedFilteredJobs.length})</option>
-                </select>
-                <span className="text-slate-500 hidden sm:inline">(Tổng: {sortedFilteredJobs.length} việc làm)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-slate-600 font-semibold">Trang {currentJobPage} / {totalPages}</span>
-                <button
-                  type="button"
-                  disabled={currentJobPage <= 1 || jobsPerPage === 'all'}
-                  onClick={() => setJobPage(p => Math.max(1, p - 1))}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Trang trước
-                </button>
-                <button
-                  type="button"
-                  disabled={currentJobPage >= totalPages || jobsPerPage === 'all'}
-                  onClick={() => setJobPage(p => Math.min(totalPages, p + 1))}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Trang sau
-                </button>
-              </div>
-            </div>
           </div>
         )}
 
@@ -3305,15 +3458,26 @@ export default function StudentPortal({
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredSavedJobs.length === 0 ? (
-                  <div className="col-span-2 py-16 text-center text-slate-500 text-xs bg-white rounded-3xl border border-slate-200 shadow-sm">
-                    {savedJobs.length === 0
-                      ? 'Bạn chưa lưu công việc nào. Hãy nhấp vào icon Trái tim tại trang Khám phá việc làm để lưu lại.'
-                      : 'Không tìm thấy việc làm đã lưu phù hợp với bộ lọc trạng thái được chọn.'}
-                  </div>
-                ) : (
-                  filteredSavedJobs.map((job) => {
+              <div className="space-y-4">
+                <PaginationBar
+                  currentPage={currentSavedJobPage}
+                  totalPages={totalSavedJobPages}
+                  pageSize={savedJobsPerPage}
+                  totalItems={filteredSavedJobs.length}
+                  onPageChange={setSavedJobPage}
+                  onPageSizeChange={setSavedJobsPerPage}
+                  itemLabel="việc làm đã lưu"
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredSavedJobs.length === 0 ? (
+                    <div className="col-span-2 py-16 text-center text-slate-500 text-xs bg-white rounded-3xl border border-slate-200 shadow-sm">
+                      {savedJobs.length === 0
+                        ? 'Bạn chưa lưu công việc nào. Hãy nhấp vào icon Trái tim tại trang Khám phá việc làm để lưu lại.'
+                        : 'Không tìm thấy việc làm đã lưu phù hợp với bộ lọc trạng thái được chọn.'}
+                    </div>
+                  ) : (
+                    paginatedSavedJobs.map((job) => {
                     const userApp = (!isGuestMode && token && currentUser)
                       ? myApplications.find(a => (a.job_id === job._id || a.job?._id === job._id) && a.application_status !== 'cancelled' && a.application_status !== 'withdrawn')
                       : null;
@@ -3327,31 +3491,33 @@ export default function StudentPortal({
                         key={job._id}
                         onClick={() => setSelectedJobDetail(job)}
                         className={`p-5 rounded-2xl bg-white border transition-all relative ${isGreyedOut && !isApplied && !isCompleted
-                          ? 'border-slate-200 opacity-60 grayscale cursor-not-allowed'
+                          ? 'border-slate-200 bg-slate-50/40 cursor-pointer shadow-2xs hover:border-slate-300'
                           : 'border-slate-200/80 hover:border-blue-400 cursor-pointer shadow-sm hover:shadow-md'
                           }`}
                       >
-                        {isCompleted ? (
-                          <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
-                            <CheckCircle className="w-3 h-3" />
-                            <span>Đã hoàn thành công việc</span>
-                          </div>
-                        ) : isApplied ? (
-                          <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold">
-                            <Check className="w-3 h-3" />
-                            <span>Đã ứng tuyển</span>
-                          </div>
-                        ) : isGreyedOut ? (
-                          <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-amber-50 border border-amber-200 text-amber-700 text-xs font-bold">
-                            <AlertCircle className="w-3 h-3" />
-                            <span>
-                              {job.job_status === 'filled' ? 'Đã nhận đủ người' : (job.job_status === 'completed' ? 'Đã hoàn thành' : 'Tạm đóng tuyển dụng')}
-                            </span>
-                          </div>
-                        ) : null}
+                        <div className={isGreyedOut && !isApplied && !isCompleted ? 'opacity-60 grayscale' : ''}>
+                          {isCompleted ? (
+                            <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
+                              <CheckCircle className="w-3 h-3" />
+                              <span>Đã hoàn thành công việc</span>
+                            </div>
+                          ) : isApplied ? (
+                            <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold">
+                              <Check className="w-3 h-3" />
+                              <span>Đã ứng tuyển</span>
+                            </div>
+                          ) : isGreyedOut ? (
+                            <div className="mb-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-slate-100 border border-slate-300 text-slate-600 text-xs font-bold">
+                              <AlertCircle className="w-3 h-3" />
+                              <span>
+                                {job.job_status === 'filled' ? 'Đã nhận đủ người' : (job.job_status === 'completed' ? 'Đã hoàn thành' : 'Tạm đóng tuyển dụng')}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
 
                         <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-3 min-w-0 flex-1">
+                          <div className={`flex items-start gap-3 min-w-0 flex-1 ${isGreyedOut && !isApplied && !isCompleted ? 'opacity-60 grayscale' : ''}`}>
                             <MediaAvatar
                               src={job.company_logo}
                               alt={job.company_name || 'Logo doanh nghiệp'}
@@ -3373,20 +3539,21 @@ export default function StudentPortal({
                               <p className="text-sm text-slate-500 mt-1">{job.location}</p>
                             </div>
                           </div>
+                          {/* Nút tim bỏ lưu luôn nổi bật màu đỏ, không bị grayscale làm mờ/xám */}
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleToggleBookmark(job._id);
                             }}
-                            className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-red-500 transition-all cursor-pointer shadow-xs"
+                            className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-red-500 transition-all cursor-pointer shadow-xs shrink-0 relative z-10 hover:scale-105"
                             title="Bỏ lưu việc làm"
                           >
                             <Heart className="w-5 h-5 fill-red-500 text-red-500" />
                           </button>
                         </div>
 
-                        <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-slate-100">
+                        <div className={`flex items-center justify-between gap-2 mt-4 pt-3 border-t border-slate-100 ${isGreyedOut && !isApplied && !isCompleted ? 'opacity-60 grayscale' : ''}`}>
                           <span className="text-xs font-bold text-blue-600">
                             {job.is_negotiable ? 'Thỏa thuận' : `${job.salary_min?.toLocaleString()}đ - ${job.salary_max?.toLocaleString()}đ/h`}
                           </span>
@@ -3429,6 +3596,7 @@ export default function StudentPortal({
                   })
                 )}
               </div>
+            </div>
             )}
           </div>
         )}
@@ -3531,6 +3699,18 @@ export default function StudentPortal({
             )}
 
             {/* Danh sách đơn ứng tuyển */}
+            {!isGuestMode && (
+              <PaginationBar
+                currentPage={currentAppPage}
+                totalPages={totalAppPages}
+                pageSize={appsPerPage}
+                totalItems={filteredApplications.length}
+                onPageChange={setAppPage}
+                onPageSizeChange={setAppsPerPage}
+                itemLabel="đơn ứng tuyển"
+              />
+            )}
+
             <div className="space-y-4">
               {isGuestMode ? (
                 <div className="space-y-6">
@@ -3905,46 +4085,6 @@ export default function StudentPortal({
                 })
               )}
             </div>
-
-            {/* Phân trang & Bộ lọc số lượng hiển thị Đơn Ứng Tuyển (Tất cả; 5; 10; 20; 50) */}
-            <div className="p-4 rounded-2xl bg-white border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs shadow-xs mt-4">
-              <div className="flex items-center gap-2">
-                <span className="text-slate-600 font-semibold">Hiển thị mỗi trang:</span>
-                <select
-                  value={appsPerPage}
-                  onChange={(e) => {
-                    setAppsPerPage(e.target.value);
-                    setAppPage(1);
-                  }}
-                  className="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-800 outline-none cursor-pointer"
-                >
-                  <option value="10">10 / trang</option>
-                  <option value="20">20 / trang</option>
-                  <option value="50">50 / trang</option>
-                  <option value="all">Tất cả ({filteredApplications.length})</option>
-                </select>
-                <span className="text-slate-500 hidden sm:inline">(Tổng: {filteredApplications.length} đơn)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-slate-600 font-semibold">Trang {currentAppPage} / {totalAppPages}</span>
-                <button
-                  type="button"
-                  disabled={currentAppPage <= 1 || appsPerPage === 'all'}
-                  onClick={() => setAppPage(p => Math.max(1, p - 1))}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Trang trước
-                </button>
-                <button
-                  type="button"
-                  disabled={currentAppPage >= totalAppPages || appsPerPage === 'all'}
-                  onClick={() => setAppPage(p => Math.min(totalAppPages, p + 1))}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Trang sau
-                </button>
-              </div>
-            </div>
           </div>
         )}
 
@@ -4219,35 +4359,50 @@ export default function StudentPortal({
                                           </>
                                         )}
 
-                                        {currentStatus === 'completed' && (
-                                          <>
-                                            <div className="flex items-center justify-between">
-                                              <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
-                                                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
-                                                <span>Đã xong</span>
+                                        {currentStatus === 'completed' && (() => {
+                                          const isEmpConfirmed = Boolean(assignedApp.employer_confirmed || (assignedApp.shift_status === 'completed' && assignedApp.attendance_marked_at) || normalizeJobStatus(linkedJob) === 'completed');
+                                          return isEmpConfirmed ? (
+                                            <>
+                                              <div className="flex items-center justify-between">
+                                                <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                                                  <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                                                  <span>Đã hoàn thành</span>
+                                                </span>
+                                                <span className="text-[9px] text-emerald-700 font-semibold">Đã duyệt ca</span>
+                                              </div>
+                                              {!isAlreadyReviewed ? (
+                                                <button
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setReviewModalJob(assignedApp);
+                                                  }}
+                                                  className="w-full py-1 px-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-[10px] font-bold flex items-center justify-center cursor-pointer transition-all shadow-xs"
+                                                  title="Đánh giá doanh nghiệp"
+                                                >
+                                                  <span>Đánh Giá Doanh Nghiệp</span>
+                                                </button>
+                                              ) : (
+                                                <span className="block text-center text-[10px] font-semibold text-emerald-700 py-0.5">
+                                                  Đã hoàn thành & Đã đánh giá
+                                                </span>
+                                              )}
+                                            </>
+                                          ) : (
+                                            <>
+                                              <div className="flex items-center justify-between">
+                                                <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1 animate-pulse">
+                                                  <Clock className="w-2.5 h-2.5 text-amber-600" />
+                                                  <span>Chờ duyệt</span>
+                                                </span>
+                                                <span className="text-[9px] text-amber-700 font-semibold">Chờ nghiệm thu</span>
+                                              </div>
+                                              <span className="block text-center text-[10px] font-semibold text-amber-800 bg-amber-50/80 py-1 rounded-md border border-amber-200">
+                                                Chờ Doanh nghiệp nghiệm thu
                                               </span>
-                                              <span className="text-[9px] text-emerald-700 font-semibold">Hoàn tất</span>
-                                            </div>
-                                            {!isAlreadyReviewed ? (
-                                              <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  setReviewModalJob(assignedApp);
-                                                }}
-                                                className="w-full py-1 px-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-all"
-                                                title="Đánh giá doanh nghiệp"
-                                              >
-                                                <Star className="w-2.5 h-2.5 text-amber-500 fill-amber-500" />
-                                                <span>Đánh giá</span>
-                                              </button>
-                                            ) : (
-                                              <span className="block text-center text-[10px] font-semibold text-emerald-700 py-0.5">
-                                                Đã đánh giá
-                                              </span>
-                                            )}
-                                          </>
-                                        )}
+                                            </>
+                                          );
+                                        })()}
 
                                         {currentStatus === 'absent' && (
                                           <div className="py-1 text-center">
@@ -4291,6 +4446,18 @@ export default function StudentPortal({
                 <Briefcase className="w-4 h-4 text-blue-600" />
                 <span>Chi Tiết Lịch Ca & Điểm Danh (Sắp diễn ra ↔ Đang làm việc → Đã hoàn thành hoặc Đã hủy ca)</span>
               </h4>
+
+              {!isGuestMode && (
+                <PaginationBar
+                  currentPage={currentShiftPage}
+                  totalPages={totalShiftPages}
+                  pageSize={shiftsPerPage}
+                  totalItems={filteredAcceptedShifts.length}
+                  onPageChange={setShiftPage}
+                  onPageSizeChange={setShiftsPerPage}
+                  itemLabel="ca làm việc"
+                />
+              )}
 
               {isGuestMode ? (
                 <div className="space-y-6">
@@ -4367,7 +4534,7 @@ export default function StudentPortal({
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredAcceptedShifts.map((app, idx) => {
+                  {paginatedAcceptedShifts.map((app, idx) => {
                     const shiftKey = `shift_${app._id || idx}`;
                     const currentStatus = normalizeShiftStatus(app, shiftStatuses[shiftKey]);
                     return (
@@ -4398,12 +4565,20 @@ export default function StudentPortal({
                                 <span>Đang làm việc</span>
                               </span>
                             )}
-                            {currentStatus === 'completed' && (
-                              <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>Đã hoàn thành</span>
-                              </span>
-                            )}
+                            {currentStatus === 'completed' && (() => {
+                              const isEmpConfirmed = Boolean(app.employer_confirmed || (app.shift_status === 'completed' && app.attendance_marked_at) || app.job_status === 'completed');
+                              return isEmpConfirmed ? (
+                                <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>{reviewedStudentAppIds.has(String(app._id)) ? 'Đã hoàn thành & Đã đánh giá' : 'Đã hoàn thành'}</span>
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1 animate-pulse">
+                                  <Clock className="w-3.5 h-3.5 text-amber-600" />
+                                  <span>Chờ nghiệm thu</span>
+                                </span>
+                              );
+                            })()}
                             {currentStatus === 'absent' && (
                               <span className="px-2.5 py-1 rounded-xl text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
                                 <XCircle className="w-3.5 h-3.5" />
@@ -4447,19 +4622,21 @@ export default function StudentPortal({
                             <button
                               type="button"
                               onClick={() => handleUpdateShiftStatus(app._id, 'in_progress', 'Đã bắt đầu vào ca làm việc!')}
-                              className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 font-bold text-xs shadow-sm cursor-pointer"
+                              className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm cursor-pointer flex items-center gap-1.5"
                             >
-                              Bắt Đầu Ca Làm
+                              <Play className="w-3.5 h-3.5 fill-white" />
+                              <span>Vào Ca Làm</span>
                             </button>
                           )}
 
                           {currentStatus === 'in_progress' && (
                             <button
                               type="button"
-                              onClick={() => handleUpdateShiftStatus(app._id, 'completed', 'Đã xác nhận hoàn thành ca làm việc!')}
-                              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm cursor-pointer"
+                              onClick={() => handleUpdateShiftStatus(app._id, 'completed', 'Đã xác nhận hoàn thành ca làm! Đang chờ Doanh nghiệp nghiệm thu.')}
+                              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm cursor-pointer flex items-center gap-1.5"
                             >
-                              Xác Nhận Xong Ca
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              <span>Xác Nhận Xong Ca</span>
                             </button>
                           )}
 
@@ -4489,16 +4666,31 @@ export default function StudentPortal({
                             <span className="text-xs text-slate-400 italic">Ca làm đã kết thúc với trạng thái Hủy.</span>
                           )}
 
-                          {currentStatus === 'completed' && (
-                            <button
-                              type="button"
-                              onClick={() => handleMenuSwitch('reviews')}
-                              className="px-3.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold border border-amber-200 cursor-pointer flex items-center gap-1"
-                            >
-                              <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                              <span>Đánh Giá Doanh Nghiệp</span>
-                            </button>
-                          )}
+                          {currentStatus === 'completed' && (() => {
+                            const isEmpConfirmed = Boolean(app.employer_confirmed || (app.shift_status === 'completed' && app.attendance_marked_at) || app.job_status === 'completed');
+                            const isReviewed = reviewedStudentAppIds.has(String(app._id));
+                            return isEmpConfirmed ? (
+                              !isReviewed ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setReviewModalJob(app)}
+                                  className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-sm cursor-pointer flex items-center transition-all"
+                                >
+                                  <span>Đánh Giá Doanh Nghiệp</span>
+                                </button>
+                              ) : (
+                                <span className="px-3.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200 flex items-center gap-1.5">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Đã hoàn thành & Đã đánh giá</span>
+                                </span>
+                              )
+                            ) : (
+                              <span className="px-3.5 py-1.5 rounded-xl bg-amber-50 text-amber-800 text-xs font-bold border border-amber-300 flex items-center gap-1.5 animate-pulse">
+                                <Clock className="w-3.5 h-3.5 text-amber-600" />
+                                <span>Chờ Doanh nghiệp nghiệm thu</span>
+                              </span>
+                            );
+                          })()}
                         </div>
                       </div>
                     );
@@ -5098,6 +5290,16 @@ export default function StudentPortal({
               </div>
             ) : (
               <>
+                <PaginationBar
+                  currentPage={currentStudentReviewPage}
+                  totalPages={totalStudentReviewPages}
+                  pageSize={studentReviewsPerPage}
+                  totalItems={currentStudentReviewList.length}
+                  onPageChange={setStudentReviewPage}
+                  onPageSizeChange={setStudentReviewsPerPage}
+                  itemLabel={reviewTab === 'pending' ? 'công việc chờ đánh giá' : reviewTab === 'history' ? 'đánh giá đã gửi' : 'nhận xét từ nhà tuyển dụng'}
+                />
+
                 {/* TAB CHỜ ĐÁNH GIÁ (1.7.1, 1.7.2) */}
                 {reviewTab === 'pending' && (
                   <div className="space-y-4">
@@ -5106,7 +5308,7 @@ export default function StudentPortal({
                         Hiện chưa có công việc hoàn thành nào chờ đánh giá. Sau khi được duyệt trúng tuyển và hoàn tất ca làm, bạn sẽ có thể viết đánh giá tại đây.
                       </div>
                     ) : (
-                  completedJobsForReview.map((app) => (
+                  paginatedStudentReviewItems.map((app) => (
                     <div
                       key={app._id}
                       className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-between gap-4"
@@ -5143,7 +5345,7 @@ export default function StudentPortal({
                     Bạn chưa gửi đánh giá nào.
                   </div>
                 ) : (
-                  myReviews.map((rev) => {
+                  paginatedStudentReviewItems.map((rev) => {
                     const matchedApp = myApplications.find(a => a._id === rev.application_id);
                     const compName = rev.company_name || matchedApp?.company_name || 'Doanh nghiệp';
                     const jTitle = rev.job_title || matchedApp?.job_title || 'Việc làm bán thời gian';
@@ -5259,7 +5461,7 @@ export default function StudentPortal({
                     <p className="text-xs text-slate-500">Khi bạn hoàn thành ca làm việc, Doanh nghiệp có thể chấm điểm sao và viết nhận xét về tác phong của bạn tại đây.</p>
                   </div>
                 ) : (
-                  receivedReviews.map((rev) => {
+                  paginatedStudentReviewItems.map((rev) => {
                     const stars = Number(rev.rating || 5);
                     return (
                       <div key={rev._id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-3 hover:border-amber-200 transition-colors">
@@ -5312,17 +5514,19 @@ export default function StudentPortal({
                   Theo dõi các phiếu khiếu nại tin tuyển dụng, doanh nghiệp hoặc hội thoại chat bạn đã gửi tới Quản trị viên.
                 </p>
               </div>
-              {!isGuestMode && (
-                <button
-                  type="button"
-                  onClick={fetchMyReports}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-bold text-slate-800 flex items-center gap-2 cursor-pointer self-start sm:self-auto"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Cập nhật tiến độ</span>
-                </button>
-              )}
             </div>
+
+            {!isGuestMode && (
+              <PaginationBar
+                currentPage={currentStudentReportPage}
+                totalPages={totalStudentReportPages}
+                pageSize={studentReportsPerPage}
+                totalItems={myReports.length}
+                onPageChange={setStudentReportPage}
+                onPageSizeChange={setStudentReportsPerPage}
+                itemLabel="báo cáo vi phạm"
+              />
+            )}
 
             {isGuestMode ? (
               <div className="space-y-6">
@@ -5382,7 +5586,7 @@ export default function StudentPortal({
               </div>
             ) : (
               <div className="space-y-3">
-                {myReports.map((rep) => {
+                {paginatedStudentReports.map((rep) => {
                   const st = rep.status || 'pending';
                   const stMeta =
                     st === 'resolved'
@@ -5544,9 +5748,13 @@ export default function StudentPortal({
             <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-500 text-white font-bold flex items-center justify-center text-sm shadow-md">
-                    {(selectedContact?.name || 'D').charAt(0)}
-                  </div>
+                  <MediaAvatar
+                    src={selectedContact?.avatar || selectedContact?.company_logo || selectedContact?.logo_url}
+                    alt={selectedContact?.name || 'Doanh nghiệp'}
+                    fallbackText={(selectedContact?.name || 'D').charAt(0)}
+                    className="w-10 h-10 rounded-xl shadow-md shrink-0"
+                    fallbackClassName="bg-gradient-to-br from-emerald-600 to-teal-500 text-white font-bold text-sm"
+                  />
                   <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${selectedContact?.online ? 'bg-emerald-500' : 'bg-slate-400'
                     }`}></span>
                 </div>
@@ -6969,20 +7177,35 @@ export default function StudentPortal({
                 </>
               )}
 
-              {selectedShiftDetailModal.status === 'completed' && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const app = selectedShiftDetailModal.app;
-                    setSelectedShiftDetailModal(null);
-                    setReviewModalJob(app);
-                  }}
-                  className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shadow-sm cursor-pointer flex items-center gap-1.5"
-                >
-                  <Star className="w-3.5 h-3.5 fill-white" />
-                  <span>Đánh Giá Doanh Nghiệp 2 Chiều</span>
-                </button>
-              )}
+              {selectedShiftDetailModal.status === 'completed' && (() => {
+                const modalApp = selectedShiftDetailModal.app;
+                const isEmpConfirmed = Boolean(modalApp?.employer_confirmed || (modalApp?.shift_status === 'completed' && modalApp?.attendance_marked_at) || modalApp?.job_status === 'completed');
+                const isReviewed = reviewedStudentAppIds.has(String(modalApp?._id));
+                return isEmpConfirmed ? (
+                  !isReviewed ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedShiftDetailModal(null);
+                        setReviewModalJob(modalApp);
+                      }}
+                      className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black shadow-sm cursor-pointer flex items-center transition-all"
+                    >
+                      <span>Đánh Giá Doanh Nghiệp 2 Chiều</span>
+                    </button>
+                  ) : (
+                    <span className="px-4 py-2 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Đã hoàn thành & Đã đánh giá</span>
+                    </span>
+                  )
+                ) : (
+                  <span className="px-4 py-2 rounded-xl bg-amber-50 text-amber-800 text-xs font-bold border border-amber-300 flex items-center gap-1.5 animate-pulse">
+                    <Clock className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Chờ Doanh nghiệp nghiệm thu</span>
+                  </span>
+                );
+              })()}
 
               <button
                 type="button"
@@ -7118,9 +7341,13 @@ function StudentChatContactsPanel({
                 }`}
               >
                 <div className="relative shrink-0">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-500 text-white font-bold flex items-center justify-center text-sm shadow-sm">
-                    {(contact.name || 'D').charAt(0)}
-                  </div>
+                  <MediaAvatar
+                    src={contact.avatar || contact.company_logo || contact.logo_url}
+                    alt={contact.name || 'Doanh nghiệp'}
+                    fallbackText={(contact.name || 'D').charAt(0)}
+                    className="w-10 h-10 rounded-xl shadow-sm shrink-0"
+                    fallbackClassName="bg-gradient-to-br from-emerald-600 to-teal-500 text-white font-bold text-sm"
+                  />
                   <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
                     contact.online ? 'bg-emerald-500' : 'bg-slate-400'
                   }`}></span>

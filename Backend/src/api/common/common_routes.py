@@ -162,11 +162,11 @@ def search_jobs():
     include_ids = [jid.strip() for jid in include_ids_raw.split(",") if jid.strip()] if include_ids_raw else []
 
     job_col = db_manager.get_collection("jobs")
-    base_and = [{"is_hidden": False}, {"is_admin_reviewed": {"$ne": False}}]
+    base_and = [{"is_hidden": False}, {"is_admin_reviewed": {"$ne": False}}, {"status": {"$ne": "banned"}}]
     if include_ids:
-        base_and.append({"$or": [{"is_open": True}, {"_id": {"$in": include_ids}}]})
+        base_and.append({"$or": [{"is_open": {"$ne": False}}, {"_id": {"$in": include_ids}}]})
     else:
-        base_and.append({"is_open": True})
+        base_and.append({"is_open": {"$ne": False}})
 
     if category_id:
         base_and.append({"category_id": category_id})
@@ -418,6 +418,64 @@ def scan_job_banned_keywords(job: dict, banned_keywords=None) -> list:
         if norm_kw in haystack_norm or (len(compact_kw) >= 4 and compact_kw in haystack_compact):
             matched_kws.append(orig_kw)
     return matched_kws
+
+def auto_adjust_job_moderation(job: dict, banned_keywords=None, persist=True) -> dict:
+    """
+    Quy tắc kiểm duyệt tin tuyển dụng tự động:
+    • Tin sạch (không dính từ cấm) -> tự động đẩy qua Công khai ngay (is_admin_reviewed=True, is_hidden=False), Quản trị viên không cần duyệt và nhà tuyển dụng không phải chờ.
+    • Tin dính từ khóa nhạy cảm (như đặt cọc, nạp tiền...) -> tự động giữ ở trạng thái Chờ kiểm duyệt (ẩn với Sinh viên) cho tới khi Admin bấm Duyệt tin hoặc Ẩn.
+    """
+    if not isinstance(job, dict):
+        return job
+
+    matched_kws = scan_job_banned_keywords(job, banned_keywords)
+    has_sensitive = len(matched_kws) > 0
+    job["matched_banned_keywords"] = matched_kws
+    job["has_sensitive_keywords"] = has_sensitive
+
+    update_fields = {}
+
+    if not has_sensitive:
+        # Tin sạch: Tự động Công khai ngay
+        is_manually_hidden_by_admin = bool(
+            job.get("is_hidden")
+            and job.get("is_admin_reviewed")
+            and job.get("hidden_reason")
+            and "từ khóa nhạy cảm" not in str(job.get("hidden_reason")).lower()
+        )
+        if not is_manually_hidden_by_admin:
+            if job.get("is_admin_reviewed") is not True or job.get("is_hidden") is not False:
+                job["is_admin_reviewed"] = True
+                job["is_hidden"] = False
+                job["hidden_reason"] = ""
+                update_fields = {
+                    "is_admin_reviewed": True,
+                    "is_hidden": False,
+                    "hidden_reason": "",
+                    "has_sensitive_keywords": False,
+                    "matched_banned_keywords": []
+                }
+    else:
+        # Tin dính từ cấm: Giữ chờ duyệt ẩn với sinh viên trừ khi admin đã duyệt thủ công
+        has_admin_reviewed = bool(job.get("moderation_reviewed_at"))
+        if not has_admin_reviewed:
+            reason = f"Tin chứa từ khóa nhạy cảm ({', '.join(matched_kws)}), tạm ẩn chờ Quản trị viên kiểm duyệt."
+            if job.get("is_admin_reviewed") is not False or job.get("is_hidden") is not True:
+                job["is_admin_reviewed"] = False
+                job["is_hidden"] = True
+                job["hidden_reason"] = reason
+                update_fields = {
+                    "is_admin_reviewed": False,
+                    "is_hidden": True,
+                    "hidden_reason": reason,
+                    "has_sensitive_keywords": True,
+                    "matched_banned_keywords": matched_kws
+                }
+
+    if persist and update_fields and job.get("_id"):
+        db_manager.get_collection("jobs").update_one({"_id": job["_id"]}, {"$set": update_fields})
+
+    return job
 
 @common_bp.route("/banned-keywords", methods=["GET"])
 def get_public_banned_keywords():

@@ -7,7 +7,7 @@ import { matchKeywordFlexible } from './searchAndFilterHelper.js';
 // Danh sách gợi ý ngành nghề việc làm Part-time theo ca chuẩn cho sinh viên (Đã loại bỏ việc làm tự do / Freelancer)
 export const PROFESSION_SUGGESTIONS = [
   "Nhân viên Barista / Pha chế",
-  "Pha chế trà sữa / Thu ngân F&B",
+  "Pha chế trà sữa / Barista F&B",
   "Phục vụ nhà hàng / Quán café",
   "Thu ngân siêu thị / Cửa hàng tiện lợi",
   "Bán hàng siêu thị (Co.opmart, WinMart)",

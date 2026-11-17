@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import BrandLogo from './BrandLogo';
+import MediaAvatar from './MediaAvatar';
 import {
   LogOut, UserCheck, ChevronDown, User, ShieldCheck,
   GraduationCap, Briefcase, Settings, Trash2, AlertTriangle, X,
@@ -9,6 +10,7 @@ import {
 import { getStatusBadge } from './professionSuggestions';
 import { getRoleToken } from './searchAndFilterHelper';
 import { getSocket } from './webrtcSocketService';
+import { emitSync, subscribeSync, SYNC_EVENTS } from './syncEventHub';
 
 export default function Header({
   currentUser,
@@ -76,6 +78,110 @@ export default function Header({
     currentUser?.approval_status ||
     'approved';
 
+  const [profileAvatar, setProfileAvatar] = useState(
+    currentUser?.avatar_url ||
+    currentUser?.profile?.avatar_url ||
+    currentUser?.profile?.logo_url ||
+    currentUser?.profile?.logo ||
+    currentUser?.profile?.company_logo ||
+    currentUser?.company_info?.logo_url ||
+    currentUser?.company_profile?.logo_url ||
+    ''
+  );
+
+  // 1. Lắng nghe sự kiện đồng bộ avatar tức thì từ toàn bộ ứng dụng (khi chỉnh sửa ở hồ sơ sinh viên hoặc hồ sơ doanh nghiệp)
+  useEffect(() => {
+    const handleAvatarUpdateEvent = (e) => {
+      const detail = e.detail;
+      if (!detail) return;
+      const targetRole = detail.role;
+      const currentRole = isEmployer ? 'employer' : (isStudent ? 'student' : 'admin');
+      if (!targetRole || targetRole === currentRole) {
+        const nextUrl = detail.avatar_url || detail.logo_url || '';
+        setProfileAvatar(nextUrl);
+      }
+    };
+    window.addEventListener('partime-avatar-updated', handleAvatarUpdateEvent);
+
+    const handleStorageEvent = (e) => {
+      if (e.key === 'partime_student_user' || e.key === 'partime_employer_user' || e.key === 'partime_user') {
+        try {
+          const u = JSON.parse(e.newValue || '{}');
+          const currentRole = isEmployer ? 'employer' : (isStudent ? 'student' : 'admin');
+          if (u.role === currentRole) {
+            const nextUrl = u.avatar_url || u.logo_url || u.profile?.avatar_url || u.profile?.logo_url || '';
+            if (nextUrl) setProfileAvatar(nextUrl);
+          }
+        } catch (err) {}
+      }
+    };
+    window.addEventListener('storage', handleStorageEvent);
+
+    return () => {
+      window.removeEventListener('partime-avatar-updated', handleAvatarUpdateEvent);
+      window.removeEventListener('storage', handleStorageEvent);
+    };
+  }, [isEmployer, isStudent]);
+
+  // 2. Tải avatar từ server để đảm bảo dữ liệu luôn tươi mới ngay khi tải trang
+  useEffect(() => {
+    const rawAvatar = currentUser?.avatar_url ||
+      currentUser?.profile?.avatar_url ||
+      currentUser?.profile?.logo_url ||
+      currentUser?.profile?.logo ||
+      currentUser?.profile?.company_logo ||
+      currentUser?.company_info?.logo_url ||
+      currentUser?.company_profile?.logo_url ||
+      '';
+    if (rawAvatar) {
+      setProfileAvatar(rawAvatar);
+    }
+
+    if (!isGuest) {
+      const activeToken = token ||
+        (isEmployer ? localStorage.getItem('partime_employer_token') : (isStudent ? localStorage.getItem('partime_student_token') : null)) ||
+        localStorage.getItem('partime_token');
+      const fetchHeaders = activeToken ? { Authorization: `Bearer ${activeToken}` } : {};
+
+      const loadAvatar = async () => {
+        try {
+          if (isStudent) {
+            const res = await fetch('/api/student/profile', { headers: fetchHeaders });
+            const data = await res.json();
+            if (data.success && data.data?.avatar_url) {
+              setProfileAvatar(data.data.avatar_url);
+            }
+          } else if (isEmployer) {
+            const res = await fetch('/api/employer/company', { headers: fetchHeaders });
+            const data = await res.json();
+            if (data.success && data.data?.logo_url) {
+              setProfileAvatar(data.data.logo_url);
+            }
+          }
+        } catch (e) {}
+      };
+      loadAvatar();
+
+      // Lắng nghe sự kiện PROFILES_SYNC từ Universal Sync Event Hub để làm mới avatar ngay lập tức
+      const unsubProfileSync = subscribeSync(SYNC_EVENTS.PROFILES, () => {
+        loadAvatar();
+      });
+
+      return () => {
+        unsubProfileSync();
+      };
+    }
+  }, [currentUser, token, isGuest, isStudent, isEmployer]);
+
+  const userAvatarUrl = profileAvatar ||
+    currentUser?.avatar_url ||
+    currentUser?.profile?.avatar_url ||
+    currentUser?.profile?.logo_url ||
+    currentUser?.profile?.logo ||
+    currentUser?.profile?.company_logo ||
+    '';
+  const fallbackInitial = (isEmployer ? (companyName || representativeName) : (isStudent ? studentName : adminName)).charAt(0).toUpperCase();
+
   // Fetch notifications according to role
   const fetchNotifications = async () => {
     if (!token) return;
@@ -129,8 +235,8 @@ export default function Header({
         currentUser?.profile?.employer_id,
       ].filter(Boolean);
       if (allIds.length > 0 || role) {
-        socket.emit('register-user', { 
-          user_id: currentUserId, 
+        socket.emit('register-user', {
+          user_id: currentUserId,
           role,
           aliases: allIds
         });
@@ -169,7 +275,7 @@ export default function Header({
       ].filter(Boolean).map(String);
 
       const hasIdMatch = myIdList.some(id => notifTargetIds.includes(id));
-      const hasRoleMatch = 
+      const hasRoleMatch =
         (isAdmin && (notif.role === 'admin' || notif.user_id === 'role_admin')) ||
         (isEmployer && (notif.user_id === 'role_employer' || notif.target === 'all_employers')) ||
         (isStudent && (notif.user_id === 'role_student' || notif.target === 'all_students')) ||
@@ -206,8 +312,20 @@ export default function Header({
     socket.on('announcement-deleted', handleSocketUpdate);
     socket.on('notifications-updated', handleSocketUpdate);
 
+    // Đăng ký Universal Sync Event Hub: Tự động cập nhật chuông thông báo khi có bất kỳ thay đổi nào trong hệ thống
+    const unsubNotifSync = subscribeSync([
+      SYNC_EVENTS.SYSTEM,
+      SYNC_EVENTS.APPLICATIONS,
+      SYNC_EVENTS.SHIFTS,
+      SYNC_EVENTS.REVIEWS,
+      SYNC_EVENTS.JOBS
+    ], () => {
+      fetchNotifications();
+    });
+
     return () => {
       clearInterval(interval);
+      unsubNotifSync();
       socket.off('connect', registerIdentity);
       socket.off('new-notification', handleNewNotification);
       socket.off('applicant-withdrawn', handleSocketUpdate);
@@ -243,6 +361,7 @@ export default function Header({
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      emitSync(SYNC_EVENTS.SYSTEM, { action: 'notifications_read_all' });
     } catch (e) {
       console.warn('Error marking noti as read:', e);
     }
@@ -268,6 +387,9 @@ export default function Header({
       if (data.success && onShowBanner) {
         onShowBanner(data.message || 'Đã xóa thông báo thành công!', 'success');
       }
+      if (data.success) {
+        emitSync(SYNC_EVENTS.SYSTEM, { action: 'notification_deleted', notiId });
+      }
     } catch (err) {
       console.warn('Error deleting noti:', err);
     }
@@ -287,6 +409,7 @@ export default function Header({
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      emitSync(SYNC_EVENTS.SYSTEM, { action: 'notifications_read_all' });
     } catch (e) {
       console.warn('Error marking all notifications as read:', e);
     } finally {
@@ -310,40 +433,110 @@ export default function Header({
     }
   };
 
-  // Handle Notification Click
+  // Handle Notification Click (Gán đúng link & menu cho cả 3 vai trò)
   const handleNotiClick = (n) => {
     handleNotiHover(n);
     closeNotificationsPanel();
+
+    // 1. Kiểm tra nếu có target_menu hoặc link được gán sẵn
+    let explicitMenu = n.target_menu || '';
+    if (!explicitMenu && n.link) {
+      const hashPart = n.link.split('#')[1];
+      if (hashPart) {
+        explicitMenu = hashPart.split('?')[0];
+      } else {
+        explicitMenu = n.link.replace(/^\/(?:student|employer|admin)\/?#?/, '').split('?')[0];
+      }
+    }
+
     const type = (n.type || '').toLowerCase();
     const title = (n.title || '').toLowerCase();
     const targetId = (n.target_id || n.related_id || '').toLowerCase();
 
-    if (type.includes('call') || title.includes('cuộc gọi')) {
-      if (onNavigateMenu) onNavigateMenu('chat', n.related_id || '');
-      else if (onToggleChatDrawer) onToggleChatDrawer();
-    } else if (type.includes('chat') || title.includes('tin nhắn')) {
-      if (onNavigateMenu) onNavigateMenu('chat', n.related_id || '');
-      else if (onToggleChatDrawer) onToggleChatDrawer();
-    } else if (type.includes('report') || type.includes('ticket') || title.includes('khiếu nại') || title.includes('báo cáo')) {
-      if (onNavigateMenu) onNavigateMenu(isAdmin ? 'reports' : 'my_reports');
-    } else if (type.includes('gpkd') || type.includes('license') || title.includes('giấy phép')) {
-      if (onNavigateMenu) onNavigateMenu(isAdmin ? 'gpkd' : 'company');
-    } else if (type.includes('shift') || title.includes('ca làm')) {
-      if (onNavigateMenu) onNavigateMenu(isStudent ? 'my_shifts' : (isEmployer ? 'job_completion' : 'jobs'));
-    } else if (type.includes('job_completed') || title.includes('hoàn thành')) {
-      if (onNavigateMenu) onNavigateMenu(isEmployer ? 'job_completion' : (isStudent ? 'applications' : 'jobs'));
-    } else if (type.includes('app') || targetId.startsWith('app_') || title.includes('ứng tuyển') || title.includes('hồ sơ')) {
-      if (onNavigateMenu) onNavigateMenu(isEmployer ? 'applicants' : (isStudent ? 'applications' : 'dashboard'));
-    } else if (type.includes('review') || title.includes('đánh giá')) {
-      if (onNavigateMenu) onNavigateMenu('reviews');
-    } else if (type.includes('user') || type.includes('account') || title.includes('tài khoản')) {
-      if (onNavigateMenu) onNavigateMenu(isAdmin ? 'users' : 'home');
-    } else if (type.includes('job') || targetId.startsWith('job_') || title.includes('việc làm') || title.includes('tuyển dụng')) {
-      if (onNavigateMenu) onNavigateMenu('jobs');
-    } else if (isAdmin) {
-      if (onNavigateMenu) onNavigateMenu('dashboard');
+    // Luôn ưu tiên tuyệt đối: Bất kỳ thông báo đánh giá nào (review / đánh giá) đều chuyển hướng đến menu 'reviews'
+    if (type.includes('review') || title.includes('đánh giá')) {
+      if (onNavigateMenu) onNavigateMenu('reviews', n.related_id || '');
+      return;
+    }
+
+    // 2. Điều hướng chính xác theo vai trò (Role-based Navigation)
+    if (isAdmin) {
+      if (explicitMenu && ['dashboard', 'home', 'gpkd', 'users', 'jobs', 'keywords', 'reviews', 'categories', 'reports', 'audit_logs', 'announcements'].includes(explicitMenu)) {
+        if (onNavigateMenu) onNavigateMenu(explicitMenu);
+        return;
+      }
+      if (type.includes('gpkd') || type.includes('license') || title.includes('giấy phép') || title.includes('gpkd')) {
+        if (onNavigateMenu) onNavigateMenu('gpkd');
+      } else if (type.includes('job') || title.includes('việc làm') || title.includes('tuyển dụng') || title.includes('tin')) {
+        if (onNavigateMenu) onNavigateMenu('jobs');
+      } else if (type.includes('report') || type.includes('ticket') || title.includes('khiếu nại') || title.includes('báo cáo')) {
+        if (onNavigateMenu) onNavigateMenu('reports');
+      } else if (type.includes('user') || type.includes('account') || type.includes('banned') || title.includes('tài khoản')) {
+        if (onNavigateMenu) onNavigateMenu('users');
+      } else if (type.includes('review') || title.includes('đánh giá')) {
+        if (onNavigateMenu) onNavigateMenu('reviews');
+      } else if (type.includes('announcement') || title.includes('hệ thống') || title.includes('hàng loạt')) {
+        if (onNavigateMenu) onNavigateMenu('announcements');
+      } else {
+        if (onNavigateMenu) onNavigateMenu('dashboard');
+      }
+    } else if (isEmployer) {
+      if (explicitMenu && ['home', 'company', 'post_job', 'jobs', 'applicants', 'interviews', 'job_completion', 'reviews', 'my_reports', 'chat'].includes(explicitMenu)) {
+        if (onNavigateMenu) onNavigateMenu(explicitMenu, n.related_id || '');
+        return;
+      }
+      if (type.includes('call') || title.includes('cuộc gọi')) {
+        if (onNavigateMenu) onNavigateMenu('chat', n.related_id || '');
+        else if (onToggleChatDrawer) onToggleChatDrawer();
+      } else if (type.includes('chat') || title.includes('tin nhắn')) {
+        if (onNavigateMenu) onNavigateMenu('chat', n.related_id || '');
+        else if (onToggleChatDrawer) onToggleChatDrawer();
+      } else if (type.includes('interview') || title.includes('phỏng vấn') || title.includes('lịch hẹn')) {
+        if (onNavigateMenu) onNavigateMenu('interviews');
+      } else if (type.includes('shift') || title.includes('ca làm') || title.includes('chấm công')) {
+        if (onNavigateMenu) onNavigateMenu('job_completion');
+      } else if (type.includes('application') || type.includes('applicant') || targetId.startsWith('app_') || title.includes('ứng tuyển') || title.includes('hồ sơ') || title.includes('ứng viên')) {
+        if (onNavigateMenu) onNavigateMenu('applicants');
+      } else if (type.includes('gpkd') || type.includes('license') || title.includes('giấy phép') || title.includes('gpkd')) {
+        if (onNavigateMenu) onNavigateMenu('company');
+      } else if (type.includes('review') || title.includes('đánh giá')) {
+        if (onNavigateMenu) onNavigateMenu('reviews');
+      } else if (type.includes('report') || type.includes('ticket') || title.includes('khiếu nại') || title.includes('báo cáo')) {
+        if (onNavigateMenu) onNavigateMenu('my_reports');
+      } else if (type.includes('job') || title.includes('việc làm') || title.includes('tuyển dụng') || title.includes('tin')) {
+        if (onNavigateMenu) onNavigateMenu('jobs');
+      } else {
+        if (onNavigateMenu) onNavigateMenu('home');
+      }
     } else {
-      if (onNavigateMenu) onNavigateMenu('home');
+      // isStudent
+      if (explicitMenu && ['home', 'jobs', 'saved_jobs', 'applications', 'my_shifts', 'profile_cv', 'student_profile', 'reviews', 'my_reports', 'chat'].includes(explicitMenu)) {
+        if (onNavigateMenu) onNavigateMenu(explicitMenu, n.related_id || '');
+        return;
+      }
+      if (type.includes('call') || title.includes('cuộc gọi')) {
+        if (onNavigateMenu) onNavigateMenu('chat', n.related_id || '');
+        else if (onToggleChatDrawer) onToggleChatDrawer();
+      } else if (type.includes('chat') || title.includes('tin nhắn')) {
+        if (onNavigateMenu) onNavigateMenu('chat', n.related_id || '');
+        else if (onToggleChatDrawer) onToggleChatDrawer();
+      } else if (type.includes('shift') || title.includes('chốt nhận người') || title.includes('chấm công') || title.includes('ca làm')) {
+        if (onNavigateMenu) onNavigateMenu('my_shifts');
+      } else if (type.includes('job_completed') || title.includes('hoàn thành')) {
+        if (onNavigateMenu) onNavigateMenu('reviews');
+      } else if (type.includes('interview') || title.includes('phỏng vấn') || title.includes('lịch hẹn')) {
+        if (onNavigateMenu) onNavigateMenu('applications');
+      } else if (type.includes('application') || targetId.startsWith('app_') || title.includes('ứng tuyển') || title.includes('hồ sơ') || title.includes('trúng tuyển')) {
+        if (onNavigateMenu) onNavigateMenu('applications');
+      } else if (type.includes('review') || title.includes('đánh giá')) {
+        if (onNavigateMenu) onNavigateMenu('reviews');
+      } else if (type.includes('report') || type.includes('ticket') || title.includes('khiếu nại') || title.includes('báo cáo')) {
+        if (onNavigateMenu) onNavigateMenu('my_reports');
+      } else if (type.includes('job') || title.includes('việc làm') || title.includes('tuyển dụng')) {
+        if (onNavigateMenu) onNavigateMenu('jobs');
+      } else {
+        if (onNavigateMenu) onNavigateMenu('home');
+      }
     }
   };
 
@@ -446,8 +639,8 @@ export default function Header({
       {/* 1. BANNER CẢNH BÁO GPKD DÀNH CHO NHÀ TUYỂN DỤNG */}
       {isEmployer && employerApprovalStatus !== 'approved' && (
         <div className={`w-full py-2 px-4 flex items-center justify-between text-xs font-semibold ${employerApprovalStatus === 'rejected'
-            ? 'bg-red-50 text-red-700 border-b border-red-200'
-            : 'bg-amber-50 text-amber-800 border-b border-amber-200'
+          ? 'bg-red-50 text-red-700 border-b border-red-200'
+          : 'bg-amber-50 text-amber-800 border-b border-amber-200'
           }`}>
           <div className="flex items-center gap-2 w-full max-w-full mx-auto">
             <AlertTriangle className={`w-4 h-4 shrink-0 ${employerApprovalStatus === 'rejected' ? 'text-red-600' : 'text-amber-600'}`} />
@@ -584,8 +777,8 @@ export default function Header({
                           onClick={() => handleNotiClick(n)}
                           onMouseEnter={() => handleNotiHover(n)}
                           className={`p-3.5 transition-all group flex items-start justify-between gap-3 cursor-pointer ${!n.is_read
-                              ? 'bg-blue-50/70 border-l-4 border-l-blue-600 hover:bg-blue-100/60'
-                              : 'hover:bg-slate-50'
+                            ? 'bg-blue-50/70 border-l-4 border-l-blue-600 hover:bg-blue-100/60'
+                            : 'hover:bg-slate-50'
                             }`}
                         >
                           <div className="flex items-start gap-2.5 flex-1 min-w-0">
@@ -597,9 +790,11 @@ export default function Header({
                               <p className="text-xs text-slate-600 line-clamp-2 mt-0.5 leading-relaxed">
                                 {n.message || n.content}
                               </p>
-                              <span className="text-xs text-slate-400 mt-1 block">
-                                {n.created_at || 'Vừa xong'}
-                              </span>
+                              <div className="flex items-center justify-between gap-2 mt-1">
+                                <span className="text-xs text-slate-400 block">
+                                  {n.created_at || 'Vừa xong'}
+                                </span>
+                              </div>
                             </div>
                           </div>
 
@@ -669,16 +864,16 @@ export default function Header({
               {/* Trạng thái hoạt động tự động */}
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border flex items-center gap-1 ${(currentUser?.is_banned || userStatus === 'inactive' || userStatus === 'cancelled')
-                    ? 'bg-red-50 text-red-700 border-red-200'
-                    : (userStatus === 'paused'
-                      ? 'bg-amber-50 text-amber-700 border-amber-200'
-                      : 'bg-emerald-50 text-emerald-700 border-emerald-200')
+                  ? 'bg-red-50 text-red-700 border-red-200'
+                  : (userStatus === 'paused'
+                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200')
                   }`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${(currentUser?.is_banned || userStatus === 'inactive' || userStatus === 'cancelled')
-                      ? 'bg-red-500'
-                      : (userStatus === 'paused'
-                        ? 'bg-amber-500'
-                        : 'bg-emerald-500 animate-pulse')
+                    ? 'bg-red-500'
+                    : (userStatus === 'paused'
+                      ? 'bg-amber-500'
+                      : 'bg-emerald-500 animate-pulse')
                     }`} />
                   <span>
                     {(currentUser?.is_banned || userStatus === 'inactive' || userStatus === 'cancelled')
@@ -715,9 +910,14 @@ export default function Header({
                 className="flex items-center gap-1.5 p-1 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200 transition-all cursor-pointer group shadow-sm"
                 title="Tài khoản cá nhân"
               >
-                <div className="w-10 h-10 rounded-xl text-white flex items-center justify-center font-black text-sm shadow-md bg-gradient-to-br from-blue-600 to-indigo-700">
-                  {(isEmployer ? (companyName || representativeName) : (isStudent ? studentName : adminName)).charAt(0).toUpperCase()}
-                </div>
+                <MediaAvatar
+                  src={userAvatarUrl}
+                  alt={isEmployer ? (companyName || representativeName) : (isStudent ? studentName : adminName)}
+                  fallbackText={fallbackInitial}
+                  className="w-10 h-10 rounded-xl shadow-md overflow-hidden shrink-0"
+                  fallbackClassName="bg-gradient-to-br from-blue-600 to-indigo-700 text-white font-black text-sm"
+                  imgClassName="w-full h-full object-cover"
+                />
                 <ChevronDown className={`w-3.5 h-3.5 mr-1 text-slate-400 group-hover:text-slate-700 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
@@ -742,14 +942,14 @@ export default function Header({
                         {roleConfig.title}
                       </span>
                       <span className={`px-2 py-0.5 rounded-full text-xs font-semibold border flex items-center gap-1 ${(currentUser?.is_banned || userStatus === 'inactive' || userStatus === 'cancelled')
-                          ? 'bg-red-50 text-red-700 border-red-200'
-                          : (userStatus === 'paused'
-                            ? 'bg-amber-50 text-amber-700 border-amber-200'
-                            : 'bg-emerald-50 text-emerald-700 border-emerald-200')
+                        ? 'bg-red-50 text-red-700 border-red-200'
+                        : (userStatus === 'paused'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-200')
                         }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${(currentUser?.is_banned || userStatus === 'inactive' || userStatus === 'cancelled')
-                            ? 'bg-red-500'
-                            : (userStatus === 'paused' ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse')
+                          ? 'bg-red-500'
+                          : (userStatus === 'paused' ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse')
                           }`} />
                         <span>
                           {(currentUser?.is_banned || userStatus === 'inactive' || userStatus === 'cancelled')

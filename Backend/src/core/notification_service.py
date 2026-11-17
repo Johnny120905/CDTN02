@@ -21,6 +21,78 @@ def emit_socket_event(event_name: str, payload: dict, room: str = None):
         logger.warning("Socket emit failed for %s: %s", event_name, exc)
 
 
+def resolve_notification_link_and_menu(notif_type: str, role: str, related_id: str = None, target_id: str = None, title: str = ""):
+    """Tự động suy luận URL link và menu đích theo đúng vai trò (Role-based Navigation)."""
+    type_str = str(notif_type or "").lower()
+    title_str = str(title or "").lower()
+    rel_str = str(related_id or "").lower()
+    role_str = str(role or "").lower()
+
+    if role_str == "admin":
+        if any(k in type_str or k in title_str for k in ["gpkd", "license", "giấy phép"]):
+            menu = "gpkd"
+        elif any(k in type_str or k in title_str for k in ["job", "việc làm", "tuyển dụng", "tin"]):
+            menu = "jobs"
+        elif any(k in type_str or k in title_str for k in ["report", "ticket", "khiếu nại", "báo cáo"]):
+            menu = "reports"
+        elif any(k in type_str or k in title_str for k in ["user", "account", "banned", "tài khoản"]):
+            menu = "users"
+        elif any(k in type_str or k in title_str for k in ["review", "đánh giá"]):
+            menu = "reviews"
+        elif any(k in type_str or k in title_str for k in ["announcement", "hàng loạt"]):
+            menu = "announcements"
+        else:
+            menu = "dashboard"
+        return f"/admin#{menu}", menu
+
+    elif role_str == "employer":
+        if any(k in type_str or k in title_str for k in ["call", "cuộc gọi"]):
+            menu = "chat"
+        elif any(k in type_str or k in title_str for k in ["chat", "tin nhắn"]):
+            menu = "chat"
+        elif any(k in type_str or k in title_str for k in ["review", "đánh giá"]):
+            menu = "reviews"
+        elif any(k in type_str or k in title_str for k in ["interview", "phỏng vấn", "lịch hẹn"]):
+            menu = "interviews"
+        elif any(k in type_str or k in title_str for k in ["shift", "chấm công", "ca làm"]):
+            menu = "job_completion"
+        elif any(k in type_str or k in title_str for k in ["application", "applicant", "ứng tuyển", "hồ sơ", "ứng viên"]) or rel_str.startswith("app_"):
+            menu = "applicants"
+        elif any(k in type_str or k in title_str for k in ["gpkd", "license", "giấy phép"]):
+            menu = "company"
+        elif any(k in type_str or k in title_str for k in ["report", "ticket", "khiếu nại", "báo cáo"]):
+            menu = "my_reports"
+        elif any(k in type_str or k in title_str for k in ["job", "việc làm", "tuyển dụng", "tin"]):
+            menu = "jobs"
+        else:
+            menu = "home"
+        return f"/employer#{menu}", menu
+
+    else:
+        # role == "student"
+        if any(k in type_str or k in title_str for k in ["call", "cuộc gọi"]):
+            menu = "chat"
+        elif any(k in type_str or k in title_str for k in ["chat", "tin nhắn"]):
+            menu = "chat"
+        elif any(k in type_str or k in title_str for k in ["review", "đánh giá"]):
+            menu = "reviews"
+        elif any(k in type_str or k in title_str for k in ["shift", "chốt nhận người", "chấm công", "ca làm"]):
+            menu = "my_shifts"
+        elif any(k in type_str or k in title_str for k in ["job_completed", "hoàn thành"]):
+            menu = "reviews"
+        elif any(k in type_str or k in title_str for k in ["interview", "phỏng vấn", "lịch hẹn"]):
+            menu = "applications"
+        elif any(k in type_str or k in title_str for k in ["application", "ứng tuyển", "hồ sơ", "trúng tuyển"]) or rel_str.startswith("app_"):
+            menu = "applications"
+        elif any(k in type_str or k in title_str for k in ["report", "ticket", "khiếu nại", "báo cáo"]):
+            menu = "my_reports"
+        elif any(k in type_str or k in title_str for k in ["job", "việc làm", "tuyển dụng"]):
+            menu = "jobs"
+        else:
+            menu = "home"
+        return f"/student#{menu}", menu
+
+
 def create_and_emit_notification(
     user_id: str,
     title: str,
@@ -91,6 +163,12 @@ def create_and_emit_notification(
         notif_doc["target_id"] = target_id
     if extra and isinstance(extra, dict):
         notif_doc.update(extra)
+
+    # Gán đúng link & target_menu theo vai trò của người nhận
+    if "link" not in notif_doc or not notif_doc.get("link"):
+        res_link, res_menu = resolve_notification_link_and_menu(notif_type, inferred_role, related_id, target_id, title)
+        notif_doc["link"] = res_link
+        notif_doc["target_menu"] = res_menu
 
     try:
         db_manager.get_collection("notifications").insert_one(notif_doc)

@@ -1,5 +1,6 @@
 import time
 import uuid
+import re
 from flask import Blueprint, request, jsonify
 from pymongo.errors import DuplicateKeyError
 from src.core.database import db_manager
@@ -11,7 +12,7 @@ from src.core.notification_service import (
 )
 from src.core.socket_service import canonicalize_room_id, get_latest_room_message
 from src.middlewares.auth_middleware import role_required
-from src.api.common.common_routes import scan_job_banned_keywords
+from src.api.common.common_routes import scan_job_banned_keywords, auto_adjust_job_moderation
 
 employer_bp = Blueprint("employer", __name__, url_prefix="/api/employer")
 
@@ -261,16 +262,33 @@ def list_my_jobs():
             j["status"] = j["job_status"]
         elif not j.get("job_status") and j.get("status"):
             j["job_status"] = j["status"]
-        matched_kws = scan_job_banned_keywords(j, banned_docs)
-        j["matched_banned_keywords"] = matched_kws
-        j["has_sensitive_keywords"] = len(matched_kws) > 0
-        if j.get("is_admin_reviewed") is None or "is_admin_reviewed" not in j:
-            if j["has_sensitive_keywords"]:
-                j["is_admin_reviewed"] = False
-                j["is_hidden"] = True
-            else:
-                j["is_admin_reviewed"] = True
-                j["is_hidden"] = False
+
+        # Chuẩn hóa chi nhánh (branch_name) luôn đồng bộ trung thực với vị trí thực tế của tin
+        loc = str(j.get("location") or "").strip()
+        br = str(j.get("branch_name") or "").strip()
+        is_q1_loc = bool(re.search(r"(?:quận|q\.?)\s*0?1(?!\d)", loc.lower()))
+        changed_branch = False
+        if loc and (not br or br in ["Quận 1", "None", "null"]):
+            if not is_q1_loc:
+                j["branch_name"] = loc
+                changed_branch = True
+            elif not br or br in ["None", "null"]:
+                j["branch_name"] = loc
+                changed_branch = True
+        elif loc and br and br == "Quận 1" and not is_q1_loc:
+            j["branch_name"] = loc
+            changed_branch = True
+
+        if changed_branch and jid:
+            try:
+                db_manager.get_collection("jobs").update_one(
+                    {"_id": jid},
+                    {"$set": {"branch_name": j["branch_name"]}}
+                )
+            except Exception:
+                pass
+
+        auto_adjust_job_moderation(j, banned_docs, persist=True)
         
     return jsonify({"success": True, "data": jobs})
 
@@ -304,10 +322,13 @@ def create_job():
         category_id = raw_cat
         category_name = str(data.get("category_name") or raw_cat).strip()
     location = str(data.get("location", comp.get("address", "TP.HCM"))).strip()
-    branch_name = str(data.get("branch_name") or comp.get("branch_name") or location).strip()
+    branch_name = str(data.get("branch_name") or location).strip()
     description = str(data.get("description", "")).strip()
-    salary_min = int(data.get("salary_min", 25000))
-    salary_max = int(data.get("salary_max", 35000))
+    try:
+        salary_min = int(data.get("salary_min", 25000))
+        salary_max = int(data.get("salary_max", 35000))
+    except (ValueError, TypeError):
+        return jsonify({"success": False, "message": "Khoảng lương phải là số nguyên hợp lệ."}), 400
     is_negotiable = bool(data.get("is_negotiable", False))
     work_time = str(data.get("work_time", "Ca linh hoạt")).strip()
     payment_type = str(data.get("payment_type") or data.get("salary_unit") or "").strip()
@@ -315,8 +336,13 @@ def create_job():
     if not title:
         return jsonify({"success": False, "message": "Tiêu đề tin tuyển dụng không được để trống."}), 400
 
-    if not is_negotiable and salary_min > salary_max:
-        return jsonify({"success": False, "message": "Lương tối thiểu không được lớn hơn lương tối đa."}), 400
+    if not is_negotiable:
+        if salary_min < 15000 or salary_min > 200000:
+            return jsonify({"success": False, "message": "Lương tối thiểu phải từ 15.000 đến 200.000 VNĐ/giờ."}), 400
+        if salary_max < 15000 or salary_max > 200000:
+            return jsonify({"success": False, "message": "Lương tối đa phải từ 15.000 đến 200.000 VNĐ/giờ."}), 400
+        if salary_min > salary_max:
+            return jsonify({"success": False, "message": "Lương tối thiểu không được lớn hơn lương tối đa."}), 400
 
     new_job = {
         "_id": f"job_{uuid.uuid4().hex[:8]}",
@@ -410,6 +436,21 @@ def update_job(job_id):
     if cover and not cover.startswith("http"):
         if cover.startswith("data:") and not (cover.startswith("data:image/png") or cover.startswith("data:image/jpeg") or cover.startswith("data:image/jpg")):
             return jsonify({"success": False, "message": "Ảnh bìa Doanh nghiệp chỉ nhận định dạng ảnh .png, .jpg, .jpeg (≤ 10MB)!"}), 400
+
+    if "salary_min" in data or "salary_max" in data:
+        try:
+            s_min = int(data.get("salary_min", job.get("salary_min", 25000)))
+            s_max = int(data.get("salary_max", job.get("salary_max", 35000)))
+            is_neg = bool(data.get("is_negotiable", job.get("is_negotiable", False)))
+            if not is_neg:
+                if s_min < 15000 or s_min > 200000:
+                    return jsonify({"success": False, "message": "Lương tối thiểu phải từ 15.000 đến 200.000 VNĐ/giờ."}), 400
+                if s_max < 15000 or s_max > 200000:
+                    return jsonify({"success": False, "message": "Lương tối đa phải từ 15.000 đến 200.000 VNĐ/giờ."}), 400
+                if s_min > s_max:
+                    return jsonify({"success": False, "message": "Lương tối thiểu không được lớn hơn lương tối đa."}), 400
+        except (ValueError, TypeError):
+            return jsonify({"success": False, "message": "Khoảng lương không hợp lệ."}), 400
 
     update_fields = {}
     for key in ["title", "category_id", "location", "branch_name", "description", "requirements", "benefits", "salary_min", "salary_max", "is_negotiable", "work_time", "is_open", "job_status", "status"]:
@@ -519,10 +560,11 @@ def toggle_job_status(job_id):
 
     elif target_status == "completed":
         # Chuyển trạng thái sang Hoàn thành (kết thúc công việc vĩnh viễn và kích hoạt đánh giá 2 chiều)
-        job_col.update_one({"_id": job_id}, {"$set": {"status": "completed", "job_status": "completed", "is_open": False, "completed_at": time.strftime("%Y-%m-%d %H:%M:%S")}})
+        now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+        job_col.update_one({"_id": job_id}, {"$set": {"status": "completed", "job_status": "completed", "is_open": False, "completed_at": now_str}})
         app_col.update_many(
             {"job_id": job_id, "application_status": {"$in": ["accepted", "Đã duyệt", "completed"]}},
-            {"$set": {"shift_status": "completed", "job_status": "completed"}}
+            {"$set": {"shift_status": "completed", "employer_confirmed": True, "student_completed": True, "attendance_marked_at": now_str, "job_status": "completed"}}
         )
         accepted_apps = list(app_col.find({"job_id": job_id, "application_status": {"$in": ["accepted", "Đã duyệt", "completed"]}}))
         for a_app in accepted_apps:
@@ -645,6 +687,8 @@ def list_applicants():
             live_cover = a.get("student_cover_image_url") or snap.get("cover_image_url") or ""
 
         a["student_avatar_url"] = live_avatar
+        a["avatar_url"] = live_avatar
+        a["avatar"] = live_avatar
         a["student_cover_image_url"] = live_cover
         snap["avatar_url"] = live_avatar
         snap["cover_image_url"] = live_cover
@@ -823,6 +867,16 @@ def mark_applicant_shift_attendance(app_id):
         "attendance_marked_at": now_str,
         "attendance_note": attendance_note,
     }
+    if shift_status == "completed":
+        set_fields["employer_confirmed"] = True
+        set_fields["student_completed"] = True
+        set_fields["employer_confirmed_at"] = now_str
+    elif shift_status == "absent":
+        set_fields["employer_confirmed"] = True
+        set_fields["is_absent"] = True
+    elif shift_status == "in_progress":
+        set_fields["employer_confirmed"] = False
+
     if hours_worked is not None:
         try:
             set_fields["hours_worked"] = float(hours_worked)
@@ -854,11 +908,17 @@ def mark_applicant_shift_attendance(app_id):
             related_id=app_id,
             target_id=target_student_id,
         )
-    emit_socket_event("application-status-updated", {
+    socket_payload = {
         "application_id": app_id,
         "shift_status": shift_status,
-        "student_user_id": target_student_id
-    })
+        "employer_confirmed": set_fields.get("employer_confirmed", False),
+        "student_completed": set_fields.get("student_completed", False),
+        "attendance_marked_at": now_str,
+        "student_user_id": target_student_id,
+        "employer_id": emp["_id"]
+    }
+    emit_socket_event("application-status-updated", socket_payload)
+    emit_socket_event("shift-status-updated", socket_payload)
 
     return jsonify({"success": True, "message": f"Đã cập nhật điểm danh ca cho sinh viên: {status_vi}", "data": {**app, **set_fields}})
 
@@ -874,6 +934,23 @@ def delete_employer_applicant(app_id):
 
     app_col.delete_one({"_id": app_id})
     db_manager.get_collection("reviews").delete_many({"application_id": app_id})
+    target_student_id = resolve_student_user_id(app.get("student_user_id") or app.get("student_id"))
+    if target_student_id:
+        create_and_emit_notification(
+            user_id=target_student_id,
+            title="Hồ sơ ứng tuyển đã kết thúc",
+            message=f"Doanh nghiệp {app.get('company_name', 'Doanh nghiệp')} đã kết thúc xử lý hồ sơ ứng tuyển vị trí '{app.get('job_title', '')}'.",
+            notif_type="application_status",
+            role="student",
+            related_id=app_id,
+            target_id=target_student_id,
+        )
+    emit_socket_event("application-status-updated", {
+        "application_id": app_id,
+        "deleted": True,
+        "student_user_id": target_student_id,
+        "employer_id": emp["_id"],
+    })
     return jsonify({"success": True, "message": "Đã xóa hồ sơ ứng viên thành công!"})
 
 # 4. Employer Reviews (FR 2.6)
@@ -942,7 +1019,7 @@ def review_student():
                 message=f"{company_display_name} đã cập nhật đánh giá ({rating}/5 sao) cho công việc '{app.get('job_title', 'bán thời gian')}'.",
                 notif_type="review",
                 role="student",
-                related_id=application_id,
+                related_id=existing_rev["_id"],
                 target_id=student_uid,
             )
         emit_socket_event("review-updated", updated_rev)
@@ -994,7 +1071,7 @@ def review_student():
             message=f"Doanh nghiệp đã gửi đánh giá năng lực ({rating}/5 sao) cho công việc '{app.get('job_title', 'bán thời gian')}'.",
             notif_type="review",
             role="student",
-            related_id=application_id,
+            related_id=new_rev["_id"],
             target_id=student_uid,
         )
     emit_socket_event("new-review", new_rev)
@@ -1107,7 +1184,7 @@ def update_employer_review(rev_id):
             message=f"Doanh nghiệp vừa cập nhật đánh giá ({rating}/5 sao) cho công việc '{rev.get('job_title', 'bán thời gian')}'.",
             notif_type="review",
             role="student",
-            related_id=rev.get("application_id") or rev_id,
+            related_id=rev_id,
             target_id=student_uid,
         )
     emit_socket_event("review-updated", updated_rev or {"_id": rev_id, "target_id": rev.get("target_id")})
@@ -1124,6 +1201,26 @@ def delete_employer_review(rev_id):
         return jsonify({"success": False, "message": "Không tìm thấy đánh giá cần xóa."}), 404
 
     rev_col.delete_one({"_id": rev_id})
+    target_id = rev.get("target_id")
+    if target_id:
+        active_reviews = list(rev_col.find({"target_id": target_id, "is_hidden": {"$ne": True}}))
+        avg_score = round(sum(r.get("rating", 5) for r in active_reviews) / len(active_reviews), 1) if active_reviews else 5.0
+        db_manager.get_collection("student_profiles").update_many(
+            {"$or": [{"student_id": target_id}, {"user_id": target_id}]},
+            {"$set": {"rating_avg": avg_score, "review_count": len(active_reviews)}}
+        )
+    student_uid = resolve_student_user_id(target_id)
+    if student_uid:
+        create_and_emit_notification(
+            user_id=student_uid,
+            title="Đánh giá đã được gỡ bỏ",
+            message=f"Doanh nghiệp đã gỡ bỏ bài đánh giá cho công việc '{rev.get('job_title', 'bán thời gian')}'.",
+            notif_type="review",
+            role="student",
+            related_id=rev.get("application_id") or rev_id,
+            target_id=student_uid,
+        )
+    emit_socket_event("review-updated", {"_id": rev_id, "deleted": True, "target_id": target_id})
     return jsonify({"success": True, "message": "Đã xóa đánh giá năng lực sinh viên thành công!"})
 
 # 5. Delete Job

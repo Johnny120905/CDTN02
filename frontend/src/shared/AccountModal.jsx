@@ -4,6 +4,7 @@ import {
   Check, Eye, EyeOff, ShieldCheck, CheckCircle2, AlertCircle, Activity
 } from 'lucide-react';
 import { getRoleToken } from './searchAndFilterHelper';
+import { emitSync, SYNC_EVENTS } from './syncEventHub';
 
 export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuccess }) {
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'password'
@@ -124,6 +125,7 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
         localStorage.setItem(`partime_${currentUser.role}_user`, JSON.stringify(updatedUser));
         localStorage.setItem('partime_user', JSON.stringify(updatedUser));
         if (onUpdateSuccess) onUpdateSuccess(updatedUser);
+        emitSync(SYNC_EVENTS.PROFILES, { role: currentUser.role, action: 'profile_modal_update' });
       } else {
         setMsg({ text: data.message || 'Cập nhật thất bại.', type: 'error' });
       }
