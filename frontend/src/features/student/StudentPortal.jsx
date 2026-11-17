@@ -2535,7 +2535,7 @@ export default function StudentPortal({
     { id: 'student_profile', label: 'Hồ sơ cá nhân', icon: <User className="w-4 h-4" /> },
     { id: 'reviews', label: 'Doanh nghiệp chờ đánh giá', icon: <Star className="w-4 h-4" />, count: isGuestMode ? undefined : completedJobsForReview.length },
     { id: 'my_reports', label: 'Báo cáo vi phạm đã gửi', icon: <Flag className="w-4 h-4" />, count: isGuestMode ? undefined : myReports.length },
-    { id: 'chat', label: 'Tin nhắn & Phỏng vấn', icon: <MessageSquare className="w-4 h-4" />, count: isGuestMode ? undefined : contacts.length }
+    { id: 'chat', label: 'Tin nhắn & phỏng vấn', icon: <MessageSquare className="w-4 h-4" />, count: isGuestMode ? undefined : contacts.length }
   ];
 
   return (
@@ -2544,14 +2544,14 @@ export default function StudentPortal({
       {/* ======================= LEFT SIDEBAR SINH VIÊN (ĐỒNG BỘ 100% VỚI NTD & QUẢN TRỊ VIÊN) ======================= */}
       <aside className={`${
         mobileSidebarOpen
-          ? 'fixed inset-y-0 left-0 z-50 w-80 shadow-2xl flex'
-          : `hidden md:flex ${isSidebarCollapsed ? 'md:w-20' : 'md:w-80'}`
+          ? 'fixed inset-y-0 left-0 z-50 w-72 sm:w-80 shadow-2xl flex'
+          : `hidden md:flex ${isSidebarCollapsed ? 'md:w-20' : 'md:w-72 xl:w-80'}`
       } bg-white/95 backdrop-blur-xl border-r border-slate-200 shadow-sm flex-col shrink-0 transition-all duration-300`}>
         <div className={`p-4 border-b border-slate-100 flex items-center ${isSidebarCollapsed && !mobileSidebarOpen ? 'justify-center' : 'justify-between'} gap-2`}>
           {(!isSidebarCollapsed || mobileSidebarOpen) && (
             <div className="flex items-center gap-2 min-w-0">
               <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0"></span>
-              <span className="text-sm sm:text-base font-black tracking-wider text-slate-900 uppercase truncate">Cổng Sinh Viên</span>
+              <span className="text-sm sm:text-base font-bold text-slate-900 truncate">Cổng sinh viên</span>
             </div>
           )}
           <button
@@ -2622,7 +2622,7 @@ export default function StudentPortal({
             <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-blue-600" />
-                <h3 className="text-xs font-bold text-slate-800 uppercase">Widget Chat Nhanh</h3>
+                <h3 className="text-xs font-semibold text-slate-900">Widget chat nhanh</h3>
               </div>
               <button
                 type="button"
@@ -2677,79 +2677,74 @@ export default function StudentPortal({
                 
                 <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black leading-tight tracking-tight">
                   {isGuestMode ? (
-                    <>Khám Phá Việc Làm Part-time <span className="text-slate-900">Linh Hoạt Theo Ca Học</span></>
+                    <>Khám phá việc làm part-time <span className="text-slate-900">linh hoạt theo ca học</span></>
                   ) : (
                     <>Chào mừng trở lại, <span className="text-slate-900">{profile.full_name || 'Sinh viên'}</span>!</>
                   )}
                 </h2>
-                <p className="text-xs sm:text-sm text-blue-100 leading-relaxed max-w-3xl mt-2">
-                  Khám phá các cơ hội việc làm bán thời gian uy tín từ các thương hiệu đã được xác thực Giấy phép kinh doanh, minh bạch thu nhập và tuyệt đối không thu phí cọc.
+                <p className="text-sm sm:text-base text-white/95 leading-relaxed max-w-3xl mt-2">
+                  Khám phá các cơ hội việc làm bán thời gian uy tín từ các thương hiệu đã được xác thực GPKD, minh bạch thu nhập và tuyệt đối không thu phí cọc.
                 </p>
 
-                {/* Thanh Tìm Kiếm Nhanh Cho Chế Độ Khách */}
-                {isGuestMode ? (
-                  <div className="bg-white/95 backdrop-blur-md p-3 sm:p-4 rounded-2xl shadow-2xl flex flex-col sm:flex-row items-center gap-3 text-slate-800 mt-4">
-                    <div className="relative flex-1 w-full">
-                      <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        value={heroKeyword}
-                        onChange={(e) => setHeroKeyword(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            setSearchQuery(heroKeyword);
-                            setSelectedProvince(heroProvince);
-                            setSelectedDistricts([]);
-                            handleMenuSwitch('jobs');
-                          }
-                        }}
-                        placeholder="Vị trí tuyển dụng"
-                        className="w-full bg-transparent pl-11 pr-4 py-2.5 sm:py-3 text-sm sm:text-base font-medium text-slate-900 placeholder:text-slate-400 outline-none"
-                      />
-                    </div>
-                    <div className="w-full sm:w-52 border-t sm:border-t-0 sm:border-l border-slate-200 pl-0 sm:pl-2">
-                      <select
-                        value={heroProvince}
-                        onChange={(e) => setHeroProvince(e.target.value)}
-                        className="w-full bg-transparent py-2.5 sm:py-3 text-sm sm:text-base font-semibold text-slate-700 outline-none cursor-pointer"
-                      >
-                        <option value="">Tất cả địa điểm</option>
-                        {VIETNAM_PROVINCES.map(p => (
-                          <option key={p} value={p}>{p}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSearchQuery(heroKeyword);
-                        setSelectedProvince(heroProvince);
-                        setSelectedDistricts([]);
-                        handleMenuSwitch('jobs');
-                      }}
-                      className="w-full sm:w-auto px-6 py-2.5 sm:py-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-sm sm:text-base font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer shrink-0"
-                    >
-                      <Search className="w-3.5 h-3.5" />
-                      <span>Tìm Việc</span>
-                    </button>
+                {/* Thanh Tìm Kiếm Nhanh trên Banner Trang chủ (Cả Chế độ Khách & Đã đăng nhập) */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setSearchQuery(heroKeyword);
+                    setSelectedProvince(heroProvince);
+                    setSelectedDistricts([]);
+                    handleMenuSwitch('jobs');
+                  }}
+                  className="bg-white/95 backdrop-blur-md p-3 sm:p-4 rounded-2xl shadow-2xl flex flex-col sm:flex-row items-stretch sm:items-center gap-3 text-slate-800 mt-4"
+                >
+                  <div className="relative flex-1 w-full">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={heroKeyword}
+                      onChange={(e) => setHeroKeyword(e.target.value)}
+                      placeholder="Vị trí tuyển dụng"
+                      className="w-full bg-transparent pl-11 pr-4 py-2.5 sm:py-3 text-sm sm:text-base font-medium text-slate-900 placeholder:text-slate-400 outline-none"
+                    />
                   </div>
-                ) : (
-                  <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <div className="w-full sm:w-52 border-t sm:border-t-0 sm:border-l border-slate-200 pt-2 sm:pt-0 pl-2 sm:pl-3">
+                    <select
+                      value={heroProvince}
+                      onChange={(e) => setHeroProvince(e.target.value)}
+                      className="w-full bg-transparent py-2.5 sm:py-3 text-sm sm:text-base font-semibold text-slate-700 outline-none cursor-pointer"
+                    >
+                      <option value="">Tất cả địa điểm</option>
+                      {VIETNAM_PROVINCES.map(p => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    type="submit"
+                    className="w-full sm:w-auto px-6 py-2.5 sm:py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer shrink-0 whitespace-nowrap"
+                  >
+                    <Search className="w-3.5 h-3.5" />
+                    <span>Tìm việc</span>
+                  </button>
+                </form>
+
+                {!isGuestMode && (
+                  <div className="flex flex-wrap items-center gap-3 pt-1">
                     <button
                       type="button"
                       onClick={() => handleMenuSwitch('jobs')}
-                      className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-100 text-blue-700 text-xs font-bold shadow-lg transition-all cursor-pointer flex items-center gap-2"
+                      className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap"
                     >
                       <Search className="w-4 h-4" />
-                      <span>Khám Phá Việc Làm Ngay</span>
+                      <span>Khám phá việc làm ngay</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => handleMenuSwitch('applications')}
-                      className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold transition-all cursor-pointer shadow-sm flex items-center gap-2"
+                      className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-sm font-semibold transition-all cursor-pointer shadow-sm flex items-center gap-2 whitespace-nowrap"
                     >
                       <Clock className="w-4 h-4 text-slate-900" />
-                      <span>Xem Tiến Độ Đơn ({myApplications.length})</span>
+                      <span>Xem tiến độ đơn ({myApplications.length})</span>
                     </button>
                   </div>
                 )}
@@ -2762,39 +2757,39 @@ export default function StudentPortal({
                 <>
                   <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex items-center justify-between min-h-[130px]">
                     <div className="space-y-1">
-                      <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500">Xác Minh Doanh Nghiệp</p>
-                      <p className="text-lg sm:text-xl font-black text-slate-900">Giấy Phép Hợp Lệ</p>
-                      <p className="text-xs sm:text-sm font-semibold text-emerald-600 flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> 100% Đã thẩm định GPKD
+                      <p className="text-sm font-semibold text-slate-600">Xác minh doanh nghiệp</p>
+                      <p className="text-lg sm:text-xl font-bold text-slate-900">Giấy phép hợp lệ</p>
+                      <p className="text-xs sm:text-sm font-semibold text-emerald-700 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> 100% đã thẩm định GPKD
                       </p>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shrink-0">
                       <Briefcase className="w-6 h-6" />
                     </div>
                   </div>
 
                   <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex items-center justify-between min-h-[130px]">
                     <div className="space-y-1">
-                      <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500">Cam Kết Bảo Vệ</p>
-                      <p className="text-lg sm:text-xl font-black text-slate-900">Không Phí Tuyển Dụng</p>
-                      <p className="text-xs sm:text-sm font-semibold text-sky-600 flex items-center gap-1.5">
+                      <p className="text-sm font-semibold text-slate-600">Cam kết bảo vệ</p>
+                      <p className="text-lg sm:text-xl font-bold text-slate-900">Không phí tuyển dụng</p>
+                      <p className="text-xs sm:text-sm font-semibold text-sky-700 flex items-center gap-1.5">
                         <ShieldCheck className="w-3.5 h-3.5" /> Tuyệt đối không cọc tiền
                       </p>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-2xl bg-sky-50 border border-sky-100 text-sky-600 flex items-center justify-center shrink-0">
                       <ShieldCheck className="w-8 h-8" />
                     </div>
                   </div>
 
                   <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex items-center justify-between min-h-[130px]">
                     <div className="space-y-1">
-                      <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500">Thời Gian Biểu</p>
-                      <p className="text-lg sm:text-xl font-black text-slate-900">Linh Hoạt Theo Ca</p>
-                      <p className="text-xs sm:text-sm font-semibold text-indigo-600 flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5" /> Ca sáng, chiều, tối & cuối tuần
+                      <p className="text-sm font-semibold text-slate-600">Thời gian biểu</p>
+                      <p className="text-lg sm:text-xl font-bold text-slate-900">Linh hoạt theo ca</p>
+                      <p className="text-xs sm:text-sm font-semibold text-indigo-700 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" /> Ca sáng, chiều, tối &amp; cuối tuần
                       </p>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
                       <Clock className="w-8 h-8" />
                     </div>
                   </div>
@@ -2807,9 +2802,9 @@ export default function StudentPortal({
                     className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md hover:border-blue-300 transition-all flex items-center justify-between min-h-[130px] cursor-pointer"
                   >
                     <div className="space-y-1 min-w-0">
-                      <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500">Việc Làm Đang Tuyển</p>
-                      <p className="text-2xl font-black text-slate-900">{activeOpenJobs.length} vị trí</p>
-                      <p className="text-xs font-semibold text-blue-600 truncate">
+                      <p className="text-sm font-semibold text-slate-600">Việc làm đang tuyển</p>
+                      <p className="text-2xl font-bold text-slate-900">{activeOpenJobs.length} vị trí</p>
+                      <p className="text-xs font-semibold text-blue-700 truncate">
                         {savedJobs.length} việc làm đã lưu
                       </p>
                     </div>
@@ -2823,9 +2818,9 @@ export default function StudentPortal({
                     className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md hover:border-sky-300 transition-all flex items-center justify-between min-h-[130px] cursor-pointer"
                   >
                     <div className="space-y-1 min-w-0">
-                      <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500">Hồ Sơ Đã Nộp</p>
-                      <p className="text-2xl font-black text-slate-900">{myApplications.length} đơn</p>
-                      <p className="text-xs font-semibold text-sky-600 truncate">
+                      <p className="text-sm font-semibold text-slate-600">Hồ sơ đã nộp</p>
+                      <p className="text-2xl font-bold text-slate-900">{myApplications.length} đơn</p>
+                      <p className="text-xs font-semibold text-sky-700 truncate">
                         {myApplications.filter(a => a.application_status === 'pending').length} chờ duyệt • {acceptedApplications.length} trúng tuyển
                       </p>
                     </div>
@@ -2839,9 +2834,9 @@ export default function StudentPortal({
                     className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all flex items-center justify-between min-h-[130px] cursor-pointer"
                   >
                     <div className="space-y-1 min-w-0">
-                      <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500">Kho Hồ Sơ CV</p>
-                      <p className="text-2xl font-black text-slate-900">{myResumes.length} tệp CV</p>
-                      <p className="text-xs font-semibold text-indigo-600 truncate">
+                      <p className="text-sm font-semibold text-slate-600">Kho hồ sơ CV</p>
+                      <p className="text-2xl font-bold text-slate-900">{myResumes.length} tệp CV</p>
+                      <p className="text-xs font-semibold text-indigo-700 truncate">
                         {(() => {
                           const defCv = myResumes.find(r => r.is_default) || myResumes[0];
                           return defCv ? `Mặc định: ${defCv.file_name || 'CV PDF'}` : 'Chưa tải lên tệp CV PDF';
@@ -2856,9 +2851,9 @@ export default function StudentPortal({
                   {/* 3 Thẻ Thống Kê Kết Quả Part-Time Thực Tế */}
                   <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex items-center justify-between min-h-[130px]">
                     <div className="space-y-1 min-w-0">
-                      <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500">Tổng Giờ Công Part-Time</p>
-                      <p className="text-2xl font-black text-slate-900">{studentWorkStats.totalHours} giờ</p>
-                      <p className="text-xs font-semibold text-blue-600 truncate">
+                      <p className="text-sm font-semibold text-slate-600">Tổng giờ công part-time</p>
+                      <p className="text-2xl font-bold text-slate-900">{studentWorkStats.totalHours} giờ</p>
+                      <p className="text-xs font-semibold text-blue-700 truncate">
                         {studentWorkStats.completedShiftCount} ca hoàn thành • {studentWorkStats.activeShiftCount} ca sắp tới
                       </p>
                     </div>
@@ -2869,9 +2864,9 @@ export default function StudentPortal({
 
                   <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex items-center justify-between min-h-[130px]">
                     <div className="space-y-1 min-w-0">
-                      <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500">Thu Nhập Dự Kiến</p>
-                      <p className="text-2xl font-black text-emerald-700">{studentWorkStats.estimatedIncome.toLocaleString()}đ</p>
-                      <p className="text-xs font-semibold text-emerald-600 truncate">
+                      <p className="text-sm font-semibold text-slate-600">Thu nhập dự kiến</p>
+                      <p className="text-2xl font-bold text-emerald-700">{studentWorkStats.estimatedIncome.toLocaleString()}đ</p>
+                      <p className="text-xs font-semibold text-emerald-700 truncate">
                         {studentWorkStats.hasWageData ? 'Tính từ lương & giờ ca thực tế' : 'Chưa phát sinh ca có đơn giá cố định'}
                       </p>
                     </div>
@@ -2882,9 +2877,9 @@ export default function StudentPortal({
 
                   <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-md transition-all flex items-center justify-between min-h-[130px]">
                     <div className="space-y-1 min-w-0">
-                      <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-500">Tỷ Lệ Duyệt Đơn</p>
-                      <p className="text-2xl font-black text-purple-700">{studentWorkStats.approvalRate}%</p>
-                      <p className="text-xs font-semibold text-purple-600 truncate">
+                      <p className="text-sm font-semibold text-slate-600">Tỷ lệ duyệt đơn</p>
+                      <p className="text-2xl font-bold text-purple-700">{studentWorkStats.approvalRate}%</p>
+                      <p className="text-xs font-semibold text-purple-700 truncate">
                         {studentWorkStats.approvedCount}/{studentWorkStats.nonWithdrawnCount} đơn hợp lệ trúng tuyển
                       </p>
                     </div>
@@ -2899,15 +2894,15 @@ export default function StudentPortal({
             {/* Quick Hot Category Chips for Guest Mode */}
             {isGuestMode && (
               <div className="space-y-2">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Ngành Nghề Sinh Viên Phổ Biến:</p>
+                <p className="text-sm font-semibold text-slate-700">Ngành nghề sinh viên phổ biến:</p>
                 <div className="flex flex-wrap items-center gap-2">
                   {[
-                    { label: 'F&B / Pha Chế & Phục Vụ', kw: 'Pha chế', icon: <Coffee className="w-3.5 h-3.5 text-amber-700" /> },
-                    { label: 'Bán Lẻ / Cửa Hàng Tiện Lợi', kw: 'Thu ngân', icon: <ShoppingCart className="w-3.5 h-3.5 text-blue-700" /> },
-                    { label: 'Gia Sư / Trợ Giảng', kw: 'Trợ giảng', icon: <GraduationCap className="w-3.5 h-3.5 text-indigo-700" /> },
-                    { label: 'Kho Vận / Soạn Hàng Ca', kw: 'Kho vận', icon: <Package className="w-3.5 h-3.5 text-orange-700" /> },
-                    { label: 'IT & Nhập Liệu Online', kw: 'Nhập liệu', icon: <Laptop className="w-3.5 h-3.5 text-cyan-700" /> },
-                    { label: 'Sự Kiện & Thời Vụ', kw: 'Sự kiện', icon: <PartyPopper className="w-3.5 h-3.5 text-rose-700" /> }
+                    { label: 'F&B / Pha chế & phục vụ', kw: 'Pha chế', icon: <Coffee className="w-3.5 h-3.5 text-amber-700" /> },
+                    { label: 'Bán lẻ / Cửa hàng tiện lợi', kw: 'Thu ngân', icon: <ShoppingCart className="w-3.5 h-3.5 text-blue-700" /> },
+                    { label: 'Gia sư / Trợ giảng', kw: 'Trợ giảng', icon: <GraduationCap className="w-3.5 h-3.5 text-indigo-700" /> },
+                    { label: 'Kho vận / Soạn hàng ca', kw: 'Kho vận', icon: <Package className="w-3.5 h-3.5 text-orange-700" /> },
+                    { label: 'IT & Nhập liệu trực tuyến', kw: 'Nhập liệu', icon: <Laptop className="w-3.5 h-3.5 text-cyan-700" /> },
+                    { label: 'Sự kiện & Thời vụ', kw: 'Sự kiện', icon: <PartyPopper className="w-3.5 h-3.5 text-rose-700" /> }
                   ].map((cat, idx) => (
                     <button
                       key={idx}
@@ -2916,7 +2911,7 @@ export default function StudentPortal({
                         setSearchQuery(cat.kw);
                         handleMenuSwitch('jobs');
                       }}
-                      className="px-3 py-1.5 rounded-xl bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-700 text-xs font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1.5"
+                      className="px-3 py-1.5 rounded-xl bg-white hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-900 text-xs font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
                     >
                       {cat.icon}
                       <span>{cat.label}</span>
@@ -2928,10 +2923,10 @@ export default function StudentPortal({
 
             {/* Việc làm đề xuất mới nhất - Bố cục 3 Cột chuẩn TopCV */}
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg sm:text-xl font-black text-slate-900 flex items-center gap-2.5">
-                  <Briefcase className="w-6 h-6 text-blue-600" />
-                  <span>Việc Làm Part-Time Nổi Bật Dành Cho Bạn</span>
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-[22px] leading-[30px] font-semibold text-slate-900 flex items-center gap-2.5">
+                  <Briefcase className="w-6 h-6 text-blue-600 shrink-0" />
+                  <span>Việc làm part-time nổi bật dành cho bạn</span>
                 </h3>
                 <button
                   type="button"
@@ -2966,14 +2961,14 @@ export default function StudentPortal({
                             />
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                                <span className="px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black uppercase tracking-wider">
-                                  {isHotJob ? 'HOT' : 'MỚI'}
+                                <span className="px-2.5 py-0.5 rounded-lg bg-emerald-50 text-emerald-900 border border-emerald-200 text-[12px] leading-[18px] font-medium whitespace-nowrap">
+                                  {isHotJob ? 'Nổi bật' : 'Mới'}
                                 </span>
-                                <span className="px-2.5 py-0.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold">
+                                <span className="px-2.5 py-0.5 rounded-lg bg-blue-50 text-slate-900 border border-blue-200 text-[12px] leading-[18px] font-medium whitespace-nowrap">
                                   {job.category || 'Part-time'}
                                 </span>
                               </div>
-                              <h4 className="text-lg sm:text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1 leading-snug">
+                              <h4 className="text-[18px] leading-[26px] font-semibold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
                                 {job.title}
                               </h4>
                               <button
@@ -3015,10 +3010,10 @@ export default function StudentPortal({
 
                       <div className="flex flex-wrap items-center justify-between gap-3 mt-5 pt-4 border-t border-slate-100">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="px-3.5 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 text-sm font-bold">
+                          <span className="px-3.5 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-slate-900 text-xs font-semibold whitespace-nowrap">
                             {job.is_negotiable ? 'Lương thỏa thuận' : `${job.salary_min?.toLocaleString()}đ - ${job.salary_max?.toLocaleString()}đ/h`}
                           </span>
-                          <span className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-medium">
+                          <span className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-800 text-xs font-medium whitespace-nowrap">
                             {job.work_time || 'Ca linh hoạt'}
                           </span>
                         </div>
@@ -3033,9 +3028,9 @@ export default function StudentPortal({
                             }
                             handleOpenApplyModal(job);
                           }}
-                          className="px-5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-sm font-bold shadow-sm hover:shadow-md transition-all cursor-pointer"
+                          className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm hover:shadow-md transition-all cursor-pointer whitespace-nowrap shrink-0"
                         >
-                          Ứng Tuyển
+                          Ứng tuyển
                         </button>
                       </div>
                     </div>
@@ -3047,34 +3042,34 @@ export default function StudentPortal({
             {/* 3 Cam Kết Vàng Cho Sinh Viên (Typography To Rõ) */}
             <div className="p-8 sm:p-10 rounded-3xl bg-gradient-to-r from-blue-50 via-indigo-50 to-sky-50 border border-blue-200/80 space-y-6">
               <div className="flex items-center gap-3">
-                <ShieldCheck className="w-7 h-7 text-blue-600" />
-                <h3 className="text-lg sm:text-xl font-black text-slate-900 uppercase tracking-wider">
-                  3 Cam Kết Bảo Vệ Quyền Lợi Sinh Viên Tại PARTIME.VN
+                <ShieldCheck className="w-7 h-7 text-blue-600 shrink-0" />
+                <h3 className="text-[22px] leading-[30px] font-semibold text-slate-900">
+                  3 cam kết bảo vệ quyền lợi sinh viên tại PARTIME.VN
                 </h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
                 <div className="p-6 sm:p-7 rounded-2xl bg-white border border-slate-200/90 shadow-sm space-y-2.5">
-                  <div className="font-bold text-base sm:text-lg text-slate-900 flex items-center gap-2">
+                  <div className="font-semibold text-base sm:text-lg text-slate-900 flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                    <span>100% Xác Minh GPKD</span>
+                    <span>100% xác minh GPKD</span>
                   </div>
                   <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
                     Mọi nhà tuyển dụng đều bắt buộc nộp Giấy phép kinh doanh có dấu mộc đỏ và được Quản trị viên thẩm định kỹ lưỡng.
                   </p>
                 </div>
                 <div className="p-6 sm:p-7 rounded-2xl bg-white border border-slate-200/90 shadow-sm space-y-2.5">
-                  <div className="font-bold text-base sm:text-lg text-slate-900 flex items-center gap-2">
+                  <div className="font-semibold text-base sm:text-lg text-slate-900 flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                    <span>Khớp Lịch Học 100%</span>
+                    <span>Khớp lịch học 100%</span>
                   </div>
                   <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
                     Hệ thống ghép ca linh hoạt theo buổi học giúp bạn làm việc chủ động, bảo đảm hoàn toàn không ảnh hưởng việc học.
                   </p>
                 </div>
                 <div className="p-6 sm:p-7 rounded-2xl bg-white border border-slate-200/90 shadow-sm space-y-2.5">
-                  <div className="font-bold text-base sm:text-lg text-slate-900 flex items-center gap-2">
+                  <div className="font-semibold text-base sm:text-lg text-slate-900 flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                    <span>Thu Nhập Minh Bạch</span>
+                    <span>Thu nhập minh bạch</span>
                   </div>
                   <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
                     Lương tính tự động theo giờ công thực tế. Đánh giá 2 chiều sau mỗi ca làm việc bảo vệ quyền lợi thù lao của sinh viên.
@@ -3094,9 +3089,9 @@ export default function StudentPortal({
             <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-5">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                    <Search className="w-5 h-5 text-blue-600" />
-                    <span>Tìm Kiếm Việc Làm Part-Time</span>
+                  <h3 className="text-[22px] leading-[30px] font-semibold text-slate-900 flex items-center gap-2">
+                    <Search className="w-5 h-5 text-blue-600 shrink-0" />
+                    <span>Tìm kiếm việc làm part-time</span>
                   </h3>
                   <p className="text-sm text-slate-500 mt-1">Tìm thấy {filteredJobs.length} vị trí phù hợp với lịch học sinh viên</p>
                 </div>
@@ -3402,7 +3397,7 @@ export default function StudentPortal({
 
                 {/* Recommendations to Save */}
                 <div className="space-y-3 pt-2">
-                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Gợi ý việc làm nên lưu ngay hôm nay:</h4>
+                  <h4 className="text-sm font-semibold text-slate-900">Gợi ý việc làm nên lưu ngay hôm nay:</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {jobs.slice(0, 4).map((job) => (
                       <div
@@ -3718,7 +3713,7 @@ export default function StudentPortal({
 
                   {/* 4-Step Visual Workflow */}
                   <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-sm space-y-4">
-                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Quy trình ứng tuyển 4 bước tại PARTIME.VN:</h4>
+                    <h4 className="text-sm font-semibold text-slate-700">Quy trình ứng tuyển 4 bước tại PARTIME.VN:</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                       <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-1.5 text-center sm:text-left">
                         <span className="w-7 h-7 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center justify-center mx-auto sm:mx-0">1</span>
@@ -3874,7 +3869,7 @@ export default function StudentPortal({
                       {/* Trục thời gian tiến độ ứng tuyển 4 bước cụ thể (Đã gỡ bỏ hiệu ứng nhấp nháy / ẩn hiện ở số 1) */}
                       <div className="pt-3 pb-1 border-t border-slate-200 mt-3">
                         <div className="flex items-center justify-between mb-4">
-                          <p className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                          <p className="text-xs font-semibold text-slate-900 flex items-center gap-1.5">
                             <Clock className="w-3.5 h-3.5 text-blue-600" />
                             <span>Tiến Độ Tuyển Dụng (Quy Trình 4 Bước Chuẩn)</span>
                           </p>
@@ -4094,9 +4089,9 @@ export default function StudentPortal({
             <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                    <CalendarDays className="w-5 h-5 text-blue-600" />
-                    <span>Thời Khóa Biểu & Lịch Ca Làm Đã Nhận</span>
+                  <h3 className="text-[22px] leading-[30px] font-semibold text-slate-900 flex items-center gap-2">
+                    <CalendarDays className="w-5 h-5 text-blue-600 shrink-0" />
+                    <span>Thời khóa biểu &amp; lịch ca làm đã nhận</span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">
                     Đồng bộ tự động từ các công việc đã đạt trạng thái <strong>Đã duyệt trúng tuyển</strong>.
@@ -4108,18 +4103,18 @@ export default function StudentPortal({
                     <button
                       type="button"
                       onClick={() => handleExportStudentShiftsExcel('schedule')}
-                      className="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                      className="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-slate-900 border border-blue-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                     >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Xuất Excel Lịch Ca Làm</span>
+                      <Download className="w-3.5 h-3.5 text-blue-700" />
+                      <span>Xuất Excel lịch ca làm</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => handleExportStudentShiftsExcel('timesheet')}
-                      className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                      className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-slate-900 border border-emerald-200 text-xs font-semibold flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                     >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Xuất Bảng Chấm Công (.xls)</span>
+                      <Download className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Xuất bảng chấm công (.xls)</span>
                     </button>
                   </div>
                 )}
@@ -4129,24 +4124,24 @@ export default function StudentPortal({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-100">
                   <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-100 flex items-center justify-between">
                     <div>
-                      <span className="text-[11px] font-bold text-blue-700 uppercase block">Tổng Giờ Công Part-time</span>
-                      <span className="text-lg font-black text-slate-900">{studentWorkStats.totalHours} giờ</span>
+                      <span className="text-xs font-semibold text-slate-900 block">Tổng giờ công part-time</span>
+                      <span className="text-lg font-bold text-slate-900">{studentWorkStats.totalHours} giờ</span>
                     </div>
-                    <Clock className="w-5 h-5 text-blue-600" />
+                    <Clock className="w-5 h-5 text-blue-600 shrink-0" />
                   </div>
                   <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 flex items-center justify-between">
                     <div>
-                      <span className="text-[11px] font-bold text-emerald-700 uppercase block">Thu Nhập Dự Kiến</span>
-                      <span className="text-lg font-black text-emerald-700">{studentWorkStats.estimatedIncome.toLocaleString()}đ</span>
+                      <span className="text-xs font-semibold text-slate-900 block">Thu nhập dự kiến</span>
+                      <span className="text-lg font-bold text-emerald-800">{studentWorkStats.estimatedIncome.toLocaleString()}đ</span>
                     </div>
-                    <DollarSign className="w-5 h-5 text-emerald-600" />
+                    <DollarSign className="w-5 h-5 text-emerald-600 shrink-0" />
                   </div>
                   <div className="p-3.5 rounded-2xl bg-purple-50/70 border border-purple-100 flex items-center justify-between">
                     <div>
-                      <span className="text-[11px] font-bold text-purple-700 uppercase block">Tỷ Lệ Duyệt Đơn</span>
-                      <span className="text-lg font-black text-purple-700">{studentWorkStats.approvalRate}% ({studentWorkStats.approvedCount}/{studentWorkStats.nonWithdrawnCount})</span>
+                      <span className="text-xs font-semibold text-slate-900 block">Tỷ lệ duyệt đơn</span>
+                      <span className="text-lg font-bold text-purple-800">{studentWorkStats.approvalRate}% ({studentWorkStats.approvedCount}/{studentWorkStats.nonWithdrawnCount})</span>
                     </div>
-                    <CheckCircle2 className="w-5 h-5 text-purple-600" />
+                    <CheckCircle2 className="w-5 h-5 text-purple-600 shrink-0" />
                   </div>
                 </div>
               )}
@@ -4219,8 +4214,8 @@ export default function StudentPortal({
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <Clock className="w-4 h-4 text-blue-600" />
-                        <span className="text-xs sm:text-sm font-black text-slate-800 uppercase tracking-wider">
-                          Thời Khóa Biểu Ca Làm Trong Tuần
+                        <span className="text-sm font-semibold text-slate-900">
+                          Thời khóa biểu ca làm trong tuần
                         </span>
                         <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-200">
                           {shiftFilterWeek === 'prev' ? 'Tuần trước: ' : (shiftFilterWeek === 'next' ? 'Tuần sau: ' : 'Tuần hiện tại: ')}
@@ -4271,7 +4266,7 @@ export default function StudentPortal({
                             </div>
 
                             {hasShift ? (
-                              <div className="space-y-2 flex-1 flex flex-col">
+                              <div className="space-y-2 flex-1 flex flex-col min-h-0 max-h-[380px] overflow-y-auto pr-0.5">
                                 {dayApps.map((assignedApp, appIdx) => {
                                   const linkedJob = jobs.find(j => j._id === (assignedApp.job_id || assignedApp.job?._id)) || null;
                                   const shiftInfo = resolveShiftTimeMeta(assignedApp, linkedJob);
@@ -4442,9 +4437,9 @@ export default function StudentPortal({
 
             {/* Danh Sách Thẻ Ca Làm & Trạng Thái Chuyển Đổi (1.11.2) */}
             <div className="space-y-4">
-              <h4 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                <Briefcase className="w-4 h-4 text-blue-600" />
-                <span>Chi Tiết Lịch Ca & Điểm Danh (Sắp diễn ra ↔ Đang làm việc → Đã hoàn thành hoặc Đã hủy ca)</span>
+              <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                <Briefcase className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>Chi tiết lịch ca &amp; điểm danh (Sắp diễn ra ↔ Đang làm việc → Đã hoàn thành hoặc Đã hủy ca)</span>
               </h4>
 
               {!isGuestMode && (
@@ -4468,23 +4463,23 @@ export default function StudentPortal({
                   {/* 3 Core Highlights */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-1 text-xs">
-                      <p className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <p className="font-semibold text-slate-900 flex items-center gap-1.5">
                         <CalendarDays className="w-4 h-4 text-blue-600" />
-                        <span>Theo Dõi Ca Theo Tuần</span>
+                        <span>Theo dõi ca theo tuần</span>
                       </p>
                       <p className="text-xs text-slate-500 leading-relaxed">Xem lịch ca làm việc trực quan từ Thứ 2 đến Chủ Nhật theo Tuần trước, Tuần hiện tại và Tuần sau.</p>
                     </div>
                     <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-1 text-xs">
-                      <p className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <p className="font-semibold text-slate-900 flex items-center gap-1.5">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        <span>Cập Nhật Trạng Thái Ca</span>
+                        <span>Cập nhật trạng thái ca</span>
                       </p>
                       <p className="text-xs text-slate-500 leading-relaxed">Xác nhận bắt đầu ca, hoàn thành ca hoặc hủy ca trực tiếp ngay trên từng thẻ ca làm đã nhận.</p>
                     </div>
                     <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-1 text-xs">
-                      <p className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <p className="font-semibold text-slate-900 flex items-center gap-1.5">
                         <Download className="w-4 h-4 text-purple-600" />
-                        <span>Xuất Excel & Thống Kê</span>
+                        <span>Xuất Excel &amp; thống kê</span>
                       </p>
                       <p className="text-xs text-slate-500 leading-relaxed">Tự động thống kê tổng giờ công, thu nhập dự kiến và hỗ trợ xuất bảng chấm công ra file Excel.</p>
                     </div>
@@ -4493,24 +4488,24 @@ export default function StudentPortal({
                   {/* Guest Callout */}
                   <div className="p-8 rounded-3xl bg-slate-50 border border-slate-200 text-center space-y-3">
                     <CalendarDays className="w-10 h-10 text-slate-300 mx-auto" />
-                    <h4 className="text-base font-bold text-slate-900">Chưa có ca làm nào được nhận</h4>
+                    <h4 className="text-base font-semibold text-slate-900">Chưa có ca làm nào được nhận</h4>
                     <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
                       Bạn đang xem ở chế độ khách. Đăng nhập hoặc tạo tài khoản Sinh viên để quản lý lịch ca làm việc theo tuần và xuất bảng chấm công cá nhân.
                     </p>
-                    <div className="flex items-center justify-center gap-3 pt-2">
+                    <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                       <button
                         type="button"
                         onClick={() => onNavigateAuth && onNavigateAuth('login', 'student')}
-                        className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold shadow-sm cursor-pointer"
+                        className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm cursor-pointer whitespace-nowrap"
                       >
-                        Đăng Nhập
+                        Đăng nhập
                       </button>
                       <button
                         type="button"
                         onClick={() => onNavigateAuth && onNavigateAuth('register', 'student')}
-                        className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold shadow-sm cursor-pointer"
+                        className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-xs font-semibold shadow-sm cursor-pointer whitespace-nowrap"
                       >
-                        Đăng Ký Sinh Viên
+                        Đăng ký sinh viên
                       </button>
                     </div>
                   </div>
@@ -4886,7 +4881,7 @@ export default function StudentPortal({
                   </div>
                   <div className="max-w-md mx-auto space-y-2">
                     <h3 className="text-xl font-bold text-slate-900">
-                      Hồ Sơ Cá Nhân Sinh Viên
+                      Hồ sơ cá nhân sinh viên
                     </h3>
                     <p className="text-sm text-slate-600 leading-relaxed">
                       Bạn đang ở chế độ xem trước. Vui lòng đăng nhập hoặc đăng ký tài khoản sinh viên để quản lý thông tin và hình ảnh hồ sơ cá nhân.
@@ -4896,16 +4891,16 @@ export default function StudentPortal({
                     <button
                       type="button"
                       onClick={() => onNavigateAuth && onNavigateAuth('login', 'student')}
-                      className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold shadow-md cursor-pointer transition-all"
+                      className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-md cursor-pointer transition-all whitespace-nowrap"
                     >
-                      Đăng Nhập Ngay
+                      Đăng nhập ngay
                     </button>
                     <button
                       type="button"
                       onClick={() => onNavigateAuth && onNavigateAuth('register', 'student')}
-                      className="px-6 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-bold border border-slate-300 cursor-pointer transition-all"
+                      className="px-6 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 text-sm font-semibold border border-slate-300 cursor-pointer transition-all whitespace-nowrap"
                     >
-                      Đăng Ký Sinh Viên
+                      Đăng ký sinh viên
                     </button>
                   </div>
                 </div>
@@ -5154,6 +5149,12 @@ export default function StudentPortal({
 
                     <div className="flex items-center justify-end gap-3 pt-2">
                       <button
+                        type="submit"
+                        className="px-6 py-2.5 rounded-xl btn-primary-dimension text-xs sm:text-sm font-semibold shadow-md cursor-pointer whitespace-nowrap"
+                      >
+                        Lưu thông tin
+                      </button>
+                      <button
                         type="button"
                         onClick={() => {
                           setIsEditingProfile(false);
@@ -5167,38 +5168,32 @@ export default function StudentPortal({
                             cover_image_url: profile.cover_image_url || ''
                           });
                         }}
-                        className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs sm:text-sm font-semibold cursor-pointer transition-all"
+                        className="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-900 hover:bg-slate-100 text-xs sm:text-sm font-semibold cursor-pointer transition-all whitespace-nowrap"
                       >
                         Hủy
-                      </button>
-                      <button
-                        type="submit"
-                        className="px-6 py-2.5 rounded-xl btn-primary-dimension text-xs sm:text-sm font-bold shadow-md cursor-pointer"
-                      >
-                        Lưu Thông Tin
                       </button>
                     </div>
                   </form>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 text-sm sm:text-base">
                     <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
-                      <p className="text-slate-500 font-medium text-xs sm:text-sm">Họ và Tên Sinh Viên:</p>
-                      <p className="text-sm sm:text-base font-bold text-slate-900">{profile.full_name || 'Sinh viên'}</p>
+                      <p className="text-slate-600 font-medium text-xs sm:text-sm">Họ và tên sinh viên:</p>
+                      <p className="text-sm sm:text-base font-semibold text-slate-900">{profile.full_name || 'Sinh viên'}</p>
                     </div>
 
                     <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
-                      <p className="text-slate-500 font-medium text-xs sm:text-sm">Số Điện Thoại:</p>
-                      <p className="text-sm sm:text-base font-bold text-blue-600 font-mono">{profile.phone || 'Chưa cập nhật'}</p>
+                      <p className="text-slate-600 font-medium text-xs sm:text-sm">Số điện thoại:</p>
+                      <p className="text-sm sm:text-base font-semibold text-blue-700 font-mono">{profile.phone || 'Chưa cập nhật'}</p>
                     </div>
 
                     <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
-                      <p className="text-slate-500 font-medium text-xs sm:text-sm">Trường Đào Tạo:</p>
-                      <p className="text-sm sm:text-base font-bold text-slate-900">{profile.university || 'Chưa cập nhật'}</p>
+                      <p className="text-slate-600 font-medium text-xs sm:text-sm">Trường đào tạo:</p>
+                      <p className="text-sm sm:text-base font-semibold text-slate-900">{profile.university || 'Chưa cập nhật'}</p>
                     </div>
 
                     <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
-                      <p className="text-slate-500 font-medium text-xs sm:text-sm">Địa Chỉ Cư Trú:</p>
-                      <p className="text-sm sm:text-base font-bold text-slate-900">{profile.address || profile.residence_address || 'Chưa cập nhật'}</p>
+                      <p className="text-slate-600 font-medium text-xs sm:text-sm">Địa chỉ cư trú:</p>
+                      <p className="text-sm sm:text-base font-semibold text-slate-900">{profile.address || profile.residence_address || 'Chưa cập nhật'}</p>
                     </div>
                   </div>
                 )}
@@ -5215,9 +5210,9 @@ export default function StudentPortal({
 
             <div className="p-6 rounded-3xl bg-white border border-slate-200/80 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                  <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
-                  <span>Đánh Giá Doanh Nghiệp 2 Chiều</span>
+                <h3 className="text-[22px] leading-[30px] font-semibold text-slate-900 flex items-center gap-2">
+                  <Star className="w-5 h-5 text-yellow-500 fill-yellow-500 shrink-0" />
+                  <span>Đánh giá doanh nghiệp 2 chiều</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">Cơ chế đánh giá minh bạch sau khi hoàn thành ca làm việc</p>
               </div>
@@ -5506,9 +5501,9 @@ export default function StudentPortal({
           <div className="space-y-5">
             <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-xl font-black text-slate-900 flex items-center gap-2.5">
-                  <Flag className="w-5 h-5 text-rose-600" />
-                  <span>Báo Cáo Vi Phạm Đã Gửi & Tiến Độ Xử Lý</span>
+                <h2 className="text-[22px] leading-[30px] font-semibold text-slate-900 flex items-center gap-2.5">
+                  <Flag className="w-5 h-5 text-rose-600 shrink-0" />
+                  <span>Báo cáo vi phạm đã gửi &amp; tiến độ xử lý</span>
                 </h2>
                 <p className="text-xs text-slate-600 font-semibold mt-1">
                   Theo dõi các phiếu khiếu nại tin tuyển dụng, doanh nghiệp hoặc hội thoại chat bạn đã gửi tới Quản trị viên.
@@ -5532,23 +5527,23 @@ export default function StudentPortal({
               <div className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-1 text-xs">
-                    <p className="font-bold text-slate-900 flex items-center gap-1.5">
+                    <p className="font-semibold text-slate-900 flex items-center gap-1.5">
                       <Flag className="w-4 h-4 text-rose-600" />
-                      <span>Bảo Vệ Quyền Lợi Sinh Viên</span>
+                      <span>Bảo vệ quyền lợi sinh viên</span>
                     </p>
                     <p className="text-xs text-slate-500 leading-relaxed">Báo cáo tin tuyển dụng lừa đảo, thu phí bất hợp pháp hoặc hội thoại quấy rối để được Quản trị viên hỗ trợ kịp thời.</p>
                   </div>
                   <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-1 text-xs">
-                    <p className="font-bold text-slate-900 flex items-center gap-1.5">
+                    <p className="font-semibold text-slate-900 flex items-center gap-1.5">
                       <Clock className="w-4 h-4 text-amber-600" />
-                      <span>Theo Dõi Tiến Độ Xử Lý</span>
+                      <span>Theo dõi tiến độ xử lý</span>
                     </p>
                     <p className="text-xs text-slate-500 leading-relaxed">Cập nhật trạng thái xử lý theo thời gian thực từ Ban Quản Trị (Chờ xử lý, Đang điều tra, Đã giải quyết).</p>
                   </div>
                   <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-1 text-xs">
-                    <p className="font-bold text-slate-900 flex items-center gap-1.5">
+                    <p className="font-semibold text-slate-900 flex items-center gap-1.5">
                       <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                      <span>Lưu Trữ Kết Quả & Phản Hồi</span>
+                      <span>Lưu trữ kết quả &amp; phản hồi</span>
                     </p>
                     <p className="text-xs text-slate-500 leading-relaxed">Xem lại toàn bộ lý do, bằng chứng đã gửi kèm nội dung kết luận từ Quản trị viên hệ thống.</p>
                   </div>
@@ -5556,24 +5551,24 @@ export default function StudentPortal({
 
                 <div className="p-8 rounded-3xl bg-slate-50 border border-slate-200 text-center space-y-3">
                   <Flag className="w-10 h-10 text-rose-400 mx-auto" />
-                  <h4 className="text-base font-bold text-slate-900">Báo cáo vi phạm & Theo dõi xử lý</h4>
+                  <h4 className="text-base font-semibold text-slate-900">Báo cáo vi phạm &amp; theo dõi xử lý</h4>
                   <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
                     Bạn đang xem ở chế độ khách. Vui lòng đăng nhập hoặc tạo tài khoản Sinh viên để gửi khiếu nại và xem lịch sử báo cáo vi phạm của bạn.
                   </p>
-                  <div className="flex items-center justify-center gap-3 pt-2">
+                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                     <button
                       type="button"
                       onClick={() => onNavigateAuth && onNavigateAuth('login', 'student')}
-                      className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold shadow-sm cursor-pointer"
+                      className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm cursor-pointer whitespace-nowrap"
                     >
-                      Đăng Nhập
+                      Đăng nhập
                     </button>
                     <button
                       type="button"
                       onClick={() => onNavigateAuth && onNavigateAuth('register', 'student')}
-                      className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold shadow-sm cursor-pointer"
+                      className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-xs font-semibold shadow-sm cursor-pointer whitespace-nowrap"
                     >
-                      Đăng Ký Sinh Viên
+                      Đăng ký sinh viên
                     </button>
                   </div>
                 </div>
@@ -5581,8 +5576,8 @@ export default function StudentPortal({
             ) : myReports.length === 0 ? (
               <div className="bg-white border border-slate-200 rounded-3xl p-10 text-center space-y-2">
                 <ShieldCheck className="w-10 h-10 text-emerald-500 mx-auto" />
-                <p className="text-sm font-black text-slate-900">Bạn chưa gửi báo cáo vi phạm nào</p>
-                <p className="text-xs text-slate-500">Nếu phát hiện tin tuyển dụng có dấu hiệu lừa đảo hoặc hành vi bất thường, hãy bấm nút Báo cáo trên thẻ việc làm để được Admin bảo vệ.</p>
+                <p className="text-sm font-semibold text-slate-900">Bạn chưa gửi báo cáo vi phạm nào</p>
+                <p className="text-xs text-slate-500">Nếu phát hiện tin tuyển dụng có dấu hiệu lừa đảo hoặc hành vi bất thường, hãy bấm nút Báo cáo trên thẻ việc làm để được Quản trị viên bảo vệ.</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -5590,12 +5585,12 @@ export default function StudentPortal({
                   const st = rep.status || 'pending';
                   const stMeta =
                     st === 'resolved'
-                      ? { label: 'Đã giải quyết', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+                      ? { label: 'Đã giải quyết', cls: 'bg-emerald-50 text-emerald-900 border-emerald-200' }
                       : st === 'investigating'
-                      ? { label: 'Đang điều tra', cls: 'bg-amber-50 text-amber-800 border-amber-200' }
+                      ? { label: 'Đang điều tra', cls: 'bg-amber-50 text-amber-900 border-amber-200' }
                       : st === 'dismissed'
-                      ? { label: 'Bị bác bỏ', cls: 'bg-slate-100 text-slate-600 border-slate-300' }
-                      : { label: 'Chờ Admin xử lý', cls: 'bg-rose-50 text-rose-700 border-rose-200' };
+                      ? { label: 'Bị bác bỏ', cls: 'bg-slate-100 text-slate-900 border-slate-300' }
+                      : { label: 'Chờ quản trị viên xử lý', cls: 'bg-rose-50 text-rose-900 border-rose-200' };
                   return (
                     <div key={rep._id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-3">
                       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -5745,8 +5740,8 @@ export default function StudentPortal({
               </button>
             </div>
             {/* Khung Header Chat: Tên NTD, Online/Offline, Vị trí ứng tuyển, Icon Camera WebRTC, Báo cáo */}
-            <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
-              <div className="flex items-center gap-3">
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col xl:flex-row xl:items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className="relative">
                   <MediaAvatar
                     src={selectedContact?.avatar || selectedContact?.company_logo || selectedContact?.logo_url}
@@ -5766,26 +5761,26 @@ export default function StudentPortal({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
                 {/* 2 Nút Gọi Trực Tuyến: Gọi Thoại & Gọi Video */}
                 <button
                   type="button"
                   onClick={() => handleStartCall('audio')}
-                  className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-slate-900 border border-blue-200 text-xs font-semibold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
                   title="Gọi thoại trực tiếp với Doanh nghiệp"
                 >
-                  <Phone className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Gọi thoại</span>
+                  <Phone className="w-3.5 h-3.5 text-blue-700 shrink-0" />
+                  <span>Gọi thoại</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => handleStartCall('video')}
-                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white text-xs font-semibold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
                   title="Gọi video phỏng vấn trực tuyến qua WebRTC"
                 >
-                  <Video className="w-4 h-4" />
-                  <span className="hidden sm:inline">Gọi video</span>
+                  <Video className="w-4 h-4 shrink-0" />
+                  <span>Gọi video</span>
                 </button>
 
                 {/* Icon Cờ Báo Cáo Vi Phạm */}
@@ -5806,11 +5801,11 @@ export default function StudentPortal({
                       target_title: `Hội thoại với ${selectedContact?.name || 'Doanh nghiệp'}${selectedContact?.subtitle ? ` (${selectedContact.subtitle})` : ''}`
                     });
                   }}
-                  className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
+                  className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-900 text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1 shadow-xs whitespace-nowrap shrink-0"
                   title="Báo cáo quấy rối hoặc vi phạm quy định cộng đồng"
                 >
-                  <Flag className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Báo cáo</span>
+                  <Flag className="w-3.5 h-3.5 text-rose-700 shrink-0" />
+                  <span>Báo cáo</span>
                 </button>
               </div>
             </div>
@@ -6121,7 +6116,7 @@ export default function StudentPortal({
                       <Paperclip className="w-4 h-4 text-purple-600 shrink-0" />
                       <span className="font-bold text-slate-900 truncate max-w-xs">{chatAttachment.name}</span>
                       <span className="text-xs text-slate-500 font-mono">({chatAttachment.sizeStr})</span>
-                      <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold uppercase whitespace-nowrap">Sẵn sàng gửi</span>
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-200 text-[12px] leading-[18px] font-medium whitespace-nowrap">Sẵn sàng gửi</span>
                     </div>
                     <button
                       type="button"
@@ -6221,23 +6216,23 @@ export default function StudentPortal({
             {/* Thông số việc làm */}
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="text-slate-700 font-bold block mb-1">Mức Lương Theo Giờ</span>
-                <span className="text-sm font-black text-blue-700">
+                <span className="text-slate-700 font-semibold block mb-1">Mức lương theo giờ</span>
+                <span className="text-sm font-bold text-blue-700">
                   {selectedJobDetail.is_negotiable ? 'Thỏa thuận' : `${selectedJobDetail.salary_min?.toLocaleString()}đ - ${selectedJobDetail.salary_max?.toLocaleString()}đ/h`}
                 </span>
               </div>
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="text-slate-700 font-bold block mb-1">Độ Tin Cậy Doanh Nghiệp</span>
-                <span className="text-xs sm:text-sm font-bold text-emerald-700 flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>100% Đã xác thực GPKD</span>
+                <span className="text-slate-700 font-semibold block mb-1">Độ tin cậy doanh nghiệp</span>
+                <span className="text-xs sm:text-sm font-semibold text-emerald-800 flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>100% đã xác thực GPKD</span>
                 </span>
               </div>
             </div>
 
             {/* Mô tả chi tiết JD */}
             <div className="space-y-2">
-              <h4 className="text-xs sm:text-sm font-black text-slate-900 uppercase tracking-wider">Mô Tả Chi Tiết Công Việc (JD)</h4>
+              <h4 className="text-sm font-semibold text-slate-900">Mô tả chi tiết công việc</h4>
               <div className="p-4 rounded-2xl bg-white border border-slate-200 text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-line font-medium shadow-xs">
                 {selectedJobDetail.description}
               </div>
@@ -6380,18 +6375,18 @@ export default function StudentPortal({
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
-                  type="button"
-                  onClick={() => setApplyModalJob(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs font-bold text-slate-800 cursor-pointer"
-                >
-                  Hủy
-                </button>
-                <button
                   type="submit"
                   disabled={applyLoading}
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
+                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-md cursor-pointer disabled:opacity-50 whitespace-nowrap"
                 >
-                  {applyLoading ? 'Đang gửi...' : 'Gửi Hồ Sơ'}
+                  {applyLoading ? 'Đang gửi...' : 'Gửi hồ sơ'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setApplyModalJob(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs font-semibold text-slate-900 cursor-pointer whitespace-nowrap"
+                >
+                  Hủy
                 </button>
               </div>
             </form>
@@ -6453,8 +6448,8 @@ export default function StudentPortal({
               </div>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-widest text-sky-400 font-bold mb-1">
-                Cuộc Gọi Đến Trực Tuyến
+              <p className="text-xs text-sky-400 font-semibold mb-1">
+                Cuộc gọi đến trực tuyến
               </p>
               <h3 className="text-lg font-black text-white">{incomingCall.caller_name || 'Doanh nghiệp'}</h3>
               <p className="text-xs text-slate-300 mt-1">
@@ -6562,19 +6557,19 @@ export default function StudentPortal({
               {/* Info Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                  <p className="text-[11px] font-bold text-slate-500 uppercase">Địa chỉ & Cơ sở làm việc</p>
-                  <p className="text-xs font-bold text-slate-900 mt-1 flex items-start gap-1.5">
+                  <p className="text-xs font-semibold text-slate-600">Địa chỉ &amp; cơ sở làm việc</p>
+                  <p className="text-xs font-semibold text-slate-900 mt-1 flex items-start gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                     <span>{companyProfileModal.branch_name ? `${companyProfileModal.branch_name} - ` : ''}{companyProfileModal.address || 'TP. Hồ Chí Minh'}</span>
                   </p>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                  <p className="text-[11px] font-bold text-slate-500 uppercase">Đại diện / Liên hệ</p>
-                  <p className="text-xs font-bold text-slate-900 mt-1">
-                    {companyProfileModal.representative_name || 'Phòng Nhân Sự'} {companyProfileModal.phone ? `• ${companyProfileModal.phone}` : ''}
+                  <p className="text-xs font-semibold text-slate-600">Đại diện / liên hệ</p>
+                  <p className="text-xs font-semibold text-slate-900 mt-1">
+                    {companyProfileModal.representative_name || 'Phòng nhân sự'} {companyProfileModal.phone ? `• ${companyProfileModal.phone}` : ''}
                   </p>
                   {companyProfileModal.website && (
-                    <a href={companyProfileModal.website} target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 hover:underline font-bold inline-flex items-center gap-1 mt-1">
+                    <a href={companyProfileModal.website} target="_blank" rel="noreferrer" className="text-xs text-blue-600 hover:underline font-semibold inline-flex items-center gap-1 mt-1">
                       <ExternalLink className="w-3 h-3" /> {companyProfileModal.website}
                     </a>
                   )}
@@ -6583,7 +6578,7 @@ export default function StudentPortal({
 
               {companyProfileModal.description && (
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 mb-6">
-                  <p className="text-[11px] font-black text-slate-500 uppercase mb-1">Giới thiệu doanh nghiệp</p>
+                  <p className="text-xs font-semibold text-slate-600 mb-1">Giới thiệu doanh nghiệp</p>
                   <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-line">{companyProfileModal.description}</p>
                 </div>
               )}
@@ -6655,7 +6650,7 @@ export default function StudentPortal({
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2.5 text-rose-600">
                 <AlertTriangle className="w-5 h-5 shrink-0" />
-                <h3 className="text-sm font-black text-slate-900">Báo Cáo Vi Phạm Tới Admin</h3>
+                <h3 className="text-base font-bold text-slate-900">Báo cáo vi phạm tới quản trị viên</h3>
               </div>
               <button
                 type="button"
@@ -6693,17 +6688,17 @@ export default function StudentPortal({
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
-                  type="button"
-                  onClick={() => setReportModalData(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs font-bold text-slate-800 cursor-pointer"
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-md cursor-pointer whitespace-nowrap"
                 >
-                  Hủy
+                  Gửi báo cáo
                 </button>
                 <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md cursor-pointer"
+                  type="button"
+                  onClick={() => setReportModalData(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs font-semibold text-slate-900 cursor-pointer whitespace-nowrap"
                 >
-                  Gửi Báo Cáo
+                  Hủy
                 </button>
               </div>
             </form>
@@ -6717,8 +6712,8 @@ export default function StudentPortal({
           <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-slate-800 space-y-4">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="text-base font-black text-slate-900">Đánh Giá Doanh Nghiệp</h3>
-                <p className="text-xs text-emerald-700 font-bold">{reviewModalJob.company_name}</p>
+                <h3 className="text-base font-bold text-slate-900">Đánh giá doanh nghiệp</h3>
+                <p className="text-xs text-emerald-700 font-semibold">{reviewModalJob.company_name}</p>
                 <p className="text-xs text-slate-600">{reviewModalJob.job_title}</p>
               </div>
               <button
@@ -6733,7 +6728,7 @@ export default function StudentPortal({
             <form onSubmit={handleReviewSubmit} className="space-y-4">
               {/* 1 - 5 sao phát sáng khi rê chuột */}
               <div className="space-y-1 text-center py-2">
-                <label className="block text-xs font-bold text-slate-800 mb-2">Số Điểm Đánh Giá</label>
+                <label className="block text-xs font-semibold text-slate-900 mb-2">Số điểm đánh giá</label>
                 <div className="flex items-center justify-center gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -6783,17 +6778,17 @@ export default function StudentPortal({
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
-                  type="button"
-                  onClick={() => setReviewModalJob(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs font-bold text-slate-800 cursor-pointer"
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl btn-primary-dimension text-xs font-semibold shadow-md cursor-pointer transition-all whitespace-nowrap"
                 >
-                  Hủy
+                  Gửi đánh giá
                 </button>
                 <button
-                  type="submit"
-                  className="px-6 py-2.5 rounded-xl btn-primary-dimension text-xs font-bold shadow-md cursor-pointer transition-all"
+                  type="button"
+                  onClick={() => setReviewModalJob(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs font-semibold text-slate-900 cursor-pointer whitespace-nowrap"
                 >
-                  Gửi Đánh Giá
+                  Hủy
                 </button>
               </div>
             </form>
@@ -6812,7 +6807,7 @@ export default function StudentPortal({
                   <Star className="w-5 h-5 fill-amber-400 text-amber-500" />
                 </div>
                 <div>
-                  <h3 className="text-base font-black text-slate-900">Chi Tiết Bài Đánh Giá</h3>
+                  <h3 className="text-base font-bold text-slate-900">Chi tiết bài đánh giá</h3>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Đánh giá 2 chiều minh bạch sau khi hoàn thành công việc
                   </p>
@@ -6832,8 +6827,8 @@ export default function StudentPortal({
               {/* Doanh nghiệp & Vị trí */}
               <div className="flex items-start justify-between gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800">
                 <div className="space-y-1">
-                  <span className="text-xs uppercase font-bold tracking-wider text-blue-600">Doanh Nghiệp Được Đánh Giá</span>
-                  <h4 className="text-base font-bold text-slate-900">
+                  <span className="text-xs font-semibold text-blue-700">Doanh nghiệp được đánh giá</span>
+                  <h4 className="text-base font-semibold text-slate-900">
                     {viewReviewDetailModal.company_name || 'Doanh nghiệp'}
                   </h4>
                   <p className="text-xs text-slate-600 font-medium">
@@ -6849,7 +6844,7 @@ export default function StudentPortal({
 
               {/* Số sao đánh giá */}
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between text-slate-800">
-                <span className="text-xs font-bold text-slate-700">Điểm đánh giá:</span>
+                <span className="text-xs font-semibold text-slate-700">Điểm đánh giá:</span>
                 <div className="flex items-center gap-2">
                   <div className="flex items-center text-amber-400">
                     {[1, 2, 3, 4, 5].map((s) => (
@@ -6859,7 +6854,7 @@ export default function StudentPortal({
                       />
                     ))}
                   </div>
-                  <span className="text-sm font-black text-amber-600">
+                  <span className="text-sm font-bold text-amber-700">
                     ({viewReviewDetailModal.rating}/5 sao)
                   </span>
                 </div>
@@ -6867,12 +6862,12 @@ export default function StudentPortal({
 
               {/* Trạng thái kiểm duyệt */}
               {viewReviewDetailModal.is_hidden ? (
-                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 font-medium">
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs flex items-center gap-2 font-medium">
                   <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
                   <span>Đánh giá này đã bị Quản trị viên ẩn do vi phạm tiêu chuẩn cộng đồng.</span>
                 </div>
               ) : (
-                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs flex items-center gap-2 font-medium">
+                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center gap-2 font-medium">
                   <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
                   <span>Đánh giá đã được xác thực và hiển thị công khai trên hệ thống.</span>
                 </div>
@@ -6880,8 +6875,8 @@ export default function StudentPortal({
 
               {/* Nội dung đầy đủ bài nhận xét văn bản */}
               <div className="space-y-2">
-                <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  Nội Dung Văn Bản Nhận Xét Đầy Đủ
+                <label className="block text-xs font-semibold text-slate-900">
+                  Nội dung văn bản nhận xét đầy đủ
                 </label>
                 <div className="p-4 rounded-2xl bg-white border border-slate-200 text-sm text-slate-800 leading-relaxed whitespace-pre-line shadow-xs min-h-[90px] font-medium">
                   {viewReviewDetailModal.comment ? `"${viewReviewDetailModal.comment}"` : 'Không có nội dung văn bản.'}

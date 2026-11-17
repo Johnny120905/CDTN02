@@ -183,7 +183,7 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
             <BrandLogo size="md" />
             <div className="hidden lg:block">
-              <span className="text-xs font-bold text-blue-400 uppercase tracking-widest block">
+              <span className="text-xs font-semibold text-blue-400 block">
                 Nền tảng việc làm sinh viên
               </span>
               <span className="text-xs text-slate-400 font-medium">
@@ -408,7 +408,7 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
                     <ShieldCheck className="w-6 h-6" />
                   </div>
                   <div>
-                    <span className="text-xs text-slate-400 font-bold uppercase block">Đã xác minh GPKD</span>
+                    <span className="text-xs text-slate-400 font-semibold block">Đã xác minh GPKD</span>
                     <span className="text-xs font-bold text-slate-100">100% Doanh nghiệp uy tín</span>
                   </div>
                 </div>
@@ -419,7 +419,7 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
                     <Clock className="w-6 h-6" />
                   </div>
                   <div>
-                    <span className="text-xs text-slate-400 font-bold uppercase block">Linh hoạt theo ca</span>
+                    <span className="text-xs text-slate-400 font-semibold block">Linh hoạt theo ca</span>
                     <span className="text-xs font-bold text-slate-100">25.000đ - 55.000đ/giờ</span>
                   </div>
                 </div>
@@ -458,8 +458,8 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div>
-            <span className="text-xs font-bold text-blue-400 uppercase tracking-widest block mb-1">
-              Khám Phá Cơ Hội Mới
+            <span className="text-xs font-semibold text-blue-400 block mb-1">
+              Khám phá cơ hội mới
             </span>
             <h2 className="text-2xl sm:text-3xl font-black text-slate-100 tracking-tight">
               Việc Làm Part-Time Nổi Bật Dành Cho Sinh Viên
@@ -574,8 +574,8 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20">
         <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950/40 rounded-3xl p-8 sm:p-12 border border-slate-800 shadow-2xl relative overflow-hidden">
           <div className="max-w-2xl mb-8">
-            <span className="text-amber-400 text-xs font-bold uppercase tracking-widest block mb-2">
-              Dành Riêng Cho Nhà Tuyển Dụng
+            <span className="text-amber-400 text-xs font-semibold block mb-2">
+              Dành riêng cho nhà tuyển dụng
             </span>
             <h2 className="text-2xl sm:text-4xl font-black text-slate-100 tracking-tight leading-tight">
               Tuyển Dụng Nhân Sự Part-Time Nhanh Chóng & Tiết Kiệm 70% Chi Phí
@@ -621,8 +621,8 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
       {/* 6. ECOSYSTEM GATEWAYS (3 ROLES) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20">
         <div className="text-center max-w-2xl mx-auto mb-10">
-          <span className="text-blue-400 text-xs font-bold uppercase tracking-widest block mb-2">
-            Hệ Sinh Thái Phân Quyền Độc Lập
+          <span className="text-blue-400 text-xs font-semibold block mb-2">
+            Hệ sinh thái phân quyền độc lập
           </span>
           <h2 className="text-2xl sm:text-3xl font-black text-slate-100 tracking-tight">
             Tối Ưu Trải Nghiệm Cho Cả 3 Phân Hệ
@@ -657,16 +657,16 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
               <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mb-4">
                 <Briefcase className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-slate-100 mb-2">Cổng Nhà Tuyển Dụng</h3>
+              <h3 className="text-lg font-semibold text-slate-100 mb-2">Cổng nhà tuyển dụng</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
                 Phân hệ dành cho doanh nghiệp đăng tin, quản lý phỏng vấn, chat hai chiều và đánh giá thái độ nhân sự sau quá trình thử việc.
               </p>
             </div>
             <button
               onClick={() => onNavigate('login', 'employer')}
-              className="mt-6 py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+              className="mt-6 py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
             >
-              <span>Vào Cổng Doanh Nghiệp</span>
+              <span>Vào cổng doanh nghiệp</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -677,16 +677,16 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4">
                 <ShieldCheck className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-slate-100 mb-2">Cổng Quản Trị Viên</h3>
+              <h3 className="text-lg font-semibold text-slate-100 mb-2">Cổng quản trị viên</h3>
               <p className="text-xs text-slate-400 leading-relaxed">
                 Phân hệ kiểm duyệt giấy phép kinh doanh, xử lý báo cáo vi phạm, quản lý danh sách người dùng và thiết lập bộ lọc an toàn cho sinh viên.
               </p>
             </div>
             <button
               onClick={() => onNavigate('login', 'admin')}
-              className="mt-6 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all border border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer"
+              className="mt-6 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-all border border-slate-700 flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
             >
-              <span>Vào Cổng Quản Trị</span>
+              <span>Vào cổng quản trị</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -706,7 +706,7 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
           </div>
 
           <div>
-            <h4 className="text-slate-200 font-bold mb-3 text-sm">Dành Cho Ứng Viên</h4>
+            <h4 className="text-slate-200 font-semibold mb-3 text-sm">Dành cho ứng viên</h4>
             <ul className="space-y-2">
               <li><button onClick={() => { setAudienceMode('candidate'); window.scrollTo({ top: 300, behavior: 'smooth' }); }} className="hover:text-blue-400 cursor-pointer">Tìm việc làm part-time</button></li>
               <li><button onClick={() => onNavigate('register', 'student')} className="hover:text-blue-400 cursor-pointer">Tạo tài khoản sinh viên</button></li>
@@ -716,7 +716,7 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
           </div>
 
           <div>
-            <h4 className="text-slate-200 font-bold mb-3 text-sm">Dành Cho Nhà Tuyển Dụng</h4>
+            <h4 className="text-slate-200 font-semibold mb-3 text-sm">Dành cho nhà tuyển dụng</h4>
             <ul className="space-y-2">
               <li><button onClick={handlePostJobClick} className="hover:text-amber-400 cursor-pointer">Đăng tin tuyển dụng</button></li>
               <li><button onClick={() => onNavigate('login', 'employer')} className="hover:text-amber-400 cursor-pointer">Quản trị hồ sơ ATS</button></li>
@@ -726,7 +726,7 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
           </div>
 
           <div>
-            <h4 className="text-slate-200 font-bold mb-3 text-sm">Hỗ Trợ & Liên Hệ</h4>
+            <h4 className="text-slate-200 font-semibold mb-3 text-sm">Hỗ trợ &amp; liên hệ</h4>
             <ul className="space-y-2">
               <li className="flex items-center gap-2"><Mail className="w-3.5 h-3.5 text-blue-400" /><span>vuthelong1009@gmail.com</span></li>
               <li className="flex items-center gap-2"><Phone className="w-3.5 h-3.5 text-blue-400" /><span>Hotline: 1900 8888 (8h - 20h)</span></li>
@@ -791,16 +791,16 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
             {/* Details Content */}
             <div className="space-y-5 text-xs text-slate-300 leading-relaxed mb-8">
               <div>
-                <h4 className="font-bold text-slate-100 uppercase tracking-wider mb-1.5 text-xs text-blue-400">
-                  Mô Tả Công Việc
+                <h4 className="font-semibold mb-1.5 text-xs text-blue-400">
+                  Mô tả công việc
                 </h4>
                 <p className="whitespace-pre-line">{activeJobDetail.description}</p>
               </div>
 
               {activeJobDetail.requirements && (
                 <div>
-                  <h4 className="font-bold text-slate-100 uppercase tracking-wider mb-1.5 text-xs text-amber-400">
-                    Yêu Cầu Ứng Viên
+                  <h4 className="font-semibold mb-1.5 text-xs text-amber-400">
+                    Yêu cầu ứng viên
                   </h4>
                   <p className="whitespace-pre-line">{activeJobDetail.requirements}</p>
                 </div>
@@ -808,8 +808,8 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
 
               {activeJobDetail.benefits && (
                 <div>
-                  <h4 className="font-bold text-slate-100 uppercase tracking-wider mb-1.5 text-xs text-emerald-400">
-                    Quyền Lợi Được Hưởng
+                  <h4 className="font-semibold mb-1.5 text-xs text-emerald-400">
+                    Quyền lợi được hưởng
                   </h4>
                   <p className="whitespace-pre-line">{activeJobDetail.benefits}</p>
                 </div>
@@ -819,20 +819,20 @@ export default function PublicLandingPage({ onNavigate, onShowNotice }) {
             {/* Modal Bottom Actions */}
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
               <button
-                onClick={() => setActiveJobDetail(null)}
-                className="py-2.5 px-5 rounded-xl bg-slate-800 text-slate-300 hover:text-white font-bold text-xs transition-colors cursor-pointer"
-              >
-                Đóng
-              </button>
-              <button
                 onClick={() => {
                   setActiveJobDetail(null);
                   handleApplyClick(activeJobDetail);
                 }}
-                className="py-2.5 px-6 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all shadow-lg shadow-blue-900/50 flex items-center gap-2 cursor-pointer"
+                className="py-2.5 px-6 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-all shadow-lg shadow-blue-900/50 flex items-center gap-2 cursor-pointer whitespace-nowrap"
               >
-                <span>Đăng Nhập Để Ứng Tuyển Ngay</span>
+                <span>Đăng nhập để ứng tuyển ngay</span>
                 <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setActiveJobDetail(null)}
+                className="py-2.5 px-5 rounded-xl bg-slate-800 text-slate-300 hover:text-white font-semibold text-xs transition-colors cursor-pointer whitespace-nowrap"
+              >
+                Đóng
               </button>
             </div>
 

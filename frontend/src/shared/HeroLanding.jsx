@@ -96,8 +96,8 @@ export default function HeroLanding({ onOpenAuth, onSelectRole }) {
                     <ShieldCheck className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-xs text-slate-400 font-bold uppercase block">Đã xác minh GPKD</span>
-                    <span className="text-xs font-bold text-slate-900">100% Doanh nghiệp uy tín</span>
+                    <span className="text-xs text-slate-600 font-semibold block">Đã xác minh GPKD</span>
+                    <span className="text-xs font-semibold text-slate-900">100% doanh nghiệp uy tín</span>
                   </div>
                 </div>
 
@@ -107,8 +107,8 @@ export default function HeroLanding({ onOpenAuth, onSelectRole }) {
                     <Clock className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-xs text-slate-400 font-bold uppercase block">Linh hoạt ca học</span>
-                    <span className="text-xs font-bold text-slate-900">25.000đ - 50.000đ/giờ</span>
+                    <span className="text-xs text-slate-600 font-semibold block">Linh hoạt ca học</span>
+                    <span className="text-xs font-semibold text-slate-900">25.000đ - 50.000đ/giờ</span>
                   </div>
                 </div>
               </div>
@@ -122,20 +122,20 @@ export default function HeroLanding({ onOpenAuth, onSelectRole }) {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 sm:p-8 bg-white rounded-3xl border border-slate-200 shadow-sm text-center">
           <div>
-            <span className="text-2xl sm:text-3xl font-black text-slate-900 block">15,000+</span>
-            <span className="text-xs font-semibold text-slate-500 mt-1 block">Việc Làm Đang Tuyển</span>
+            <span className="text-2xl sm:text-3xl font-bold text-slate-900 block">15,000+</span>
+            <span className="text-xs font-semibold text-slate-600 mt-1 block">Việc làm đang tuyển</span>
           </div>
           <div>
-            <span className="text-2xl sm:text-3xl font-black text-brand-600 block">250,000+</span>
-            <span className="text-xs font-semibold text-slate-500 mt-1 block">Sinh Viên Hoạt Động</span>
+            <span className="text-2xl sm:text-3xl font-bold text-brand-600 block">250,000+</span>
+            <span className="text-xs font-semibold text-slate-600 mt-1 block">Sinh viên hoạt động</span>
           </div>
           <div>
-            <span className="text-2xl sm:text-3xl font-black text-slate-900 block">4,200+</span>
-            <span className="text-xs font-semibold text-slate-500 mt-1 block">Doanh Nghiệp Liên Kết</span>
+            <span className="text-2xl sm:text-3xl font-bold text-slate-900 block">4,200+</span>
+            <span className="text-xs font-semibold text-slate-600 mt-1 block">Doanh nghiệp liên kết</span>
           </div>
           <div>
-            <span className="text-2xl sm:text-3xl font-black text-brand-600 block">99.2%</span>
-            <span className="text-xs font-semibold text-slate-500 mt-1 block">Tỷ Lệ Đánh Giá 5 Sao</span>
+            <span className="text-2xl sm:text-3xl font-bold text-brand-600 block">99.2%</span>
+            <span className="text-xs font-semibold text-slate-600 mt-1 block">Tỷ lệ đánh giá 5 sao</span>
           </div>
         </div>
       </section>
@@ -144,11 +144,11 @@ export default function HeroLanding({ onOpenAuth, onSelectRole }) {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div>
-            <span className="text-xs font-bold text-brand-600 uppercase tracking-wider block mb-1">
-              Khám Phá Cơ Hội Mới
+            <span className="text-xs font-semibold text-brand-600 block mb-1">
+              Khám phá cơ hội mới
             </span>
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Việc Làm Part-Time Nổi Bật Dành Cho Sinh Viên
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+              Việc làm part-time nổi bật dành cho sinh viên
             </h2>
           </div>
           <button
@@ -219,11 +219,11 @@ export default function HeroLanding({ onOpenAuth, onSelectRole }) {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-gradient-to-b from-slate-900 to-slate-950 rounded-3xl p-8 sm:p-12 text-white shadow-2xl">
           <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-brand-400 text-xs font-bold uppercase tracking-wider block mb-2">
-              Hệ Sinh Thái Phân Chia Độc Lập
+            <span className="text-brand-400 text-xs font-semibold block mb-2">
+              Hệ sinh thái phân chia độc lập
             </span>
-            <h2 className="text-2xl sm:text-4xl font-black tracking-tight">
-              Được Thiết Kế Tối Ưu Cho Cả 3 Đối Tượng
+            <h2 className="text-2xl sm:text-4xl font-bold tracking-tight">
+              Được thiết kế tối ưu cho cả 3 đối tượng
             </h2>
           </div>
 
@@ -233,16 +233,16 @@ export default function HeroLanding({ onOpenAuth, onSelectRole }) {
                 <div className="w-12 h-12 rounded-2xl bg-brand-500/20 text-brand-400 flex items-center justify-center mb-4">
                   <GraduationCap className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-bold mb-2">Cổng Dành Cho Sinh Viên</h3>
+                <h3 className="text-lg font-semibold mb-2">Cổng dành cho sinh viên</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
                   Lọc ca làm linh hoạt, nộp hồ sơ bằng một chạm, lưu bản chụp CV snapshot minh bạch, chat và phỏng vấn trực tiếp bằng video call WebRTC.
                 </p>
               </div>
               <button
                 onClick={() => onSelectRole('student')}
-                className="mt-6 py-2 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold transition-colors"
+                className="mt-6 py-2 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold transition-colors whitespace-nowrap"
               >
-                Khám Phá Cổng Sinh Viên &rarr;
+                Khám phá cổng sinh viên &rarr;
               </button>
             </div>
 
@@ -251,16 +251,16 @@ export default function HeroLanding({ onOpenAuth, onSelectRole }) {
                 <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mb-4">
                   <Briefcase className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-bold mb-2">Nhà Tuyển Dụng (Bảo Ngọc)</h3>
+                <h3 className="text-lg font-semibold mb-2">Nhà tuyển dụng (Bảo Ngọc)</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
                   Đăng tin nhanh chóng, quản lý hồ sơ theo quy trình ATS chuẩn hóa, xếp lịch phỏng vấn và đánh giá thái độ sinh viên sau làm việc.
                 </p>
               </div>
               <button
                 onClick={() => onSelectRole('employer')}
-                className="mt-6 py-2 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors"
+                className="mt-6 py-2 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-colors whitespace-nowrap"
               >
-                Khám Phá Cổng Doanh Nghiệp &rarr;
+                Khám phá cổng doanh nghiệp &rarr;
               </button>
             </div>
 
@@ -269,16 +269,16 @@ export default function HeroLanding({ onOpenAuth, onSelectRole }) {
                 <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4">
                   <ShieldCheck className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-bold mb-2">Quản Trị Viên (Thuỳ Ngân)</h3>
+                <h3 className="text-lg font-semibold mb-2">Quản trị viên (Thuỳ Ngân)</h3>
                 <p className="text-xs text-slate-400 leading-relaxed">
                   Dashboard phân tích toàn diện, kiểm duyệt tin rác, khóa tài khoản vi phạm và thiết lập bộ lọc từ cấm tự động bảo vệ sinh viên.
                 </p>
               </div>
               <button
                 onClick={() => onSelectRole('admin')}
-                className="mt-6 py-2 px-4 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold transition-colors"
+                className="mt-6 py-2 px-4 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold transition-colors whitespace-nowrap"
               >
-                Khám Phá Cổng Quản Trị &rarr;
+                Khám phá cổng quản trị &rarr;
               </button>
             </div>
           </div>

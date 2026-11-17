@@ -22,7 +22,7 @@ export default function Header({
   onToggleChatDrawer,
   onSearchChange,
   onCreateJobClick,
-  activeSectionTitle = 'Trang Chủ',
+  activeSectionTitle = 'Trang chủ',
   guestRole = 'student',
   onNavigateAuth,
   onShowBanner
@@ -69,7 +69,7 @@ export default function Header({
     'Sinh viên';
 
   const adminName = currentUser?.profile?.full_name ||
-    'Ban Quản Trị';
+    'Ban quản trị';
 
   const userStatus = currentUser?.profile?.status || currentUser?.status || 'active';
   const statusBadge = getStatusBadge(userStatus);
@@ -606,26 +606,26 @@ export default function Header({
     switch (r) {
       case 'student':
         return {
-          title: 'Sinh Viên',
-          badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+          title: 'Sinh viên',
+          badgeColor: 'bg-blue-50 text-slate-900 border-blue-200',
           icon: <GraduationCap className="w-3.5 h-3.5 text-blue-600" />
         };
       case 'employer':
         return {
-          title: 'Nhà Tuyển Dụng',
-          badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+          title: 'Nhà tuyển dụng',
+          badgeColor: 'bg-indigo-50 text-slate-900 border-indigo-200',
           icon: <Briefcase className="w-3.5 h-3.5 text-indigo-600" />
         };
       case 'admin':
         return {
-          title: 'Quản Trị Viên Hệ Thống',
-          badgeColor: 'bg-blue-50 text-blue-800 border-blue-300 font-bold',
+          title: 'Quản trị viên hệ thống',
+          badgeColor: 'bg-blue-50 text-slate-900 border-blue-300 font-semibold',
           icon: <ShieldCheck className="w-3.5 h-3.5 text-blue-700" />
         };
       default:
         return {
           title: 'Thành viên',
-          badgeColor: 'bg-slate-100 text-slate-700 border-slate-200',
+          badgeColor: 'bg-slate-100 text-slate-900 border-slate-200',
           icon: <User className="w-3.5 h-3.5 text-slate-500" />
         };
     }
@@ -646,7 +646,7 @@ export default function Header({
             <AlertTriangle className={`w-4 h-4 shrink-0 ${employerApprovalStatus === 'rejected' ? 'text-red-600' : 'text-amber-600'}`} />
             <span>
               {employerApprovalStatus === 'rejected' ? (
-                <>Hồ sơ Giấy phép kinh doanh (GPKD) bị từ chối phê duyệt. Nút đăng tin tạm khóa. Vui lòng tải lại GPKD hợp lệ trong phần Hồ sơ Doanh nghiệp.</>
+                <>Hồ sơ Giấy phép kinh doanh (GPKD) bị từ chối phê duyệt. Nút đăng tin tạm khóa. Vui lòng tải lại GPKD hợp lệ trong phần Hồ sơ doanh nghiệp.</>
               ) : (
                 <>Giấy phép kinh doanh (GPKD) đang trong quá trình chờ Quản trị viên phê duyệt. Tính năng đăng tin mới đang tạm khóa.</>
               )}
@@ -656,15 +656,15 @@ export default function Header({
       )}
 
       {/* 2. THANH HEADER CHÍNH (LIGHT GLASS DIMENSION) */}
-      <header className="w-full glass-header-dimension text-slate-800 h-20 px-4 sm:px-8 flex items-center justify-between">
+      <header className="w-full glass-header-dimension text-slate-800 h-20 px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-2">
 
         {/* ===================== CỤM TRÁI ===================== */}
-        <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+        <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
           <button
             type="button"
             onClick={onToggleSidebar}
-            className="md:hidden p-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-900 transition-colors"
-            title="Đóng / Mở Menu"
+            className="md:hidden p-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 transition-colors cursor-pointer shrink-0"
+            title="Đóng / Mở menu"
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -672,8 +672,8 @@ export default function Header({
           <button
             type="button"
             onClick={onGoHome}
-            className="flex items-center gap-3 cursor-pointer group hover:opacity-95 transition-opacity text-left"
-            title="Quay về Trang Chủ"
+            className="flex items-center gap-3 cursor-pointer group hover:opacity-95 transition-opacity text-left shrink-0"
+            title="Quay về trang chủ"
           >
             <BrandLogo size="md" />
           </button>
@@ -715,9 +715,9 @@ export default function Header({
             <button
               type="button"
               onClick={isGuest ? () => onNavigateAuth && onNavigateAuth('login', 'employer') : onCreateJobClick}
-              className="hidden lg:flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-sm sm:text-base font-bold shadow-sm cursor-pointer"
+              className="hidden lg:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-sm font-semibold shadow-sm cursor-pointer whitespace-nowrap shrink-0"
             >
-              <span>Đăng Tin Mới</span>
+              <span>Đăng tin mới</span>
             </button>
           )}
 
@@ -758,7 +758,7 @@ export default function Header({
                   <div className="px-4 pb-2.5 border-b border-slate-100 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Bell className="w-4 h-4 text-blue-600" />
-                      <h4 className="text-xs font-bold text-slate-900">Thông Báo Hệ Thống</h4>
+                      <h4 className="text-sm font-semibold text-slate-900">Thông báo hệ thống</h4>
                     </div>
                     <span className="text-xs text-slate-500 font-medium">
                       {unreadCount} chưa đọc
@@ -823,8 +823,8 @@ export default function Header({
 
           {/* Badge vai trò riêng cho Admin */}
           {isAdmin && (
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-100 text-blue-800 border border-blue-200 text-xs font-bold shadow-sm">
-              <ShieldCheck className="w-4 h-4 text-blue-600" />
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-100 text-slate-900 border border-blue-200 text-xs font-semibold shadow-sm whitespace-nowrap shrink-0">
+              <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
               <span>Quản trị viên hệ thống</span>
             </div>
           )}
@@ -886,20 +886,20 @@ export default function Header({
           )}
 
           {isGuest ? (
-            <div className="flex items-center gap-1.5 sm:gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => onNavigateAuth && onNavigateAuth('login', isEmployer ? 'employer' : 'student')}
-                className="px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-xs sm:text-base font-bold cursor-pointer shadow-sm whitespace-nowrap"
+                className="px-3 sm:px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-xs sm:text-sm font-semibold cursor-pointer shadow-sm whitespace-nowrap shrink-0"
               >
-                Đăng Nhập
+                Đăng nhập
               </button>
               <button
                 type="button"
                 onClick={() => onNavigateAuth && onNavigateAuth('register', isEmployer ? 'employer' : 'student')}
-                className="px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 border border-blue-600 text-white text-xs sm:text-base font-bold cursor-pointer shadow-sm whitespace-nowrap"
+                className="px-3 sm:px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 border border-blue-600 text-white text-xs sm:text-sm font-semibold cursor-pointer shadow-sm whitespace-nowrap shrink-0"
               >
-                {isEmployer ? 'Đăng Ký Doanh Nghiệp' : 'Đăng Ký Sinh Viên'}
+                {isEmployer ? 'Đăng ký doanh nghiệp' : 'Đăng ký sinh viên'}
               </button>
             </div>
           ) : (
@@ -964,17 +964,17 @@ export default function Header({
                   <div className="p-1.5 space-y-1">
 
                     {/* Cập nhật hồ sơ & đổi mật khẩu */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setDropdownOpen(false);
-                        if (onOpenAccountModal) onOpenAccountModal();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-all text-left cursor-pointer"
-                    >
-                      <Settings className="w-4 h-4 text-blue-600 shrink-0" />
-                      <span>Cập nhật tài khoản cá nhân & Đổi mật khẩu</span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          if (onOpenAccountModal) onOpenAccountModal();
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold text-slate-900 hover:bg-slate-100 transition-all text-left cursor-pointer"
+                      >
+                        <Settings className="w-4 h-4 text-blue-600 shrink-0" />
+                        <span>Cập nhật tài khoản cá nhân & đổi mật khẩu</span>
+                      </button>
 
                     {/* Nút Hủy tài khoản (Dành cho Sinh viên & Nhà tuyển dụng) */}
                     {!isAdmin && (
@@ -1021,19 +1021,19 @@ export default function Header({
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2.5 text-rose-600">
                 <AlertTriangle className="w-6 h-6 shrink-0" />
-                <h3 className="text-base font-bold text-slate-900">Xác Nhận Hủy Tài Khoản</h3>
+                <h3 className="text-base font-bold text-slate-900">Xác nhận hủy tài khoản</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setDeleteModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-500 hover:text-slate-900 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Bạn có chắc chắn muốn <strong className="text-rose-600 font-bold">hủy tài khoản ({currentUser?.email})</strong>?
+            <p className="text-xs text-slate-700 leading-relaxed">
+              Bạn có chắc chắn muốn <strong className="text-rose-700 font-bold">hủy tài khoản ({currentUser?.email})</strong>?
               Toàn bộ dữ liệu hồ sơ cá nhân và phiên đăng nhập sẽ bị vô hiệu hóa hoàn toàn theo chính sách bảo vệ dữ liệu.
             </p>
 
@@ -1041,7 +1041,7 @@ export default function Header({
               <button
                 type="button"
                 onClick={() => setDeleteModalOpen(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-xs font-semibold text-slate-900 cursor-pointer whitespace-nowrap"
               >
                 Không, giữ lại tài khoản
               </button>
@@ -1049,9 +1049,9 @@ export default function Header({
                 type="button"
                 disabled={deleteLoading}
                 onClick={handleDeleteAccountSubmit}
-                className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold shadow-md cursor-pointer transition-colors"
+                className="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-xs font-semibold shadow-md cursor-pointer transition-colors whitespace-nowrap"
               >
-                {deleteLoading ? 'Đang xử lý...' : 'Xác Nhận Hủy Tài Khoản'}
+                {deleteLoading ? 'Đang xử lý...' : 'Xác nhận hủy tài khoản'}
               </button>
             </div>
           </div>

@@ -161,8 +161,8 @@ export default function DocumentViewerModal({
             <div className="min-w-0">
               <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate flex items-center gap-2">
                 <span>{title}</span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 uppercase">
-                  PDF CHUẨN
+                <span className="text-[12px] leading-[18px] font-medium px-2 py-0.5 rounded-full bg-blue-50 text-slate-900 border border-blue-200 whitespace-nowrap">
+                  PDF chuẩn
                 </span>
               </h3>
               <p className="text-xs text-slate-500 truncate mt-0.5">Tệp: <strong className="text-slate-700">{fileName}</strong></p>

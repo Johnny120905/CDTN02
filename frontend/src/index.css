@@ -68,15 +68,19 @@
     box-sizing: border-box;
   }
 
-  /* Đảm bảo toàn bộ văn bản tự ngắt dòng khi chạm khung, không bao giờ văng ra ngoài */
-  p, span, h1, h2, h3, h4, h5, h6, div, button, a, td, th {
+  /* Ngắt dòng an toàn cho văn bản dài, tuyệt đối không bẻ gãy từng ký tự trên nút, badge và tiêu đề cột */
+  p, h1, h2, h3, h4, h5, h6, li {
     overflow-wrap: break-word;
-    word-break: break-word;
   }
 
-  /* Chuẩn hóa kích thước chữ cho toàn bộ form inputs và labels để không bị nhỏ tí */
+  button, a, th {
+    word-break: normal;
+  }
+
+  /* Chuẩn hóa kích thước chữ cho toàn bộ form inputs (16px / 24px - chống zoom tự động trên Mobile) */
   input, select, textarea {
-    font-size: 0.9375rem; /* Tối thiểu 15px */
+    font-size: 1rem;
+    line-height: 1.5rem;
     color: var(--col4-text-primary);
     background-color: var(--col7-white-pure);
   }
@@ -92,24 +96,64 @@
   }
 
   input::placeholder, textarea::placeholder {
-    font-size: 0.875rem; /* Placeholder tối thiểu 14px */
+    font-size: 0.875rem; /* Placeholder 14px */
     color: var(--col4-text-muted);
   }
 }
 
-/* Nâng cấp toàn cục cho các class chữ nhỏ để đạt chuẩn dễ đọc */
+/* Hệ thống phân cấp chữ 7 bậc & chuẩn dễ đọc toàn hệ thống */
 @layer utilities {
   .text-xs {
-    font-size: 0.875rem !important; /* 14px */
-    line-height: 1.25rem !important;
+    font-size: 0.875rem !important; /* 14px - Nhãn Form, Menu, Nút bấm */
+    line-height: 1.25rem !important; /* 20px */
   }
   .text-sm {
-    font-size: 0.9375rem !important; /* 15px */
-    line-height: 1.375rem !important;
+    font-size: 0.875rem !important; /* 14px */
+    line-height: 1.25rem !important; /* 20px */
   }
   .text-base {
-    font-size: 1rem !important; /* 16px */
-    line-height: 1.5rem !important;
+    font-size: 1rem !important; /* 16px - Nội dung mô tả & Ô nhập liệu */
+    line-height: 1.5rem !important; /* 24px */
+  }
+  .type-banner {
+    font-size: clamp(2.25rem, 4vw, 3rem);
+    line-height: clamp(2.75rem, 4.5vw, 3.5rem);
+    font-weight: 700;
+  }
+  .type-h1 {
+    font-size: 1.75rem;
+    line-height: 2.25rem;
+    font-weight: 700;
+    color: var(--col3-heading-solid);
+  }
+  .type-h2 {
+    font-size: 1.375rem;
+    line-height: 1.875rem;
+    font-weight: 600;
+    color: var(--col3-heading-solid);
+  }
+  .type-h3 {
+    font-size: 1.125rem;
+    line-height: 1.625rem;
+    font-weight: 600;
+    color: var(--col3-heading-solid);
+  }
+  .type-body {
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 400;
+    color: var(--col4-text-secondary);
+  }
+  .type-ui {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+  }
+  .type-caption {
+    font-size: 0.75rem;
+    line-height: 1.125rem;
+    font-weight: 500;
+    color: var(--col4-text-muted);
   }
 }
 
@@ -152,7 +196,29 @@
   border-radius: 0.75rem;
   box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.35) !important;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  font-weight: 700 !important;
+  font-weight: 600 !important;
+  white-space: nowrap;
+}
+
+.btn-danger-dimension {
+  background: #DC2626 !important;
+  color: #FFFFFF !important;
+  border: 1px solid #B91C1C !important;
+  border-radius: 0.75rem;
+  font-weight: 600 !important;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-danger-dimension:hover {
+  background: #B91C1C !important;
+  color: #FFFFFF !important;
+}
+
+.btn-danger-dimension svg,
+.btn-danger-dimension span {
+  color: #FFFFFF !important;
+  stroke: #FFFFFF !important;
 }
 
 .btn-cta-col5:hover,
@@ -184,7 +250,8 @@
   border: 1px solid #CBD5E1 !important;
   color: var(--col3-heading-solid) !important;
   border-radius: 0.75rem;
-  font-weight: 700 !important;
+  font-weight: 600 !important;
+  white-space: nowrap;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }

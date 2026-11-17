@@ -182,7 +182,7 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
         {/* Header with Close */}
         <div className="flex items-start justify-between mb-5">
           <div>
-            <h2 className="text-lg font-black text-slate-900">Tài Khoản & Bảo Mật</h2>
+            <h2 className="text-lg font-bold text-slate-900">Tài khoản &amp; bảo mật</h2>
             <p className="text-xs text-slate-500 mt-0.5">Quản lý hồ sơ cá nhân, trạng thái hoạt động và mật khẩu bảo mật</p>
           </div>
           <button 
@@ -195,24 +195,24 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-6 border border-slate-200 text-xs font-bold">
+        <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-6 border border-slate-200 text-xs font-semibold">
           <button
             type="button"
             onClick={() => { setActiveTab('profile'); setMsg({ text: '', type: '' }); }}
-            className={`flex-1 py-2 rounded-xl transition-all cursor-pointer ${
+            className={`flex-1 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'profile' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Thông Tin Tài Khoản
+            Thông tin tài khoản
           </button>
           <button
             type="button"
             onClick={() => { setActiveTab('password'); setMsg({ text: '', type: '' }); }}
-            className={`flex-1 py-2 rounded-xl transition-all cursor-pointer ${
+            className={`flex-1 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'password' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Đổi Mật Khẩu
+            Đổi mật khẩu
           </button>
         </div>
 
@@ -248,7 +248,7 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
               <div className="flex items-center gap-2.5">
                 <Activity className="w-4 h-4 text-blue-600 shrink-0" />
                 <div>
-                  <p className="text-xs font-bold text-slate-800">Trạng Thái Tài Khoản</p>
+                  <p className="text-xs font-semibold text-slate-900">Trạng thái tài khoản</p>
                   <p className="text-xs text-slate-500">Tự động đồng bộ theo phiên đăng nhập / đăng xuất</p>
                 </div>
               </div>
@@ -278,10 +278,10 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
             {currentUser.role === 'admin' ? (
               <div className="space-y-4 pt-1">
                 <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-bold uppercase tracking-wider text-blue-700">Hồ Sơ Quản Trị Viên Hệ Thống</span>
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-blue-100 text-blue-700 border border-blue-200">
-                      SUPER ADMIN
+                  <div className="flex items-center justify-between mb-3 gap-2">
+                    <span className="text-xs font-semibold text-blue-700">Hồ sơ quản trị viên hệ thống</span>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-slate-900 border border-blue-200 whitespace-nowrap">
+                      Quản trị cấp cao
                     </span>
                   </div>
                   
@@ -425,9 +425,9 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-2xl text-xs font-bold shadow-md shadow-blue-500/25 transition-all cursor-pointer"
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-2xl text-xs font-semibold shadow-md shadow-blue-500/25 transition-all cursor-pointer whitespace-nowrap"
                 >
-                  {loading ? 'Đang lưu...' : 'Lưu Thay Đổi Thông Tin'}
+                  {loading ? 'Đang lưu...' : 'Lưu thay đổi thông tin'}
                 </button>
               </>
             )}
@@ -528,9 +528,9 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-2xl text-xs font-bold shadow-md shadow-blue-500/25 transition-all cursor-pointer"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-2xl text-xs font-semibold shadow-md shadow-blue-500/25 transition-all cursor-pointer whitespace-nowrap"
             >
-              {loading ? 'Đang cập nhật...' : 'Cập Nhật Mật Khẩu Mới'}
+              {loading ? 'Đang cập nhật...' : 'Cập nhật mật khẩu mới'}
             </button>
           </form>
         )}

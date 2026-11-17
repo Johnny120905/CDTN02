@@ -177,15 +177,15 @@ export default function LoginScreen({ onAuthSuccess, onNavigate, initialRole, lo
               </button>
             </div>
           ) : (
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-slate-900 border border-blue-200 text-xs font-semibold">
               {role === 'employer' ? <Briefcase className="w-3.5 h-3.5 text-blue-600" /> : <GraduationCap className="w-3.5 h-3.5 text-blue-600" />}
-              <span>{role === 'employer' ? 'CỔNG NHÀ TUYỂN DỤNG' : 'CỔNG SINH VIÊN'}</span>
+              <span>{role === 'employer' ? 'Cổng nhà tuyển dụng' : 'Cổng sinh viên'}</span>
             </div>
           )}
 
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Đăng Nhập {role === 'employer' ? 'Nhà Tuyển Dụng' : 'Sinh Viên'}
+            <h1 className="text-[28px] leading-[36px] font-bold text-slate-900 tracking-tight">
+              Đăng nhập {role === 'employer' ? 'nhà tuyển dụng' : 'sinh viên'}
             </h1>
             <p className="text-sm text-slate-500 mt-1">
               {role === 'employer' 
@@ -291,7 +291,7 @@ export default function LoginScreen({ onAuthSuccess, onNavigate, initialRole, lo
                 <span>Đang kiểm tra đăng nhập...</span>
               ) : (
                 <>
-                  <span>Đăng Nhập</span>
+                  <span>Đăng nhập</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}

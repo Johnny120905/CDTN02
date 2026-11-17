@@ -1664,8 +1664,8 @@ export default function AdminPortal({
   // Admin Fixed Menu Items (8 Phân hệ Quản trị viên chuẩn - Khớp 100% với Main Content)
   const adminMenuItems = [
     { id: 'dashboard', label: 'Trung tâm chỉ huy (Analytics Dashboard)', icon: <TrendingUp className="w-4 h-4" /> },
-    { id: 'users', label: 'Quản lý người dùng & Phân quyền', icon: <Users className="w-4 h-4" />, count: nonAdminUsers.length },
-    { id: 'gpkd', label: 'Bàn thẩm định doanh nghiệp & Giấy phép kinh doanh', icon: <FileCheck className="w-4 h-4" />, count: employerUsers.length },
+    { id: 'users', label: 'Quản lý người dùng & phân quyền', icon: <Users className="w-4 h-4" />, count: nonAdminUsers.length },
+    { id: 'gpkd', label: 'Bàn thẩm định doanh nghiệp & GPKD', icon: <FileCheck className="w-4 h-4" />, count: employerUsers.length },
     { id: 'jobs', label: 'Kiểm duyệt tin tuyển dụng', icon: <Briefcase className="w-4 h-4" />, count: jobs.length },
     { id: 'keywords', label: 'Kiểm duyệt từ khoá cấm', icon: <ShieldCheck className="w-4 h-4" />, count: bannedKeywords.length },
     { id: 'reviews', label: 'Quản lý đánh giá chéo 2 chiều', icon: <Star className="w-4 h-4" />, count: reviews.length },
@@ -1682,13 +1682,13 @@ export default function AdminPortal({
       <aside className={`${
         mobileSidebarOpen
           ? 'fixed inset-y-0 left-0 z-50 w-80 shadow-2xl flex'
-          : `hidden md:flex ${isSidebarCollapsed ? 'md:w-20' : 'md:w-80'}`
+          : `hidden md:flex ${isSidebarCollapsed ? 'md:w-20' : 'md:w-72 xl:w-80'}`
       } bg-white/95 backdrop-blur-xl border-r border-slate-200 shadow-sm flex-col shrink-0 transition-all duration-300`}>
         <div className={`p-4 border-b border-slate-100 flex items-center ${isSidebarCollapsed && !mobileSidebarOpen ? 'justify-center' : 'justify-between'} gap-2`}>
           {(!isSidebarCollapsed || mobileSidebarOpen) && (
             <div className="flex items-center gap-2 min-w-0">
               <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0"></span>
-              <span className="text-sm sm:text-base font-black tracking-wider text-slate-900 uppercase truncate">Cổng Quản Trị Hệ Thống</span>
+              <span className="text-sm sm:text-base font-bold text-slate-900 truncate">Cổng quản trị hệ thống</span>
             </div>
           )}
           <button
@@ -1759,41 +1759,41 @@ export default function AdminPortal({
         {activeMenu === 'home' && (
           <div className="w-full max-w-full mx-auto space-y-8">
             <div className="p-6 sm:p-10 lg:p-12 rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 shadow-xl text-white min-h-[240px] sm:min-h-[270px] flex flex-col justify-center space-y-4">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/20 border border-white/30 text-white text-sm font-bold w-fit whitespace-nowrap">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/20 border border-white/30 text-white text-sm font-semibold w-fit whitespace-nowrap">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Bảng Quản Trị Hệ Thống PARTIME.VN</span>
+                <span>Bảng quản trị hệ thống PARTIME.VN</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black leading-tight tracking-tight text-white">
-                Bảng Điều Khiển Quản Trị Hệ Thống Sàn Tuyển Dụng PARTIME.VN
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold leading-tight tracking-tight text-white">
+                Bảng điều khiển quản trị hệ thống sàn tuyển dụng PARTIME.VN
               </h2>
               <p className="text-xs sm:text-sm text-blue-50 leading-relaxed max-w-3xl mt-2">
-                Xin chào <strong className="text-white font-black">{currentUser?.profile?.full_name || currentUser?.full_name || "Quản trị viên"}</strong>. 
-                Bạn có toàn quyền kiểm duyệt người dùng, phê duyệt Giấy phép kinh doanh, giám sát tin đăng, xử lý khiếu nại vi phạm và cấu hình bộ lọc từ cấm tự động.
+                Xin chào <strong className="text-white font-semibold">{currentUser?.profile?.full_name || currentUser?.full_name || "Quản trị viên"}</strong>. 
+                Bạn có toàn quyền kiểm duyệt người dùng, phê duyệt GPKD, giám sát tin đăng, xử lý khiếu nại vi phạm và cấu hình bộ lọc từ cấm tự động.
               </p>
               <div className="flex flex-wrap items-center gap-3 pt-3">
                 <button
                   type="button"
                   onClick={() => handleMenuSwitch('dashboard')}
-                  className="px-6 py-3.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-sm sm:text-base font-bold shadow-xl cursor-pointer flex items-center gap-2.5 whitespace-nowrap"
+                  className="px-6 py-3.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-sm font-semibold shadow-xl cursor-pointer flex items-center gap-2.5 whitespace-nowrap"
                 >
                   <TrendingUp className="w-4 h-4 text-blue-600" />
-                  <span>Xem Dashboard Thống Kê</span>
+                  <span>Xem thống kê tổng quan</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleMenuSwitch('gpkd')}
-                  className="px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm sm:text-base font-bold shadow-xl cursor-pointer flex items-center gap-2.5 whitespace-nowrap"
+                  className="px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold shadow-xl cursor-pointer flex items-center gap-2.5 whitespace-nowrap"
                 >
                   <FileCheck className="w-4 h-4" />
-                  <span>Duyệt Hồ Sơ Doanh Nghiệp ({users.filter(u => u.role === 'employer').length})</span>
+                  <span>Duyệt hồ sơ doanh nghiệp ({users.filter(u => u.role === 'employer').length})</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleMenuSwitch('users')}
-                  className="px-6 py-3.5 rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 text-white text-sm sm:text-base font-bold cursor-pointer flex items-center gap-2.5 backdrop-blur-md whitespace-nowrap"
+                  className="px-6 py-3.5 rounded-xl bg-white/20 hover:bg-white/30 border border-white/30 text-white text-sm font-semibold cursor-pointer flex items-center gap-2.5 backdrop-blur-md whitespace-nowrap"
                 >
                   <Users className="w-4 h-4 text-white" />
-                  <span>Quản Lý Người Dùng</span>
+                  <span>Quản lý người dùng</span>
                 </button>
               </div>
             </div>
@@ -1801,40 +1801,40 @@ export default function AdminPortal({
             {/* Quick Summary Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:shadow-md transition-all min-h-[140px]">
-                <p className="text-xs text-slate-600 font-bold uppercase">Tổng Người Dùng</p>
-                <p className="text-2xl sm:text-3xl font-black text-slate-900">{users.length}</p>
+                <p className="text-sm text-slate-600 font-semibold">Tổng người dùng</p>
+                <p className="text-2xl sm:text-3xl font-bold text-slate-900">{users.length}</p>
                 <p className="text-xs text-blue-700 font-semibold">{users.filter(u => u.role === 'student').length} SV | {users.filter(u => u.role === 'employer').length} NTD</p>
               </div>
 
               <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:shadow-md transition-all min-h-[140px]">
-                <p className="text-xs text-slate-600 font-bold uppercase">Tin Tuyển Dụng</p>
-                <p className="text-2xl sm:text-3xl font-black text-slate-900">{jobs.length}</p>
+                <p className="text-sm text-slate-600 font-semibold">Tin tuyển dụng</p>
+                <p className="text-2xl sm:text-3xl font-bold text-slate-900">{jobs.length}</p>
                 <p className="text-xs text-emerald-700 font-semibold">{jobs.filter(j => !j.is_hidden).length} tin công khai</p>
               </div>
 
               <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:shadow-md transition-all min-h-[140px]">
-                <p className="text-xs text-slate-600 font-bold uppercase">Phiếu Cần Xử Lý</p>
-                <p className="text-2xl font-black text-amber-600">{reports.filter(r => r.status === 'pending').length}</p>
-                <p className="text-xs text-slate-600 font-medium">Đơn khiếu nại & tố cáo</p>
+                <p className="text-sm text-slate-600 font-semibold">Phiếu cần xử lý</p>
+                <p className="text-2xl sm:text-3xl font-bold text-amber-600">{reports.filter(r => r.status === 'pending').length}</p>
+                <p className="text-xs text-slate-600 font-medium">Đơn khiếu nại &amp; tố cáo</p>
               </div>
 
               <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:shadow-md transition-all min-h-[140px]">
-                <p className="text-xs text-slate-600 font-bold uppercase">Từ Khóa Cấm</p>
-                <p className="text-2xl sm:text-3xl font-black text-slate-900">{bannedKeywords.length}</p>
+                <p className="text-sm text-slate-600 font-semibold">Từ khóa cấm</p>
+                <p className="text-2xl sm:text-3xl font-bold text-slate-900">{bannedKeywords.length}</p>
                 <p className="text-xs text-blue-700 font-semibold">Bộ lọc tự động toàn hệ thống</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* 1.1 MÀN HÌNH KIỂM DUYỆT HỒ SƠ DOANH NGHIỆP & GPKD */}
+        {/* 1.1 MÀN HÌNH KIỂM DUYỆT HỒ Sơ DOANH NGHIỆP & GPKD */}
         {activeMenu === 'gpkd' && (
           <div className="w-full max-w-full mx-auto space-y-8 animate-in fade-in duration-300">
             <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">
-                  <FileCheck className="w-5 h-5 text-emerald-600" />
-                  <h3 className="text-lg font-black text-slate-900">Kiểm Duyệt Hồ Sơ & Giấy Phép Kinh Doanh (GPKD)</h3>
+                  <FileCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <h3 className="text-[22px] leading-[30px] font-semibold text-slate-900">Kiểm duyệt hồ sơ &amp; GPKD</h3>
                 </div>
                 <p className="text-xs text-slate-600 mt-1">
                   Thẩm định hồ sơ pháp lý doanh nghiệp (tệp PDF ≤ 10MB) và cấp quyền đăng tin tuyển dụng không giới hạn
@@ -1845,20 +1845,20 @@ export default function AdminPortal({
             {/* Quick KPI for Employers GPKD */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-sm space-y-1">
-                <span className="text-xs font-bold text-slate-600 uppercase">Tổng Doanh Nghiệp</span>
-                <p className="text-2xl sm:text-3xl font-black text-slate-900">{users.filter(u => u.role === 'employer').length}</p>
+                <span className="text-sm font-semibold text-slate-600">Tổng doanh nghiệp</span>
+                <p className="text-2xl sm:text-3xl font-bold text-slate-900">{users.filter(u => u.role === 'employer').length}</p>
                 <p className="text-xs text-blue-700 font-semibold">Đăng ký tham gia sàn PARTIME.VN</p>
               </div>
               <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-sm space-y-1">
-                <span className="text-xs font-bold text-slate-600 uppercase">Đã Phê Duyệt Hợp Lệ</span>
-                <p className="text-2xl font-black text-emerald-600">
+                <span className="text-sm font-semibold text-slate-600">Đã phê duyệt hợp lệ</span>
+                <p className="text-2xl sm:text-3xl font-bold text-emerald-600">
                   {users.filter(u => u.role === 'employer' && (u.employer_record?.approval_status === 'approved' || u.approval_status === 'approved')).length}
                 </p>
                 <p className="text-xs text-emerald-700 font-semibold">Được phép đăng tin tuyển dụng</p>
               </div>
               <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-sm space-y-1">
-                <span className="text-xs font-bold text-slate-600 uppercase">Chờ Xét Duyệt GPKD</span>
-                <p className="text-2xl font-black text-amber-600">
+                <span className="text-sm font-semibold text-slate-600">Chờ xét duyệt GPKD</span>
+                <p className="text-2xl sm:text-3xl font-bold text-amber-600">
                   {users.filter(u => u.role === 'employer' && (u.employer_record?.approval_status === 'pending' || u.approval_status === 'pending')).length}
                 </p>
                 <p className="text-xs text-amber-700 font-semibold">Hồ sơ mới nộp cần xử lý</p>
@@ -1868,8 +1868,8 @@ export default function AdminPortal({
             {/* Bảng danh sách Doanh nghiệp & GPKD */}
             <div className="rounded-3xl bg-white border border-slate-200/90 shadow-md overflow-hidden">
               <div className="p-5 sm:p-6 bg-slate-50/90 border-b border-slate-200 flex items-center justify-between gap-2">
-                <h4 className="text-base font-bold text-slate-900 uppercase tracking-wider">Danh Sách Doanh Nghiệp Tuyển Dụng</h4>
-                <span className="text-xs text-slate-700 font-bold whitespace-nowrap">
+                <h4 className="text-base font-semibold text-slate-900">Danh sách doanh nghiệp tuyển dụng</h4>
+                <span className="text-xs text-slate-700 font-semibold whitespace-nowrap">
                   {filteredGpkdEmployers.length} / {employerUsers.length} đối tác
                 </span>
               </div>
@@ -1877,7 +1877,7 @@ export default function AdminPortal({
               {/* FR-QTV-04.11: Bộ lọc Bàn thẩm định GPKD (Trạng thái GPKD, MST 10/13 số, Tỉnh thành, Quận huyện) */}
               <div className="p-4 bg-slate-50/50 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Trạng Thái Thẩm Định:</label>
+                  <label className="block text-xs font-semibold text-slate-900 mb-1">Trạng thái thẩm định:</label>
                   <select
                     value={gpkdStatusFilter}
                     onChange={(e) => setGpkdStatusFilter(e.target.value)}
@@ -1891,7 +1891,7 @@ export default function AdminPortal({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Mã Số Thuế (MST):</label>
+                  <label className="block text-xs font-semibold text-slate-900 mb-1">Mã số thuế (MST):</label>
                   <select
                     value={gpkdMstFilter}
                     onChange={(e) => setGpkdMstFilter(e.target.value)}
@@ -1904,7 +1904,7 @@ export default function AdminPortal({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Khu Vực Tỉnh / Thành Phố:</label>
+                  <label className="block text-xs font-semibold text-slate-900 mb-1">Khu vực tỉnh / thành phố:</label>
                   <select
                     value={gpkdProvinceFilter}
                     onChange={(e) => {
@@ -1921,7 +1921,7 @@ export default function AdminPortal({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Lọc Theo Quận / Huyện:</label>
+                  <label className="block text-xs font-semibold text-slate-900 mb-1">Lọc theo quận / huyện:</label>
                   <SearchableDropdownInput
                     value={gpkdDistrictFilter}
                     onChange={(val) => setGpkdDistrictFilter(val)}
@@ -1952,16 +1952,16 @@ export default function AdminPortal({
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-100/90 text-slate-800 border-b border-slate-200 uppercase font-bold text-xs sm:text-sm tracking-wider">
+                <table className="w-full min-w-[940px] text-left text-sm">
+                  <thead className="bg-slate-100/90 text-slate-900 border-b border-slate-200 font-semibold text-xs sm:text-sm">
                     <tr>
-                      <th className="px-6 py-4 whitespace-nowrap">Doanh Nghiệp & Chi Nhánh</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Người Đại Diện</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Doanh nghiệp &amp; chi nhánh</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Người đại diện</th>
                       <th className="px-6 py-4 whitespace-nowrap">Email / SĐT</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Mã Số GPKD</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Tài Liệu Đính Kèm</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Trạng Thái</th>
-                      <th className="px-6 py-4 text-right whitespace-nowrap">Thao Tác Phê Duyệt</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Mã số GPKD</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Tài liệu đính kèm</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Trạng thái</th>
+                      <th className="px-6 py-4 text-right whitespace-nowrap">Thao tác phê duyệt</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
@@ -2007,7 +2007,7 @@ export default function AdminPortal({
                                 className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold inline-flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs text-xs whitespace-nowrap"
                               >
                                 <Eye className="w-3.5 h-3.5" />
-                                <span>Xem File GPKD (PDF)</span>
+                                <span>Xem file GPKD (PDF)</span>
                               </button>
                             ) : (
                               <span className="text-xs text-slate-400 italic">Chưa tải lên PDF</span>
@@ -2022,7 +2022,7 @@ export default function AdminPortal({
                                 : 'bg-amber-100 text-amber-800 border-amber-200'
                             }`}>
                               <span className={`w-2 h-2 rounded-full ${status === 'approved' ? 'bg-emerald-600' : status === 'rejected' ? 'bg-rose-600' : 'bg-amber-600 animate-pulse'}`} />
-                              <span>{status === 'approved' ? 'Đã Phê Duyệt' : (status === 'rejected' ? 'Bị Từ Chối' : 'Chờ Thẩm Định')}</span>
+                              <span>{status === 'approved' ? 'Đã phê duyệt' : (status === 'rejected' ? 'Bị từ chối' : 'Chờ thẩm định')}</span>
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right whitespace-nowrap">
@@ -2455,9 +2455,9 @@ export default function AdminPortal({
                   <div className="p-5 sm:p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div>
-                        <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                        <h3 className="text-[22px] leading-[30px] font-semibold text-slate-900 flex items-center gap-2">
                           <TrendingUp className="w-5 h-5 text-blue-600 shrink-0" />
-                          <span>Dashboard Thống Kê & Báo Cáo Tăng Trưởng</span>
+                          <span>Thống kê &amp; báo cáo tăng trưởng</span>
                         </h3>
                         <p className="text-xs text-slate-600 mt-0.5">
                           Thống kê và báo cáo tăng trưởng số liệu thực tế năm 2026 từ cơ sở dữ liệu hệ thống
@@ -2468,10 +2468,10 @@ export default function AdminPortal({
                         <button
                           type="button"
                           onClick={() => handleExportReport('excel')}
-                          className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold inline-flex items-center gap-2 cursor-pointer shadow-sm transition-all whitespace-nowrap"
+                          className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold inline-flex items-center gap-2 cursor-pointer shadow-sm transition-all whitespace-nowrap"
                         >
                           <Download className="w-4 h-4 shrink-0" />
-                          <span>Xuất Báo Cáo Excel</span>
+                          <span>Xuất báo cáo Excel</span>
                         </button>
                       </div>
                     </div>
@@ -2684,7 +2684,7 @@ export default function AdminPortal({
                         }}
                         className="px-3 py-1.5 rounded-xl bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold whitespace-nowrap cursor-pointer transition-all shrink-0"
                       >
-                        Xem Cả Năm 2026
+                        Xem cả năm 2026
                       </button>
                     </div>
                   )}
@@ -2693,10 +2693,10 @@ export default function AdminPortal({
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                     <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:border-blue-400 hover:shadow-md transition-all">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Tổng Số Sinh Viên</span>
-                        <span className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-800 font-bold border border-blue-200 whitespace-nowrap shrink-0">{periodBadge}</span>
+                        <span className="text-sm font-semibold text-slate-700">Tổng số sinh viên</span>
+                        <span className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-slate-900 font-semibold border border-blue-200 whitespace-nowrap shrink-0">{periodBadge}</span>
                       </div>
-                      <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                      <p className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                         {studentCount.toLocaleString('vi-VN')}
                       </p>
                       <p className="text-xs text-blue-700 font-semibold">Tài khoản @gmail.com đã xác thực</p>
@@ -2704,10 +2704,10 @@ export default function AdminPortal({
 
                     <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:border-emerald-400 hover:shadow-md transition-all">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Tổng Doanh Nghiệp</span>
-                        <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 font-bold border border-emerald-200 whitespace-nowrap shrink-0">{periodBadge}</span>
+                        <span className="text-sm font-semibold text-slate-700">Tổng doanh nghiệp</span>
+                        <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-900 font-semibold border border-emerald-200 whitespace-nowrap shrink-0">{periodBadge}</span>
                       </div>
-                      <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                      <p className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                         {employerCount.toLocaleString('vi-VN')}
                       </p>
                       <p className="text-xs text-emerald-700 font-semibold">{approvedEmployersCount.toLocaleString('vi-VN')}/{employerCount.toLocaleString('vi-VN')} doanh nghiệp đã duyệt GPKD</p>
@@ -2715,10 +2715,10 @@ export default function AdminPortal({
 
                     <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:border-indigo-400 hover:shadow-md transition-all">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Tin Tuyển Dụng</span>
-                        <span className="text-xs px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-800 font-bold border border-indigo-200 whitespace-nowrap shrink-0">{periodBadge}</span>
+                        <span className="text-sm font-semibold text-slate-700">Tin tuyển dụng</span>
+                        <span className="text-xs px-2.5 py-1 rounded-full bg-indigo-50 text-slate-900 font-semibold border border-indigo-200 whitespace-nowrap shrink-0">{periodBadge}</span>
                       </div>
-                      <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                      <p className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                         {jobCount.toLocaleString('vi-VN')}
                       </p>
                       <p className="text-xs text-indigo-700 font-semibold">{activeJobCount.toLocaleString('vi-VN')} tin đang hiển thị công khai</p>
@@ -2726,10 +2726,10 @@ export default function AdminPortal({
 
                     <div className="p-6 rounded-3xl bg-white border border-slate-200/90 space-y-2 shadow-sm hover:border-amber-400 hover:shadow-md transition-all">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Đơn Ứng Tuyển</span>
-                        <span className="text-xs px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 font-bold border border-amber-200 whitespace-nowrap shrink-0">{periodBadge}</span>
+                        <span className="text-sm font-semibold text-slate-700">Đơn ứng tuyển</span>
+                        <span className="text-xs px-2.5 py-1 rounded-full bg-amber-50 text-amber-900 font-semibold border border-amber-200 whitespace-nowrap shrink-0">{periodBadge}</span>
                       </div>
-                      <p className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                      <p className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
                         {appCount.toLocaleString('vi-VN')}
                       </p>
                       <p className="text-xs text-amber-700 font-semibold">{acceptedAppCount.toLocaleString('vi-VN')} hồ sơ đã được tiếp nhận</p>
@@ -2739,7 +2739,7 @@ export default function AdminPortal({
                   {/* 1. BIỂU ĐỒ CỘT (BAR CHART) */}
                   <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <h4 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                      <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                         <TrendingUp className="w-4 h-4 text-blue-600 shrink-0" />
                         <span>{chartTitle}</span>
                       </h4>
@@ -2815,9 +2815,9 @@ export default function AdminPortal({
                     {/* BIỂU ĐỒ ĐƯỜNG (ĐÃ TRIỆT TIÊU HIỆN TƯỢNG GIẬT KHI RÊ CHUỘT) */}
                     <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                           <Activity className="w-4 h-4 text-emerald-600 shrink-0" />
-                          <span>Xu Hướng Tăng Trưởng (Line Chart)</span>
+                          <span>Xu hướng tăng trưởng (biểu đồ đường)</span>
                         </h4>
                         <div className="flex items-center gap-3 text-xs whitespace-nowrap">
                           <span className="flex items-center gap-1.5 text-blue-700 font-bold">
@@ -2959,11 +2959,11 @@ export default function AdminPortal({
                     {/* BIỂU ĐỒ TRÒN (DONUT CHART - CHỮ ĐEN RÕ NÉT KHI HOVER, KHÔNG GÃY DÒNG) */}
                     <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                        <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                           <PieChart className="w-4 h-4 text-amber-500 shrink-0" />
-                          <span>Cơ Cấu Ngành Nghề (Donut Chart)</span>
+                          <span>Cơ cấu ngành nghề (biểu đồ tròn)</span>
                         </h4>
-                        <span className="text-xs text-slate-700 font-bold font-mono whitespace-nowrap">Tổng: {jobCount} tin việc làm</span>
+                        <span className="text-xs text-slate-700 font-semibold font-mono whitespace-nowrap">Tổng: {jobCount} tin việc làm</span>
                       </div>
 
                       <div className="h-12 px-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2 text-xs overflow-hidden">
@@ -3084,9 +3084,9 @@ export default function AdminPortal({
             <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-3">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
-                  <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-blue-600" />
-                    <span>Quản Lý & Phê Duyệt Người Dùng ({filteredUsers.length}/{nonAdminUsers.length} tài khoản)</span>
+                  <h3 className="text-[22px] leading-[30px] font-semibold text-slate-900 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-blue-600 shrink-0" />
+                    <span>Quản lý &amp; phê duyệt người dùng ({filteredUsers.length}/{nonAdminUsers.length} tài khoản)</span>
                   </h3>
                   <p className="text-xs text-slate-600 mt-0.5">Kiểm soát tài khoản Sinh viên, Doanh nghiệp (@gmail.com) và duyệt GPKD</p>
                 </div>
@@ -3175,15 +3175,15 @@ export default function AdminPortal({
             {/* Bảng danh sách người dùng */}
             <div className="rounded-3xl bg-white border border-slate-200/90 shadow-md overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-100/90 text-slate-800 border-b border-slate-200 uppercase font-bold text-xs sm:text-sm tracking-wider">
+                <table className="w-full min-w-[940px] text-left text-sm">
+                  <thead className="bg-slate-100/90 text-slate-900 border-b border-slate-200 font-semibold text-xs sm:text-sm">
                     <tr>
                       <th className="px-6 py-4 whitespace-nowrap">Email / ID</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Họ Tên / Doanh Nghiệp</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Vai Trò</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Trạng Thái GPKD (NTD)</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Trạng Thái Khóa</th>
-                      <th className="px-6 py-4 text-right whitespace-nowrap">Thao Tác</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Họ tên / doanh nghiệp</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Vai trò</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Trạng thái GPKD (NTD)</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Trạng thái khóa</th>
+                      <th className="px-6 py-4 text-right whitespace-nowrap">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
@@ -3254,7 +3254,7 @@ export default function AdminPortal({
                                   title="Mở khóa tài khoản"
                                 >
                                   <Unlock className="w-3.5 h-3.5" />
-                                  <span>Mở Khóa</span>
+                                  <span>Mở khóa</span>
                                 </button>
                               ) : (
                                 <button
@@ -3298,9 +3298,9 @@ export default function AdminPortal({
           <div className="w-full max-w-full mx-auto space-y-8">
             <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
               <div>
-                <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                  <Briefcase className="w-5 h-5 text-blue-600" />
-                  <span>Quản Lý Tin Tuyển Dụng Toàn Hệ Thống</span>
+                <h3 className="text-[22px] leading-[30px] font-semibold text-slate-900 flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-blue-600 shrink-0" />
+                  <span>Quản lý tin tuyển dụng toàn hệ thống</span>
                 </h3>
                 <p className="text-xs text-slate-600 mt-0.5">Kiểm duyệt, ẩn tin vi phạm hoặc xóa cứng tin chưa có người nộp</p>
               </div>
@@ -3341,8 +3341,8 @@ export default function AdminPortal({
                   >
                     <option value="">Tất cả trạng thái kiểm duyệt</option>
                     <option value="pending">Chờ kiểm duyệt</option>
-                    <option value="public">Công Khai</option>
-                    <option value="hidden">Đã Ẩn (Vi phạm)</option>
+                    <option value="public">Công khai</option>
+                    <option value="hidden">Đã ẩn (vi phạm)</option>
                   </select>
                 </div>
               </div>
@@ -3355,10 +3355,10 @@ export default function AdminPortal({
                     setJobQuickFilter('all');
                     setSelectedSensitiveKeyword('');
                   }}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap ${
                     jobQuickFilter === 'all'
                       ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
-                      : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                      : 'bg-slate-50 text-slate-900 border-slate-200 hover:bg-slate-100'
                   }`}
                 >
                   Tất cả tin ({jobs.length})
@@ -3369,13 +3369,13 @@ export default function AdminPortal({
                     setJobQuickFilter('pending_review');
                     setSelectedSensitiveKeyword('');
                   }}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                     jobQuickFilter === 'pending_review'
                       ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-xs'
-                      : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                      : 'bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100'
                   }`}
                 >
-                  <Clock className="w-3.5 h-3.5" />
+                  <Clock className="w-3.5 h-3.5 shrink-0" />
                   <span>Tin mới đăng chờ kiểm duyệt ({jobs.filter(j => !j.is_admin_reviewed).length})</span>
                 </button>
                 <button
@@ -3384,10 +3384,10 @@ export default function AdminPortal({
                     setJobQuickFilter('sensitive');
                     setSelectedSensitiveKeyword('');
                   }}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                     jobQuickFilter === 'sensitive'
                       ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
-                      : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                      : 'bg-rose-50 text-rose-900 border-rose-200 hover:bg-rose-100'
                   }`}
                 >
                   <AlertTriangle className="w-3.5 h-3.5" />
@@ -3489,15 +3489,15 @@ export default function AdminPortal({
             {/* Bảng tin toàn hệ thống */}
             <div className="rounded-3xl bg-white border border-slate-200/90 shadow-md overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-100/90 text-slate-800 border-b border-slate-200 uppercase font-bold text-xs sm:text-sm tracking-wider">
+                <table className="w-full min-w-[940px] text-left text-sm">
+                  <thead className="bg-slate-100/90 text-slate-900 border-b border-slate-200 font-semibold text-xs sm:text-sm">
                     <tr>
-                      <th className="px-6 py-4 whitespace-nowrap">Tiêu Đề Công Việc</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Doanh Nghiệp</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Mức Lương</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Trạng Thái Vận Hành</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Trạng Thái Kiểm Duyệt</th>
-                      <th className="px-6 py-4 text-right whitespace-nowrap">Thao Tác</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Tiêu đề công việc</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Doanh nghiệp</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Mức lương</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Trạng thái vận hành</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Trạng thái kiểm duyệt</th>
+                      <th className="px-6 py-4 text-right whitespace-nowrap">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
@@ -3644,7 +3644,7 @@ export default function AdminPortal({
               <div>
                 <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
                   <Star className="w-5 h-5 text-amber-500 fill-amber-400" />
-                  <span>Quản Lý Đánh Giá Chéo</span>
+                  <span>Quản lý đánh giá chéo</span>
                 </h3>
                 <p className="text-xs text-slate-600 mt-0.5">Kiểm duyệt các bài đánh giá của Sinh viên & Doanh nghiệp</p>
               </div>
@@ -3716,14 +3716,14 @@ export default function AdminPortal({
             {/* Bảng Reviews */}
             <div className="rounded-3xl bg-white border border-slate-200/90 shadow-md overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-100/90 text-slate-800 border-b border-slate-200 uppercase font-bold text-xs sm:text-sm tracking-wider">
+                <table className="w-full min-w-[940px] text-left text-sm">
+                  <thead className="bg-slate-100/90 text-slate-900 border-b border-slate-200 font-semibold text-xs sm:text-sm">
                     <tr>
-                      <th className="px-6 py-4 whitespace-nowrap">Người Đánh Giá</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Điểm Sao</th>
-                      <th className="px-6 py-4">Nội Dung Nhận Xét</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Trạng Thái</th>
-                      <th className="px-6 py-4 text-right whitespace-nowrap">Thao Tác</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Người đánh giá</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Điểm sao</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Nội dung nhận xét</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Trạng thái</th>
+                      <th className="px-6 py-4 text-right whitespace-nowrap">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
@@ -3824,7 +3824,7 @@ export default function AdminPortal({
               <div>
                 <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
                   <Tag className="w-5 h-5 text-blue-600" />
-                  <span>Quản Lý Danh Mục Gốc (Master Data) — Tổng: {categories.length} danh mục</span>
+                  <span>Quản lý danh mục gốc (Master Data) — tổng: {categories.length} danh mục</span>
                 </h3>
                 <p className="text-xs text-slate-600 mt-0.5">Thiết lập dữ liệu danh mục Ngành nghề & Địa điểm làm việc thực tế trên hệ thống</p>
               </div>
@@ -3910,7 +3910,7 @@ export default function AdminPortal({
                 className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold transition-all cursor-pointer inline-flex items-center justify-center gap-1.5 shadow-sm shrink-0 whitespace-nowrap"
               >
                 <Plus className="w-4 h-4" />
-                <span>Thêm Danh Mục</span>
+                <span>Thêm danh mục</span>
               </button>
             </form>
 
@@ -3928,14 +3928,14 @@ export default function AdminPortal({
             {/* Bảng danh sách danh mục */}
             <div className="rounded-3xl bg-white border border-slate-200/90 shadow-md overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-100/90 text-slate-800 border-b border-slate-200 uppercase font-bold text-xs sm:text-sm tracking-wider">
+                <table className="w-full min-w-[940px] text-left text-sm">
+                  <thead className="bg-slate-100/90 text-slate-900 border-b border-slate-200 font-semibold text-xs sm:text-sm">
                     <tr>
                       <th className="px-6 py-4 whitespace-nowrap">STT</th>
-                      <th className="px-6 py-4">Tên Danh Mục</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Loại Danh Mục</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Trạng Thái Hiển Thị</th>
-                      <th className="px-6 py-4 text-right whitespace-nowrap">Thao Tác</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Tên danh mục</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Loại danh mục</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Trạng thái hiển thị</th>
+                      <th className="px-6 py-4 text-right whitespace-nowrap">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 bg-white">
@@ -4045,9 +4045,9 @@ export default function AdminPortal({
             <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-amber-500" />
-                    <span>Quản Lý Báo Cáo Vi Phạm — Tổng: {reports.length} phiếu</span>
+                  <h3 className="text-[22px] leading-[30px] font-semibold text-slate-900 flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+                    <span>Quản lý báo cáo vi phạm — tổng: {reports.length} phiếu</span>
                   </h3>
                   <p className="text-xs text-slate-600 mt-0.5">Tiếp nhận và xử lý đơn khiếu nại từ Sinh viên và Doanh nghiệp</p>
                 </div>
@@ -4070,38 +4070,38 @@ export default function AdminPortal({
                     <button
                       type="button"
                       onClick={() => setTicketTab('all')}
-                      className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
+                      className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap ${
                         ticketTab === 'all' ? 'bg-white text-slate-900 border border-slate-300 shadow-sm' : 'text-slate-700 hover:text-slate-950'
                       }`}
                     >
-                      Tất Cả ({reports.length})
+                      Tất cả ({reports.length})
                     </button>
                     <button
                       type="button"
                       onClick={() => setTicketTab('job')}
-                      className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
+                      className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap ${
                         ticketTab === 'job' ? 'bg-white text-slate-900 border border-slate-300 shadow-sm' : 'text-slate-700 hover:text-slate-950'
                       }`}
                     >
-                      Tin Tuyển Dụng ({reports.filter(r => (r.type || r.report_type) === 'job').length})
+                      Tin tuyển dụng ({reports.filter(r => (r.type || r.report_type) === 'job').length})
                     </button>
                     <button
                       type="button"
                       onClick={() => setTicketTab('applicant')}
-                      className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
+                      className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap ${
                         ticketTab === 'applicant' ? 'bg-white text-slate-900 border border-slate-300 shadow-sm' : 'text-slate-700 hover:text-slate-950'
                       }`}
                     >
-                      Ứng Viên ({reports.filter(r => (r.type || r.report_type) === 'applicant').length})
+                      Ứng viên ({reports.filter(r => (r.type || r.report_type) === 'applicant').length})
                     </button>
                     <button
                       type="button"
                       onClick={() => setTicketTab('chat')}
-                      className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
+                      className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap ${
                         ticketTab === 'chat' ? 'bg-white text-slate-900 border border-slate-300 shadow-sm' : 'text-slate-700 hover:text-slate-950'
                       }`}
                     >
-                      Hội Thoại ({reports.filter(r => (r.type || r.report_type) === 'chat').length})
+                      Hội thoại ({reports.filter(r => (r.type || r.report_type) === 'chat').length})
                     </button>
                   </div>
                 </div>
@@ -4232,9 +4232,9 @@ export default function AdminPortal({
           <div className="w-full max-w-full mx-auto space-y-8">
             <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-5">
               <div>
-                <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-blue-600" />
-                  <span>Cài Đặt Bộ Lọc Từ Khóa Cấm Toàn Hệ Thống</span>
+                <h3 className="text-[22px] leading-[30px] font-semibold text-slate-900 flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0" />
+                  <span>Cài đặt bộ lọc từ khóa cấm toàn hệ thống</span>
                 </h3>
                 <p className="text-xs text-slate-600 mt-0.5">
                   Các từ ngữ trong danh sách này sẽ được tự động che thành *** trên toàn bộ tin nhắn trò chuyện giữa Sinh viên và Nhà tuyển dụng.
@@ -4243,8 +4243,8 @@ export default function AdminPortal({
 
               <form onSubmit={handleSaveKeywords} className="space-y-4">
                 <div>
-                  <label className="block text-sm sm:text-base font-bold text-slate-800 mb-1.5">
-                    Danh Sách Từ Khóa Cấm / Lừa Đảo (Phân tách bằng dấu phẩy) *
+                  <label className="block text-sm sm:text-base font-semibold text-slate-900 mb-1.5">
+                    Danh sách từ khóa cấm / lừa đảo (phân tách bằng dấu phẩy) *
                   </label>
                   <textarea
                     rows={5}
@@ -4266,10 +4266,10 @@ export default function AdminPortal({
                 <div className="flex items-center justify-end gap-3 pt-2">
                   <button
                     type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-sm cursor-pointer inline-flex items-center gap-2 whitespace-nowrap"
+                    className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-sm cursor-pointer inline-flex items-center gap-2 whitespace-nowrap"
                   >
                     <Check className="w-4 h-4" />
-                    <span>Lưu & Áp Dụng Bộ Lọc Ngay</span>
+                    <span>Lưu &amp; áp dụng bộ lọc ngay</span>
                   </button>
                 </div>
               </form>
@@ -4278,12 +4278,12 @@ export default function AdminPortal({
               <div className="pt-6 border-t border-slate-200 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="space-y-0.5">
-                    <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                      <span>Bảng Thống Kê Từ Khóa Cấm Đang Hoạt Động ({bannedKeywords.length})</span>
+                    <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Bảng thống kê từ khóa cấm đang hoạt động ({bannedKeywords.length})</span>
                     </h4>
                     <p className="text-xs text-slate-600">
-                      Liên kết tự động với bộ lọc Cảnh báo từ ngữ nhạy cảm (Kiểm duyệt tin tuyển dụng), cảnh báo Form và chặn Chat
+                      Liên kết tự động với bộ lọc Cảnh báo từ ngữ nhạy cảm (kiểm duyệt tin tuyển dụng), cảnh báo Form và chặn chat
                     </p>
                   </div>
                   <button
@@ -4293,7 +4293,7 @@ export default function AdminPortal({
                       setSelectedSensitiveKeyword('');
                       setActiveMenu('jobs');
                     }}
-                    className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                    className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-900 border border-rose-200 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                   >
                     <AlertTriangle className="w-3.5 h-3.5" />
                     <span>Xem tin cảnh báo ({jobs.filter(j => getJobSensitiveKeywords(j).length > 0).length})</span>
@@ -4319,15 +4319,15 @@ export default function AdminPortal({
                 ) : (
                   <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-sm">
                     <div className="overflow-x-auto">
-                      <table className="w-full text-left text-sm">
-                        <thead className="bg-slate-100/90 border-b border-slate-200 text-slate-800 font-bold uppercase text-sm tracking-wider">
+                      <table className="w-full min-w-[860px] text-left text-sm">
+                        <thead className="bg-slate-100/90 border-b border-slate-200 text-slate-900 font-semibold text-xs sm:text-sm">
                           <tr>
                             <th className="py-3.5 px-4 whitespace-nowrap min-w-[70px] text-center">STT</th>
-                            <th className="py-3.5 px-4 min-w-[200px]">Từ Khóa / Cụm Từ Cấm</th>
-                            <th className="py-3.5 px-4 whitespace-nowrap min-w-[170px]">Mức Độ Cảnh Báo</th>
-                            <th className="py-3.5 px-4 whitespace-nowrap min-w-[170px]">Tin Tuyển Dụng Khớp</th>
-                            <th className="py-3.5 px-4 whitespace-nowrap min-w-[150px]">Ngày Cập Nhật</th>
-                            <th className="py-3.5 px-4 text-center whitespace-nowrap min-w-[110px]">Thao Tác</th>
+                            <th className="py-3.5 px-4 whitespace-nowrap min-w-[200px]">Từ khóa / cụm từ cấm</th>
+                            <th className="py-3.5 px-4 whitespace-nowrap min-w-[170px]">Mức độ cảnh báo</th>
+                            <th className="py-3.5 px-4 whitespace-nowrap min-w-[170px]">Tin tuyển dụng khớp</th>
+                            <th className="py-3.5 px-4 whitespace-nowrap min-w-[150px]">Ngày cập nhật</th>
+                            <th className="py-3.5 px-4 text-center whitespace-nowrap min-w-[110px]">Thao tác</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 bg-white">
@@ -4445,7 +4445,7 @@ export default function AdminPortal({
               <div>
                 <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
                   <Activity className="w-5 h-5 text-blue-600" />
-                  <span>Nhật Ký Hoạt Động Quản Trị (Audit Log)</span>
+                  <span>Nhật ký hoạt động quản trị (Audit Log)</span>
                 </h3>
                 <p className="text-xs text-slate-600 mt-0.5">
                   Ghi nhận đầy đủ lịch sử khóa/mở tài khoản, duyệt/từ chối GPKD, ẩn/duyệt tin tuyển dụng, xử lý khiếu nại và phát thông báo.
@@ -4491,14 +4491,14 @@ export default function AdminPortal({
 
             <div className="rounded-3xl bg-white border border-slate-200/90 shadow-md overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-100 text-slate-800 border-b border-slate-200 uppercase font-bold">
+                <table className="w-full min-w-[880px] text-left text-xs">
+                  <thead className="bg-slate-100 text-slate-900 border-b border-slate-200 font-semibold">
                     <tr>
-                      <th className="px-5 py-3.5">Thời Gian</th>
-                      <th className="px-5 py-3.5">Quản Trị Viên Thực Hiện</th>
-                      <th className="px-5 py-3.5">Hành Động</th>
-                      <th className="px-5 py-3.5">Đối Tượng Tác Động</th>
-                      <th className="px-5 py-3.5">Lý Do / Chi Tiết</th>
+                      <th className="px-5 py-3.5 whitespace-nowrap">Thời gian</th>
+                      <th className="px-5 py-3.5 whitespace-nowrap">Quản trị viên thực hiện</th>
+                      <th className="px-5 py-3.5 whitespace-nowrap">Hành động</th>
+                      <th className="px-5 py-3.5 whitespace-nowrap">Đối tượng tác động</th>
+                      <th className="px-5 py-3.5 whitespace-nowrap">Lý do / chi tiết</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -4526,7 +4526,7 @@ export default function AdminPortal({
                           </td>
                           <td className="px-5 py-3.5">
                             <p className="font-bold text-slate-900">{log.target_label || log.target_id}</p>
-                            <p className="text-[11px] text-slate-500 uppercase">{log.target_type} • {log.target_id}</p>
+                            <p className="text-xs text-slate-500">{log.target_type} • {log.target_id}</p>
                           </td>
                           <td className="px-5 py-3.5 text-slate-700 max-w-xs">{log.reason || '—'}</td>
                         </tr>
@@ -4608,17 +4608,17 @@ export default function AdminPortal({
                   <button
                     type="submit"
                     disabled={sendingAnnouncement}
-                    className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-black shadow-sm cursor-pointer inline-flex items-center gap-2"
+                    className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-semibold shadow-sm cursor-pointer inline-flex items-center gap-2 whitespace-nowrap"
                   >
-                    <Bell className="w-4 h-4" />
-                    <span>{sendingAnnouncement ? 'Đang gửi thông báo...' : 'Phát Thông Báo Hàng Loạt'}</span>
+                    <Bell className="w-4 h-4 shrink-0" />
+                    <span>{sendingAnnouncement ? 'Đang gửi thông báo...' : 'Phát thông báo hàng loạt'}</span>
                   </button>
                 </div>
               </form>
             </div>
 
             <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
-              <h4 className="text-sm font-black text-slate-900">Lịch Sử Thông Báo Hệ Thống Đã Phát ({announcements.length})</h4>
+              <h4 className="text-sm font-semibold text-slate-900">Lịch sử thông báo hệ thống đã phát ({announcements.length})</h4>
 
               <PaginationBar
                 currentPage={currentAnnouncementPage}
@@ -4640,10 +4640,10 @@ export default function AdminPortal({
                     <div key={ann._id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className={`px-2.5 py-0.5 rounded-lg border text-[11px] font-black ${
-                            ann.severity === 'urgent' ? 'bg-rose-50 text-rose-700 border-rose-200' :
-                            ann.severity === 'warning' ? 'bg-amber-50 text-amber-800 border-amber-200' :
-                            'bg-blue-50 text-blue-700 border-blue-200'
+                          <span className={`px-2.5 py-0.5 rounded-lg border text-[12px] leading-[18px] font-medium whitespace-nowrap ${
+                            ann.severity === 'urgent' ? 'bg-rose-50 text-rose-900 border-rose-200' :
+                            ann.severity === 'warning' ? 'bg-amber-50 text-amber-900 border-amber-200' :
+                            'bg-blue-50 text-slate-900 border-blue-200'
                           }`}>
                             {ann.severity === 'urgent' ? 'Khẩn cấp' : ann.severity === 'warning' ? 'Cảnh báo' : 'Thông tin'}
                           </span>
@@ -4725,22 +4725,22 @@ export default function AdminPortal({
             {/* Thông tin cơ bản */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="text-slate-600 block mb-0.5 text-xs">Vai Trò:</span>
-                <span className="font-bold text-slate-900">{selectedUserDetail.role === 'employer' ? 'Nhà Tuyển Dụng' : 'Sinh Viên'}</span>
+                <span className="text-slate-600 block mb-0.5 text-xs">Vai trò:</span>
+                <span className="font-semibold text-slate-900">{selectedUserDetail.role === 'employer' ? 'Nhà tuyển dụng' : 'Sinh viên'}</span>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                 <span className="text-slate-600 block mb-0.5 text-xs">Mã ID:</span>
                 <span className="font-mono text-slate-800 font-semibold truncate block">{selectedUserDetail._id}</span>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="text-slate-600 block mb-0.5 text-xs">Trạng Thái:</span>
-                <span className={`font-bold ${selectedUserDetail.is_banned ? 'text-rose-700' : 'text-emerald-700'}`}>
-                  {selectedUserDetail.is_banned ? 'Bị Khóa' : 'Hoạt Động'}
+                <span className="text-slate-600 block mb-0.5 text-xs">Trạng thái:</span>
+                <span className={`font-semibold ${selectedUserDetail.is_banned ? 'text-rose-700' : 'text-emerald-700'}`}>
+                  {selectedUserDetail.is_banned ? 'Bị khóa' : 'Hoạt động'}
                 </span>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="text-slate-600 block mb-0.5 text-xs">Đánh Giá:</span>
-                <span className="font-bold text-amber-600 flex items-center gap-1">
+                <span className="text-slate-600 block mb-0.5 text-xs">Đánh giá:</span>
+                <span className="font-semibold text-amber-700 flex items-center gap-1">
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
                   {selectedUserDetail.rating_avg || 5.0}/5
                 </span>
@@ -4750,14 +4750,14 @@ export default function AdminPortal({
             {/* CHI TIẾT CHO SINH VIÊN */}
             {selectedUserDetail.role === 'student' && (
               <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
-                <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wider flex items-center gap-1.5">
-                  <GraduationCap className="w-4 h-4" />
-                  <span>Thông Tin Học Vấn & Cá Nhân Sinh Viên</span>
+                <h4 className="text-sm font-semibold text-blue-700 flex items-center gap-1.5">
+                  <GraduationCap className="w-4 h-4 shrink-0" />
+                  <span>Thông tin học vấn &amp; cá nhân sinh viên</span>
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   <div>
                     <span className="text-slate-500 block text-xs">Họ và tên:</span>
-                    <span className="font-bold text-slate-900 text-sm">{selectedUserDetail.profile?.full_name || selectedUserDetail.full_name || 'Chưa cập nhật'}</span>
+                    <span className="font-semibold text-slate-900 text-sm">{selectedUserDetail.profile?.full_name || selectedUserDetail.full_name || 'Chưa cập nhật'}</span>
                   </div>
                   <div>
                     <span className="text-slate-500 block text-xs">Trường Đại học:</span>
@@ -4773,8 +4773,8 @@ export default function AdminPortal({
                   </div>
                 </div>
                 <div className="pt-3 border-t border-slate-200/80 space-y-2">
-                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-                    Tệp CV PDF Sinh Viên Đã Tải Lên ({adminStudentResumes.length}):
+                  <span className="text-xs font-semibold text-slate-900 block">
+                    Tệp CV PDF sinh viên đã tải lên ({adminStudentResumes.length}):
                   </span>
                   {adminStudentResumes.length === 0 ? (
                     <p className="text-xs text-slate-500 italic">Sinh viên chưa tải lên tệp CV PDF nào.</p>
@@ -4783,8 +4783,8 @@ export default function AdminPortal({
                       {adminStudentResumes.map((cv, idx) => (
                         <div key={cv._id || idx} className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-white border border-slate-200">
                           <div className="min-w-0">
-                            <p className="font-bold text-slate-900 truncate">{cv.file_name || `CV_SinhVien_${idx + 1}.pdf`}</p>
-                            <p className="text-[11px] text-slate-500">{cv.created_at || ''} {cv.is_default ? '• CV Mặc định' : ''}</p>
+                            <p className="font-semibold text-slate-900 truncate">{cv.file_name || `CV_SinhVien_${idx + 1}.pdf`}</p>
+                            <p className="text-xs text-slate-500">{cv.created_at || ''} {cv.is_default ? '• CV mặc định' : ''}</p>
                           </div>
                           <button
                             type="button"
@@ -4796,9 +4796,9 @@ export default function AdminPortal({
                               fileName: cv.file_name || 'CV_SinhVien.pdf',
                               fileUrl: cv.file_url || ''
                             })}
-                            className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer shrink-0"
+                            className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-slate-900 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0 whitespace-nowrap"
                           >
-                            <Eye className="w-3.5 h-3.5" />
+                            <Eye className="w-3.5 h-3.5 text-blue-700" />
                             <span>Xem CV PDF</span>
                           </button>
                         </div>
@@ -4813,14 +4813,14 @@ export default function AdminPortal({
             {selectedUserDetail.role === 'employer' && (
               <div className="space-y-4">
                 <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
-                  <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <Building2 className="w-4 h-4" />
-                    <span>Hồ Sơ Doanh Nghiệp Tuyển Dụng</span>
+                  <h4 className="text-sm font-semibold text-blue-700 flex items-center gap-1.5">
+                    <Building2 className="w-4 h-4 shrink-0" />
+                    <span>Hồ sơ doanh nghiệp tuyển dụng</span>
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                     <div>
-                      <span className="text-slate-500 block text-xs">Tên Công ty / Thương hiệu:</span>
-                      <span className="font-bold text-slate-900 text-sm">{selectedUserDetail.profile?.company_name || selectedUserDetail.company_name || 'Doanh nghiệp'}</span>
+                      <span className="text-slate-500 block text-xs">Tên công ty / thương hiệu:</span>
+                      <span className="font-semibold text-slate-900 text-sm">{selectedUserDetail.profile?.company_name || selectedUserDetail.company_name || 'Doanh nghiệp'}</span>
                     </div>
                     <div>
                       <span className="text-slate-500 block text-xs">Người đại diện:</span>
@@ -4828,7 +4828,7 @@ export default function AdminPortal({
                     </div>
                     <div>
                       <span className="text-slate-500 block text-xs">Mã số thuế (MST):</span>
-                      <span className="font-mono font-bold text-blue-700 text-sm">{selectedUserDetail.profile?.business_license || 'Chưa cập nhật'}</span>
+                      <span className="font-mono font-semibold text-blue-700 text-sm">{selectedUserDetail.profile?.business_license || 'Chưa cập nhật'}</span>
                     </div>
                     <div>
                       <span className="text-slate-500 block text-xs">Số điện thoại:</span>
@@ -4843,23 +4843,23 @@ export default function AdminPortal({
 
                 {/* KHU VỰC PHÊ DUYỆT GPKD */}
                 <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-                      <FileCheck className="w-4 h-4 text-emerald-600" />
-                      <span>Giấy Phép Kinh Doanh (GPKD)</span>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
+                      <FileCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Giấy phép kinh doanh (GPKD)</span>
                     </h4>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${
+                    <span className={`px-3 py-1 rounded-full text-[12px] leading-[18px] font-medium border whitespace-nowrap ${
                       selectedUserDetail.employer_record?.approval_status === 'approved'
-                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                        ? 'bg-emerald-100 text-emerald-900 border-emerald-200'
                         : (selectedUserDetail.employer_record?.approval_status === 'rejected'
-                          ? 'bg-rose-100 text-rose-800 border-rose-200'
-                          : 'bg-amber-100 text-amber-800 border-amber-200')
+                          ? 'bg-rose-100 text-rose-900 border-rose-200'
+                          : 'bg-amber-100 text-amber-900 border-amber-200')
                     }`}>
                       {selectedUserDetail.employer_record?.approval_status === 'approved'
-                        ? 'Đã Phê Duyệt'
+                        ? 'Đã phê duyệt'
                         : (selectedUserDetail.employer_record?.approval_status === 'rejected'
-                          ? 'Bị Từ Chối'
-                          : 'Chờ Duyệt')}
+                          ? 'Bị từ chối'
+                          : 'Chờ duyệt')}
                     </span>
                   </div>
 
@@ -4882,15 +4882,15 @@ export default function AdminPortal({
                     <button
                       type="button"
                       onClick={() => setAdminGpkdViewer(selectedUserDetail)}
-                      className="px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap shrink-0"
+                      className="px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-slate-900 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap shrink-0"
                     >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>Xem Bản In GPKD</span>
+                      <Eye className="w-3.5 h-3.5 text-blue-700" />
+                      <span>Xem bản in GPKD</span>
                     </button>
                   </div>
 
                   {selectedUserDetail.employer_record?.reject_reason && (
-                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800">
+                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-900">
                       <strong>Lý do từ chối trước đó:</strong> {selectedUserDetail.employer_record.reject_reason}
                     </div>
                   )}
@@ -4898,19 +4898,19 @@ export default function AdminPortal({
                   <div className="flex items-center justify-end gap-3 pt-2">
                     <button
                       type="button"
-                      onClick={() => handleReviewEmployerGpkd(selectedUserDetail._id, 'rejected')}
-                      className="px-5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold shadow-xs cursor-pointer transition-colors whitespace-nowrap inline-flex items-center gap-1.5"
-                    >
-                      <XCircle className="w-3.5 h-3.5" />
-                      <span>Từ chối</span>
-                    </button>
-                    <button
-                      type="button"
                       onClick={() => handleReviewEmployerGpkd(selectedUserDetail._id, 'approved')}
-                      className="px-6 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-sm cursor-pointer transition-colors whitespace-nowrap inline-flex items-center gap-1.5"
+                      className="px-6 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm cursor-pointer transition-colors whitespace-nowrap inline-flex items-center gap-1.5"
                     >
                       <Check className="w-3.5 h-3.5" />
                       <span>Duyệt</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleReviewEmployerGpkd(selectedUserDetail._id, 'rejected')}
+                      className="px-5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-900 border border-rose-200 text-xs font-semibold shadow-xs cursor-pointer transition-colors whitespace-nowrap inline-flex items-center gap-1.5"
+                    >
+                      <XCircle className="w-3.5 h-3.5 text-rose-700" />
+                      <span>Từ chối</span>
                     </button>
                   </div>
                 </div>
@@ -4928,7 +4928,7 @@ export default function AdminPortal({
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2 text-rose-600">
                 <AlertTriangle className="w-5 h-5" />
-                <h3 className="text-base font-black text-slate-900">Từ Chối Phê Duyệt GPKD</h3>
+                <h3 className="text-base font-bold text-slate-900">Từ chối phê duyệt GPKD</h3>
               </div>
               <button 
                 type="button" 
@@ -4967,17 +4967,17 @@ export default function AdminPortal({
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
-                  type="button"
-                  onClick={() => setGpkdRejectModal(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 cursor-pointer"
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-sm cursor-pointer whitespace-nowrap"
                 >
-                  Hủy
+                  Xác nhận từ chối
                 </button>
                 <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm cursor-pointer"
+                  type="button"
+                  onClick={() => setGpkdRejectModal(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-900 cursor-pointer whitespace-nowrap"
                 >
-                  Xác Nhận Từ Chối
+                  Hủy
                 </button>
               </div>
             </form>
@@ -5058,23 +5058,23 @@ export default function AdminPortal({
                 );
               })()}
               <div>
-                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">Mô tả công việc:</span>
+                <span className="text-xs font-semibold text-slate-900 block mb-1">Mô tả công việc:</span>
                 <p className="text-slate-800 leading-relaxed whitespace-pre-wrap">{selectedJobDetail.description || 'Không có mô tả chi tiết.'}</p>
               </div>
               {selectedJobDetail.requirements && (
                 <div className="pt-2 border-t border-slate-200/80">
-                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">Yêu cầu ứng viên:</span>
+                  <span className="text-xs font-semibold text-slate-900 block mb-1">Yêu cầu ứng viên:</span>
                   <p className="text-slate-800 leading-relaxed whitespace-pre-wrap">{selectedJobDetail.requirements}</p>
                 </div>
               )}
               {selectedJobDetail.benefits && (
                 <div className="pt-2 border-t border-slate-200/80">
-                  <span className="text-xs font-bold text-slate-700 uppercase tracking-wider block mb-1">Quyền lợi:</span>
+                  <span className="text-xs font-semibold text-slate-900 block mb-1">Quyền lợi:</span>
                   <p className="text-slate-800 leading-relaxed whitespace-pre-wrap">{selectedJobDetail.benefits}</p>
                 </div>
               )}
               {selectedJobDetail.hidden_reason && (
-                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800">
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-900">
                   <strong>Lý do bị ẩn:</strong> {selectedJobDetail.hidden_reason}
                 </div>
               )}
@@ -5082,7 +5082,7 @@ export default function AdminPortal({
 
             <div className="flex items-center justify-between pt-2">
               <span className="text-xs text-slate-600 font-mono">Mã tin: {selectedJobDetail._id}</span>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {!selectedJobDetail.is_admin_reviewed && (
                   <button
                     type="button"
@@ -5090,10 +5090,10 @@ export default function AdminPortal({
                       await handleApproveJobModeration(selectedJobDetail._id);
                       setSelectedJobDetail(prev => ({ ...prev, is_admin_reviewed: true, is_hidden: false, hidden_reason: '' }));
                     }}
-                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap"
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Duyệt Tin & Công Khai</span>
+                    <span>Duyệt tin &amp; công khai</span>
                   </button>
                 )}
                 {selectedJobDetail.is_admin_reviewed && selectedJobDetail.is_hidden ? (
@@ -5103,10 +5103,10 @@ export default function AdminPortal({
                       await handleUnhideJob(selectedJobDetail._id);
                       setSelectedJobDetail(prev => ({ ...prev, is_hidden: false, hidden_reason: '' }));
                     }}
-                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap"
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap"
                   >
                     <Eye className="w-3.5 h-3.5" />
-                    <span>Khôi Phục Hiển Thị</span>
+                    <span>Khôi phục hiển thị</span>
                   </button>
                 ) : (
                   <button
@@ -5115,10 +5115,10 @@ export default function AdminPortal({
                       setHideJobModal(selectedJobDetail);
                       setHideReason(selectedJobDetail.hidden_reason || 'Tin tuyển dụng có dấu hiệu vi phạm');
                     }}
-                    className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap"
+                    className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-sm cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap"
                   >
                     <EyeOff className="w-3.5 h-3.5" />
-                    <span>Ẩn Tin Vi Phạm</span>
+                    <span>Ẩn tin vi phạm</span>
                   </button>
                 )}
               </div>
@@ -5134,7 +5134,7 @@ export default function AdminPortal({
             <div className="flex items-start justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-2.5">
                 <Star className="w-5 h-5 text-amber-500 fill-amber-400" />
-                <h3 className="text-base font-black text-slate-900">Chi Tiết Bài Đánh Giá</h3>
+                <h3 className="text-base font-bold text-slate-900">Chi tiết bài đánh giá</h3>
               </div>
               <button 
                 type="button" 
@@ -5147,30 +5147,30 @@ export default function AdminPortal({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="text-slate-600 block text-xs mb-0.5">Người Đánh Giá:</span>
-                <span className="font-bold text-slate-900 text-sm">{selectedReviewDetail.reviewer_name || selectedReviewDetail.user_name || 'Người dùng'}</span>
+                <span className="text-slate-600 block text-xs mb-0.5">Người đánh giá:</span>
+                <span className="font-semibold text-slate-900 text-sm">{selectedReviewDetail.reviewer_name || selectedReviewDetail.user_name || 'Người dùng'}</span>
                 <span className="text-xs text-slate-600 block mt-0.5">{selectedReviewDetail.created_at || 'Thời gian gửi'}</span>
               </div>
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                <span className="text-slate-600 block text-xs mb-0.5">Đối Tượng Được Đánh Giá:</span>
-                <span className="font-bold text-blue-700 text-sm">{selectedReviewDetail.target_name || selectedReviewDetail.student_name || 'Đối tác'}</span>
+                <span className="text-slate-600 block text-xs mb-0.5">Đối tượng được đánh giá:</span>
+                <span className="font-semibold text-blue-700 text-sm">{selectedReviewDetail.target_name || selectedReviewDetail.student_name || 'Đối tác'}</span>
                 <span className="text-xs text-slate-600 block mt-0.5">{selectedReviewDetail.job_title || 'Công việc bán thời gian'}</span>
               </div>
             </div>
 
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Điểm đánh giá:</span>
+                <span className="text-xs font-semibold text-slate-900">Điểm đánh giá:</span>
                 <div className="flex items-center text-amber-500 gap-1">
                   {[1, 2, 3, 4, 5].map(s => (
                     <Star key={s} className={`w-4 h-4 ${s <= (selectedReviewDetail.rating || 5) ? 'fill-amber-400 text-amber-500' : 'text-slate-300'}`} />
                   ))}
-                  <span className="font-bold text-xs text-slate-900 ml-1">({selectedReviewDetail.rating || 5}/5 sao)</span>
+                  <span className="font-semibold text-xs text-slate-900 ml-1">({selectedReviewDetail.rating || 5}/5 sao)</span>
                 </div>
               </div>
 
               <div>
-                <span className="text-xs font-bold text-slate-700 uppercase tracking-wide block mb-1">Toàn bộ văn bản nhận xét:</span>
+                <span className="text-xs font-semibold text-slate-900 block mb-1">Toàn bộ văn bản nhận xét:</span>
                 <p className="text-slate-800 text-xs sm:text-sm leading-relaxed bg-white p-3.5 rounded-xl border border-slate-200 whitespace-pre-wrap">
                   "{selectedReviewDetail.comment}"
                 </p>
@@ -5178,10 +5178,10 @@ export default function AdminPortal({
 
               <div className="flex items-center justify-between pt-2 border-t border-slate-200/80 text-xs">
                 <span className="text-slate-600 font-semibold">Trạng thái hiển thị:</span>
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border whitespace-nowrap ${
-                  selectedReviewDetail.is_hidden ? 'bg-rose-100 text-rose-800 border-rose-200' : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                <span className={`px-2.5 py-0.5 rounded-full text-[12px] leading-[18px] font-medium border whitespace-nowrap ${
+                  selectedReviewDetail.is_hidden ? 'bg-rose-100 text-rose-900 border-rose-200' : 'bg-emerald-100 text-emerald-900 border-emerald-200'
                 }`}>
-                  {selectedReviewDetail.is_hidden ? 'Đã Ẩn Do Vi Phạm' : 'Công Khai'}
+                  {selectedReviewDetail.is_hidden ? 'Đã ẩn do vi phạm' : 'Công khai'}
                 </span>
               </div>
             </div>
@@ -5193,14 +5193,14 @@ export default function AdminPortal({
                   await handleToggleHideReview(selectedReviewDetail._id);
                   setSelectedReviewDetail(prev => ({ ...prev, is_hidden: !prev.is_hidden }));
                 }}
-                className={`px-5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap inline-flex items-center gap-1.5 ${
+                className={`px-5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap inline-flex items-center gap-1.5 ${
                   selectedReviewDetail.is_hidden
                     ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
                     : 'bg-rose-600 hover:bg-rose-700 text-white'
                 }`}
               >
                 {selectedReviewDetail.is_hidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                <span>{selectedReviewDetail.is_hidden ? 'Khôi Phục Hiển Thị Công Khai' : 'Ẩn Đánh Giá Vi Phạm'}</span>
+                <span>{selectedReviewDetail.is_hidden ? 'Khôi phục hiển thị công khai' : 'Ẩn đánh giá vi phạm'}</span>
               </button>
             </div>
           </div>
@@ -5215,7 +5215,7 @@ export default function AdminPortal({
               <div className="flex items-center gap-2.5">
                 <AlertTriangle className="w-5 h-5 text-amber-500" />
                 <div>
-                  <h3 className="text-base font-black text-slate-900">Chi Tiết Phiếu Khiếu Nại / Báo Cáo Vi Phạm</h3>
+                  <h3 className="text-base font-bold text-slate-900">Chi tiết phiếu khiếu nại / báo cáo vi phạm</h3>
                   <p className="text-xs text-blue-700 font-mono font-semibold mt-0.5">{selectedTicket.ticket_code || selectedTicket._id}</p>
                 </div>
               </div>
@@ -5230,14 +5230,14 @@ export default function AdminPortal({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-                <span className="text-slate-600 block text-xs">Người Khiếu Nại (Báo Cáo):</span>
-                <span className="font-bold text-slate-900 text-sm">{selectedTicket.reporter_name || 'Người dùng'}</span>
+                <span className="text-slate-600 block text-xs">Người khiếu nại (báo cáo):</span>
+                <span className="font-semibold text-slate-900 text-sm">{selectedTicket.reporter_name || 'Người dùng'}</span>
                 <span className="text-xs text-slate-700 block">{selectedTicket.reporter_email || selectedTicket.reporter_id}</span>
                 <span className="text-xs text-slate-500 font-mono block">Ngày gửi: {selectedTicket.created_at}</span>
               </div>
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-                <span className="text-slate-600 block text-xs">Đối Tượng Bị Báo Cáo:</span>
-                <span className="font-bold text-rose-700 text-sm">{selectedTicket.target_title || 'Đối tượng vi phạm'}</span>
+                <span className="text-slate-600 block text-xs">Đối tượng bị báo cáo:</span>
+                <span className="font-semibold text-rose-700 text-sm">{selectedTicket.target_title || 'Đối tượng vi phạm'}</span>
                 <span className="text-xs text-slate-700 block font-mono">Mã đối tượng: {selectedTicket.target_id}</span>
                 <span className="text-xs text-slate-600 block">Loại vi phạm: {selectedTicket.type || selectedTicket.report_type || 'Vi phạm'}</span>
               </div>
@@ -5245,23 +5245,23 @@ export default function AdminPortal({
 
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs sm:text-sm">
               <div>
-                <span className="text-xs font-bold text-slate-700 uppercase tracking-wide block mb-1">Lý do khiếu nại:</span>
-                <p className="text-slate-900 font-semibold leading-relaxed bg-white p-3 rounded-xl border border-slate-200">
+                <span className="text-xs font-semibold text-slate-900 block mb-1">Lý do khiếu nại:</span>
+                <p className="text-slate-900 font-medium leading-relaxed bg-white p-3 rounded-xl border border-slate-200">
                   {selectedTicket.reason}
                 </p>
               </div>
 
               <div className="pt-2 border-t border-slate-200/80">
-                <span className="text-xs font-bold text-slate-700 uppercase tracking-wide block mb-2">Bằng chứng liên quan đối chiếu:</span>
+                <span className="text-xs font-semibold text-slate-900 block mb-2">Bằng chứng liên quan đối chiếu:</span>
                 <div className="flex flex-wrap items-center gap-3">
                   {(selectedTicket.type === 'chat' || selectedTicket.report_type === 'chat') && (
                     <button
                       type="button"
                       onClick={() => handleViewTicketChatHistory(selectedTicket)}
-                      className="px-4 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-bold inline-flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap"
+                      className="px-4 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-slate-900 text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer shadow-xs whitespace-nowrap"
                     >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>Xem Lịch Sử Trò Chuyện Gốc</span>
+                      <Eye className="w-3.5 h-3.5 text-blue-700" />
+                      <span>Xem lịch sử trò chuyện gốc</span>
                     </button>
                   )}
                   {selectedTicket.evidence && (
@@ -5308,9 +5308,9 @@ export default function AdminPortal({
               }}
               className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs"
             >
-              <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-blue-600" />
-                <span>Cập Nhật Tiến Độ & Trạng Thái Xử Lý Khiếu Nại</span>
+              <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>Cập nhật tiến độ &amp; trạng thái xử lý khiếu nại</span>
               </h4>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -5343,10 +5343,10 @@ export default function AdminPortal({
               <div className="flex items-center justify-end pt-2">
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold shadow-sm cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap"
+                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-sm cursor-pointer inline-flex items-center gap-1.5 whitespace-nowrap"
                 >
                   <Check className="w-4 h-4" />
-                  <span>Lưu Trạng Thái & Gửi Thông Báo Kết Quả</span>
+                  <span>Lưu trạng thái &amp; gửi thông báo kết quả</span>
                 </button>
               </div>
             </form>
@@ -5360,8 +5360,8 @@ export default function AdminPortal({
           <div className="bg-white border border-slate-200 rounded-3xl max-w-2xl w-full h-[80vh] flex flex-col shadow-2xl overflow-hidden">
             <div className="p-5 sm:p-6 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-black text-slate-900 uppercase">
-                  Bằng Chứng: Lịch Sử Chat Gốc Nguyên Bản
+                <h3 className="text-base font-bold text-slate-900">
+                  Bằng chứng: lịch sử chat gốc nguyên bản
                 </h3>
                 <p className="text-xs text-blue-700 font-semibold mt-0.5">Trích xuất tin nhắn trực tiếp từ cơ sở dữ liệu hệ thống</p>
               </div>
@@ -5408,7 +5408,7 @@ export default function AdminPortal({
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2 text-rose-600">
                 <Lock className="w-5 h-5" />
-                <h3 className="text-base font-black text-slate-900">Khóa Tài Khoản Người Dùng</h3>
+                <h3 className="text-base font-bold text-slate-900">Khóa tài khoản người dùng</h3>
               </div>
               <button 
                 type="button" 
@@ -5440,17 +5440,17 @@ export default function AdminPortal({
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
-                  type="button"
-                  onClick={() => setBanModalUser(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 cursor-pointer"
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-sm cursor-pointer whitespace-nowrap"
                 >
-                  Hủy
+                  Xác nhận khóa
                 </button>
                 <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm cursor-pointer"
+                  type="button"
+                  onClick={() => setBanModalUser(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-900 cursor-pointer whitespace-nowrap"
                 >
-                  Xác Nhận Khóa
+                  Hủy
                 </button>
               </div>
             </form>
@@ -5465,7 +5465,7 @@ export default function AdminPortal({
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-2 text-amber-600">
                 <EyeOff className="w-5 h-5" />
-                <h3 className="text-base font-black text-slate-900">Ẩn Tin Tuyển Dụng Vi Phạm</h3>
+                <h3 className="text-base font-bold text-slate-900">Ẩn tin tuyển dụng vi phạm</h3>
               </div>
               <button 
                 type="button" 
@@ -5497,17 +5497,17 @@ export default function AdminPortal({
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
-                  type="button"
-                  onClick={() => setHideJobModal(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 cursor-pointer"
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-sm cursor-pointer whitespace-nowrap"
                 >
-                  Hủy
+                  Xác nhận ẩn tin
                 </button>
                 <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm cursor-pointer"
+                  type="button"
+                  onClick={() => setHideJobModal(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-semibold text-slate-900 cursor-pointer whitespace-nowrap"
                 >
-                  Xác Nhận Ẩn Tin
+                  Hủy
                 </button>
               </div>
             </form>

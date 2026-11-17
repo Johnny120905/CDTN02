@@ -274,10 +274,10 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
             {activeTab === 'employer' && <Building className="w-6 h-6" />}
             {activeTab === 'admin' && <Lock className="w-6 h-6" />}
           </div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-            {authMode === 'login' && 'Đăng Nhập Hệ Thống'}
-            {authMode === 'register' && 'Tạo Tài Khoản Mới'}
-            {authMode === 'otp' && 'Xác Thực OTP 60 Giây'}
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+            {authMode === 'login' && 'Đăng nhập hệ thống'}
+            {authMode === 'register' && 'Tạo tài khoản mới'}
+            {authMode === 'otp' && 'Xác thực OTP 60 giây'}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             PARTIME.VN • Đồng bộ hoàn hảo PC, Laptop, iPad & Mobile
@@ -285,24 +285,24 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
         </div>
 
         {/* Role Segment Tabs (Sinh viên, Nhà tuyển dụng, Quản trị viên) */}
-        <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-4 text-xs font-bold">
+        <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-4 text-xs font-semibold">
           <button
             type="button"
             onClick={() => { setActiveTab('student'); setErrorMsg(''); }}
-            className={`flex-1 py-2 rounded-xl transition-all ${
+            className={`flex-1 py-2 rounded-xl transition-all whitespace-nowrap ${
               activeTab === 'student' ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Sinh Viên
+            Sinh viên
           </button>
           <button
             type="button"
             onClick={() => { setActiveTab('employer'); setErrorMsg(''); }}
-            className={`flex-1 py-2 rounded-xl transition-all ${
+            className={`flex-1 py-2 rounded-xl transition-all whitespace-nowrap ${
               activeTab === 'employer' ? 'bg-white text-brand-700 shadow-sm' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Nhà Tuyển Dụng
+            Nhà tuyển dụng
           </button>
           <button
             type="button"
@@ -599,9 +599,9 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 mt-2 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-lg shadow-brand-500/25 transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 mt-2 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-lg shadow-brand-500/25 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
             >
-              {loading ? 'Đang xử lý...' : authMode === 'register' ? 'Xác Nhận Đăng Ký' : 'Đăng Nhập Ngay'}
+              {loading ? 'Đang xử lý...' : authMode === 'register' ? 'Xác nhận đăng ký' : 'Đăng nhập ngay'}
               <ArrowRight className="w-4 h-4" />
             </button>
 
@@ -638,33 +638,33 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
 
         {/* Demo Fast Login Shortcuts (Footer of Modal) */}
         <div className="mt-5 pt-4 border-t border-slate-100">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 text-center">
-            Tài Khoản Mẫu Trải Nghiệm Nhanh
+          <p className="text-xs font-semibold text-slate-600 mb-2 text-center">
+            Tài khoản mẫu trải nghiệm nhanh
           </p>
           <div className="grid grid-cols-3 gap-2">
             <button
               type="button"
               onClick={() => handleQuickDemoLogin('student')}
-              className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-xl text-xs font-bold border border-emerald-200 transition-colors flex items-center justify-center gap-1"
+              className="p-2 bg-emerald-50 hover:bg-emerald-100 text-slate-900 rounded-xl text-xs font-semibold border border-emerald-200 transition-colors flex items-center justify-center gap-1 whitespace-nowrap"
             >
-              <GraduationCap className="w-3.5 h-3.5" />
-              <span>Sinh Viên</span>
+              <GraduationCap className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+              <span>Sinh viên</span>
             </button>
             <button
               type="button"
               onClick={() => handleQuickDemoLogin('employer')}
-              className="p-2 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-xl text-xs font-bold border border-blue-200 transition-colors flex items-center justify-center gap-1"
+              className="p-2 bg-blue-50 hover:bg-blue-100 text-slate-900 rounded-xl text-xs font-semibold border border-blue-200 transition-colors flex items-center justify-center gap-1 whitespace-nowrap"
             >
-              <Briefcase className="w-3.5 h-3.5" />
-              <span>Tuyển Dụng</span>
+              <Briefcase className="w-3.5 h-3.5 text-blue-700 shrink-0" />
+              <span>Tuyển dụng</span>
             </button>
             <button
               type="button"
               onClick={() => handleQuickDemoLogin('admin')}
-              className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold border border-slate-200 transition-colors flex items-center justify-center gap-1"
+              className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-xl text-xs font-semibold border border-slate-200 transition-colors flex items-center justify-center gap-1 whitespace-nowrap"
             >
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Quản Trị</span>
+              <ShieldCheck className="w-3.5 h-3.5 text-slate-700 shrink-0" />
+              <span>Quản trị</span>
             </button>
           </div>
         </div>

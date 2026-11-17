@@ -70,22 +70,22 @@ export default function ConfirmDialog({
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+          <button
+            type="button"
+            onClick={onConfirm}
+            className={`px-5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${getConfirmButtonClasses()}`}
+          >
+            {confirmText}
+          </button>
           {showCancel && (
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
+              className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap"
             >
               {cancelText}
             </button>
           )}
-          <button
-            type="button"
-            onClick={onConfirm}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${getConfirmButtonClasses()}`}
-          >
-            {confirmText}
-          </button>
         </div>
       </div>
     </div>

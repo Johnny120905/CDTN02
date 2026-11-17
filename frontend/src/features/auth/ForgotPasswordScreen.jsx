@@ -294,9 +294,9 @@ export default function ForgotPasswordScreen({ onNavigate, initialRole = 'studen
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-xl btn-primary-dimension text-xs sm:text-sm font-bold shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3 rounded-xl btn-primary-dimension text-xs sm:text-sm font-semibold shadow-md flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
               >
-                {loading ? 'Đang gửi mã...' : 'Nhận Mã OTP (60 Giây)'}
+                {loading ? 'Đang gửi mã...' : 'Nhận mã OTP (60 giây)'}
               </button>
             </form>
           )}
@@ -349,9 +349,9 @@ export default function ForgotPasswordScreen({ onNavigate, initialRole = 'studen
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 rounded-xl btn-primary-dimension text-xs sm:text-sm font-bold shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3 rounded-xl btn-primary-dimension text-xs sm:text-sm font-semibold shadow-md flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
               >
-                {loading ? 'Đang xác thực...' : 'Xác Nhận Mã OTP'}
+                {loading ? 'Đang xác thực...' : 'Xác nhận mã OTP'}
               </button>
             </form>
           )}

@@ -109,8 +109,8 @@ export default function AdminLoginScreen({ onAuthSuccess, onNavigate }) {
         <div className="glass-card-dimension p-8 sm:p-10 rounded-3xl shadow-2xl border border-slate-200/90 space-y-6 bg-white/95">
           
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Đăng Nhập Quản Trị Viên
+            <h1 className="text-[28px] leading-[36px] font-bold text-slate-900 tracking-tight">
+              Đăng nhập quản trị viên
             </h1>
             <p className="text-sm text-slate-500 mt-1">
               Phân hệ dành riêng cho ban quản trị kiểm duyệt hồ sơ GPKD, tin tuyển dụng và từ khóa cấm.
@@ -202,7 +202,7 @@ export default function AdminLoginScreen({ onAuthSuccess, onNavigate }) {
               ) : (
                 <>
                   <ShieldCheck className="w-4 h-4" />
-                  <span>Đăng Nhập Trung Tâm Chỉ Huy</span>
+                  <span>Đăng nhập trung tâm chỉ huy</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
