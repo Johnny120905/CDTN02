@@ -11,11 +11,14 @@ export const RTC_CONFIG = {
   ]
 };
 
-// Tự động nhận diện URL Backend Socket.IO phù hợp với cả môi trường dev (Vite) lẫn production (Unified Server)
+// Tự động nhận diện URL Backend Socket.IO phù hợp với cả môi trường dev (Vite), Docker lẫn production (Render)
 export const getSocketUrl = () => {
+  if (import.meta.env && import.meta.env.VITE_BACKEND_URL) {
+    return String(import.meta.env.VITE_BACKEND_URL).replace(/\/+$/, '');
+  }
   if (typeof window !== 'undefined') {
     const port = window.location.port;
-    // Nếu chạy Vite dev server (3000 -> 3003) thì trỏ về cổng backend 8002
+    // Nếu chạy Vite dev server hoặc 3 cổng Docker (3000 -> 3003, 5173) thì trỏ về cổng backend 8002
     if (['3000', '3001', '3002', '3003', '5173'].includes(port)) {
       return `${window.location.protocol}//${window.location.hostname}:8002`;
     }

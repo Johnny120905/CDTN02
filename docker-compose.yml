@@ -1,0 +1,24 @@
+services:
+  partime-vn:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: partime-vn-cdtn02
+    restart: unless-stopped
+    # Mở đồng thời cổng hợp nhất 8002 VÀ 3 cổng riêng 3001 (SV), 3002 (NTD), 3003 (QTV)
+    # App.jsx tự nhận diện cổng trên trình duyệt để vào đúng giao diện từng Role:
+    #   - http://localhost:3001 -> Cổng Sinh viên (/student)
+    #   - http://localhost:3002 -> Cổng Nhà tuyển dụng (/employer)
+    #   - http://localhost:3003 -> Cổng Quản trị viên (/admin)
+    #   - http://localhost:8002 -> Cổng hợp nhất & Backend API
+    ports:
+      - "8002:8002"
+      - "3001:8002"
+      - "3002:8002"
+      - "3003:8002"
+    env_file:
+      - ./Backend/.env.example
+    environment:
+      - PORT=8002
+      - DEBUG=False
+      - DATABASE_NAME=CDTN02_DB

@@ -95,14 +95,23 @@ class ErrorBoundary extends React.Component {
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   
-  // URL & Routing State (Nhận diện theo path /student, /employer, /admin HOẶC theo port riêng 3001, 3002, 3003)
+  // URL & Routing State (Nhận diện theo path /student, /employer, /admin, port 3001/3002/3003 HOẶC subdomain trên Render)
+  const detectDefaultRolePath = () => {
+    const port = window.location.port;
+    const host = (window.location.hostname || '').toLowerCase();
+    if (port === '3002' || host.includes('employer') || host.includes('recruiter') || host.includes('ntd')) {
+      return '/employer';
+    }
+    if (port === '3003' || host.includes('admin') || host.includes('qtv')) {
+      return '/admin';
+    }
+    return '/student';
+  };
+
   const [currentPath, setCurrentPath] = useState(() => {
     const path = window.location.pathname || '/';
-    const port = window.location.port;
     if (path === '/' || path === '') {
-      if (port === '3002') return '/employer';
-      if (port === '3003') return '/admin';
-      return '/student';
+      return detectDefaultRolePath();
     }
     return path;
   });
@@ -149,11 +158,8 @@ export default function App() {
   useEffect(() => {
     const handleUrlChange = () => {
       const path = window.location.pathname || '/';
-      const port = window.location.port;
       if (path === '/' || path === '') {
-        if (port === '3002') setCurrentPath('/employer');
-        else if (port === '3003') setCurrentPath('/admin');
-        else setCurrentPath('/student');
+        setCurrentPath(detectDefaultRolePath());
       } else {
         setCurrentPath(path);
       }
@@ -226,7 +232,8 @@ export default function App() {
       return;
     }
 
-    const path = window.location.pathname || currentPath || '/';
+    const rawPath = window.location.pathname || '';
+    const path = (rawPath && rawPath !== '/') ? rawPath : (currentPath || detectDefaultRolePath());
     let targetRole = 'student';
     if (path.startsWith('/admin')) {
       targetRole = 'admin';
@@ -382,9 +389,10 @@ export default function App() {
   const handleGoHome = () => {
     setPortalActiveMenu({ id: 'home', key: Date.now() });
     setActiveSectionTitle('Trang Chủ');
-    if (currentPath.startsWith('/employer') || window.location.port === '3002') {
+    const defRolePath = detectDefaultRolePath();
+    if (currentPath.startsWith('/employer') || defRolePath === '/employer') {
       navigateTo('/employer');
-    } else if (currentPath.startsWith('/admin') || window.location.port === '3003') {
+    } else if (currentPath.startsWith('/admin') || defRolePath === '/admin') {
       navigateTo('/admin');
     } else {
       navigateTo('/student');

@@ -1,0 +1,31 @@
+# Git & IDE
+.git
+.gitignore
+.vscode
+.idea
+
+# Node / Frontend build artifacts (rebuilt cleanly inside Stage 1)
+frontend/node_modules
+frontend/dist
+npm-debug.log*
+
+# Python caches & virtual environments
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+venv
+.venv
+env
+
+# Local runtime state & secrets (passed via environment variables in Docker/Render)
+.env
+**/.env
+Backend/local_db_store.json
+local_db_store.json
+
+# Heavy documentation & test artifacts not needed inside runtime image
+tailieu
+test
+~$*
+**/*~$*

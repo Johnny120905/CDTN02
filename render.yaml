@@ -1,0 +1,89 @@
+# ==============================================================================
+# RENDER BLUEPRINT (render.yaml) — PARTIME.VN (CDTN02)
+# Tự động tạo 3 đường link HTTPS riêng biệt cho 3 Role trên Render (100% Free Tier)
+# mà vẫn dùng chung 1 Backend API + 1 Socket.IO + 1 MongoDB Atlas CDTN02_DB:
+#
+#   1. Role Sinh viên (kèm Backend API & Socket.IO):
+#      https://partime-student.onrender.com          (hoặc /student, /employer, /admin)
+#   2. Role Nhà tuyển dụng (Static Site proxy về Backend chính):
+#      https://partime-employer.onrender.com         (tự nhận diện chữ 'employer' -> mở cổng NTD)
+#   3. Role Quản trị viên (Static Site proxy về Backend chính):
+#      https://partime-admin.onrender.com            (tự nhận diện chữ 'admin' -> mở cổng Admin)
+# ==============================================================================
+services:
+  # ----------------------------------------------------------------------------
+  # 1. DỊCH VỤ CHÍNH (Docker Web Service): Cổng Sinh viên + Backend API + Socket.IO
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: partime-student
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 8002
+      - key: DEBUG
+        value: "False"
+      - key: DATABASE_NAME
+        value: CDTN02_DB
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: MONGO_URI
+        sync: false
+      - key: BREVO_SMTP_SERVER
+        value: smtp-relay.brevo.com
+      - key: BREVO_SMTP_PORT
+        value: "587"
+      - key: BREVO_SMTP_LOGIN
+        sync: false
+      - key: BREVO_SMTP_KEY
+        sync: false
+      - key: BREVO_SENDER_EMAIL
+        value: vuthelong1009@gmail.com
+      - key: BREVO_SENDER_NAME
+        value: PARTIME.VN - Việc Làm Linh Hoạt
+
+  # ----------------------------------------------------------------------------
+  # 2. LINK RIÊNG NHÀ TUYỂN DỤNG (Static Site miễn phí - kết nối chung Backend)
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: partime-employer
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    envVars:
+      - key: VITE_BACKEND_URL
+        value: https://partime-student.onrender.com
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://partime-student.onrender.com/api/*
+      - type: rewrite
+        source: /uploads/*
+        destination: https://partime-student.onrender.com/uploads/*
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+  # ----------------------------------------------------------------------------
+  # 3. LINK RIÊNG QUẢN TRỊ VIÊN (Static Site miễn phí - kết nối chung Backend)
+  # ----------------------------------------------------------------------------
+  - type: web
+    name: partime-admin
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    envVars:
+      - key: VITE_BACKEND_URL
+        value: https://partime-student.onrender.com
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://partime-student.onrender.com/api/*
+      - type: rewrite
+        source: /uploads/*
+        destination: https://partime-student.onrender.com/uploads/*
+      - type: rewrite
+        source: /*
+        destination: /index.html
