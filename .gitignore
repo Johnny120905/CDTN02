@@ -42,4 +42,11 @@ Backend/local_db_store.json
 ~$*
 **/~$*
 
+# Selenium Test Artifacts & Auth Session Cookies
+test/cookies/
+test/target/
+test/test-output/
+test/screenshots/
+test/sources.txt
+test/latest_run_results.json
 

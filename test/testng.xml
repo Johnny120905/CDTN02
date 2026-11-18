@@ -1,0 +1,8 @@
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="PARTIME_VN_CDTN02_Hybrid_Test_Suite" verbose="1">
+    <test name="All_3_Roles_Selenium_POM_Execution">
+        <classes>
+            <class name="com.partime.tests.PartimeAutomationRunnerTest"/>
+        </classes>
+    </test>
+</suite>
