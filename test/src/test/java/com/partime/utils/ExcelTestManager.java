@@ -100,7 +100,9 @@ public class ExcelTestManager {
      * Ghi đồng bộ toàn bộ kết quả xuống file Excel (và backup JSON + fallback file nếu file chính đang bị mở trong Excel).
      */
     public synchronized String flushAllBufferedResults(String browserNote) throws IOException {
-        JSON.writeValue(new File("latest_run_results.json"), bufferedResults.values());
+        File targetDir = new File("target");
+        if (!targetDir.exists()) targetDir.mkdirs();
+        JSON.writeValue(new File("target/latest_run_results.json"), bufferedResults.values());
 
         try (FileInputStream fis = new FileInputStream(excelFilePath);
              Workbook wb = new XSSFWorkbook(fis)) {
@@ -169,12 +171,9 @@ public class ExcelTestManager {
                 wb.write(fos);
                 return excelFilePath;
             } catch (IOException lockEx) {
-                String fallback = excelFilePath.replace(".xlsx", "_LATEST_RUN.xlsx");
-                try (FileOutputStream fosFallback = new FileOutputStream(fallback)) {
-                    wb.write(fosFallback);
-                }
-                System.err.println("[CẢNH BÁO] File gốc đang mở nên đã lưu kết quả sang: " + fallback);
-                return fallback;
+                System.err.println("[CẢNH BÁO] Bạn đang mở file '" + excelFilePath + "' trong Excel nên Windows khóa ghi đè!");
+                System.err.println("[HƯỚNG DẪN] Hãy đóng cửa sổ Excel lại rồi chạy '.\\cleanup_and_sync_excel.bat' để ghi kết quả vào duy nhất " + excelFilePath);
+                return excelFilePath + " (Đang khóa — Đã lưu tạm vào target/latest_run_results.json)";
             }
         }
     }
@@ -197,12 +196,14 @@ public class ExcelTestManager {
     }
 
     /**
-     * Tiện ích đồng bộ kết quả từ latest_run_results.json sang file Excel chính (dùng khi file chính bị khóa lúc chạy).
+     * Tiện ích đồng bộ kết quả từ target/latest_run_results.json sang duy nhất file TestCases_Selenium_PARTIME_VN.xlsx.
      */
     public static void main(String[] args) throws IOException {
+        File jsonFile = new File("target/latest_run_results.json");
+        if (!jsonFile.exists()) jsonFile = new File("latest_run_results.json");
         ExcelTestManager mgr = new ExcelTestManager("TestCases_Selenium_PARTIME_VN.xlsx");
         List<BufferedResult> list = JSON.readValue(
-                new File("latest_run_results.json"),
+                jsonFile,
                 new com.fasterxml.jackson.core.type.TypeReference<List<BufferedResult>>() {}
         );
         for (BufferedResult br : list) {

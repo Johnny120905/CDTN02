@@ -80,6 +80,8 @@ public class PartimeAutomationRunnerTest {
             throw new SkipException("Run_Mode = NO (Tầng Unit/API/JMeter tách riêng)");
         }
 
+        ensureBrowserSessionAlive();
+
         try {
             ScenarioResult result;
             if (tcId.startsWith("TC-SV-")) {
@@ -129,6 +131,15 @@ public class PartimeAutomationRunnerTest {
         }
         if (studentPage != null) {
             studentPage.quitDriver();
+        }
+    }
+
+    private void ensureBrowserSessionAlive() {
+        if (studentPage != null && !studentPage.isSessionAlive()) {
+            studentPage.quitDriver();
+            studentPage.initDriver(envConfig);
+            employerPage.attachSharedContext(studentPage);
+            adminPage.attachSharedContext(studentPage);
         }
     }
 }

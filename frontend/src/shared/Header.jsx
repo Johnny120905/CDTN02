@@ -656,10 +656,10 @@ export default function Header({
       )}
 
       {/* 2. THANH HEADER CHÍNH (LIGHT GLASS DIMENSION) */}
-      <header className="w-full glass-header-dimension text-slate-800 h-20 px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-2">
+      <header className="w-full max-w-full glass-header-dimension text-slate-800 h-20 px-2.5 sm:px-6 lg:px-8 flex items-center justify-between gap-1.5 sm:gap-2">
 
         {/* ===================== CỤM TRÁI ===================== */}
-        <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-4 min-w-0 shrink">
           <button
             type="button"
             onClick={onToggleSidebar}
@@ -886,18 +886,18 @@ export default function Header({
           )}
 
           {isGuest ? (
-            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => onNavigateAuth && onNavigateAuth('login', isEmployer ? 'employer' : 'student')}
-                className="px-3 sm:px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-xs sm:text-sm font-semibold cursor-pointer shadow-sm whitespace-nowrap shrink-0"
+                className="px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 text-[11px] sm:text-sm font-semibold cursor-pointer shadow-sm whitespace-nowrap shrink-0"
               >
                 Đăng nhập
               </button>
               <button
                 type="button"
                 onClick={() => onNavigateAuth && onNavigateAuth('register', isEmployer ? 'employer' : 'student')}
-                className="px-3 sm:px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 border border-blue-600 text-white text-xs sm:text-sm font-semibold cursor-pointer shadow-sm whitespace-nowrap shrink-0"
+                className="px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-blue-600 hover:bg-blue-700 border border-blue-600 text-white text-[11px] sm:text-sm font-semibold cursor-pointer shadow-sm whitespace-nowrap shrink-0"
               >
                 {isEmployer ? 'Đăng ký doanh nghiệp' : 'Đăng ký sinh viên'}
               </button>

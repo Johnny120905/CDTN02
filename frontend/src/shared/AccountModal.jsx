@@ -39,6 +39,12 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
+    if (isOpen) {
+      setMsg({ text: '', type: '' });
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     if (isOpen && currentUser) {
       setFullName(
         currentUser?.profile?.representative_name ||
@@ -58,7 +64,6 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      setMsg({ text: '', type: '' });
     }
   }, [isOpen, currentUser]);
 

@@ -6,11 +6,11 @@ import MeshyLogo3D from '../canvas3d/MeshyLogo3D';
  * with the required text: "PARTIME.VN" and "Việc Làm Linh Hoạt".
  * Styled for the Dark 4D Electric Blue Theme.
  */
-export default function BrandLogo({ 
-  size = 'md', 
-  showText = true, 
+export default function BrandLogo({
+  size = 'md',
+  showText = true,
   use3D = true,
-  className = '', 
+  className = '',
   textClassName = ''
 }) {
   const pixelSizes = {
@@ -23,7 +23,7 @@ export default function BrandLogo({
 
   const titleSizes = {
     sm: 'text-base font-extrabold',
-    md: 'text-xl sm:text-2xl font-black',
+    md: 'text-base sm:text-2xl font-black',
     lg: 'text-2xl sm:text-3xl font-black',
     xl: 'text-3xl sm:text-4xl font-black',
     hero: 'text-4xl sm:text-5xl font-black'
@@ -31,7 +31,7 @@ export default function BrandLogo({
 
   const subtitleSizes = {
     sm: 'text-xs',
-    md: 'text-xs sm:text-sm font-semibold',
+    md: 'text-[10px] sm:text-sm font-semibold',
     lg: 'text-xs sm:text-sm',
     xl: 'text-sm sm:text-base',
     hero: 'text-base sm:text-lg'
@@ -40,18 +40,18 @@ export default function BrandLogo({
   const currentPixelSize = pixelSizes[size] || pixelSizes.md;
 
   return (
-    <div className={`flex items-center gap-3 select-none ${className}`}>
+    <div className={`flex items-center gap-2 sm:gap-3 select-none ${className}`}>
       {/* 3D GLB Logo with Fallback - Không chặn sự kiện nhấp chuột của thẻ cha */}
-      <div 
+      <div
         className="relative shrink-0 rounded-2xl overflow-hidden bg-slate-950/80 border border-blue-500/30 shadow-lg shadow-blue-950/50 flex items-center justify-center p-0.5 pointer-events-none"
         style={{ width: currentPixelSize, height: currentPixelSize }}
       >
         {use3D ? (
           <MeshyLogo3D size={currentPixelSize - 4} interactive={false} autoRotate={true} />
         ) : (
-          <img 
-            src="/logo.jpg" 
-            alt="PARTIME.VN Logo - Việc Làm Linh Hoạt" 
+          <img
+            src="/logo.jpg"
+            alt="PARTIME.VN Logo - Việc Làm Linh Hoạt"
             className="w-full h-full object-contain p-0.5 rounded-2xl"
           />
         )}

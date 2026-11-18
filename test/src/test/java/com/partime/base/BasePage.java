@@ -5,6 +5,7 @@ import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.edge.EdgeDriver;
+import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.Select;
 
 import java.io.File;
@@ -57,6 +58,13 @@ public class BasePage {
             options.addArguments("--use-fake-ui-for-media-stream");
             options.addArguments("--use-fake-device-for-media-stream");
             options.addArguments("--remote-allow-origins=*");
+            options.addArguments("--disable-dev-shm-usage");
+            options.addArguments("--disable-gpu");
+            options.addArguments("--disable-extensions");
+            options.addArguments("--disable-background-timer-throttling");
+            options.addArguments("--disable-backgrounding-occluded-windows");
+            options.addArguments("--disable-renderer-backgrounding");
+            options.addArguments("--disable-features=CalculateNativeWinOcclusion");
             if (headless) {
                 options.addArguments("--headless=new");
                 options.addArguments("--window-size=1920,1080");
@@ -142,10 +150,10 @@ public class BasePage {
                     "  window.__lastSeleniumEl.style.outline='';" +
                     "  window.__lastSeleniumEl.style.boxShadow='';" +
                     "}" +
-                    "arguments[0].scrollIntoView({behavior:'smooth', block:'center', inline:'nearest'});",
+                    "arguments[0].scrollIntoView({behavior:'instant', block:'center', inline:'nearest'});",
                     element
                 );
-                pause(Math.min(demoSpeedMs, 260));
+                pause(Math.min(demoSpeedMs, 180));
                 js.executeScript(
                     "let el = arguments[0]; let tip = arguments[1];" +
                     "window.__lastSeleniumEl = el;" +
@@ -247,15 +255,22 @@ public class BasePage {
         }
     }
 
+    public void clearReactInput(WebElement el) {
+        el.click();
+        el.sendKeys(Keys.chord(Keys.CONTROL, "a"));
+        el.sendKeys(Keys.BACK_SPACE);
+        pause(120);
+    }
+
     public void demoType(String tcId, String stepLabel, By locator, String text) {
         showStepBanner(tcId, "⌨️ " + stepLabel + ": \"" + text + "\"");
         WebElement el = find(locator);
         moveCursorAndHighlight(el, "Nhập dữ liệu");
-        el.clear();
+        clearReactInput(el);
         if (demoSpeedMs >= 300 && text.length() <= 40) {
             for (char ch : text.toCharArray()) {
                 el.sendKeys(String.valueOf(ch));
-                pause(35);
+                pause(18);
             }
         } else {
             el.sendKeys(text);
@@ -268,12 +283,8 @@ public class BasePage {
         WebElement el = find(locator);
         moveCursorAndHighlight(el, stepLabel);
         triggerCursorClickRipple();
-        try {
-            el.click();
-        } catch (ElementClickInterceptedException ex) {
-            js.executeScript("arguments[0].click();", el);
-        }
-        pause(Math.min(demoSpeedMs, 550));
+        el.click(); // Click chuột thật 100%, nếu bị form khác che sẽ báo ElementClickInterceptedException ngay!
+        pause(Math.min(demoSpeedMs, 500));
     }
 
     public boolean tryDemoClick(String tcId, String stepLabel, By locator) {
@@ -283,12 +294,8 @@ public class BasePage {
                 showStepBanner(tcId, "👆 " + stepLabel);
                 moveCursorAndHighlight(el, stepLabel);
                 triggerCursorClickRipple();
-                try {
-                    el.click();
-                } catch (ElementClickInterceptedException ex) {
-                    js.executeScript("arguments[0].click();", el);
-                }
-                pause(Math.min(demoSpeedMs, 500));
+                el.click();
+                pause(Math.min(demoSpeedMs, 480));
                 return true;
             }
         }
@@ -314,9 +321,163 @@ public class BasePage {
         pause(Math.min(demoSpeedMs, 500));
     }
 
+    public boolean tryDemoSelectByVisibleText(String tcId, String stepLabel, By locator, String visibleText) {
+        List<WebElement> els = findAll(locator);
+        for (WebElement el : els) {
+            if (el.isDisplayed() && el.isEnabled()) {
+                try {
+                    showStepBanner(tcId, "▼ " + stepLabel + ": \"" + visibleText + "\"");
+                    moveCursorAndHighlight(el, "Chọn " + visibleText);
+                    new Select(el).selectByVisibleText(visibleText);
+                    pause(Math.min(demoSpeedMs, 480));
+                    return true;
+                } catch (Exception ignored) {}
+            }
+        }
+        return false;
+    }
+
+    public boolean tryDemoSelectByIndex(String tcId, String stepLabel, By locator, int index) {
+        List<WebElement> els = findAll(locator);
+        for (WebElement el : els) {
+            if (el.isDisplayed() && el.isEnabled()) {
+                Select sel = new Select(el);
+                if (sel.getOptions().size() > index) {
+                    String optText = sel.getOptions().get(index).getText();
+                    showStepBanner(tcId, "▼ " + stepLabel + ": " + optText);
+                    moveCursorAndHighlight(el, "Chọn " + optText);
+                    sel.selectByIndex(index);
+                    pause(Math.min(demoSpeedMs, 480));
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean tryDemoSelectByValue(String tcId, String stepLabel, By locator, String value) {
+        List<WebElement> els = findAll(locator);
+        for (WebElement el : els) {
+            if (el.isDisplayed() && el.isEnabled()) {
+                try {
+                    showStepBanner(tcId, "▼ " + stepLabel + ": " + value);
+                    moveCursorAndHighlight(el, "Chọn " + value);
+                    new Select(el).selectByValue(value);
+                    pause(Math.min(demoSpeedMs, 480));
+                    return true;
+                } catch (Exception ignored) {}
+            }
+        }
+        return false;
+    }
+
+    public void demoHover(String tcId, String stepLabel, By locator) {
+        List<WebElement> els = findAll(locator);
+        if (els.isEmpty()) return;
+        WebElement el = els.get(0);
+        showStepBanner(tcId, "🖱️ " + stepLabel);
+        moveCursorAndHighlight(el, stepLabel);
+        try {
+            new Actions(driver).moveToElement(el).perform();
+        } catch (Exception ignored) {}
+        pause(Math.min(demoSpeedMs, 420));
+    }
+
     public boolean isElementDisplayed(By locator) {
         List<WebElement> els = findAll(locator);
-        return !els.isEmpty() && els.get(0).isDisplayed();
+        for (WebElement el : els) {
+            try { if (el.isDisplayed()) return true; } catch (Exception ignored) {}
+        }
+        return false;
+    }
+
+    /**
+     * Điều hướng Sidebar thông minh: kiểm tra nút danh mục đang active (bg-gradient-to-r from-blue-600 ... text-white).
+     * Nếu ĐANG ở sẵn danh mục này rồi thì KHÔNG bấm lại nữa (giữ tổng số lần bấm mỗi danh mục chỉ 1–2 lần).
+     */
+    public boolean clickSidebarSmart(String tcId, String menuText) {
+        assertNoBlockingOverlayOpen(tcId);
+        By loc = By.xpath("//aside//button[contains(.,'" + menuText + "')]");
+        List<WebElement> btns = findAll(loc);
+        for (WebElement b : btns) {
+            try {
+                if (b.isDisplayed()) {
+                    String cls = String.valueOf(b.getAttribute("class"));
+                    if (cls.contains("from-blue-600") && cls.contains("text-white")) {
+                        showStepBanner(tcId, "📍 Đang ở phân hệ: " + menuText + " (bỏ qua bấm lặp)");
+                        return true;
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+        return tryDemoClick(tcId, "Mở phân hệ: " + menuText, loc);
+    }
+
+    /**
+     * Bấm đúng nút Đóng (X / Hủy / Đã Hiểu) của một Form/Modal/Drawer và BẮT BUỘC xác minh form đã tắt hẳn.
+     * Nếu form vẫn chưa tắt -> ném AssertionError thay vì im lặng test tiếp khi form vẫn che màn hình!
+     */
+    public void closeDialogAndAssertGone(String tcId, String modalLabel, By closeBtnLoc, By containerLoc) {
+        boolean clicked = tryDemoClick(tcId, "Đóng " + modalLabel, closeBtnLoc);
+        if (!clicked) {
+            throw new AssertionError("Không tìm thấy nút Đóng của '" + modalLabel + "' để tắt form!");
+        }
+        long deadline = System.currentTimeMillis() + 2500L;
+        while (System.currentTimeMillis() < deadline) {
+            if (!isElementDisplayed(containerLoc)) {
+                pause(180);
+                return;
+            }
+            pause(150);
+        }
+        throw new AssertionError("Đã bấm nút đóng nhưng '" + modalLabel + "' VẪN HIỂN THỊ chưa tắt!");
+    }
+
+    /**
+     * Kiểm tra trước khi bước sang thao tác mới rằng không có Modal/Popup/Drawer nào bị kẹt mở trên màn hình.
+     */
+    public void assertNoBlockingOverlayOpen(String tcId) {
+        By[] overlays = {
+            By.xpath("//h2[contains(.,'Tài khoản & bảo mật')]"),
+            By.xpath("//h3[contains(.,'Xác nhận hủy tài khoản')]"),
+            By.xpath("//div[contains(@class,'z-[9999]')]//h3"),
+            By.xpath("//h3[contains(.,'Widget chat nhanh')]"),
+            By.xpath("//div[contains(@class,'fixed') and contains(@class,'z-50')]//h3[contains(.,'Hội thoại ứng viên')]"),
+            By.xpath("//h4[contains(.,'Mô tả chi tiết công việc')]"),
+            By.xpath("//div[contains(@class,'fixed') and contains(@class,'z-50')]//h3[contains(.,'Nộp Hồ Sơ Ứng Tuyển')]"),
+            By.xpath("//div[contains(@class,'fixed') and contains(@class,'z-50')]//h3[contains(.,'Báo cáo vi phạm')]"),
+            By.xpath("//button[@aria-label='Đóng hồ sơ doanh nghiệp']"),
+            By.xpath("//div[contains(@class,'fixed') and contains(@class,'z-50')]//h3[normalize-space()='Đánh giá doanh nghiệp']"),
+            By.xpath("//div[contains(@class,'fixed') and contains(@class,'z-50')]//h3[contains(.,'Chi tiết bài đánh giá')]"),
+            By.xpath("//div[contains(@class,'fixed') and contains(@class,'z-50')]//h3[contains(.,'Chi tiết phiếu khiếu nại')]"),
+            By.xpath("//div[contains(@class,'fixed') and contains(@class,'z-50')]//h3[contains(.,'Hồ sơ ứng viên:')]"),
+            By.xpath("//button[@title='Đóng modal']"),
+            By.xpath("//h4[contains(.,'Thông báo hệ thống')]"),
+            By.xpath("//button[contains(.,'Cập nhật tài khoản cá nhân')]")
+        };
+        String[] names = {
+            "AccountModal (Tài khoản & bảo mật)",
+            "Modal Xác nhận hủy tài khoản",
+            "ConfirmDialog",
+            "Widget chat nhanh Drawer",
+            "Drawer Hội thoại ứng viên",
+            "Slide-over Chi tiết JD",
+            "Modal Ứng tuyển",
+            "Modal Báo cáo vi phạm",
+            "Modal Hồ sơ doanh nghiệp",
+            "Modal Đánh giá doanh nghiệp",
+            "Modal Chi tiết bài đánh giá",
+            "Modal Chi tiết phiếu khiếu nại",
+            "Modal Hồ sơ ứng viên",
+            "DocumentViewerModal",
+            "Dropdown Chuông thông báo",
+            "Dropdown Tài khoản cá nhân"
+        };
+        for (int i = 0; i < overlays.length; i++) {
+            if (isElementDisplayed(overlays[i])) {
+                throw new AssertionError("[" + tcId + "] Lỗi sót giao diện: '" + names[i] + "' từ bước trước CHƯA ĐƯỢC TẮT!");
+            }
+        }
     }
 
     public boolean isElementEnabled(By locator) { return find(locator).isEnabled(); }
@@ -442,8 +603,36 @@ public class BasePage {
     public void clearAllCookies() { driver.manage().deleteAllCookies(); }
     public Set<Cookie> getAllCookies() { return driver.manage().getCookies(); }
 
+    public boolean isSessionAlive() {
+        if (driver == null) return false;
+        try {
+            Set<String> handles = driver.getWindowHandles();
+            return handles != null && !handles.isEmpty();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Đóng Tab phụ an toàn: CHỈ đóng khi trình duyệt còn nhiều hơn 1 Tab để không bao giờ giết nhầm phiên Chrome chính.
+     */
+    public void safeCloseSubTab(String mainHandle) {
+        try {
+            Set<String> handles = driver.getWindowHandles();
+            if (handles.size() > 1) {
+                driver.close();
+            }
+            Set<String> remain = driver.getWindowHandles();
+            if (mainHandle != null && remain.contains(mainHandle)) {
+                driver.switchTo().window(mainHandle);
+            } else if (!remain.isEmpty()) {
+                driver.switchTo().window(remain.iterator().next());
+            }
+        } catch (Exception ignored) {}
+    }
+
     public String captureScreenshot(String tcId) {
-        if (driver == null) return "";
+        if (!isSessionAlive()) return "Không thể chụp màn hình (phiên trình duyệt đã đóng)";
         try {
             File dir = new File(screenshotDir);
             if (!dir.exists()) dir.mkdirs();
@@ -451,14 +640,17 @@ public class BasePage {
             File dest = new File(dir, tcId + "_FAIL.png");
             Files.copy(src.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
             return dest.getPath();
-        } catch (IOException e) {
-            return "Lỗi chụp màn hình: " + e.getMessage();
+        } catch (Exception e) {
+            return "Lỗi chụp màn hình: " + e.getClass().getSimpleName();
         }
     }
 
     public void quitDriver() {
         if (driver != null) {
-            driver.quit();
+            try {
+                driver.quit();
+            } catch (Exception ignored) {}
+            driver = null;
         }
     }
 }

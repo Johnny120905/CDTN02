@@ -2,9 +2,9 @@ package com.partime.utils;
 
 /**
  * Kết quả thực thi một Test Case:
- * - PASS: Đã chạy kiểm chứng thành công trên website Deploy.
- * - FAIL: Đã chạy nhưng không thỏa Expected_Auto (tự động chụp ảnh lỗi).
- * - NOT_RUN_WAIT_COOKIE: Kịch bản yêu cầu phiên đã đăng nhập (chờ thao tác đăng nhập thủ công lần đầu để lưu Cookie).
+ * - PASS: Đã thực thi đầy đủ thao tác thật trên giao diện, đóng sạch mọi form/modal, thỏa Expected_Auto.
+ * - FAIL: Thực thi lỗi hoặc form/modal mở ra không đóng được hoặc không thỏa Expected_Auto (kèm Screenshot).
+ * - NOT_RUN_WAIT_COOKIE: Cần đăng nhập Cookie hoặc dữ liệu/môi trường test riêng (E2E đa trình duyệt, đổi MK thật...).
  */
 public class ScenarioResult {
     public enum Status {
@@ -32,8 +32,12 @@ public class ScenarioResult {
     public static ScenarioResult waitCookie(String role) {
         return new ScenarioResult(
                 Status.NOT_RUN_WAIT_COOKIE,
-                "Chờ đăng nhập thủ công lần đầu để lưu Cookie phiên '" + role + "' (đặt ALLOW_MANUAL_WAIT=TRUE trong Config_Environment)."
+                "Chờ đăng nhập thủ công lần đầu để lưu Cookie phiên '" + role + "' (đặt ALLOW_MANUAL_WAIT=TRUE)."
         );
+    }
+
+    public static ScenarioResult needManualOrCloneData(String reason) {
+        return new ScenarioResult(Status.NOT_RUN_WAIT_COOKIE, reason);
     }
 
     public Status getStatus() {
