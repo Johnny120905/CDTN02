@@ -1,278 +1,394 @@
-# NỀN TẢNG TUYỂN DỤNG VIỆC LÀM LINH HOẠT CHO SINH VIÊN (PARTIME.VN)
-### ĐỀ TÀI CHUYÊN ĐỀ TỐT NGHIỆP 2 - CDTN02
-> **Khoa Công nghệ Thông tin - Trường Đại học Văn Lang**  
-> **Repository GitHub:** [https://github.com/Johnny120905/CDTN02.git](https://github.com/Johnny120905/CDTN02.git)  
-> **Cơ sở dữ liệu MongoDB Atlas dùng chung:** `CDTN02_DB` (Tập hợp 16 Collections)
+# PARTIME.VN — NỀN TẢNG TUYỂN DỤNG VIỆC LÀM PART-TIME THEO CA CHO SINH VIÊN (CDTN02)
+
+> **Đề tài Chuyên đề Tốt nghiệp 2 (Mã học phần: `CDTN02`) — Khoa Công nghệ Thông tin, Trường Đại học Văn Lang**  
+> **Nhóm thực hiện:** Vũ Thế Long *(2174802010123 — Sinh viên & Kiểm thử/Hạ tầng)* · Huỳnh Nguyễn Bảo Ngọc *(2174802010456 — Nhà tuyển dụng)* · Lê Thị Thuỳ Ngân *(2174802010789 — Quản trị viên)*  
+> **Hệ sinh thái công nghệ thực tế:** `React 18.2` + `Vite 5.1` + `Tailwind CSS 3.4` + `Three.js` + `Python Flask 3` + `Flask-SocketIO` + `MongoDB Atlas (18 Collections + GridFS)` + `PBKDF2-HMAC-SHA256 & JWT HS256` + `Brevo HTTPS API v3` + `Selenium WebDriver 4 Java POM (TestNG + Excel)` + `Docker / Render`.
 
 ---
 
-## 1. THÀNH VIÊN THỰC HIỆN & PHÂN CÔNG VAI TRÒ (3 ROLES)
+## 1. TỔNG QUAN & THỐNG KÊ CẤU TRÚC THƯ MỤC `CDTN02-main`
 
-Dự án phục vụ 3 nhóm đối tượng người dùng (Sinh viên, Nhà tuyển dụng, Quản trị viên) và được chia thành 3 phân vùng mã nguồn độc lập theo kiến trúc **Layered Clean Architecture** để 3 thành viên lập trình trên máy tính cá nhân độc lập, không bị xung đột code khi commit và push lên GitHub:
+Khi loại trừ các thư mục phụ thuộc/cache sinh tự động khi build hoặc chạy kiểm thử (`.git/`, `frontend/node_modules/`, `frontend/dist/`, `**/__pycache__/`, `test/target/`, `test/cookies/`, `test/screenshots/`, `test/test-output/` đã được khai báo trong `.gitignore`), toàn bộ kho mã nguồn chuẩn **`CDTN02-main`** gồm:
 
-| STT | Thành viên | Phân hệ (Role) | Trách nhiệm phát triển Backend | Trách nhiệm phát triển Frontend |
-| :---: | :--- | :--- | :--- | :--- |
-| 1 | **Vũ Thế Long** | **Sinh viên (student)** | `backend/src/api/student/`<br>`backend/src/services/student/`<br>`backend/src/repositories/student/` | `frontend/src/features/student/`<br>`frontend/src/components/student/` |
-| 2 | **Huỳnh Nguyễn Bảo Ngọc** | **Nhà tuyển dụng (employer)** | `backend/src/api/employer/`<br>`backend/src/services/employer/`<br>`backend/src/repositories/employer/` | `frontend/src/features/employer/`<br>`frontend/src/components/employer/` |
-| 3 | **Lê Thị Thuỳ Ngân** | **Quản trị viên (admin)** | `backend/src/api/admin/`<br>`backend/src/services/admin/`<br>`backend/src/repositories/admin/` | `frontend/src/features/admin/`<br>`frontend/src/components/admin/` |
+* **Tổng số thư mục:** **`35` thư mục**, trong đó có **`5` thư mục cấp 1** (`.vscode`, `Backend`, `frontend`, `tailieu`, `test`) và **`30` thư mục con/cháu bên trong**.
+* **Tổng số tệp tin:** **`111` tệp tin** (`9` tệp ở gốc + `1` trong `.vscode/` + `16` trong `Backend/` + `41` trong `frontend/` + `24` trong `tailieu/` + `20` trong `test/`).
 
-> ⚠️ **RÀNG BUỘC PHÁT TRIỂN & CẬP NHẬT LIÊN TỤC:**
-> 1. **Cập nhật tài liệu:** Khi bất kỳ thành viên nào thay đổi hoặc bổ sung mã nguồn, **BẮT BUỘC** phải cập nhật nhật ký lập trình tại `tailieu/bailam/thaydoi.md` và kiểm tra lại `README.md` trước khi push code lên Git.
-> 2. **Ràng buộc định danh:** **1 Email thực chỉ được dùng cho duy nhất 1 Role** (Không được dùng 1 email cho 2 hoặc 3 role). Hệ thống kiểm soát tính toàn vẹn ở cả tầng Database và API Middleware.
+### Bảng tổng hợp số lượng theo từng nhánh thư mục
 
----
-
-## 2. NHẬN DIỆN THƯƠNG HIỆU & ĐẶC TẢ GIAO DIỆN DIGITAL LIGHT DIMENSION (BẢNG MÀU 8 CỘT MATRIX)
-
-- **Tên thương hiệu:** `PARTIME.VN`
-- **Slogan:** `Việc Làm Linh Hoạt`
-- **Font chữ chuẩn hóa:** `Be Vietnam Pro` (Google Fonts) - tối ưu hiển thị tiếng Việt, hiện đại và thanh lịch.
-- **Phong cách thiết kế:** **Digital Light Dimension** 4D hiện đại: Tông nền khuếch tán ánh sáng mềm mại chống mỏi mắt (Anti-fatigue), kết hợp hài hòa điểm nhấn công nghệ xanh **Electric Blue / Deep Navy** (`#38BDF8`, `#2563EB`, `#1D4ED8`), thẻ kính mờ cao cấp Glassmorphism (`backdrop-blur-md`), chữ đen tương phản cao `#0F172A`, sang trọng và bảo vệ thị lực người dùng khi làm việc liên tục.
-
-### Bảng Tổng Hợp Chi Tiết Mã Màu 8 Cột Chuẩn Hóa (8 Columns Matrix):
-
-| Cột | Hạng Mục / Thành Phần | Màu Đỉnh (Top Hex) | Màu Giữa (Mid Hex) | Màu Đáy (Bottom Hex) | Tên Phối Thức / Hiệu Ứng | Công Thức CSS Linear-Gradient Chuẩn | Ứng Dụng Thực Tế & Vai Trò Giao Diện |
-| :---: | :--- | :---: | :---: | :---: | :--- | :--- | :--- |
-| **1** | **Background**<br>*(Nền Toàn Trang)* | `#FAF8FF`<br>*(Trắng ánh tím)* | `#F0F7FF`<br>*(Trắng băng)* | `#E2E7FF`<br>*(Xanh phấn dịu)* | **Pha Trắng Ánh Xanh** | `linear-gradient(135deg, #FAF8FF 0%, #F0F7FF 50%, #E2E7FF 100%)` | Nền tổng thể toàn bộ trang web; tạo cảm giác ánh sáng khuếch tán 4D mềm mại, chống mỏi mắt (Anti-fatigue). |
-| **2** | **Section phụ / Card**<br>*(Khung Form & Thẻ)* | `#EFF6FF`<br>*(Xanh sương)* | `#E2E7FF`<br>*(Xanh phấn)* | `#DBE1FF`<br>*(Xanh kính mờ)* | **Pha Xanh Kính Mờ** | `linear-gradient(180deg, #EFF6FF 0%, #E2E7FF 55%, #DBE1FF 100%)` | Nền khung form nhập liệu, thẻ công việc (Job Card), kết hợp `backdrop-blur-md`. Tiêu đề bên trong luôn dùng chữ đen `#0F172A`. |
-| **3** | **Heading**<br>*(Tiêu đề chính & Slogan)* | `#0F172A`<br>*(Đen mực sâu)* | `#1E3A8A`<br>*(Navy đậm)* | `#2563EB`<br>*(Electric Blue)* | **Đen Mực Pha Navy Ánh Kim** | `linear-gradient(90deg, #0F172A 0%, #1E3A8A 60%, #2563EB 100%)`<br>*(kèm bg-clip-text)* | • H1–H3 thông thường: Giữ đơn sắc `#0F172A` để dễ đọc.<br>• Slogan Hero / Banner 3D lớn: Dùng gradient ánh kim 3D sang trọng. |
-| **4** | **Text**<br>*(Nội dung văn bản)* | `#1E293B`<br>*(Dòng chính)* | `#334155`<br>*(Mô tả JD / Phụ)* | `#475569`<br>*(Gợi ý / Metadata)* | **Xám Than Đậm (Solid Hierarchy)** | *Không dùng gradient cho chữ nhỏ (Dùng solid colors phân cấp 3 bậc)* | Phân tầng thị giác rõ nét theo thứ bậc: Dòng chính (`#1E293B`), mô tả chi tiết (`#334155`), nhãn phụ/timestamp (`#475569`). |
-| **5** | **Button nền**<br>*(Nút bấm chính 3D)* | `#38BDF8`<br>*(Sky Cyan)* | `#2563EB`<br>*(Electric Blue)* | `#1D4ED8`<br>*(Deep Navy)* | **Pha Xanh Logo 3D** | `linear-gradient(135deg, #38BDF8 0%, #2563EB 50%, #1D4ED8 100%)` | Khớp 100% với màu khối mô hình Logo 3D (`meshy-3d-logo.glb`). Dùng cho các nút CTA then chốt: Đăng nhập, Nộp hồ sơ, Ứng tuyển. |
-| **6** | **Button / Text hover**<br>*(Trạng thái tương tác)* | `#2563EB`<br>*(Electric Blue)* | `#1D4ED8`<br>*(Deep Navy)* | `#003EA8`<br>*(Navy nhấn sâu)* | **Pha Navy Nhấn Sâu** | `linear-gradient(135deg, #2563EB 0%, #1D4ED8 60%, #003EA8 100%)` | Kích hoạt khi rê chuột vào nút bấm, kết hợp bóng đổ phát quang `box-shadow: 0 8px 24px rgba(56, 189, 248, 0.45)`, tạo độ lún/nổi 3D. |
-| **7** | **Chữ Button / Input**<br>*(Chữ nút & Ô nhập liệu)* | `#FFFFFF`<br>*(Trắng tinh khiết)* | `#FAF8FF`<br>*(Trắng ngọc)* | `#F8FAFC`<br>*(Trắng mờ nhẹ)* | **Trắng Tinh Khiết 100%** | `linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)` hoặc Solid `#FFFFFF` | • Chữ tương phản cao trên nền nút bấm màu đậm.<br>• Làm màu nền trắng tinh khiết cho ô Input, viền xám sáng `#CBD5E1`. |
-| **8** | **Stroke / Viền & State**<br>*(Đường viền & Trạng thái)* | `#BFDBFE`<br>*(Viền kính mờ)* | `#93C5FD`<br>*(Viền nổi bật)* | `#E2E8F0`<br>*(Viền chia tách)* | **Khung Kính Định Hình** | `border: 1px solid #BFDBFE`<br>State: `#10B981`, `#F59E0B`, `#EF4444` | Phân cách thẻ Card, bảng biểu; 3 màu trạng thái: Xanh lục Thành công (`#10B981`), Vàng Cảnh báo (`#F59E0B`), Đỏ Nguy hiểm (`#EF4444`). |
-
-- **Chuẩn Hóa 100% Icon Vector Lucide React:** Loại bỏ triệt để toàn bộ ký tự emoji (`☕`, `🛒`, `📚`, `📦`, `💻`, `🎪`, `🎉`, `✓`, `✕`, `🟢`, `⚪`, `🟡`, `🔴`, `⏳`, `⭐`, `💡`, `📞`, `⚠️`...) và icon AI vô nghĩa (`<Sparkles />`, `<Zap />`, `<Coffee />`). Toàn bộ hệ thống sử dụng vector icons chuẩn từ `lucide-react`.
-- **Tên Nút Bấm Chuyên Nghiệp:** Tuyệt đối không chứa từ ngữ chỉ màu sắc thô trong tên nút ("Phê duyệt", "Từ chối", không dùng "Phê duyệt (Xanh)").
-- **Cơ Chế Điều Hướng Bằng Logo 3D:** Loại bỏ toàn bộ các nút "Quay lại trang chủ" trong Admin Dashboard và "Quay lại trang" trong các màn hình Đăng nhập / Đăng ký / Quên mật khẩu. Người dùng bấm vào Logo 3D `PARTIME.VN` để trở về chế độ khách / trang chủ.
-- **Chế Độ Xem Trước Khách (Guest Preview Mode):** Bảo vệ an toàn dữ liệu cá nhân của Sinh viên và Doanh nghiệp khi chưa xác thực. Giao diện hiển thị khung lưới mẫu (Skeleton Grid), không làm lộ số liệu hay tin nhắn riêng tư. Mở khóa toàn diện tài khoản ngay sau khi đăng nhập hoặc đăng ký thành công.
-- **Trung Tâm Chỉ Huy Quản Trị Viên (Analytics Dashboard):**
-  - Bộ lọc thời gian tối ưu 2 cột đối xứng: Cột 1 "1. Chọn Năm" (2024, 2025, 2026), Cột 2 "2. Chọn Tháng (trong năm đã chọn)" (Tháng 1 đến Tháng 12).
-  - Dòng chọn khoảng ngày: `Từ ngày: [dd/mm/yyyy]` và `Đến ngày: [dd/mm/yyyy]` linh hoạt và chuẩn xác.
-  - Loại bỏ hoàn toàn dropdown trung gian chọn phạm vi và 4 nút chọn nhanh tuần ("Tuần 1", "Tuần 2", "Tuần 3", "Tuần 4").
-  - Chiến lược dữ liệu: Năm 2024–2025 tải bộ dữ liệu lịch sử chuẩn hóa (`historicalAnalyticsData.js`); Riêng năm 2026 đồng bộ trực tiếp 100% dữ liệu thực từ MongoDB Atlas (`users`, `jobs`, `applications`), tuyệt đối không dùng số liệu ảo giả.
-  - Khắc phục triệt để hiện tượng Line Chart giật màn hình khi rê chuột và Pie Chart đổi màu chữ trắng khi hover.
-- **Cơ Chế Xóa Vĩnh Viễn (Cascade Delete) & Toàn Vẹn CSDL:** Thao tác Thêm / Sửa / Xóa / Lọc được đồng bộ vĩnh viễn trên CSDL và UI, duy trì trạng thái khi F5 hoặc đăng nhập lại. Đã xóa vĩnh viễn tài khoản rác `eadeedc@gmail.com` (`user_student_486c9bf4`). Loại bỏ các tài khoản không có đuôi `@gmail.com` và xóa sạch các chuỗi mã kỹ thuật thô (`1.5.6`, `BR-NTD-05`, `FR 2.4.7`...) khỏi giao diện người dùng.
-- **Đồng Bộ Sidebar & Responsive Đa Thiết Bị:** Bổ sung nút mũi tên toggle thu gọn / mở rộng Sidebar, đồng bộ badge số liệu nhỏ gọn khớp 100% với nội dung maincontent; chống bể vỡ layout và chống gãy chữ khi co kéo cửa sổ nửa màn hình trên PC, Laptop, iPad và Mobile.
-- **Canvas Không Gian Vũ Trụ 4D & Logo 3D GLTF:** Tải trực tiếp mô hình `/meshy-3d-logo.glb` với hiệu ứng nổi bồng bềnh 4D, nghiêng theo chuột và hiển thị kèm nhận diện `PARTIME.VN` - `Việc Làm Linh Hoạt`.
-- **Giao Diện Màn Hình Xác Thực Độc Lập:** 
-  - Màn hình Đăng nhập ([`LoginScreen.jsx`](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/frontend/src/features/auth/LoginScreen.jsx)): Loại bỏ Header và Footer, loại bỏ đăng nhập mạng xã hội bên ngoài, kiểm tra mật khẩu tối thiểu 8 ký tự (chữ hoa, thường, số, ký tự đặc biệt). Quản trị viên đăng nhập bằng tài khoản tối cao bảo mật, hệ thống tự động ghi nhớ thông tin đăng nhập.
-  - Màn hình Đăng ký tài khoản ([`RegisterScreen.jsx`](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/frontend/src/features/auth/RegisterScreen.jsx)): Loại bỏ Header và Footer, hỗ trợ kéo thả tệp tin trực tiếp (Drag & Drop) vào khung tải GPKD; tích hợp chọn nhanh 24 quận huyện TP.HCM và chi nhánh; cam kết 1 Email = 1 Role.
-  - Màn hình Quên mật khẩu ([`ForgotPasswordScreen.jsx`](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/frontend/src/features/auth/ForgotPasswordScreen.jsx)): Loại bỏ Header và Footer, chia ngữ cảnh riêng cho Sinh viên và Doanh nghiệp, 6 ô nhập OTP, đồng hồ đếm ngược 10 phút (600s), nút tự động điền mã OTP (Hands-Free Auto-fill); cập nhật xong tự chuyển về Đăng nhập.
-- **Thanh Header Phân Hệ Đã Đăng Nhập:**
-  - Bên trái: Logo 3D + `PARTIME.VN` + `Việc Làm Linh Hoạt` (Click quay về Trang Chủ / Chế độ khách).
-  - Bên phải: Tên người dùng + Tên Công ty / Chi nhánh (nếu là Nhà tuyển dụng) + Vai trò + Badge trạng thái tự động + Avatar Dropdown (Cập nhật tài khoản cá nhân, Đổi mật khẩu, Hủy tài khoản và Đăng xuất).
-- **Hỗ Trợ Kéo Thả Tệp Tin & Hình Ảnh (Drag & Drop):** Hỗ trợ kéo thả trực tiếp tệp CV PDF của sinh viên, GPKD PDF của doanh nghiệp, Ảnh bìa và Logo doanh nghiệp từ máy tính ngoài vào trình duyệt mượt mà.
-- **Tích Hợp Đầy Đủ 24 Quận Huyện TP.HCM & Gợi Ý Chi Nhánh:** Dropdown tích hợp toàn bộ các quận, huyện, TP. Thủ Đức và các chi nhánh thực tế cùng toàn bộ vòng đời tin đăng.
-- **Giao Tiếp Thực Tế & WebRTC Video Call:** Nhắn tin thời gian thực tự động lọc từ cấm; Cuộc gọi video mở webcam/microphone thực tế với nút Mute mic, Tắt cam, đếm thời lượng và Kết thúc gọi.
-- **Loại Bỏ Hoàn Toàn Mã Kỹ Thuật (WBS, FR, BR, UC, US) Khỏi Giao Diện.**
-- **Dữ Liệu Thời Gian Thực:** Tự động làm mới mỗi 10 giây; Autocomplete gợi ý hơn 34 ngành nghề part-time; Bộ lọc sắp xếp Mới nhất, Cũ nhất, Lương cao/thấp.
+| Thư mục cấp 1 | Số thư mục nhỏ bên trong | Tổng thư mục trong nhánh | Số tệp tin | Vai trò chính |
+|---|---:|---:|---:|---|
+| *Thư mục gốc (`CDTN02-main/`)* | — | — | **9** | Cấu hình Git, Docker, Render Blueprint và script khởi chạy nhanh. |
+| `.vscode/` | 0 | 1 | **1** | Cấu hình biên dịch Java trong VS Code. |
+| `Backend/` | 9 | 10 | **16** | Máy chủ Python Flask RESTful + Socket.IO + Bảo mật + Kết nối MongoDB Atlas & GridFS. |
+| `frontend/` | 9 | 10 | **41** | Giao diện SPA React 18 (*Digital Light Dimension*), Logo 3D WebGL & WebRTC Video Call. |
+| `tailieu/` | 2 | 3 | **24** | Sơ đồ Draw.io, tài liệu học phần, đặc tả `FR.xlsx` và 6 báo cáo `.md` đồng bộ. |
+| `test/` | 10 | 11 | **20** | Bộ kiểm thử lai `251` Test Cases Excel + Selenium WebDriver Java POM & `HttpClient`. |
+| **TỔNG CỘNG** | **30** | **35** | **111** | **Full-stack Monorepo (Frontend + Backend + Test + Docs + Deploy)** |
 
 ---
 
-## 3. CẤU TRÚC THƯ MỤC TỔNG CDTN02
+### Cây thư mục chi tiết & Chú thích từng tệp (`35` thư mục · `111` tệp)
 
 ```text
-CDTN02/
-├── .git/                                # Git version control
-├── backend/                             # MÃ NGUỒN BACKEND (Clean Architecture)
-│   ├── .env.example                     # Mẫu biến môi trường kết nối DB
-│   ├── requirements.txt                 # Danh sách thư viện Python
-│   ├── server.py                        # Entry point khởi chạy ứng dụng Flask
-│   └── src/
-│       ├── core/                        # Cấu hình chung, kết nối MongoDB Atlas, JWT, Hashing
-│       │   ├── config.py                # Biến môi trường & cấu hình hệ thống
-│       │   ├── database.py              # MongoDB Atlas client & fallback store
-│       │   └── security.py              # Bcrypt hash & JWT helper
-│       ├── middlewares/                 # Middleware xác thực & kiểm tra ràng buộc 1 Email = 1 Role
-│       │   └── auth_middleware.py
-│       ├── api/                         # Presentation Layer (API Controllers / Blueprints)
-│       │   ├── auth/                    # Đăng ký, đăng nhập, quên mật khẩu (1 Email = 1 Role)
-│       │   ├── student/                 # Vũ Thế Long phụ trách (FR 1.1 -> 1.10)
-│       │   ├── employer/                # Huỳnh Nguyễn Bảo Ngọc phụ trách (FR 2.1 -> 2.9)
-│       │   ├── admin/                   # Lê Thị Thuỳ Ngân phụ trách (FR 3.1 -> 3.9)
-│       │   └── common/                  # API công khai (Danh mục, Tìm việc, Healthcheck)
-│       ├── services/                    # Business Logic Layer (Ứng dụng các quy tắc nghiệp vụ)
-│       │   ├── student_service.py
-│       │   ├── employer_service.py
-│       │   ├── admin_service.py
-│       │   ├── auth_service.py
-│       │   └── chat_service.py
-│       └── repositories/                # Data Access Layer (16 Collections MongoDB)
-│           ├── user_repo.py
-│           ├── job_repo.py
-│           ├── application_repo.py
-│           ├── review_repo.py
-│           ├── chat_repo.py
-│           └── category_repo.py
+CDTN02-main/                                      # Thư mục gốc của toàn bộ dự án (9 tệp cấu hình/chạy gốc)
+├── .dockerignore                                 # Loại trừ .git, .env, node_modules, tailieu, test khi đóng gói Docker
+├── .gitignore                                    # Chặn đẩy tệp nhạy cảm (.env, test/cookies/, local_db_store.json, build cache) lên Git
+├── Dockerfile                                    # Multi-stage build: Node 20 build frontend/dist rồi chạy Python 3.11 Flask cổng 8002
+├── README.md                                     # Tài liệu hướng dẫn cấu trúc, tái tạo từ đầu, phát triển và triển khai (tệp này)
+├── docker-compose.yml                            # Khởi chạy container nội bộ mở cổng 8002 + 3 cổng role 3001/3002/3003
+├── render.yaml                                   # Blueprint Render Cloud: 1 Docker Web Service chính + 2 Static Sites cho NTD & QTV
+├── run.bat                                       # Script Windows 1-click chạy run.py trên cổng hợp nhất 8002
+├── run.py                                        # Tự kiểm tra build frontend/dist rồi khởi chạy Flask + mở trình duyệt localhost:8002
+├── run_separate_roles.bat                        # Script Windows mở 4 cửa sổ tách biệt: API (8002) + 3 cổng dev 3001/3002/3003
 │
-├── frontend/                            # MÃ NGUỒN FRONTEND (React + Vite + Tailwind + Three.js)
-│   ├── index.html                       # Entry HTML tích hợp font Be Vietnam Pro
-│   ├── package.json                     # Quản lý dependencies frontend
-│   ├── vite.config.js                   # Cấu hình Vite dev server & proxy API
-│   ├── tailwind.config.js               # Bảng màu xanh chủ đạo & font Be Vietnam Pro
-│   ├── postcss.config.js
-│   └── src/
-│       ├── main.jsx                     # Entry React
-│       ├── App.jsx                      # Định tuyến hệ thống và chuyển đổi 3 Role Portals
-│       ├── index.css                    # Toàn cục CSS & hiệu ứng ánh sáng
-│       ├── canvas3d/                    # Logo 3D & hiệu ứng không gian tương tác Three.js
-│       │   └── HeroLogo3D.jsx           # Component 3D Clock-P Logo & floating particles
-│       ├── shared/                      # Các thành phần dùng chung (Header, Footer, Auth Modal)
-│       │   ├── Header.jsx
-│       │   ├── Footer.jsx
-│       │   └── AuthModal.jsx            # Modal xác thực ép buộc 1 Email = 1 Role
-│       └── features/                    # Phân hệ độc lập theo từng thành viên
-│           ├── student/                 # Vũ Thế Long (Jobs, CV, Apply Tracker, Chat, Video Call)
-│           │   ├── StudentPortal.jsx
-│           │   ├── JobList.jsx
-│           │   ├── CVManager.jsx
-│           │   ├── ApplicationTracker.jsx
-│           │   └── StudentChatCall.jsx
-│           ├── employer/                # Huỳnh Nguyễn Bảo Ngọc (Company, Post Job, ATS, Review)
-│           │   ├── EmployerPortal.jsx
-│           │   ├── CompanyProfile.jsx
-│           │   ├── JobPostingStudio.jsx
-│           │   ├── CandidateATS.jsx
-│           │   └── EmployerReview.jsx
-│           └── admin/                   # Lê Thị Thuỳ Ngân (Dashboard, Users, Moderation, Master Data)
-│               ├── AdminPortal.jsx
-│               ├── AnalyticsDashboard.jsx
-│               ├── UserManagement.jsx
-│               ├── JobModeration.jsx
-│               └── BannedKeywordsManager.jsx
+├── .vscode/                                      # [1 thư mục, 0 thư mục con, 1 tệp] Cấu hình IDE cho mã nguồn Java kiểm thử
+│   └── settings.json                             # Bật java.compile.nullAnalysis.mode để kiểm tra lỗi biên dịch Java trong VS Code
 │
-├── tailieu/                             # TÀI LIỆU DỰ ÁN & THIẾT KẾ
-│   ├── Architecture.drawio              # Sơ đồ kiến trúc ban đầu
-│   ├── Layerd Clean Architecture.drawio # Sơ đồ kiến trúc 5 tầng phân quyền 3 thành viên
-│   ├── ERD.drawio                       # Sơ đồ 16 Collections CSDL
-│   ├── UseCase.drawio                   # Sơ đồ ca sử dụng
-│   ├── WBS01.drawio                     # Phân rã công việc giai đoạn 1
-│   ├── WBS02.drawio                     # Toàn bộ danh mục chức năng 3 Role
-│   ├── bailam/                          # Tài liệu triển khai & kịch bản
-│   │   ├── thaydoi.md                   # Nhật ký lập trình & theo dõi sửa đổi (BẮT BUỘC CẬP NHẬT)
-│   │   ├── thietke.md                   # Bộ 18 Prompt Google Stitch tái tạo giao diện 100%
-│   │   ├── dieukienrangbuoc.md          # 6 quy tắc cốt lõi & ma trận 22 kịch bản test
-│   │   ├── noidung.md                   # Báo cáo chuyên đề hoàn chỉnh theo mẫu trường
-│   │   └── CongNghe.docx                # Luận chứng công nghệ
-│   └── noidung/                         # Tài liệu học phần & biểu mẫu của trường
-│       └── Maubaocao_ChuyenDeTotNghiep2.docx
+├── Backend/                                      # [1 thư mục gốc + 9 thư mục con = 10 thư mục, 16 tệp] Máy chủ API & Realtime
+│   ├── .env.example                              # Tệp mẫu tên các biến môi trường (phải sao chép sang .env và tự điền key của bạn)
+│   ├── local_db_store.json                       # Kho JSON dự phòng tự động khi máy không có kết nối MongoDB Atlas (MemoryCollection)
+│   ├── requirements.txt                          # Danh sách thư viện Python (Flask, Flask-CORS, PyMongo, Dotenv, Flask-SocketIO...)
+│   ├── server.py                                 # Điểm khởi chạy Flask WSGI + SocketIO, phục vụ /uploads/* và SPA frontend/dist
+│   └── src/                                      # Thư mục mã nguồn phân lớp của Backend
+│       ├── core/                                 # Tầng hạ tầng cốt lõi (6 tệp)
+│       │   ├── config.py                         # Đọc PORT, MONGO_URI, JWT_SECRET_KEY, BREVO_API_KEY từ .env / biến môi trường
+│       │   ├── database.py                       # AtlasCollectionAdapter (Cache 300s), GridFS, tách blob >2KB, cascade delete & seed dữ liệu
+│       │   ├── email_service.py                  # Gửi OTP 60s ưu tiên Brevo HTTPS API v3 (cổng 443), dự phòng SMTP chuẩn RFC
+│       │   ├── notification_service.py           # Tạo bản ghi thông báo DB, tự suy luận link/menu đích theo Role và phát Socket.IO
+│       │   ├── security.py                       # Kiểm tra regex email/5 quy tắc mật khẩu, băm PBKDF2-HMAC-SHA256 & JWT HS256 (86.400s)
+│       │   └── socket_service.py                 # Quản lý 10 listener/17 emit Socket.IO, chuẩn hóa room_id chat & WebRTC CALL_PARTIES
+│       ├── middlewares/                          # Tầng bảo vệ truy cập trước khi vào API (1 tệp)
+│       │   └── auth_middleware.py                # Decorator @token_required, @role_required (RBAC) & check_email_role_constraint (1 Email=1 Role)
+│       └── api/                                  # Tầng API Routes / Controllers phân chia theo nghiệp vụ (5 Blueprints)
+│           ├── auth/                             # Phân hệ Xác thực chung
+│           │   └── auth_routes.py                # 8 endpoint /api/auth/* (đăng ký, đăng nhập, OTP 60s, đổi mật khẩu, tự hủy TK)
+│           ├── student/                          # Phân hệ Sinh viên
+│           │   └── student_routes.py             # 28 endpoint /api/student/* (hồ sơ, kho CV PDF, lưu tin, ứng tuyển snapshot, ca T2-CN, review)
+│           ├── employer/                         # Phân hệ Nhà tuyển dụng
+│           │   └── employer_routes.py            # 20 endpoint /api/employer/* (hồ sơ DN/GPKD, đăng tin 2 luồng, ATS, điểm danh ca, review)
+│           ├── admin/                            # Phân hệ Quản trị viên
+│           │   └── admin_routes.py               # 32 endpoint /api/admin/* (Dashboard 2026, duyệt GPKD, khóa/xóa cascade, từ cấm, Chat gốc, Audit)
+│           └── common/                           # Phân hệ Dùng chung & Khởi tạo
+│               └── common_routes.py              # 21 endpoint /api/* (tìm việc công khai, upload GridFS, quét từ cấm, Chat, WebRTC Call, tố cáo)
 │
-├── test/                                # BỘ KIỂM THỬ TỰ ĐỘNG
-│   ├── test_auth_constraints.py         # Kiểm thử ràng buộc 1 Email = 1 Role
-│   ├── test_student_workflow.py         # Kiểm thử tìm việc, CV, nộp đơn không trùng lặp
-│   ├── test_employer_workflow.py        # Kiểm thử đăng tin, duyệt ứng viên
-│   └── test_admin_and_moderation.py     # Kiểm thử Dashboard, khóa user, lọc từ cấm
+├── frontend/                                     # [1 thư mục gốc + 9 thư mục con = 10 thư mục, 41 tệp] Giao diện React 18 + Vite
+│   ├── index.html                                # Tệp HTML gốc tải Google Font Be Vietnam Pro và gắn thẻ <div id="root">
+│   ├── package-lock.json                         # Khóa phiên bản chính xác các thư viện npm cho toàn nhóm
+│   ├── package.json                              # Khai báo script dev/build và dependencies (React 18, Vite 5, Tailwind, Lucide, Three.js)
+│   ├── postcss.config.js                         # Cấu hình PostCSS xử lý Tailwind CSS và Autoprefixer
+│   ├── tailwind.config.js                        # Cấu hình Font Be Vietnam Pro, bảng màu 8 cột Digital Light Dimension & hiệu ứng đổ bóng
+│   ├── vite.config.js                            # Cấu hình Vite dev server cổng 5173 kèm proxy /api và /uploads về localhost:8002
+│   ├── public/                                   # Thư mục tài nguyên tĩnh public
+│   │   └── meshy-3d-logo.glb                     # Mô hình Logo 3D định dạng GLTF tải trực tiếp trên Header & trang Auth
+│   └── src/                                      # Thư mục mã nguồn React
+│       ├── App.jsx                               # ErrorBoundary chống sập trang, định tuyến 3 cổng & cô lập phiên đa tab bằng sessionStorage
+│       ├── index.css                             # CSS gốc toàn hệ thống, bảng màu Digital Light Dimension & ẩn icon con mắt thừa của Edge
+│       ├── main.jsx                              # Điểm mount ứng dụng React vào DOM root
+│       ├── canvas3d/                             # Các thành phần đồ họa WebGL 3D (3 tệp)
+│       │   ├── HeroLogo3D.jsx                    # Khối chữ P đồng hồ 3D tương tác chuột bằng Three.js trên trang giới thiệu
+│       │   ├── MeshyLogo3D.jsx                   # Trình tải mô hình /meshy-3d-logo.glb tự động căn giữa và xoay theo con trỏ
+│       │   └── Web3DBackground.jsx               # Nền hạt 3D bản thử nghiệm cũ (dự phòng, không mount trong App.jsx hiện tại)
+│       ├── features/                             # Các màn hình nghiệp vụ chính theo vai trò
+│       │   ├── auth/                             # Nhóm màn hình Xác thực độc lập (4 tệp)
+│       │   │   ├── AdminLoginScreen.jsx          # Màn đăng nhập riêng cổng /admin (ẩn hoàn toàn Đăng ký & Quên mật khẩu)
+│       │   │   ├── ForgotPasswordScreen.jsx      # Quy trình 3 bước khôi phục mật khẩu qua OTP 60 giây gửi tới Gmail
+│       │   │   ├── LoginScreen.jsx               # Màn đăng nhập cho Sinh viên / Nhà tuyển dụng hỗ trợ Remember Me
+│       │   │   └── RegisterScreen.jsx            # Màn đăng ký 2 bước + kiểm tra MST 10/13 số & kéo thả GPKD .pdf (nếu là NTD)
+│       │   ├── student/                          # Phân hệ Sinh viên (1 tệp chính)
+│       │   │   └── StudentPortal.jsx             # Toàn bộ 10 mục Sidebar Sinh viên, Chế độ Khách, Kho CV, Lịch ca T2-CN, Chat/WebRTC
+│       │   ├── employer/                         # Phân hệ Nhà tuyển dụng (1 tệp chính)
+│       │   │   └── EmployerPortal.jsx            # Toàn bộ 10 mục Sidebar NTD, Form đăng tin chống từ cấm, ATS 3 chế độ, Điểm danh & Call
+│       │   └── admin/                            # Phân hệ Quản trị viên (2 tệp)
+│       │       ├── AdminPortal.jsx               # Toàn bộ 10 mục Sidebar Admin, Dashboard 2026, GPKD, Khiếu nại xem Chat gốc & Audit Log
+│       │       └── historicalAnalyticsData.js    # Module dữ liệu lịch sử (được đặt [] để Dashboard 2026 hiển thị 100% số liệu DB thật)
+│       └── shared/                               # Thư viện thành phần & hàm tiện ích dùng chung (20 tệp)
+│           ├── AccountModal.jsx                  # Hộp thoại 2 tab sửa Thông tin cá nhân (khóa Email) & Đổi mật khẩu 5 điều kiện
+│           ├── AuthModal.jsx                     # Modal xác thực bản cũ (dự phòng, không mount trong App.jsx hiện tại)
+│           ├── BannedKeywordWarning.jsx          # Thanh cảnh báo đỏ tự hiện khi văn bản nhập chứa từ khóa cấm
+│           ├── BrandLogo.jsx                     # Cụm Logo 3D + tên thương hiệu PARTIME.VN + slogan nhấp về Trang chủ
+│           ├── CallMediaLayer.jsx                # Khung nổi cuộc gọi Thoại/Video WebRTC giữ kết nối khi chuyển tab
+│           ├── ConfirmDialog.jsx                 # Hộp thoại xác nhận nền tối #0b1329 thay thế 100% window.confirm/alert
+│           ├── DocumentViewerModal.jsx           # Trình xem trực tiếp tệp PDF CV / GPKD qua <iframe> A4 và tải về máy
+│           ├── Footer.jsx                        # Chân trang 3 cột động theo vai trò + modal Cẩm nang tìm việc an toàn
+│           ├── Header.jsx                        # Thanh Header kính mờ: Hamburger mobile, tìm kiếm SV, Chuông hover-đọc, menu tài khoản
+│           ├── HeroLanding.jsx                   # Banner landing bản thử nghiệm cũ (dự phòng, không mount trong App.jsx)
+│           ├── MediaAvatar.jsx                   # Ảnh đại diện/Logo có xử lý fallback ký tự đầu khi ảnh lỗi
+│           ├── PaginationBar.jsx                 # Thanh phân trang chuẩn (10 / 20 / 50 / Tất cả) dùng ở các bảng dữ liệu
+│           ├── PublicLandingPage.jsx             # Trang landing công khai bản cũ (dự phòng, không mount trong App.jsx)
+│           ├── SearchableDropdownInput.jsx       # Ô chọn có tìm kiếm nhanh hỗ trợ trường học, quận huyện, ngành nghề
+│           ├── excelExportHelper.js              # Hàm exportTablesToExcelHtml xuất 6 loại báo cáo .xls chuẩn UTF-8 BOM
+│           ├── professionSuggestions.js          # Hằng số gợi ý ngành nghề, quận TP.HCM, trường ĐH-CĐ và hàm badge trạng thái
+│           ├── searchAndFilterHelper.js          # Bộ máy lọc tiếng Việt không dấu (Quận 1 ≠ Quận 10), tính ca T2-CN & che từ cấm client
+│           ├── syncEventHub.js                   # Kênh phát/nhận sự kiện đồng bộ đa tab qua BroadcastChannel & localStorage
+│           ├── vietnamLocations.js               # Dữ liệu 63 tỉnh thành, 24 quận TP.HCM, 6 khung lương và 5 khung ca làm việc
+│           └── webrtcSocketService.js            # Cấu hình STUN, khởi tạo kết nối Socket.IO client và luồng getUserMedia WebRTC
 │
-└── README.md                            # Hướng dẫn tổng quan & tái tạo hệ thống
+├── tailieu/                                      # [1 thư mục gốc + 2 thư mục con = 3 thư mục, 24 tệp] Tài liệu đồ án & Đặc tả
+│   ├── Architecture.drawio                       # Sơ đồ kiến trúc tổng thể hệ thống dạng Draw.io
+│   ├── ERD.drawio                                # Sơ đồ thực thể - quan hệ cơ sở dữ liệu dạng Draw.io
+│   ├── Layerd Clean Architecture.drawio          # Sơ đồ kiến trúc phân tầng giữa 3 thành viên dạng Draw.io
+│   ├── bailam/                                   # Nhóm tài liệu phân tích, thiết kế, công nghệ & báo cáo của nhóm (8 tệp)
+│   │   ├── CongNghe.docx                         # Tài liệu luận chứng lựa chọn công nghệ ban đầu (gốc)
+│   │   ├── FR.xlsx                               # Bảng đặc tả chuẩn gồm 9 sheet: 161 FR, 41 BR, 24 BF, 33 UF, 13 NFR, 29 RW, 24 LC, 41 TCND
+│   │   ├── congnghe.md                           # Đối chiếu CongNghe.docx với công nghệ thực tế & từ điển giải thích từng hàm/biến
+│   │   ├── dieukienrangbuoc.md                   # Đặc tả 18 collections + GridFS, 41 BR, 13 NFR, PBKDF2, Brevo API v3 & bản đồ API
+│   │   ├── kichban.md                            # Lộ trình 251 kịch bản kiểm thử Manual/Selenium + bảng đối chiếu đủ 57 lệnh PLT Solutions PDF
+│   │   ├── noidung.md                            # Báo cáo đồ án CDTN02 hoàn chỉnh theo đúng cấu trúc mục lục ĐH Văn Lang (Chương 1–5)
+│   │   ├── thaydoi.md                            # Nhật ký tiến hóa 38 giai đoạn xuyên suốt quá trình phát triển và kiểm thử
+│   │   └── thietke.md                            # Bộ 42 Google Stitch Prompts đồng bộ 1-1 với giao diện Digital Light Dimension thực tế
+│   └── noidung/                                  # Tài liệu hướng dẫn từ Giảng viên & Nhà trường (13 tệp)
+│       ├── Buoi01_ChuyenDeTotNghiep2.pdf         # Slide hướng dẫn học phần Buổi 01
+│       ├── Buoi02_ChuyenDeTotNghiep2.pdf         # Slide hướng dẫn học phần Buổi 02
+│       ├── Buoi04_ChuyenDeTotNghiep2.pdf         # Slide hướng dẫn học phần Buổi 04
+│       ├── Buoi05_ChuyenDeTotNghiep2.pdf         # Slide hướng dẫn học phần Buổi 05
+│       ├── Buoi06_ChuyenDeTotNghiep2.pdf         # Slide hướng dẫn học phần Buổi 06
+│       ├── Buoi07_ChuyenDeTotNghiep2.pdf         # Slide hướng dẫn học phần Buổi 07
+│       ├── Buoi08_ChuyenDeTotNghiep2.pdf         # Slide hướng dẫn học phần Buổi 08
+│       ├── Buoi09_ChuyenDeTotNghiep2.pdf         # Slide hướng dẫn học phần Buổi 09
+│       ├── Buoi10_ChuyenDeTotNghiep2.pdf         # Slide hướng dẫn học phần Buổi 10
+│       ├── CÁC LỆNH TRUY VẤN TRONG SELENIUM WEBDRIVER JAVA_PLT SOLUTIONS.pdf # Tài liệu chuẩn 57 lệnh WebDriver Java cần phủ
+│       ├── Danhsachdetai_ChuyenDeTotNghiep2.pdf  # Danh sách đề tài đăng ký học phần CDTN02
+│       ├── Maubaocao_ChuyenDeTotNghiep2.docx     # Mẫu định dạng báo cáo chuẩn của Khoa CNTT
+│       └── Nhatkythuchien.docx                   # Biểu mẫu nhật ký thực hiện đề tài
+│
+└── test/                                         # [1 thư mục gốc + 10 thư mục con = 11 thư mục, 20 tệp] Kiểm thử lai Manual + Selenium POM
+    ├── TestCases_Selenium_PARTIME_VN.xlsx        # Sổ kịch bản 5 sheet (251 TC, 17 cột 3 màu, 5 biểu đồ) dùng chung Manual & Automation
+    ├── cleanup_and_sync_excel.bat                # Script Windows dọn tệp tạm và chạy ExcelTestManager đồng bộ kết quả
+    ├── latest_run_results.json                   # Kết quả chi tiết ở định dạng JSON của đợt chạy TestNG gần nhất
+    ├── pom.xml                                   # Cấu hình Maven Java 17 (Selenium 4.25.0, TestNG 7.10.2, Apache POI 5.3.0, Jackson)
+    ├── resolve_cp.py                             # Script Python quét ~/.m2/repository dựng classpath JAR khi chạy javac/java trực tiếp
+    ├── run_selenium_tests.bat                    # Script Windows tự tìm Maven hoặc JDK để biên dịch và chạy toàn bộ bộ test
+    ├── sources.txt                               # Danh sách tạm đường dẫn nguồn .java phục vụ biên dịch trực tiếp
+    ├── testng.xml                                # Cấu hình Suite TestNG trỏ tới PartimeAutomationRunnerTest
+    ├── sample_assets/                            # Tệp mẫu phục vụ kiểm thử tải lên & kiểm tra định dạng (3 tệp)
+    │   ├── AutoTest_CV_Sample.pdf                # Tệp PDF hợp lệ (có header %PDF) dùng test upload/xem CV
+    │   ├── AutoTest_Chat_Attachment.png          # Ảnh PNG mẫu dùng test đính kèm trong phòng chat
+    │   └── AutoTest_Invalid.txt                  # Tệp văn bản .txt dùng test cơ chế chặn sai định dạng (Negative)
+    └── src/test/java/com/partime/                # Mã nguồn kiểm thử Java POM (4 gói: base, pages, tests, utils)
+        ├── base/                                 # Lớp nền tảng WebDriver (1 tệp)
+        │   └── BasePage.java                     # Khởi tạo ChromeDriver, banner/con trỏ trình chiếu, wrapper 57 lệnh PLT & chụp ảnh lỗi
+        ├── pages/                                # Page Object theo từng vai trò & lớp kiểm thử chéo (4 tệp)
+        │   ├── AdminPage.java                    # Kịch bản UI cổng /admin (Dashboard 2026, GPKD, Từ cấm, Master Data, Audit Log)
+        │   ├── CrossRoleAndApiHelper.java        # 3 kịch bản E2E đa tab (SV-NTD-QTV), 26 ca HttpClient API/RBAC & 23 hàm Unit Test Java
+        │   ├── EmployerPage.java                 # Kịch bản UI NTD (GPKD, Đăng tin, ATS Kanban/Lưới/Danh sách, Chấm công, Chat)
+        │   └── StudentPage.java                  # Kịch bản UI Sinh viên (Guest, Auth, Tìm kiếm Quận 1, Ứng tuyển, CV PDF, Chat)
+        ├── tests/                                # Lớp điều phối chạy TestNG (1 tệp)
+        │   └── PartimeAutomationRunnerTest.java  # Đọc 251 dòng Excel qua DataProvider, định tuyến theo TC_ID và ghi lại bảng Excel
+        └── utils/                                # Công cụ hỗ trợ phiên & Excel (3 tệp)
+            ├── CookieSessionManager.java         # Lưu/nạp/làm mới Cookie + Token theo từng Role vào test/cookies/*.json (gitignored)
+            ├── ExcelTestManager.java             # Đọc sheet Config_Environment & Role sheets, ghi PASS/FAIL không làm hỏng 5 biểu đồ
+            └── ScenarioResult.java               # Mô hình đóng gói kết quả (PASS, FAIL, WAIT_COOKIE, NOT RUN) kèm thông điệp chi tiết
 ```
+
+> **Thư mục tự động sinh khi cài đặt / chạy (không commit lên Git):**
+> `frontend/node_modules/`, `frontend/dist/`, `Backend/**/__pycache__/`, `test/target/`, `test/cookies/`, `test/screenshots/`, `test/test-output/`.
 
 ---
 
-## 4. HƯỚNG DẪN TÁI TẠO WEBSITE TỪNG BƯỚC (STEP-BY-STEP REPRODUCTION)
+## 2. HƯỚNG DẪN TÁI TẠO CƠ CẤU HỆ THỐNG TỪ ĐẦU (TỪ CON SỐ 0 ĐẾN DEPLOY PRODUCTION)
 
-Để bất kỳ người đọc hoặc giảng viên nào có thể tái tạo hoàn chỉnh hệ thống đúng 100% với bản gốc, hãy thực hiện theo đúng các bước sau:
+Hướng dẫn dưới đây giúp một lập trình viên mới **tạo lại dự án từ máy tính trống**, tự thiết lập **kho dữ liệu đám mây, khóa bảo mật, khóa gửi email OTP và tài khoản thử nghiệm của riêng mình**, tuyệt đối không phụ thuộc hay dùng chung thông tin cá nhân của nhóm tác giả.
 
-### Bước 1: Chuẩn Bị Môi Trường
-- **Cài đặt Node.js:** Phiên bản `>= 18.0.0` (Khuyến nghị `v20.x` hoặc `v22.x`).
-- **Cài đặt Python:** Phiên bản `>= 3.10` (Khuyến nghị `Python 3.11`).
-- **Git:** Đã cài đặt trên máy.
+### Bước 1: Chuẩn bị Phần mềm trên Máy Cá nhân
+1. **Git:** Cài đặt tại [git-scm.com](https://git-scm.com/).
+2. **Python `3.11+`:** Cài đặt tại [python.org](https://www.python.org/downloads/) (nhớ tick **Add Python to PATH** trên Windows).
+3. **Node.js `20.x LTS` (kèm `npm`):** Cài đặt tại [nodejs.org](https://nodejs.org/).
+4. *(Nếu chạy bộ kiểm thử tự động `test/`)*:
+   * **Java JDK `17` trở lên** (khuyến nghị JDK 17 hoặc 21/23) và **Apache Maven `3.9+`**.
+   * **Google Chrome** phiên bản mới (Selenium `4.25.0` Selenium Manager sẽ tự tải ChromeDriver phù hợp).
+5. *(Nếu muốn chạy đóng gói Container cục bộ hoặc Deploy)*: **Docker Desktop** và tài khoản **Render Cloud** miễn phí.
 
-### Bước 2: Clone Mã Nguồn Dự Án
-Mở Terminal / PowerShell và gõ lệnh:
+---
+
+### Bước 2: Khởi tạo Hoặc Nhân bản Cấu trúc Thư mục
+
+* **Cách A — Lấy mã nguồn từ Repository GitHub:**
+  ```bash
+  git clone https://github.com/Johnny120905/CDTN02.git CDTN02-main
+  cd CDTN02-main
+  ```
+* **Cách B — Tự dựng lại cây thư mục từ đầu (nếu tái tạo thủ công từ thư mục rỗng):**
+  ```bash
+  mkdir CDTN02-main && cd CDTN02-main
+  mkdir -p Backend/src/core Backend/src/middlewares Backend/src/api/{auth,student,employer,admin,common}
+  mkdir -p frontend/public frontend/src/{canvas3d,shared} frontend/src/features/{auth,student,employer,admin}
+  mkdir -p tailieu/{bailam,noidung}
+  mkdir -p test/sample_assets test/src/test/java/com/partime/{base,pages,tests,utils}
+  ```
+  Sau đó đặt các tệp mã nguồn theo đúng danh sách `111` tệp ở Mục 1.
+
+---
+
+### Bước 3: Tự Tạo Thông tin Bí mật & Kết nối Đám mây của Riêng Bạn (Tuyệt đối không dùng chung)
+
+> ⚠️ **NGUYÊN TẮC BẢO MẬT:** Không dùng khóa mặc định trong tệp mẫu cho môi trường thật và **không bao giờ đẩy tệp `.env` lên GitHub**.
+
+#### 3.1. Tạo Cơ sở dữ liệu MongoDB Atlas (`CDTN02_DB`)
+1. Đăng ký/đăng nhập miễn phí tại [mongodb.com/atlas](https://www.mongodb.com/cloud/atlas).
+2. Chọn **Create a Cluster -> Shared (Free M0)**.
+3. Vào **Database Access -> Add New Database User**: tự đặt `<YOUR_DB_USERNAME>` và tạo `<YOUR_DB_PASSWORD>` mạnh (chỉ gồm chữ và số để tránh lỗi ký tự đặc biệt trong URL). Cấp quyền *Read and write to any database*.
+4. Vào **Network Access -> Add IP Address**: chọn *Add Current IP Address* (khi chạy máy nhà) hoặc `0.0.0.0/0` *(cần thiết nếu deploy lên Render Cloud)*.
+5. Vào **Database -> Connect -> Drivers (Python 3.6 or later)**: sao chép chuỗi `mongodb+srv://<YOUR_DB_USERNAME>:<YOUR_DB_PASSWORD>@<YOUR_CLUSTER>.mongodb.net/?retryWrites=true&w=majority`.
+
+#### 3.2. Tạo Chuỗi Bí mật Ký Token (`JWT_SECRET_KEY`)
+Chạy lệnh sau trong terminal để sinh khóa ngẫu nhiên 64 ký tự hex an toàn cho riêng bạn:
 ```bash
-git clone https://github.com/Johnny120905/CDTN02.git
-cd CDTN02
+python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-### Bước 3: Cấu Hình Biến Môi Trường Backend
-Di chuyển vào thư mục `backend/`:
-```bash
-cd backend
-```
-Tạo file `.env` (sao chép từ `.env.example` nếu có) với nội dung:
+#### 3.3. Lấy Khóa Gửi Mail OTP Qua Brevo HTTPS API v3 (Miễn phí 300 email/ngày)
+Vì các nền tảng cloud miễn phí (như Render Free) chặn kết nối SMTP truyền thống (cổng 25/465/587), hệ thống sử dụng **Brevo API v3 qua HTTPS cổng `443`**:
+1. Đăng ký tài khoản tại [brevo.com](https://www.brevo.com/).
+2. Vào **Senders, Domains & Dedicated IPs -> Senders -> Add a Sender**: nhập địa chỉ Gmail của bạn làm người gửi chính thức và xác nhận link gửi về hòm thư đó.
+3. Vào biểu tượng tài khoản góc trên bên phải -> **SMTP & API -> API Keys -> Generate a new API key**: sao chép khóa bắt đầu bằng `xkeysib-...` (lưu ý chỉ hiện 1 lần duy nhất).
+
+#### 3.4. Tạo tệp `Backend/.env` Cá nhân
+Tại thư mục `Backend/`, tự tạo tệp mới tên là **`.env`** *(không commit tệp này)* với cấu trúc sau:
+
 ```ini
 PORT=8002
-DEBUG=True
-JWT_SECRET_KEY=CDTN02_SUPER_SECURE_JWT_SECRET_KEY_2026
-MONGO_URI=mongodb://huynhnguyenbaongoc2k5_db_user:RaBr6xjc5ogYXQwL@ac-ojfhioo-shard-00-00.cpczyp1.mongodb.net:27017,ac-ojfhioo-shard-00-01.cpczyp1.mongodb.net:27017,ac-ojfhioo-shard-00-02.cpczyp1.mongodb.net:27017/?ssl=true&replicaSet=atlas-xcshgl-shard-0&authSource=admin&appName=CDTN02-DB
+DEBUG=False
 DATABASE_NAME=CDTN02_DB
+
+# Dán chuỗi bạn vừa tự tạo ở mục 3.1 – 3.3 vào các dấu <...>:
+JWT_SECRET_KEY=<YOUR_GENERATED_64_HEX_SECRET>
+MONGO_URI=mongodb+srv://<YOUR_DB_USERNAME>:<YOUR_DB_PASSWORD>@<YOUR_CLUSTER>.mongodb.net/?retryWrites=true&w=majority
+
+# Cấu hình gửi OTP qua Brevo HTTPS API v3 (Ưu tiên chính)
+BREVO_API_KEY=<YOUR_BREVO_API_V3_KEY>
+BREVO_SENDER_EMAIL=<YOUR_VERIFIED_SENDER_EMAIL@gmail.com>
+BREVO_SENDER_NAME=PARTIME.VN - Viec Lam Linh Hoat
+
+# Cấu hình SMTP dự phòng (chỉ dùng nếu chạy local muốn fallback qua SMTP)
+BREVO_SMTP_SERVER=smtp-relay.brevo.com
+BREVO_SMTP_PORT=587
+BREVO_SMTP_LOGIN=<YOUR_BREVO_SMTP_LOGIN_IF_ANY>
+BREVO_SMTP_KEY=<YOUR_BREVO_SMTP_KEY_IF_ANY>
 ```
-
-### Bước 4: Khởi Chạy Cả Frontend & Backend Trên CÙNG 1 LOCALHOST: http://localhost:8002 (Khuyến Nghị)
-
-Để chạy trọn vẹn cả giao diện Web 3D lẫn API Backend trên **duy nhất 1 địa chỉ `http://localhost:8002`** (Cổng 8002 dành riêng cho CDTN02, hoàn toàn không bị xung đột với CDTN01):
-
-1. Tại thư mục gốc `CDTN02/`, chạy lệnh:
-   ```bash
-   python run.py
-   ```
-   *(Trên Windows, bạn có thể click đúp trực tiếp vào file `run.bat`)*
-
-2. Mở trình duyệt truy cập:
-   👉 **`http://localhost:8002`** *(hoặc `http://127.0.0.1:8002`)*
-
-> ✨ **Ưu điểm vượt trội:**
-> - Cả Frontend (React + Vite + Three.js) và Backend API Flask chạy đồng nhất trên **cùng 1 cổng 8002**.
-> - Không bị lỗi CORS, không bị trùng cổng với CDTN01 (cổng 8000), không cần mở 2 cửa sổ terminal riêng biệt.
-> - Client-side Routing cho cả 3 Role hoạt động tự động thông qua HTML5 History API.
+> *Ghi chú chế độ Offline:* Nếu bạn bỏ trống `MONGO_URI` hoặc chạy máy không có Internet, `DatabaseManager` sẽ tự động chuyển sang lưu dữ liệu cục bộ vào tệp `Backend/local_db_store.json` để bạn vẫn trải nghiệm website bình thường.
 
 ---
 
-### Bước 5 (Tùy Chọn): Khởi Chạy Chế Độ Phát Triển Riêng Biệt (Hot-Reload)
+### Bước 4: Cài đặt Thư viện & Khởi chạy Phát triển trên Máy (Localhost)
 
-Nếu bạn muốn chỉnh sửa code giao diện với tính năng Hot-Reload tự động cập nhật:
-- **Terminal 1 (Backend API):**
-  ```bash
-  cd backend
-  pip install -r requirements.txt
-  python server.py
-  ```
-- **Terminal 2 (Frontend Vite Dev):**
-  ```bash
-  cd frontend
-  npm install
-  npm run dev
-  ```
-  *(Truy cập `http://localhost:5173` - Vite tự động proxy các request `/api` sang cổng 8002).*
-> Trình duyệt tự động mở hoặc bạn truy cập vào: `http://localhost:5173`.
-
-### Bước 6: Trải Nghiệm & Kiểm Thử Các Chức Năng Của 3 Role
-1. **Truy Cập Hệ Thống & Cổng Xác Thực Thực Tế (Port 8002):** 
-   - Truy cập ngay tại: **`http://127.0.0.1:8002`**
-   - Ngay khi mở website, hệ thống bắt buộc hiển thị trực tiếp **Màn hình Đăng nhập (`LoginScreen`)** cùng mô hình 3D Logo tương tác và nền vũ trụ sao 4D chuyển động. Các trường nhập liệu bắt đầu ở trạng thái rỗng để người dùng tự nhập. Nếu người dùng chọn checkbox *"Ghi nhớ thông tin đăng nhập"*, hệ thống sẽ tự động lưu thông tin sau lần đăng nhập thành công đầu tiên.
-   - Khi quên mật khẩu, người dùng nhập Email và nhận mã OTP 6 số (thời hạn 30 giây) được gửi thực tế về Email người dùng qua giao thức SMTP.
-   - Mật khẩu toàn hệ thống bắt buộc từ 8 ký tự trở lên (gồm chữ hoa, chữ thường, số, ký tự đặc biệt).
-   - **Tài khoản kiểm thử thực tế trên CSDL MongoDB Atlas:**
-     - - **Sinh viên:** `vuthelong@vlu.edu.vn` / `Long123!`
-     - - **Nhà tuyển dụng:** `huynhnguyenbaongoc2k5@gmail.com` / `Huynh120905!` (hoặc `Ngoc123!`)
-     - - **Quản trị viên:** `lethithuyngan985@gmail.com` / `Le090805!`
-2. **Loại Bỏ Hoàn Toàn Hộp Thoại Trình Duyệt (Zero Browser Dialogs):**
-   - Toàn bộ các hộp thoại `window.alert`, `window.confirm`, `window.prompt` (`127.0.0.1:8000 cho biết` hoặc `localhost:8002 cho biết`) đã được thay thế 100% bằng:
-     - Hộp thoại nổi Dark 4D `<ConfirmDialog>` sang trọng cho các hành vi xóa hoặc cảnh báo nguy hiểm.
-     - Thanh Banner thông báo trạng thái gắn dưới Header (Thành công (Emerald): Thành công; Đang tải/Chờ (Amber): Đang tải/Chờ; Cảnh báo/Lỗi (Rose): Cảnh báo).
-3. **Thanh Header & Dropdown Nền Đậm Đặc Opaque:**
-   - Dropdown thông báo và dropdown tài khoản được thiết lập nền màu đậm đặc 100% (`#090f20`, opacity 1, `z-[9999]`), loại bỏ hoàn toàn hiện tượng trong suốt bị chìm nội dung.
-   - Logo PARTIME.VN gắn link trang chủ trực tiếp, nhấp vào lập tức đưa người dùng trở về Trang chủ ở bất kỳ phân hệ nào.
-4. **Hệ Thống Xem & Tải Tệp Tin PDF Chuẩn Kiểm Định (DocumentViewerModal):**
-   - Hỗ trợ xem trực tiếp CV Sinh viên và Giấy phép kinh doanh (GPKD) PDF toàn màn hình hoặc nhúng iframe thật, đồng thời hỗ trợ nút tải về máy tính theo chuẩn kiểm định chất lượng đề tài tốt nghiệp CDTN02.
-   - Ràng buộc tệp tin nghiêm ngặt: CV Sinh viên (.pdf, ≤ 10MB), GPKD (.pdf, ≤ 10MB), Logo & Ảnh bìa (.png, .jpg, ≤ 10MB), Tệp đính kèm Chat (.pdf, .png, .jpg, ≤ 10MB).
-5. **Tiến Độ Ứng Tuyển Sinh Viên (4 Cột Mốc Rõ Ràng):**
-   - Chuẩn hóa trục xử lý hồ sơ thành 4 chặng ngang trực quan: `[1. Nộp hồ sơ] -> [2. NTD đã xem] -> [3. Phỏng vấn] -> [4. Trúng tuyển / Từ chối]`.
-6. **Đánh Giá & Nhận Xét Nhà Tuyển Dụng:**
-   - Hỗ trợ đánh giá 2 chiều minh bạch với cơ chế Upsert thông minh (tránh lỗi xung đột MongoDB DuplicateKeyError). Nhà tuyển dụng và sinh viên có thể chỉnh sửa nhận xét dễ dàng.
-7. **Kiểm Duyệt Từ Khóa Cấm & Bảng Thống Kê (Admin Portal):**
-   - Bảng thống kê từ khóa cấm hoạt động trong CSDL hiển thị trực quan kèm nút "Xóa" từng từ khóa theo thời gian thực.
-8. **Cuộc Gọi Video/Thoại WebRTC & Ghi Nhận Lịch Sử Cuộc Gọi:**
-   - Đổ chuông tối đa 180 giây (3 phút); nếu không nghe máy tự động chuyển sang cuộc gọi nhỡ và ghi nhận tin nhắn đỏ trong phòng chat. Khi kết thúc cuộc gọi, tự động lưu thời lượng dạng `mm:ss` vào bong bóng chat.
-
-### Bước 7: Chạy Bộ Test Case Tự Động
-Mở Terminal tại thư mục gốc `CDTN02/` và chạy lệnh kiểm thử:
+#### 4.1. Cài đặt gói phụ thuộc (chạy 1 lần đầu)
 ```bash
-python -m unittest discover -s test -p "test_*.py"
+# 1. Cài thư viện Backend Python
+cd Backend
+pip install -r requirements.txt
+cd ..
+
+# 2. Cài thư viện Frontend React + Vite + Tailwind + Three.js và build gói tĩnh dist/
+cd frontend
+npm install
+npm run build
+cd ..
 ```
-Toàn bộ các ca kiểm thử sẽ được thực thi và in kết quả `OK (Ran X tests)`.
+
+#### 4.2. Chọn 1 trong 3 Chế độ Khởi chạy
+
+* **Cách 1 (Khuyên dùng khi Demo & Chạy Hợp nhất — 1 cổng `8002` duy nhất):**
+  Từ thư mục gốc `CDTN02-main/`, chạy:
+  ```bash
+  python run.py
+  ```
+  *(Hoặc nháy đúp chuột vào `run.bat` trên Windows).*  
+  Truy cập trên cùng một trình duyệt (hỗ trợ mở 3 tab song song không ghi đè nhờ `sessionStorage`):
+  * Cổng Sinh viên *(mở Chế độ Khách trước)*: `http://localhost:8002/` hoặc `http://localhost:8002/student`
+  * Cổng Nhà tuyển dụng *(mở Chế độ Khách trước)*: `http://localhost:8002/employer`
+  * Cổng Quản trị viên *(bắt buộc đăng nhập)*: `http://localhost:8002/admin`
+  * Kiểm tra sức khỏe API: `http://localhost:8002/api/health`
+
+* **Cách 2 (Phát triển tách riêng Backend + Frontend Hot-Reload khi sửa JSX):**
+  * Terminal 1 (Backend Flask): `cd Backend && python server.py` *(chạy tại cổng `8002`)*
+  * Terminal 2 (Frontend Vite dev server): `cd frontend && npm run dev` *(chạy tại `http://localhost:5173`, tự proxy `/api` & `/uploads` sang `8002`)*
+
+* **Cách 3 (Mô phỏng 3 tên miền/cổng độc lập `3001` / `3002` / `3003` trên Windows):**
+  Chạy tệp `run_separate_roles.bat` để khởi động đồng thời Backend `8002` và 3 tiến trình Vite ở cổng `3001` (SV), `3002` (NTD), `3003` (QTV).
 
 ---
-*Dự án được bảo vệ bản quyền và phát triển bởi Nhóm sinh viên Khóa Chuyên đề Tốt nghiệp 2 - Trường Đại học Văn Lang.*
 
+### Bước 5: Tự Tạo Tài khoản Dùng Thử cho 3 Vai trò (An toàn & Độc lập)
+
+Hệ thống áp dụng quy tắc **`1 Email @gmail.com = 1 Role duy nhất`** và mật khẩu tối thiểu 8 ký tự gồm *chữ hoa, chữ thường, chữ số và ký tự đặc biệt*:
+
+1. **Tạo tài khoản Sinh viên (`role: "student"`):**
+   * Vào `http://localhost:8002/student/register` -> điền tên, `<your_student_email>@gmail.com`, SĐT 10 số bắt đầu bằng `0`, mật khẩu mạnh -> nhập mã **OTP 6 số** gửi về hộp thư Gmail của bạn trong vòng **60 giây**.
+2. **Tạo tài khoản Nhà tuyển dụng (`role: "employer"`):**
+   * Vào `http://localhost:8002/employer/register` -> chọn loại hình doanh nghiệp, nhập **Mã số thuế 10 hoặc 13 chữ số**, tải lên 1 tệp **Giấy phép kinh doanh định dạng `.pdf`** (có thể lấy file mẫu `test/sample_assets/AutoTest_CV_Sample.pdf` khi chạy thử nghiệm cục bộ) -> xác nhận OTP 60 giây.
+3. **Tạo tài khoản Quản trị viên (`role: "admin"`):**
+   * Vì lý do bảo mật (`BR-QTV-01`), màn `/admin` **cố ý không có nút Đăng ký công khai**. Bạn tự tạo tài khoản Admin đầu tiên trực tiếp vào bảng `users` trong MongoDB Atlas (hoặc chạy script Python nhỏ cục bộ sử dụng chính hàm `hash_password("<YOUR_OWN_ADMIN_PASSWORD>")` của [Backend/src/core/security.py](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/Backend/src/core/security.py)):
+   ```python
+   # Chạy trong thư mục Backend/ (chỉ để sinh hash từ mật khẩu bạn tự đặt)
+   python -c "from src.core.database import db_manager; from src.core.security import hash_password; db_manager.get_collection('users').insert_one({'_id':'user_admin_init','email':'<your_admin_email>@gmail.com','password_hash':hash_password('<YOUR_OWN_ADMIN_PASSWORD>'),'role':'admin','full_name':'Quan Tri Vien','is_banned':False,'status':'active'})"
+   ```
+   * Sau đó đăng nhập vào `http://localhost:8002/admin` để duyệt Giấy phép kinh doanh cho tài khoản Nhà tuyển dụng bạn vừa tạo ở bước 2.
+
+---
+
+### Bước 6: Chạy Bộ Kiểm thử Song hành Excel + Selenium Java POM (`test/`)
+
+1. Mở [TestCases_Selenium_PARTIME_VN.xlsx](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/test/TestCases_Selenium_PARTIME_VN.xlsx), sang sheet **`Config_Environment`**:
+   * Sửa `BASE_URL` thành `http://localhost:8002` (khi test trên máy) hoặc URL Render của bạn.
+   * Đặt `HEADLESS_MODE` = `FALSE` nếu muốn xem Chrome tự động trình chiếu kèm con trỏ chuột ảo và banner mô tả từng bước; đặt `TRUE` để chạy nhanh nền.
+2. **Cách cung cấp thông tin đăng nhập an toàn cho kiểm thử Cookie (`MANUAL_FIRST_THEN_COOKIE`):**
+   * **Không khuyến khích lưu mật khẩu thật vào file Excel nếu bạn định push Excel lên kho GitHub công khai.** Hãy xóa toàn bộ tệp trong `test/cookies/` (nếu có) và đặt trống mật khẩu trong 3 dòng `TC-SV-007`, `TC-NTD-005`, `TC-QTV-002` — khi chạy lượt đầu tiên ở chế độ có cửa sổ (`HEADLESS_MODE=FALSE`), Selenium sẽ dừng chờ **chính bạn gõ tay email & mật khẩu** trên màn hình đăng nhập thật rồi tự lưu Cookie/JWT vào thư mục cục bộ `test/cookies/` (đã nằm trong `.gitignore`). Các lượt test kế tiếp sẽ tự nạp Cookie không phải đăng nhập lại.
+3. Chạy kiểm thử tại thư mục `test/`:
+   ```bash
+   cd test
+   mvn test
+   ```
+   * Lọc chạy riêng từng role: `mvn test -DroleFilter=SV` *(hoặc `NTD` / `QTV`)*.
+   * Hoặc chạy bằng script Windows: `run_selenium_tests.bat`.
+   * Kết quả mới nhất của toàn bộ **`251` Test Cases** *(177 ca chạy tự động `Run_Mode=YES`, 74 ca Manual/Clone/OTP/JMeter `Run_Mode=NO`)* sẽ tự động cập nhật kèm **5 biểu đồ** vào sheet `Overview_Summary` và file JSON `test/latest_run_results.json`.
+
+---
+
+### Bước 7: Triển khai lên Production (Docker & Render Cloud)
+
+#### 7.1. Chạy thử bằng Docker trên máy trước khi đẩy lên Cloud
+```bash
+# Cách 1: Dùng Docker trực tiếp
+docker build -t partime-vn:latest .
+docker run -d -p 8002:8002 --env-file Backend/.env --name partime-app partime-vn:latest
+
+# Cách 2: Dùng docker-compose.yml (lưu ý trỏ env_file tới ./Backend/.env riêng của bạn trước khi chạy)
+docker compose up --build
+```
+Kiểm tra container khỏe mạnh bằng cách mở `http://localhost:8002/api/health`.
+
+#### 7.2. Triển khai miễn phí 3 cổng lên Render Cloud bằng `render.yaml`
+1. Tạo tài khoản trên [render.com](https://render.com/) và kết nối kho GitHub của riêng bạn.
+2. Tạo dịch vụ từ tệp cấu hình **`render.yaml`** (*New -> Blueprint*) hoặc tạo thủ công:
+   * **Service 1 (`partime-student` — Web Service, Runtime Docker):**
+     * Trong mục **Environment Variables** trên Dashboard của Render, tự nhập các biến bí mật của bạn (`MONGO_URI`, `JWT_SECRET_KEY`, `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, `DATABASE_NAME=CDTN02_DB`, `PORT=8002`, `DEBUG=False`).
+     * Health Check Path: `/api/health`.
+   * **Service 2 (`partime-employer` — Static Site) & Service 3 (`partime-admin` — Static Site):**
+     * Build Command: `cd frontend && npm install && npm run build`
+     * Publish Directory: `frontend/dist`
+     * Biến môi trường: `VITE_BACKEND_URL = <URL Web Service chính của bạn>`
+     * Thêm **Rewrite Rules** cho `/api/*`, `/uploads/*` trỏ về Web Service chính và `/* -> /index.html` để hỗ trợ React SPA routing khi F5.
+
+---
+
+## 3. HỆ THỐNG TÀI LIỆU ĐỒNG BỘ TRONG KHO DỰ ÁN
+
+| Tài liệu | Liên kết | Nội dung chính |
+|---|---|---|
+| **Báo cáo Đồ án CDTN02** | [noidung.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/noidung.md) | Báo cáo hoàn chỉnh 5 Chương chuẩn ĐH Văn Lang, trình bày rõ ràng cho cả người mới đọc. |
+| **Đối chiếu Công nghệ & Hàm/Biến** | [congnghe.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/congnghe.md) | Đối chiếu `CongNghe.docx` với thực tế code + từ điển giải thích vai trò từng hàm/biến. |
+| **Đặc tả Ràng buộc & API/Socket** | [dieukienrangbuoc.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/dieukienrangbuoc.md) | 18 Collections + GridFS, 41 BR, 13 NFR, PBKDF2, OTP 60s, `109+` API & `10 on/17 emit` Socket.IO. |
+| **Thiết kế UI & 42 Stitch Prompts** | [thietke.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/thietke.md) | Hệ thống 8 cột màu *Digital Light Dimension* & 42 prompt đồng bộ 1-1 với màn hình JSX thật. |
+| **Kịch bản Kiểm thử & 57 lệnh PLT** | [kichban.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/kichban.md) | Phân tầng 251 TC (Dễ -> Khó, Đúng -> Sai) và giải thích đủ 57 lệnh Selenium WebDriver Java. |
+| **Nhật ký Tiến hóa 38 Giai đoạn** | [thaydoi.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/thaydoi.md) | Ghi vết toàn bộ lịch sử chỉnh sửa, nâng cấp và kiểm chứng chất lượng qua từng chặng. |
+
+---
+
+## 4. CHECKLIST BẢO MẬT TRƯỚC KHI ĐẨY CODE LÊN GITHUB (`git push`)
+
+1. Kiểm tra `git status` để chắc chắn **KHÔNG có** các tệp `.env`, `test/cookies/*.json`, `Backend/local_db_store.json` chuẩn bị được commit.
+2. Nếu bạn có lưu mật khẩu thử nghiệm vào `TestCases_Selenium_PARTIME_VN.xlsx` để chạy nội bộ, hãy xóa giá trị mật khẩu nhạy cảm trước khi đẩy lên kho công khai (hoặc chuyển kho sang *Private*).
+3. Chạy lại `cd test && mvn test` (hoặc `run_selenium_tests.bat`) để bảo đảm `0 FAIL` trước khi gộp nhánh.
+
+---
+*Phát triển bởi Nhóm sinh viên Chuyên đề Tốt nghiệp 2 (`CDTN02`) — Khoa Công nghệ Thông tin, Trường Đại học Văn Lang.*

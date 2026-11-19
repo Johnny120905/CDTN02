@@ -1069,3 +1069,67 @@ un.py.
    - **Quản trị viên:** Thiết lập Grid 12 cột cho Kiểm duyệt tin tuyển dụng và Grid 3 cột chuẩn cho Quản lý người dùng, xử lý triệt để tình trạng gãy dòng ở các tùy chọn vi phạm dài.
 7. **Đồng bộ Build Production:**
    - Chạy `npm run build` thành công, bundle cập nhật đầy đủ vào `frontend/dist/`.
+
+
+---
+
+## 35. GIAI ĐOẠN 35: UNIVERSAL SYNC HUB, LỌC RANH GIỚI QUẬN 1 & ĐỒNG BỘ RESPONSIVE 4 THIẾT BỊ
+**Thời gian:** 17/11/2026 (`c1d7325`, `cd3417b`, `f7f34bd`)  
+**Thành phần:** `frontend/src/shared/`, `frontend/src/features/`  
+**Nội dung thực hiện chi tiết:**
+1. **Universal Sync Event Hub (`syncEventHub.js`):** Chuẩn hóa trung tâm điều phối đồng bộ dữ liệu chéo giữa Socket.IO, chuông thông báo và các danh sách đang mở ở 3 phân hệ.
+2. **Sửa triệt để lỗi lọc địa danh `Quận 1` (`searchAndFilterHelper.js`):** Sử dụng chuẩn hóa Unicode NFD (bỏ dấu, quy đổi `đ/Đ -> d`) kết hợp kiểm tra ranh giới từ chính xác để chọn `Quận 1` tuyệt đối không dính kết quả của `Quận 10`, `Quận 11`, `Quận 12`.
+3. **Đồng bộ Responsive 4 màn hình & Loại bỏ nút thừa:** Chuẩn hóa giao diện trên `Mobile 430x932`, `iPad 820x1180`, `Laptop 1366x768`, `PC 1920x1080`; loại bỏ chế độ chuyển đổi *Thẻ gọn/Đầy đủ* không cần thiết, khôi phục thanh tìm kiếm trên Trang chủ Sinh viên và chuẩn hóa tên hiển thị Quản trị viên `Lê Thị Thuỳ Ngân` trong `AccountModal`.
+
+---
+
+## 36. GIAI ĐOẠN 36: ĐÓNG GÓI DOCKER, TRIỂN KHAI RENDER 3 CỔNG & CHUẨN HÓA 161 FR (`FR.xlsx`)
+**Thời gian:** 18/11/2026 (`2c9c907`, `fa08c4d`)  
+**Thành phần:** `Dockerfile`, `docker-compose.yml`, `render.yaml`, `Backend/`, `tailieu/bailam/FR.xlsx`  
+**Nội dung thực hiện chi tiết:**
+1. **Đóng gói Docker & Deploy Render Production (`https://parttime-css0.onrender.com`):**
+   - Hợp nhất build Frontend (`frontend/dist/`) và Python Flask WSGI + Socket.IO trên một container duy nhất; hỗ trợ định tuyến 3 cổng đồng bộ (`/`, `/employer`, `/admin`) và chạy cục bộ ở cổng `8002`.
+2. **Tinh gọn và Chuẩn hóa đặc tả `FR.xlsx` (9 Sheets):**
+   - Loại bỏ `4` FR bị trùng lặp với `NFR-11` / trang chủ Quản trị viên, chốt chính xác toàn bộ đặc tả gồm **`161` Yêu cầu Chức năng (`56` SV, `59` NTD, `46` QTV)**, **`41` Business Rules (`BR`)**, **`24` BF**, **`33` UF**, **`13` NFR**, **`29` RW**, **`24` LC** và **`41` TCND**.
+
+---
+
+## 37. GIAI ĐOẠN 37: GỬI OTP BREVO HTTPS API V3, XÂY DỰNG BỘ SELENIUM JAVA POM (245 → 251 TC) & COOKIE AUTO-REFRESH
+**Thời gian:** 18/11/2026 – 19/11/2026 (`0683a80`, `c90f10f`, `abbc5bf`)  
+**Thành phần:** `Backend/src/core/email_service.py`, `frontend/src/`, `test/`  
+**Nội dung thực hiện chi tiết:**
+1. **Nâng cấp gửi OTP qua Brevo HTTPS API v3 (`email_service.py`):**
+   - Khắc phục hoàn toàn lỗi Render free-tier chặn cổng SMTP bằng cách gửi trực tiếp qua **`api.brevo.com` (HTTPS cổng `443`)** sử dụng `BREVO_API_KEY`; giữ fallback SMTP kèm chuẩn RFC `formataddr` / `Header(..., "utf-8")`.
+   - Trả về trạng thái trung thực `email_sent: false` kèm log lỗi chi tiết nếu gửi thất bại, tuyệt đối không báo thành công giả.
+2. **Khởi tạo & Nâng cấp Bộ Kiểm thử Song hành Manual + Automation (`CDTN02-main/test/`):**
+   - Tích hợp trực tiếp dự án Maven Java 17 + TestNG `7.10.2` + Selenium `4.25.0` + Apache POI `5.3.0` + `HttpClient` ngay trong monorepo `CDTN02-main/test/`.
+   - Thiết kế sổ Excel 5 sheet `TestCases_Selenium_PARTIME_VN.xlsx` (17 cột chia 3 màu Chung / Manual / Automation, Data Validation, công thức tự động `COUNTA`/`COUNTIF`, và 5 biểu đồ thống kê ở `Overview_Summary`) đạt quy mô **`251` Test Cases** (`87` SV, `92` NTD, `72` QTV).
+   - Triển khai **`CookieSessionManager.java` (`MANUAL_FIRST_THEN_COOKIE`)**: lượt đầu mở màn đăng nhập để nhập tay an toàn rồi lưu Token/Cookie vào `test/cookies/*.json`; các lượt sau tự nạp và phục hồi giúp chạy liên tục không bị văng đăng xuất 401.
+   - Tích hợp chế độ trình chiếu trực quan trên Chrome (`#selenium-live-banner`, con trỏ chuột ảo, viền đỏ phần tử, gõ từng ký tự).
+3. **Khắc phục lỗi thực tế phát hiện qua chạy Selenium trên Render:**
+   - Sửa xử lý chuyển tab trong `AccountModal`, nút đóng Drawer trên màn hình Mobile Admin, căn hàng cụm nút ATS Danh sách thẳng 1 hàng ngang và giữ cố định chiều cao vùng chú thích `h-12` trên 3 biểu đồ SVG Dashboard.
+
+---
+
+## 38. GIAI ĐOẠN 38: PHỦ ĐỦ 57 LỆNH SELENIUM PLT SOLUTIONS, CHẠY TESTNG ĐẠT 177 PASS / 0 FAIL & ĐỒNG BỘ 6 TÀI LIỆU + README.MD
+**Thời gian:** 19/11/2026 – 20/11/2026  
+**Thành phần:** `test/src/test/java/com/partime/**`, `test/TestCases_Selenium_PARTIME_VN.xlsx`, `tailieu/bailam/*.md`, `README.md`  
+**Nội dung thực hiện chi tiết:**
+1. **Rà soát & Chuẩn hóa 251 Kịch bản theo 4 Cấp độ × 6 Loại + 57 Lệnh *PLT Solutions PDF*:**
+   - Hoàn thiện ánh xạ và thực thi đủ **57 lệnh Selenium WebDriver Java** từ tài liệu *PLT Solutions PDF* trong `BasePage.java` và 3 Page Object (`StudentPage`, `EmployerPage`, `AdminPage`): thêm `scriptTimeout`, điều khiển `iframe` PDF (`switchTo().frame()`, `parentFrame()`, `defaultContent()`), kiểm chuẩn `Zero Native Dialogs` (`switchTo().alert()`), quản lý an toàn `Select` (bảo vệ 4 lệnh `deselect*` trong `if (sel.isMultiple())`), và quản lý Cookie (`deleteAllCookies` có khôi phục, `deleteCookie`, `deleteCookieNamed`, `getCookieNamed`).
+   - Thay thế toàn bộ 14 Unit Test stub trước đây trong `CrossRoleAndApiHelper.java` bằng hàm kiểm chứng thực tế (`PBKDF2WithHmacSHA256` 100.000 vòng + JWT 86.400s, tìm kiếm không dấu & ranh giới Quận 1, chuỗi viết liền `>= 4` ký tự, regex `^0\d{9}$`, trung bình sao bỏ bài ẩn...), sửa lỗi logic nhánh ở `TC-SV-074/075` & `TC-SV-078`, và hiện thực đầy đủ các bài test API thực (`TC-SV-050/063`, `TC-NTD-033/066/084`, `TC-QTV-035/040/055/063`).
+   - Trung thực chuyển 4 ca phụ thuộc dữ liệu clone/pending/ẩn (`TC-NTD-044, 056, 073`, `TC-QTV-022`) về `Run_Mode=NO`, cố định tập **`177 YES / 74 NO`** bảo vệ tài khoản Production Render.
+2. **Xác minh thực tế TestNG trực tiếp lên Production Render (`https://parttime-css0.onrender.com`):**
+   - Kết quả chạy chính thức: **`Total tests run: 251, Passes: 177, Failures: 0, Skips: 74`** (`SV: 65 PASS`, `NTD: 64 PASS`, `QTV: 48 PASS`).
+   - Kiểm tra hậu kiểm: **`0` ảnh chụp lỗi FAIL**, **`0` dữ liệu `[AutoTest]` tồn dư** trên cơ sở dữ liệu Render, 5 biểu đồ trong Excel giữ nguyên vẹn.
+3. **Đồng bộ trọn bộ 6 Tài liệu `.md` trong `tailieu/bailam/` & `README.md`:**
+   - **`dieukienrangbuoc.md`:** Cập nhật chuẩn xác `18` collections + GridFS, PBKDF2 `100.000` vòng, Brevo API v3, `41` BR, `13` NFR và bản đồ `109+` API / `10 on + 17 emit` Socket.IO.
+   - **`thietke.md`:** Viết lại toàn bộ **`42` Google Stitch Prompts** đồng bộ 1-1 với giao diện thực tế đang vận hành (8 cột *Digital Light Dimension*, 0 emoji, chỉ Lucide icons) và ghi rõ 4 file UI dự phòng không mount.
+   - **`kichban.md` (thay thế và xóa `test.md`):** Trình bày lộ trình 251 Test Cases từ dễ -> khó, đúng -> sai, giải thích 74 ca `NO`, và lập bảng đối chiếu chi tiết toàn bộ 57 lệnh *PLT Solutions PDF* theo Frontend / API / Data cho người tiếp nhận sau.
+   - **`noidung.md`:** Biên soạn lại toàn diện báo cáo Đồ án Chuyên đề Tốt nghiệp 2 bám sát đúng cấu trúc mục lục chuẩn Đại học Văn Lang (*Chương 1 → Chương 5, Tài liệu tham khảo, Phụ lục*), giải thích dễ hiểu cho cả người đọc ngoài chuyên ngành và trung thực 100% với mã nguồn thực tế (`React 18.2`).
+   - **`congnghe.md`:** Lập mới tài liệu đối chiếu giữa `CongNghe.docx` và công nghệ thực tế đang chạy (nhấn mạnh `React 18.2`, không dùng React Router/Axios/Cloudinary/Flasgger/`Flask-PyMongo`/`Flask-Mail`/`pytest`, mà dùng `pymongo` + GridFS + `PBKDF2` + Brevo API v3 + Selenium POM) kèm từ điển giải thích vai trò từng hàm và biến cho người mới đọc.
+   - **`README.md`:** Cập nhật lại toàn diện cây thư mục chính xác **`35` thư mục (`5` cấp 1 + `30` thư mục con)** và **`111` tệp tin** kèm chú thích từng tệp; viết lại hướng dẫn dựng dự án từ con số 0 đến triển khai Docker/Render mà **không lộ bất kỳ mật khẩu, API key, URI CSDL hay tài khoản riêng tư nào** (thay bằng hướng dẫn người dùng tự đăng ký/tạo khóa cá nhân).
+
+---
+
+> **Ghi chú đối chiếu lịch sử cho người đọc:** Các giai đoạn từ `01` đến `31` ở phần trên phản ánh đúng lịch sử tiến hóa qua từng buổi làm việc (bao gồm những thiết kế thử nghiệm cũ như giao diện Dark 4D, `16` collections, băm Bcrypt, OTP `10` phút, cổng local `8002`, hay bộ `9` `unittest` Python ban đầu). Kể từ **Giai đoạn 32 đến Giai đoạn 38**, toàn bộ kiến trúc hiện hành đã được chuẩn hóa thống nhất theo **Digital Light Dimension**, **MongoDB Atlas 18 Collections + GridFS**, **PBKDF2-HMAC-SHA256 (`100.000` vòng)**, **OTP 60 giây qua Brevo HTTPS API v3**, **Render Docker Deploy** và bộ kiểm thử **`251` Test Cases Selenium WebDriver Java POM** (`177 PASS / 0 FAIL`).

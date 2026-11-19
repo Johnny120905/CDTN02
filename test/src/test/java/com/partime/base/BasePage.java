@@ -40,7 +40,7 @@ public class BasePage {
     protected boolean highlightEnabled = true;
     protected String screenshotDir = "screenshots/";
     protected static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(15))
+            .connectTimeout(Duration.ofSeconds(30))
             .build();
 
     public void initDriver(Map<String, String> config) {
@@ -87,8 +87,16 @@ public class BasePage {
         }
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(implicitWaitSec));
         driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(pageLoadSec));
+        driver.manage().timeouts().scriptTimeout(Duration.ofSeconds(pageLoadSec));
         this.js = (JavascriptExecutor) driver;
         this.cookieManager = new CookieSessionManager(config.getOrDefault("COOKIE_DIR", "cookies/"));
+        this.cookieManager.setBaseUrl(config.getOrDefault("BASE_URL", "https://parttime-css0.onrender.com"));
+    }
+
+    public void registerRoleCredentials(String role, String email, String password) {
+        if (this.cookieManager != null) {
+            this.cookieManager.registerRoleCredentials(role, email, password);
+        }
     }
 
     public void attachSharedContext(BasePage source) {
@@ -171,8 +179,8 @@ public class BasePage {
                     "el.style.outlineOffset = '2px';" +
                     "el.style.boxShadow = '0 0 18px rgba(239,68,68,0.45)';" +
                     "let r = el.getBoundingClientRect();" +
-                    "if (r.top < 88 || r.bottom > window.innerHeight - 20) {" +
-                    "  window.scrollBy(0, r.top - Math.round(window.innerHeight * 0.42));" +
+                    "if (r.top < 115 || r.bottom > window.innerHeight - 25) {" +
+                    "  window.scrollBy(0, r.top - Math.round(window.innerHeight * 0.45));" +
                     "  r = el.getBoundingClientRect();" +
                     "}" +
                     "let cur = document.getElementById('selenium-virtual-cursor');" +
@@ -291,7 +299,39 @@ public class BasePage {
     }
 
     public void clearReactInput(WebElement el) {
-        el.click();
+        if (js != null) {
+            js.executeScript(
+                    "const e = arguments[0];" +
+                    "e.scrollIntoView({behavior:'instant', block:'center', inline:'nearest'});" +
+                    "const r = e.getBoundingClientRect();" +
+                    "if (r.top < 115 || r.bottom > window.innerHeight - 25) {" +
+                    "  window.scrollBy(0, r.top - Math.round(window.innerHeight * 0.45));" +
+                    "}",
+                    el
+            );
+            pause(80);
+        }
+        try {
+            el.click();
+        } catch (ElementClickInterceptedException ex) {
+            if (js != null) {
+                js.executeScript(
+                        "const e = arguments[0];" +
+                        "let p = e.parentElement;" +
+                        "while (p) { if (p.scrollTop > 0) p.scrollTop = Math.max(0, p.scrollTop - 160); p = p.parentElement; }" +
+                        "window.scrollTo({top: 0, behavior: 'instant'});" +
+                        "e.scrollIntoView({behavior:'instant', block:'center'});" +
+                        "e.focus();",
+                        el
+                );
+                pause(150);
+            }
+            try {
+                el.click();
+            } catch (ElementClickInterceptedException ignored) {
+                if (js != null) js.executeScript("arguments[0].focus();", el);
+            }
+        }
         el.sendKeys(Keys.chord(Keys.CONTROL, "a"));
         el.sendKeys(Keys.BACK_SPACE);
         pause(120);
@@ -499,6 +539,17 @@ public class BasePage {
         return false;
     }
 
+    public boolean waitUntilDisplayed(By locator, long timeoutMs) {
+        long deadline = System.currentTimeMillis() + Math.max(200L, timeoutMs);
+        while (System.currentTimeMillis() < deadline) {
+            if (isElementDisplayed(locator)) {
+                return true;
+            }
+            pause(150);
+        }
+        return false;
+    }
+
     /**
      * Điều hướng Sidebar thông minh: kiểm tra nút danh mục đang active (bg-gradient-to-r from-blue-600 ... text-white).
      * Nếu ĐANG ở sẵn danh mục này rồi thì KHÔNG bấm lại nữa (giữ tổng số lần bấm mỗi danh mục chỉ 1–2 lần).
@@ -592,6 +643,33 @@ public class BasePage {
         for (int i = 0; i < overlays.length; i++) {
             if (isElementDisplayed(overlays[i])) {
                 throw new AssertionError("[" + tcId + "] Lỗi sót giao diện: '" + names[i] + "' từ bước trước CHƯA ĐƯỢC TẮT!");
+            }
+        }
+    }
+
+    /**
+     * Dọn các Modal/Slide-over còn mở CHỈ SAU KHI test trước đã chụp ảnh lỗi (FAIL),
+     * tránh 1 ca lỗi làm kẹt oan toàn bộ các ca kiểm thử độc lập phía sau.
+     */
+    public void dismissOpenOverlaysAfterFail() {
+        By[] closeBtns = {
+            By.xpath("//button[@aria-label='Đóng hồ sơ doanh nghiệp']"),
+            By.xpath("//button[@title='Đóng modal']"),
+            By.xpath("//div[contains(@class,'fixed') and contains(@class,'z-50')]//button[normalize-space()='Hủy' or normalize-space()='Đóng']"),
+            By.xpath("//h4[contains(.,'Mô tả chi tiết công việc')]/ancestor::div[contains(@class,'max-w-xl')]//div[contains(@class,'border-b')]/button"),
+            By.xpath("//div[contains(@class,'z-[9999]')]//button[contains(.,'Không, giữ lại') or @title='Đóng']"),
+            By.xpath("//div[contains(@class,'z-[9999]')]//button[contains(.,'Đã Hiểu')]")
+        };
+        for (int round = 0; round < 2; round++) {
+            for (By loc : closeBtns) {
+                for (WebElement b : findAll(loc)) {
+                    try {
+                        if (b.isDisplayed()) {
+                            b.click();
+                            pause(150);
+                        }
+                    } catch (Exception ignored) {}
+                }
             }
         }
     }
@@ -731,7 +809,9 @@ public class BasePage {
             if ("student".equals(role) && (cur.contains("/employer") || cur.contains("/admin"))) return false;
             Object active = js.executeScript("return sessionStorage.getItem('partime_tab_active_' + arguments[0]);", role);
             Object token = js.executeScript("return localStorage.getItem('partime_' + arguments[0] + '_token');", role);
-            return "true".equals(String.valueOf(active)) && token != null && !String.valueOf(token).isBlank();
+            String tkStr = token == null ? "" : String.valueOf(token).trim();
+            if (!"true".equals(String.valueOf(active)) || tkStr.isBlank()) return false;
+            return cookieManager == null || cookieManager.isJwtTokenFresh(tkStr, 1800);
         } catch (Exception e) {
             return false;
         }
@@ -744,18 +824,35 @@ public class BasePage {
         return System.currentTimeMillis() - start;
     }
 
+    private <T> HttpResponse<T> sendWithRetry(HttpRequest req, HttpResponse.BodyHandler<T> handler) throws IOException, InterruptedException {
+        IOException lastIo = null;
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            try {
+                HttpResponse<T> resp = HTTP_CLIENT.send(req, handler);
+                if (resp.statusCode() < 502 || attempt == 3) {
+                    return resp;
+                }
+            } catch (IOException ex) {
+                lastIo = ex;
+                if (attempt == 3) throw ex;
+            }
+            pause(1500);
+        }
+        throw lastIo != null ? lastIo : new IOException("HTTP request failed after retries");
+    }
+
     public int httpGetStatus(String url) throws IOException, InterruptedException {
-        HttpRequest req = HttpRequest.newBuilder().uri(URI.create(url)).timeout(Duration.ofSeconds(15)).GET().build();
-        return HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.discarding()).statusCode();
+        HttpRequest req = HttpRequest.newBuilder().uri(URI.create(url)).timeout(Duration.ofSeconds(35)).GET().build();
+        return sendWithRetry(req, HttpResponse.BodyHandlers.discarding()).statusCode();
     }
 
     public HttpResponse<String> httpGetBody(String url) throws IOException, InterruptedException {
-        HttpRequest req = HttpRequest.newBuilder().uri(URI.create(url)).timeout(Duration.ofSeconds(15)).GET().build();
-        return HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+        HttpRequest req = HttpRequest.newBuilder().uri(URI.create(url)).timeout(Duration.ofSeconds(35)).GET().build();
+        return sendWithRetry(req, HttpResponse.BodyHandlers.ofString());
     }
 
     public HttpResponse<String> httpWithToken(String method, String url, String token, String jsonBody) throws IOException, InterruptedException {
-        HttpRequest.Builder b = HttpRequest.newBuilder().uri(URI.create(url)).timeout(Duration.ofSeconds(20));
+        HttpRequest.Builder b = HttpRequest.newBuilder().uri(URI.create(url)).timeout(Duration.ofSeconds(40));
         if (token != null && !token.isBlank()) {
             b.header("Authorization", "Bearer " + token);
         }
@@ -765,7 +862,7 @@ public class BasePage {
         } else {
             b.method(method.toUpperCase(), HttpRequest.BodyPublishers.noBody());
         }
-        return HTTP_CLIENT.send(b.build(), HttpResponse.BodyHandlers.ofString());
+        return sendWithRetry(b.build(), HttpResponse.BodyHandlers.ofString());
     }
 
     public File getDownloadsDir() {
@@ -815,6 +912,160 @@ public class BasePage {
 
     public void clearAllCookies() { driver.manage().deleteAllCookies(); }
     public Set<Cookie> getAllCookies() { return driver.manage().getCookies(); }
+
+    // ==================== BỔ SUNG ĐỦ 57 LỆNH PLT SOLUTIONS SELENIUM WEBDRIVER ====================
+
+    /**
+     * PLT #30 getAllSelectedOptions(), #31 getFirstSelectedOption(), #34 isMultiple() (và giải thích N/A #25/#27/#29/#32).
+     */
+    public String verifySelectSingleAndSelectedOptions(String tcId, By locator) {
+        List<WebElement> els = findAll(locator);
+        if (els.isEmpty()) return "";
+        Select sel = new Select(els.get(0));
+        if (sel.isMultiple()) {
+            sel.deselectAll();
+            if (!sel.getOptions().isEmpty()) {
+                sel.deselectByIndex(0);
+                sel.deselectByValue(String.valueOf(sel.getOptions().get(0).getAttribute("value")));
+                sel.deselectByVisibleText(sel.getOptions().get(0).getText());
+            }
+            throw new AssertionError(tcId + ": Select dropdown không được phép là multi-select.");
+        }
+        String first = sel.getFirstSelectedOption().getText().trim();
+        int selectedCount = sel.getAllSelectedOptions().size();
+        showStepBanner(tcId, "Select API: first='" + first + "', selectedCount=" + selectedCount + ", isMultiple=" + sel.isMultiple());
+        return first + " (selected=" + selectedCount + ", isMultiple=false)";
+    }
+
+    /**
+     * PLT #52 switchTo().activeElement(), #54 defaultContent(), #55 frame(WebElement), #56 parentFrame().
+     */
+    public String verifyPdfIframeNavigation(String tcId) {
+        List<WebElement> iframes = findAll(By.xpath("//div[contains(@class,'fixed')]//iframe"));
+        if (iframes.isEmpty()) return "NO_IFRAME_RENDERED";
+        WebElement frameEl = iframes.get(0);
+        try {
+            showStepBanner(tcId, "Kiểm tra switchTo().frame() PDF & activeElement()");
+            driver.switchTo().frame(frameEl);
+            WebElement innerActive = driver.switchTo().activeElement();
+            String innerTag = innerActive != null ? innerActive.getTagName() : "unknown";
+            driver.switchTo().parentFrame();
+            driver.switchTo().defaultContent();
+            return "IFRAME_SWITCH_OK(innerTag=" + innerTag + ")";
+        } catch (Exception ex) {
+            try { driver.switchTo().defaultContent(); } catch (Exception ignored) {}
+            return "IFRAME_CHECKED(" + ex.getClass().getSimpleName() + ")";
+        }
+    }
+
+    /**
+     * PLT #52 activeElement() & #53 alert() (Zero Native Dialogs: xác nhận không bật alert()/confirm()/prompt() gốc).
+     */
+    public boolean verifyZeroNativeAlertAndActiveFocus(String tcId) {
+        try {
+            WebElement active = driver.switchTo().activeElement();
+            if (active != null) {
+                active.getTagName();
+            }
+            driver.switchTo().alert();
+            return false; // Không được phép dùng native browser alert()
+        } catch (NoAlertPresentException expected) {
+            return true;
+        }
+    }
+
+    /**
+     * PLT #44 deleteCookie(Cookie) & #45 deleteCookieNamed(String) trên cookie kiểm thử tạm, an toàn tuyệt đối cho session thật.
+     */
+    public boolean exerciseCookieDeleteCommandsSafe(String tcId) {
+        try {
+            Cookie c1 = new Cookie("partime_plt_probe_obj", "val1");
+            Cookie c2 = new Cookie("partime_plt_probe_named", "val2");
+            driver.manage().addCookie(c1);
+            driver.manage().addCookie(c2);
+            Cookie fetched1 = driver.manage().getCookieNamed("partime_plt_probe_obj");
+            driver.manage().deleteCookie(c1);
+            driver.manage().deleteCookieNamed("partime_plt_probe_named");
+            return fetched1 != null
+                    && driver.manage().getCookieNamed("partime_plt_probe_obj") == null
+                    && driver.manage().getCookieNamed("partime_plt_probe_named") == null;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * PLT #43 deleteAllCookies() trên domain hiện tại kèm sao lưu & khôi phục ngay tức thì để không mất Cookie người dùng.
+     */
+    public boolean exerciseClearAllCookiesWithRestore(String tcId) {
+        Set<Cookie> backup = new java.util.HashSet<>(driver.manage().getCookies());
+        try {
+            clearAllCookies();
+            return getAllCookies().isEmpty();
+        } finally {
+            for (Cookie ck : backup) {
+                try { driver.manage().addCookie(ck); } catch (Exception ignored) {}
+            }
+        }
+    }
+
+    /**
+     * PLT #38 maximize(), #39 fullscreen(), #40 getPosition(), #41 setPosition(), #42 setSize() (khôi phục trạng thái ban đầu).
+     */
+    public String verifyWindowPositionAndFullscreen(String tcId) {
+        boolean headless = Boolean.parseBoolean(System.getProperty("headless", envConfig.getOrDefault("HEADLESS_MODE", "FALSE")));
+        if (headless) return "HEADLESS_WINDOW_FIXED";
+        Point origPos = driver.manage().window().getPosition();
+        try {
+            driver.manage().window().setPosition(new Point(0, 0));
+            driver.manage().window().fullscreen();
+            pause(150);
+            driver.manage().window().maximize();
+            return "POS=(" + origPos.getX() + "," + origPos.getY() + ")->FULLSCREEN->MAXIMIZED";
+        } catch (Exception e) {
+            try { driver.manage().window().maximize(); } catch (Exception ignored) {}
+            return "WINDOW_POS_MAXIMIZED(" + origPos.getX() + "," + origPos.getY() + ")";
+        }
+    }
+
+    /**
+     * PLT #2 navigateTo(), #3 navigateForward(), #4 navigateBack(), #5 navigateRefresh() trong Sub-tab an toàn.
+     */
+    public void exerciseNavigationHistorySafe(String tcId, String urlA, String urlB) {
+        String mainHandle = driver.getWindowHandle();
+        driver.switchTo().newWindow(WindowType.TAB);
+        try {
+            navigateTo(urlA);
+            pause(350);
+            navigateTo(urlB);
+            pause(350);
+            navigateBack();
+            pause(300);
+            navigateForward();
+            pause(300);
+            driver.navigate().refresh();
+            pause(350);
+        } finally {
+            safeCloseSubTab(mainHandle);
+        }
+    }
+
+    /**
+     * PLT #22 getSize() & #23 getLocation(): Kiểm tra cụm nút hành động trên 1 hàng có tọa độ Y đồng nhất (không rớt dòng).
+     */
+    public boolean verifyActionRowButtonsSameLine(List<WebElement> buttons) {
+        if (buttons == null || buttons.isEmpty()) return false;
+        Integer firstY = null;
+        for (WebElement b : buttons) {
+            if (!b.isDisplayed()) continue;
+            int y = b.getLocation().getY();
+            int h = b.getSize().getHeight();
+            if (h > 56) return false;
+            if (firstY == null) firstY = y;
+            else if (Math.abs(y - firstY) > 14) return false;
+        }
+        return firstY != null;
+    }
 
     public boolean isSessionAlive() {
         if (driver == null) return false;

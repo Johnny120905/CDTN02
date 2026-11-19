@@ -96,29 +96,6 @@ public class AdminPage extends BasePage {
             }
         }
 
-        if (m.contains("verifyMobileDrawerAndModalButtonOrder")) {
-            String mainHandle = driver.getWindowHandle();
-            driver.switchTo().newWindow(WindowType.TAB);
-            try {
-                forceOpenUrl(tcId, adminUrl);
-                setViewportSize(430, 932);
-                pause(450);
-                showStepBanner(tcId, "📐 Mobile UI /admin (430x932)");
-                Number scrollW = (Number) js.executeScript("return document.documentElement.scrollWidth;");
-                Number clientW = (Number) js.executeScript("return document.documentElement.clientWidth;");
-                return (scrollW.longValue() <= clientW.longValue() + 12)
-                        ? ScenarioResult.pass("Mobile UI /admin (430px) không tràn khung ngang.")
-                        : ScenarioResult.fail("Mobile UI /admin tràn ngang: " + scrollW + " > " + clientW);
-            } finally {
-                if (!Boolean.parseBoolean(System.getProperty("headless", envConfig.getOrDefault("HEADLESS_MODE", "FALSE")))) {
-                    driver.manage().window().maximize();
-                } else {
-                    setViewportSize(1920, 1080);
-                }
-                safeCloseSubTab(mainHandle);
-            }
-        }
-
         if (m.contains("verifyAdminTabNotAffectedByStudentLogout")) {
             String mainHandle = driver.getWindowHandle();
             driver.switchTo().newWindow(WindowType.TAB);
@@ -153,6 +130,33 @@ public class AdminPage extends BasePage {
             return ScenarioResult.waitCookie("admin");
         }
         assertNoBlockingOverlayOpen(tcId);
+
+        if (m.contains("verifyMobileDrawerAndModalButtonOrder")) {
+            boolean hasBadge = getPageSource().contains("Quản trị viên hệ thống");
+            String winState = "";
+            try {
+                setViewportSize(430, 932);
+                pause(450);
+                showStepBanner(tcId, "📐 Mobile Drawer Admin đã đăng nhập (430x932)");
+                Number scrollW = (Number) js.executeScript("return document.documentElement.scrollWidth;");
+                Number clientW = (Number) js.executeScript("return document.documentElement.clientWidth;");
+                boolean noOverflow = scrollW.longValue() <= clientW.longValue() + 12;
+                By mobileMenuBtn = By.xpath("//header//button[@aria-label or contains(@title,'menu') or contains(@title,'danh mục')]");
+                tryDemoClick(tcId, "Mở Drawer Sidebar Mobile Admin", mobileMenuBtn);
+                pause(250);
+                tryDemoClick(tcId, "Đóng Drawer Sidebar Mobile Admin", By.xpath("//aside//button[contains(@class,'md:hidden')]"));
+                return (hasBadge && noOverflow)
+                        ? ScenarioResult.pass("Mobile UI /admin (đã đăng nhập) có badge 'Quản trị viên hệ thống', Drawer & không tràn ngang.")
+                        : ScenarioResult.fail("Lỗi Mobile UI Admin (hasBadge=" + hasBadge + ", overflow=" + !noOverflow + ").");
+            } finally {
+                if (Boolean.parseBoolean(System.getProperty("headless", envConfig.getOrDefault("HEADLESS_MODE", "FALSE")))) {
+                    setViewportSize(1920, 1080);
+                } else {
+                    winState = verifyWindowPositionAndFullscreen(tcId);
+                }
+                pause(300);
+            }
+        }
 
         if (m.contains("verifyAdminProfileNameAndNoSelfDelete")) {
             demoClick(tcId, "Mở menu Tài khoản Admin", headerAccountBtn);
@@ -244,7 +248,9 @@ public class AdminPage extends BasePage {
                 File xls = waitForDownloadedFile(".xls", 8000);
                 long ms = System.currentTimeMillis() - t0;
                 clearDownloadsDir();
-                return ScenarioResult.pass("Xuất báo cáo Excel Dashboard Admin (downloaded=" + (xls != null) + ", elapsed=" + ms + "ms).");
+                return (xls != null && ms < 8000)
+                        ? ScenarioResult.pass("Xuất báo cáo Excel Dashboard Admin (downloaded=true, elapsed=" + ms + "ms < 8000ms).")
+                        : ScenarioResult.fail("Xuất Excel Dashboard Admin thất bại hoặc quá chậm (" + ms + "ms, xls=" + (xls != null) + ").");
             }
             if (m.contains("verifyChartTooltipFixedHeightNoLayoutShift")) {
                 By tooltipBox = By.xpath("//div[contains(@class,'h-12') and contains(@class,'rounded-xl')]");
@@ -318,19 +324,36 @@ public class AdminPage extends BasePage {
             By userModalH3 = By.xpath("//div[contains(@class,'fixed') and contains(@class,'z-50')]//h3");
             By userModalClose = By.xpath("//div[contains(@class,'fixed') and contains(@class,'z-50')]//div[contains(@class,'border-b')]/button");
             if (!isElementDisplayed(userModalH3)) return ScenarioResult.fail("Modal chi tiết người dùng không mở.");
-            closeDialogAndAssertGone(tcId, "Modal Chi tiết người dùng", userModalClose, userModalH3);
-            return ScenarioResult.pass("Mở Modal Chi tiết người dùng kiểm tra hồ sơ & đóng sạch bằng nút X.");
+            String subDoc = "DETAIL_MODAL_OK";
+            List<WebElement> subPdfBtns = findAll(By.xpath("//div[contains(@class,'fixed')]//button[contains(.,'Xem CV') or contains(.,'Xem bản in') or contains(.,'Xem GPKD')]"));
+            if (!subPdfBtns.isEmpty() && subPdfBtns.get(0).isDisplayed()) {
+                demoClick(tcId, "Mở tài liệu PDF trong Modal Chi tiết User", By.xpath("(//div[contains(@class,'fixed')]//button[contains(.,'Xem CV') or contains(.,'Xem bản in') or contains(.,'Xem GPKD')])[1]"));
+                pause(600);
+                subDoc = verifyPdfIframeNavigation(tcId);
+                tryDemoClick(tcId, "Đóng DocumentViewerModal", By.xpath("//button[@title='Đóng modal']"));
+            }
+            if (isElementDisplayed(userModalH3)) {
+                closeDialogAndAssertGone(tcId, "Modal Chi tiết người dùng", userModalClose, userModalH3);
+            }
+            return ScenarioResult.pass("Mở Modal Chi tiết người dùng (" + subDoc + ") & đóng sạch bằng nút X.");
         }
 
         if (m.contains("filterEmployersAndViewPdf") || m.contains("verifyGpkdDesk3KpisAndMstFormatFilter")
                 || m.contains("verifyGpkdPdfViewerAndDownload")) {
             clickSidebar(tcId, "Bàn thẩm định");
             pause(500);
-            if (m.contains("verifyGpkdPdfViewerAndDownload")) {
+            if (m.contains("verifyGpkdPdfViewerAndDownload") || m.contains("filterEmployersAndViewPdf")) {
+                By gpkdSearch = By.xpath("//input[contains(@placeholder,'Tìm')]");
+                if (!findAll(gpkdSearch).isEmpty()) {
+                    demoType(tcId, "Tìm kiếm tại Bàn thẩm định GPKD", gpkdSearch, "Coffee");
+                    pause(300);
+                    clearReactInput(find(gpkdSearch));
+                }
                 List<WebElement> pdfBtns = findAll(By.xpath("//button[contains(.,'Xem file GPKD')]"));
                 if (pdfBtns.isEmpty()) return ScenarioResult.pass("Bàn thẩm định GPKD hiển thị bình thường (chưa có tệp PDF đính kèm).");
-                demoClickRandomElement(tcId, "Chọn dòng GPKD ngẫu nhiên & bấm 'Xem file GPKD'", By.xpath("//button[contains(.,'Xem file GPKD')]"));
+                demoClickRandomElement(tcId, "Chọn dòng GPKD & bấm 'Xem file GPKD'", By.xpath("//button[contains(.,'Xem file GPKD')]"));
                 pause(650);
+                String iframeState = verifyPdfIframeNavigation(tcId);
                 clearDownloadsDir();
                 tryDemoClick(tcId, "Bấm 'Tải về' PDF GPKD trong DocumentViewerModal", By.xpath("//button[@title='Tải tệp PDF về máy tính' or normalize-space()='Tải về']"));
                 pause(750);
@@ -340,17 +363,14 @@ public class AdminPage extends BasePage {
                 if (isElementDisplayed(closeDocBtn)) {
                     closeDialogAndAssertGone(tcId, "DocumentViewerModal GPKD Admin", closeDocBtn, closeDocBtn);
                 }
-                return ScenarioResult.pass("Mở DocumentViewerModal GPKD + Tải file PDF về máy (downloaded=" + (pdfDl != null) + ") & đóng sạch.");
+                return ScenarioResult.pass("Mở DocumentViewerModal GPKD (" + iframeState + ") + Tải file PDF về máy (downloaded=" + (pdfDl != null) + ") & đóng sạch.");
             }
-            By gpkdSearch = By.xpath("//input[contains(@placeholder,'Tìm')]");
-            if (!findAll(gpkdSearch).isEmpty()) {
-                demoType(tcId, "Tìm kiếm tại Bàn thẩm định GPKD", gpkdSearch, "Coffee");
-                pause(300);
-                clearReactInput(find(gpkdSearch));
-            }
+            By mstSel = By.xpath("//select[option[contains(.,'10')] or option[contains(.,'MST')]]");
+            String mstPick = demoSelectRandomNonDefaultOption(tcId, "Lọc định dạng MST tại Bàn GPKD", mstSel);
+            tryDemoSelectByIndex(tcId, "Reset lọc MST", mstSel, 0);
             tryDemoClick(tcId, "Lọc GPKD Đã duyệt", By.xpath("//button[contains(.,'Đã duyệt') or contains(.,'Đã phê duyệt')]"));
             tryDemoClick(tcId, "Quay lại Tất cả GPKD", By.xpath("//button[contains(.,'Tất cả')]"));
-            return ScenarioResult.pass("Kiểm tra 3 KPI & bộ lọc trạng thái tại Bàn thẩm định GPKD.");
+            return ScenarioResult.pass("Kiểm tra 3 KPI, lọc định dạng MST (" + mstPick + ") & trạng thái tại Bàn thẩm định GPKD.");
         }
 
         if (m.contains("filterQuickBtnsAndApproveModeration") || m.contains("verifyClickSensitiveKeywordTagFilterAndModal")) {
@@ -569,12 +589,17 @@ public class AdminPage extends BasePage {
             clickSidebar(tcId, "Nhật ký hoạt động");
             pause(450);
             By auditSel = By.xpath("//select[option[@value='all' and contains(.,'Tất cả hành động quản trị')]]");
+            int optCount = !findAll(auditSel).isEmpty() ? new org.openqa.selenium.support.ui.Select(find(auditSel)).getOptions().size() : 0;
+            String selCheck = verifySelectSingleAndSelectedOptions(tcId, auditSel);
             String picked1 = demoSelectRandomNonDefaultOption(tcId, "Lọc Audit Log ngẫu nhiên lượt 1", auditSel);
             pause(250);
             String picked2 = demoSelectRandomNonDefaultOption(tcId, "Lọc Audit Log ngẫu nhiên lượt 2", auditSel);
             pause(250);
-            tryDemoSelectByValue(tcId, "Reset Audit Log về Tất cả", auditSel, "all");
-            return ScenarioResult.pass("Lọc ngẫu nhiên Nhật ký hoạt động (" + picked1 + " -> " + picked2 + ") & reset sạch.");
+            tryDemoSelectByVisibleText(tcId, "Reset Audit Log về Tất cả", auditSel, "Tất cả hành động quản trị (13 nhóm lọc / 16 sự kiện)");
+            tryDemoSelectByValue(tcId, "Reset Audit Log về all", auditSel, "all");
+            return optCount >= 14
+                    ? ScenarioResult.pass("Nhật ký hoạt động đủ " + optCount + " tùy chọn (13 nhóm lọc), lọc (" + picked1 + " -> " + picked2 + ") & reset (" + selCheck + ").")
+                    : ScenarioResult.fail("Số tùy chọn lọc Audit Log chưa đủ 14 (" + optCount + ").");
         }
 
         if (m.contains("publishMissingTitleOrBodyExpectBlocked")) {

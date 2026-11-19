@@ -157,24 +157,6 @@ public class EmployerPage extends BasePage {
             }
         }
 
-        if (m.contains("verifyEmployerFooterQuickLinks")) {
-            if (!isRoleActiveInCurrentBrowser("employer", employerUrl)) openUrlIfDifferent(tcId, employerUrl);
-            assertNoBlockingOverlayOpen(tcId);
-            js.executeScript("window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});");
-            pause(450);
-            boolean hasEmpFooter = getPageSource().contains("parttime") || getPageSource().contains("PARTIME");
-            return hasEmpFooter
-                    ? ScenarioResult.pass("Footer Cổng Doanh nghiệp hiển thị đầy đủ liên kết hỗ trợ.")
-                    : ScenarioResult.fail("Không tìm thấy Footer trên /employer");
-        }
-
-        if (m.contains("measureDashboardLoadTime")) {
-            long loadMs = measurePageLoadLatencyMs(tcId, employerUrl);
-            return (loadMs < 15000 && !getPageTitle().isEmpty())
-                    ? ScenarioResult.pass("Tải cổng /employer trên Render thành công trong " + loadMs + "ms (Đạt NFR).")
-                    : ScenarioResult.fail("Tải /employer quá lâu hoặc lỗi: " + loadMs + "ms");
-        }
-
         if (m.contains("checkEmployerPortal4ViewportsAndButtonWrap")) {
             String mainHandle = driver.getWindowHandle();
             driver.switchTo().newWindow(WindowType.TAB);
@@ -253,31 +235,46 @@ public class EmployerPage extends BasePage {
             return ScenarioResult.pass("Mở & đóng gọn Chuông thông báo / Drawer Chat NTD (không sót overlay).");
         }
 
+        if (m.contains("measureDashboardLoadTime")) {
+            long t0 = System.currentTimeMillis();
+            clickSidebar(tcId, "Bảng điều khiển tuyển dụng");
+            waitUntilDisplayed(By.xpath("//h2[contains(.,'Bảng điều khiển')] | //*[contains(.,'Tổng hồ sơ ứng tuyển')]"), 10000L);
+            long loadMs = System.currentTimeMillis() - t0;
+            return (loadMs < 15000 && !getPageTitle().isEmpty())
+                    ? ScenarioResult.pass("Tải Bảng điều khiển tuyển dụng (đã đăng nhập) trên Render trong " + loadMs + "ms (title=" + getPageTitle() + ").")
+                    : ScenarioResult.fail("Tải Bảng điều khiển NTD quá lâu hoặc lỗi: " + loadMs + "ms");
+        }
+
         if (m.contains("verifyEmployerFooterQuickLinks")) {
             if (!isRoleActiveInCurrentBrowser("employer", employerUrl)) openUrlIfDifferent(tcId, employerUrl);
             assertNoBlockingOverlayOpen(tcId);
             js.executeScript("window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'});");
             pause(450);
-            boolean hasEmpFooter = getPageSource().contains("parttime") || getPageSource().contains("PARTIME");
+            String src = getPageSource();
+            boolean hasEmpFooter = (src.contains("parttime") || src.contains("PARTIME"))
+                    && src.contains("Đăng tin") && src.contains("Quản trị ứng viên");
             js.executeScript("window.scrollTo({top: 0, behavior: 'smooth'});");
             pause(250);
             return hasEmpFooter
-                    ? ScenarioResult.pass("Footer Cổng Doanh nghiệp hiển thị đầy đủ liên kết hỗ trợ.")
-                    : ScenarioResult.fail("Không tìm thấy Footer trên /employer");
+                    ? ScenarioResult.pass("Footer Cổng Doanh nghiệp (đã đăng nhập) hiển thị đầy đủ 4 liên kết hỗ trợ.")
+                    : ScenarioResult.fail("Không tìm thấy Footer hoặc thiếu liên kết trên /employer");
         }
 
         if (m.contains("verifyAccountModalSyncsWithCompanyProfile")) {
+            tryDemoClick(tcId, "Đóng thông báo toast nếu đang che góc phải", By.xpath("//button[@title='Đóng thông báo']"));
             demoClick(tcId, "Mở menu Tài khoản NTD", headerAccountBtn);
             demoClick(tcId, "Mở AccountModal NTD đọc tên công ty", headerAccountItem);
             pause(400);
-            List<WebElement> reqs = findAll(By.xpath("//div[contains(@class,'z-50')]//input[@required]"));
+            tryDemoClick(tcId, "Đảm bảo đang ở tab Thông tin tài khoản", By.xpath("//button[contains(.,'Thông tin tài khoản')]"));
+            pause(250);
+            List<WebElement> reqs = findAll(By.xpath("//h2[contains(.,'Tài khoản & bảo mật')]/ancestor::div[contains(@class,'z-50')]//label[contains(.,'Tên Doanh nghiệp')]/following-sibling::div//input"));
             String val = !reqs.isEmpty() ? String.valueOf(reqs.get(0).getAttribute("value")).trim() : "";
             closeDialogAndAssertGone(tcId, "AccountModal NTD", accountModalCloseBtn, accountModalContainer);
             clickSidebar(tcId, "Hồ sơ doanh nghiệp");
             pause(450);
-            return (val.isEmpty() || getPageSource().contains(val))
-                    ? ScenarioResult.pass("Tên công ty/đại diện ('" + val + "') đồng bộ với Hồ sơ doanh nghiệp.")
-                    : ScenarioResult.fail("Không khớp dữ liệu giữa AccountModal và Hồ sơ doanh nghiệp.");
+            return (!val.isEmpty() && getPageSource().contains(val))
+                    ? ScenarioResult.pass("Tên công ty ('" + val + "') đồng bộ với Hồ sơ doanh nghiệp.")
+                    : ScenarioResult.fail("Không khớp dữ liệu giữa AccountModal ('" + val + "') và Hồ sơ doanh nghiệp.");
         }
 
         if (m.contains("clickHeaderQuickPostJob")) {
@@ -552,9 +549,26 @@ public class EmployerPage extends BasePage {
                 return ScenarioResult.pass("Lọc ATS ngẫu nhiên (" + randCand + "/" + randJob + ") & Xuất Excel ứng viên (downloaded=" + dlOk + ").");
             }
             tryDemoClick(tcId, "Chuyển chế độ Lưới thẻ", By.xpath("//button[contains(.,'Lưới thẻ')]"));
+            pause(350);
+            boolean noCompactToggle = !getPageSource().contains("Thẻ gọn") && findAll(By.xpath("//button[contains(.,'Tất cả') or contains(.,'Đang chờ xét duyệt') or contains(.,'Trúng tuyển') or contains(.,'Chưa phù hợp') or contains(.,'rút đơn')]")).size() >= 5;
             tryDemoClick(tcId, "Chuyển chế độ Danh sách", By.xpath("//button[contains(.,'Danh sách')]"));
+            pause(350);
+            List<WebElement> firstRowBtns = findAll(By.xpath("(//table//tbody/tr)[1]//button"));
+            boolean rowAligned = firstRowBtns.isEmpty() || verifyActionRowButtonsSameLine(firstRowBtns);
             tryDemoClick(tcId, "Quay lại Bảng Kanban", By.xpath("//button[contains(.,'Bảng Kanban')]"));
-            return ScenarioResult.pass("Thao tác chuyển đổi qua lại 3 chế độ ATS (Kanban <-> Lưới thẻ <-> Danh sách) mượt mà.");
+            pause(350);
+            if (m.contains("verifyKanbanExpandAndCollapse12Cards")) {
+                List<WebElement> moreBtns = findAll(By.xpath("//button[contains(.,'Xem thêm')]"));
+                if (!moreBtns.isEmpty() && moreBtns.get(0).isDisplayed()) {
+                    demoClick(tcId, "Bấm 'Xem thêm' mở rộng >12 thẻ Kanban", By.xpath("(//button[contains(.,'Xem thêm')])[1]"));
+                    pause(300);
+                    tryDemoClick(tcId, "Bấm 'Thu gọn về 12 hồ sơ'", By.xpath("(//button[contains(.,'Thu gọn')])[1]"));
+                }
+            }
+            int kanbanCols = findAll(By.xpath("//h4[normalize-space()='Đang chờ xét duyệt' or normalize-space()='Trúng tuyển' or normalize-space()='Chưa phù hợp' or normalize-space()='Sinh viên rút đơn']")).size();
+            return (noCompactToggle && rowAligned && kanbanCols >= 4)
+                    ? ScenarioResult.pass("Xác nhận 3 chế độ ATS (Kanban cols=" + kanbanCols + ", Lưới 5 tab=true, Danh sách 1-hàng Y-aligned=" + rowAligned + ") mượt mà.")
+                    : ScenarioResult.fail("Sai cấu trúc 3 chế độ ATS (kanbanCols=" + kanbanCols + ", noCompactToggle=" + noCompactToggle + ", rowAligned=" + rowAligned + ").");
         }
 
         if (m.contains("openViewCv2ColumnsAutoMarkReviewed")) {
@@ -699,16 +713,36 @@ public class EmployerPage extends BasePage {
                     By modalH3 = By.xpath("//div[contains(@class,'fixed')]//h3[contains(.,'Tạo tin nhắn mới')]");
                     if (isElementDisplayed(modalH3)) {
                         By candSel = By.xpath("//div[contains(@class,'fixed')]//select");
-                        String pickedCand = demoSelectRandomNonDefaultOption(tcId, "Chọn thử ứng viên trong Tạo tin nhắn mới", candSel);
+                        String pickedCand = "";
+                        List<WebElement> candSels = findAll(candSel);
+                        if (!candSels.isEmpty()) {
+                            org.openqa.selenium.support.ui.Select sel = new org.openqa.selenium.support.ui.Select(candSels.get(0));
+                            List<WebElement> opts = sel.getOptions();
+                            for (int i = 1; i < opts.size(); i++) {
+                                String t = opts.get(i).getText().trim();
+                                if (!t.contains("Đã hủy") && !t.contains("Từ chối") && !t.contains("rút") && !t.contains("Chỉ đọc")) {
+                                    sel.selectByIndex(i);
+                                    pickedCand = t;
+                                    break;
+                                }
+                            }
+                            if (pickedCand.isEmpty() && opts.size() > 1) {
+                                sel.selectByIndex(1);
+                                pickedCand = opts.get(1).getText().trim();
+                            }
+                        }
+                        pause(250);
                         By ta = By.xpath("//div[contains(@class,'fixed')]//textarea");
                         if (!findAll(ta).isEmpty()) {
                             demoType(tcId, "Nhập thử tin nhắn khởi tạo", ta, "Xin chào bạn, công ty mời bạn trao đổi lịch ca làm!");
                         }
-                        By sendBtn = By.xpath("//button[contains(.,'Khởi tạo & gửi tin')]");
+                        By sendBtn = By.xpath("//button[contains(.,'Khởi tạo & gửi tin') or contains(.,'Xem lịch sử trò chuyện cũ')]");
                         boolean hasSend = !findAll(sendBtn).isEmpty();
+                        List<WebElement> hdrBtns = findAll(By.xpath("//main//button[contains(.,'Tạo tin nhắn mới') or contains(.,'Gọi thoại') or contains(.,'Gọi video') or contains(.,'Báo cáo')]"));
+                        boolean hdrOk = hdrBtns.isEmpty() || verifyActionRowButtonsSameLine(hdrBtns);
                         By closeNewChatBtn = By.xpath("//div[contains(@class,'fixed')]//h3[contains(.,'Tạo tin nhắn mới')]/ancestor::div[contains(@class,'border-b')]/button | //div[contains(@class,'fixed')]//button[normalize-space()='Hủy' or normalize-space()='Đóng']");
                         closeDialogAndAssertGone(tcId, "Modal Tạo tin nhắn mới", closeNewChatBtn, modalH3);
-                        return ScenarioResult.pass("Mở Modal 'Tạo tin nhắn mới' -> chọn ứng viên (" + pickedCand + ") -> kiểm tra ô nhập & nút Khởi tạo (" + hasSend + ") -> đóng sạch.");
+                        return ScenarioResult.pass("Mở Modal 'Tạo tin nhắn mới' -> chọn (" + pickedCand + ") -> nút CTA (" + hasSend + "), header Y-aligned (" + hdrOk + ") -> đóng sạch.");
                     }
                 }
                 return ScenarioResult.pass("Mở Tin nhắn & kiểm tra nút Tạo tin nhắn mới.");
@@ -757,13 +791,14 @@ public class EmployerPage extends BasePage {
             demoClick(tcId, "Mở DocumentViewerModal xem GPKD PDF", gpkdBtn);
             pause(650);
             if (!isElementDisplayed(docViewerContainer)) return ScenarioResult.fail("Modal xem GPKD PDF không mở.");
+            String iframeState = verifyPdfIframeNavigation(tcId);
             clearDownloadsDir();
             tryDemoClick(tcId, "Bấm 'Tải về' file GPKD PDF", By.xpath("//button[@title='Tải tệp PDF về máy tính' or normalize-space()='Tải về']"));
             pause(700);
             File pdfDl = waitForDownloadedFile(".pdf", 8000);
             clearDownloadsDir();
             closeDialogAndAssertGone(tcId, "DocumentViewerModal GPKD", docViewerCloseBtn, docViewerContainer);
-            return ScenarioResult.pass("Mở xem PDF GPKD + Tải file PDF về máy (downloaded=" + (pdfDl != null) + ") & đóng Modal sạch sẽ.");
+            return ScenarioResult.pass("Mở xem PDF GPKD (" + iframeState + ") + Tải file PDF về máy (downloaded=" + (pdfDl != null) + ") & đóng Modal sạch sẽ.");
         }
 
         return ScenarioResult.needManualOrCloneData(

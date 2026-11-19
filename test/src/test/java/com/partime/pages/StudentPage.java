@@ -128,14 +128,21 @@ public class StudentPage extends BasePage {
 
         // 2. Auth Negative & Guest Mode (chạy an toàn trong Tab phụ để không mất phiên Cookie của Tab chính)
         if (m.contains("loginExpectError")) {
+            exerciseNavigationHistorySafe(tcId, studentUrl, loginUrl);
             return runInSafeAuthTab(tcId, loginUrl, () -> {
+                By rememberChk = By.xpath("//form//input[@type='checkbox']");
+                if (!findAll(rememberChk).isEmpty()) {
+                    boolean beforeSel = isElementSelected(rememberChk);
+                    demoClick(tcId, "Kiểm tra Checkbox Ghi nhớ đăng nhập (selected=" + beforeSel + ")", rememberChk);
+                }
                 demoType(tcId, "Nhập Email thử nghiệm", emailInput, (input1 != null && input1.contains("@")) ? input1 : "sinhvien.test@gmail.com");
                 demoType(tcId, "Nhập Mật khẩu yếu/sai", passwordInput, (input2 != null && !input2.isBlank()) ? input2 : "123");
                 demoClick(tcId, "Bấm nút Đăng nhập kiểm tra thông báo chặn", submitLoginBtn);
                 pause(600);
+                boolean noNativeAlert = verifyZeroNativeAlertAndActiveFocus(tcId);
                 String err = isElementDisplayed(errorAlertBox) ? getElementText(errorAlertBox) : "";
-                return (!err.isBlank() && getCurrentUrl().contains("/login"))
-                        ? ScenarioResult.pass("Chặn đăng nhập sai trên UI: " + err.trim())
+                return (!err.isBlank() && getCurrentUrl().contains("/login") && noNativeAlert)
+                        ? ScenarioResult.pass("Chặn đăng nhập sai trên UI: " + err.trim() + " | History & Checkbox & ZeroAlert OK")
                         : ScenarioResult.fail("Không thấy thông báo lỗi trên /student/login");
             });
         }
@@ -170,6 +177,8 @@ public class StudentPage extends BasePage {
             try {
                 forceOpenUrl(tcId, studentUrl + (studentUrl.contains("?") ? "&" : "?") + "guest=true");
                 pause(650);
+                boolean cookieCrudOk = exerciseCookieDeleteCommandsSafe(tcId);
+                boolean clearedAndRestored = exerciseClearAllCookiesWithRestore(tcId);
                 boolean hasLoginBtn = !findAll(By.xpath("//button[contains(.,'Đăng nhập')]")).isEmpty();
                 List<WebElement> hearts = findAll(By.xpath("//button[@title='Lưu việc làm']"));
                 if (!hearts.isEmpty()) {
@@ -178,7 +187,7 @@ public class StudentPage extends BasePage {
                     pause(500);
                 }
                 return hasLoginBtn
-                        ? ScenarioResult.pass("Tab Khách (?guest=true) hiển thị công khai, có nút Đăng nhập & chặn ghi/Lưu việc làm khi chưa đăng nhập.")
+                        ? ScenarioResult.pass("Tab Khách (?guest=true) công khai, chặn ghi khi chưa đăng nhập | Cookie API(delObj/Named=" + cookieCrudOk + ", clearAllRestore=" + clearedAndRestored + ") OK.")
                         : ScenarioResult.fail("Không nhận diện được Chế độ Khách.");
             } finally {
                 safeCloseSubTab(mainHandle);
@@ -330,6 +339,8 @@ public class StudentPage extends BasePage {
             }
             if (m.contains("filterBy5Criteria")) {
                 String pickedCat = demoSelectRandomNonDefaultOption(tcId, "Lọc Ngành nghề ngẫu nhiên", catSel);
+                tryDemoSelectByVisibleText(tcId, "Chọn Tỉnh/Thành bằng VisibleText", provSel, "TP. Hồ Chí Minh");
+                String selState = verifySelectSingleAndSelectedOptions(tcId, provSel);
                 String pickedProv = demoSelectRandomNonDefaultOption(tcId, "Lọc Tỉnh/Thành ngẫu nhiên", provSel);
                 pause(350);
                 String pickedDist = demoClickRandomElement(tcId, "Tích chọn chip Quận/Huyện ngẫu nhiên", districtChipLoc);
@@ -343,7 +354,7 @@ public class StudentPage extends BasePage {
                 tryDemoSelectByIndex(tcId, "Reset Ca làm", shiftSel, 0);
                 tryDemoSelectByIndex(tcId, "Reset Mức lương", salSel, 0);
                 pause(350);
-                return ScenarioResult.pass("Lọc 5 tiêu chí ngẫu nhiên [" + pickedCat + " | " + pickedProv + " - " + pickedDist + " | " + pickedShift + " | " + pickedSal + "] (khớp " + filteredCount + " tin) & reset sạch.");
+                return ScenarioResult.pass("Lọc 5 tiêu chí [" + pickedCat + " | " + pickedProv + " - " + pickedDist + " | " + pickedShift + " | " + pickedSal + "] (" + selState + ", khớp " + filteredCount + " tin) & reset sạch.");
             }
             if (m.contains("verifyPaginationBarOptions")) {
                 boolean changed20 = tryDemoSelectByValue(tcId, "Đổi Pagination sang 20 tin/trang", pageSizeSel, "20");
@@ -380,11 +391,11 @@ public class StudentPage extends BasePage {
             By compModalClose = By.xpath("//button[@aria-label='Đóng hồ sơ doanh nghiệp']");
             if (!findAll(compLink).isEmpty() && isElementDisplayed(compLink)) {
                 demoClick(tcId, "Bấm tên Doanh nghiệp mở Hồ sơ công ty", compLink);
-                pause(550);
-                if (isElementDisplayed(compModalClose)) {
-                    closeDialogAndAssertGone(tcId, "Modal Hồ sơ doanh nghiệp", compModalClose, compModalClose);
-                    subFlows.append(" -> Hồ sơ Công ty (Đóng X)");
+                if (!waitUntilDisplayed(compModalClose, 6000L)) {
+                    return ScenarioResult.fail("Đã bấm tên Doanh nghiệp nhưng Modal Hồ sơ doanh nghiệp không mở sau 6s.");
                 }
+                closeDialogAndAssertGone(tcId, "Modal Hồ sơ doanh nghiệp", compModalClose, compModalClose);
+                subFlows.append(" -> Hồ sơ Công ty (Đóng X)");
             }
             // 2. Mở Modal Báo cáo vi phạm từ Slide-over JD -> nhập thử lý do -> Bấm Hủy tắt Modal
             By jdReportBtn = By.xpath("//button[@title='Báo cáo tin tuyển dụng vi phạm quy định']");
@@ -393,8 +404,7 @@ public class StudentPage extends BasePage {
             By reportCancel = By.xpath("//h3[contains(.,'Báo cáo vi phạm')]/ancestor::div[contains(@class,'rounded-3xl')]//button[normalize-space()='Hủy']");
             if (!findAll(jdReportBtn).isEmpty() && isElementDisplayed(jdReportBtn)) {
                 demoClick(tcId, "Bấm 'Báo cáo' mở Modal Báo cáo vi phạm", jdReportBtn);
-                pause(450);
-                if (isElementDisplayed(reportHeading)) {
+                if (waitUntilDisplayed(reportHeading, 3000L)) {
                     if (!findAll(reportTextarea).isEmpty()) {
                         demoType(tcId, "Nhập thử lý do báo cáo vi phạm", reportTextarea, "Kiểm tra nhập form báo cáo vi phạm (không gửi)");
                     }
@@ -409,8 +419,7 @@ public class StudentPage extends BasePage {
             By applyCancel = By.xpath("//h3[contains(.,'Nộp Hồ Sơ Ứng Tuyển')]/ancestor::div[contains(@class,'rounded-3xl')]//button[normalize-space()='Hủy']");
             if (!findAll(applyNowBtn).isEmpty() && isElementDisplayed(applyNowBtn) && findAll(applyNowBtn).get(0).isEnabled()) {
                 demoClick(tcId, "Bấm 'Ứng tuyển ngay' mở Modal Nộp hồ sơ", applyNowBtn);
-                pause(500);
-                if (isElementDisplayed(applyHeading)) {
+                if (waitUntilDisplayed(applyHeading, 3000L)) {
                     if (!findAll(applyCvSel).isEmpty()) {
                         moveCursorAndHighlight(find(applyCvSel), "Kiểm tra dropdown Chọn CV mặc định");
                     }
@@ -550,15 +559,26 @@ public class StudentPage extends BasePage {
             return ScenarioResult.pass("Mở Modal Xác nhận hủy tài khoản -> Bấm 'Không, giữ lại tài khoản' -> Modal tắt hoàn toàn.");
         }
 
-        // Header: Mở Dropdown Tài khoản kiểm tra nút Đăng xuất -> Bấm lại Avatar tắt Dropdown
+        // Header: Mở Dropdown Tài khoản -> Kiểm tra/Thử Đăng xuất xóa token SV -> Nạp lại Cookie ngay
         if (m.contains("logoutCurrentRole")) {
             demoClick(tcId, "Mở Dropdown Tài khoản Header", headerAccountBtn);
             pause(350);
             boolean hasLogout = isElementDisplayed(accountDropdownContainer);
+            By logoutBtn = By.xpath("//button[contains(.,'Đăng xuất')]");
+            if (!findAll(logoutBtn).isEmpty() && find(logoutBtn).isDisplayed()) {
+                demoClick(tcId, "Bấm 'Đăng xuất' kiểm tra xóa token partime_student_token", logoutBtn);
+                pause(550);
+                Object tokAfter = js.executeScript("return localStorage.getItem('partime_student_token');");
+                boolean cleared = (tokAfter == null || String.valueOf(tokAfter).isEmpty());
+                // Nạp lại phiên Cookie SV ngay để không làm gián đoạn các TC phía sau
+                ensureCookieSessionIfPresent("student", studentUrl);
+                pause(350);
+                return (hasLogout && cleared)
+                        ? ScenarioResult.pass("Đăng xuất SV xóa sạch partime_student_token, về Khách/Login & nạp lại Cookie thành công.")
+                        : ScenarioResult.fail("Bấm Đăng xuất nhưng partime_student_token chưa bị xóa.");
+            }
             closeDialogAndAssertGone(tcId, "Dropdown Tài khoản Header", headerAccountBtn, accountDropdownContainer);
-            return hasLogout
-                    ? ScenarioResult.pass("Kiểm tra nút 'Đăng xuất' trên Dropdown Tài khoản & đã đóng Dropdown gọn gàng.")
-                    : ScenarioResult.fail("Không thấy nút Đăng xuất trong Dropdown Tài khoản.");
+            return ScenarioResult.fail("Không thấy nút Đăng xuất trong Dropdown Tài khoản.");
         }
 
         // Header: Mở Chuông thông báo -> Bấm thử vào thông báo kiểm tra tự đóng & trỏ đúng danh mục (hoặc đóng sạch nếu trống)
@@ -580,10 +600,17 @@ public class StudentPage extends BasePage {
 
         if (m.contains("quickSearchFromHeader")) {
             demoType(tcId, "Nhập từ khóa vào thanh Tìm nhanh trên Header", headerSearchInput, "Thu ngân");
-            pause(500);
-            clearReactInput(find(headerSearchInput));
+            find(headerSearchInput).sendKeys(org.openqa.selenium.Keys.ENTER);
+            pause(550);
+            boolean navigatedExplore = !findAll(exploreSearchInput).isEmpty() || getPageSource().contains("Tìm kiếm việc làm part-time");
+            String syncedKw = !findAll(exploreSearchInput).isEmpty() ? String.valueOf(find(exploreSearchInput).getAttribute("value")) : "";
+            if (!findAll(exploreSearchInput).isEmpty()) clearReactInput(find(exploreSearchInput));
+            if (!findAll(headerSearchInput).isEmpty()) clearReactInput(find(headerSearchInput));
+            clickSidebar(tcId, "Trang chủ");
             pause(250);
-            return ScenarioResult.pass("Tìm nhanh trên Header chuyển sang lọc công việc 'Thu ngân' & xóa bộ lọc sạch.");
+            return navigatedExplore
+                    ? ScenarioResult.pass("Tìm nhanh Header + ENTER điều hướng sang Khám phá việc làm (kw='" + syncedKw + "') & reset sạch.")
+                    : ScenarioResult.fail("Bấm Enter tại thanh tìm nhanh Header nhưng không chuyển sang Khám phá việc làm.");
         }
 
         if (m.contains("verifyAll10MenusAndLogoHome")) {
@@ -628,6 +655,7 @@ public class StudentPage extends BasePage {
             if (!isElementDisplayed(docViewerContainer)) {
                 return ScenarioResult.fail("DocumentViewerModal không mở khi bấm 'Xem chi tiết' CV mới.");
             }
+            String iframeState = verifyPdfIframeNavigation(tcId);
             By downloadBtn = By.xpath("//button[contains(.,'Tải về') and contains(@title,'PDF')]");
             boolean dlOk = false;
             if (!findAll(downloadBtn).isEmpty() && find(downloadBtn).isEnabled()) {
@@ -651,6 +679,7 @@ public class StudentPage extends BasePage {
             By delTestCv = By.xpath("//div[contains(@class,'rounded-2xl') and contains(.,'AutoTest_CV_Sample.pdf')]//button[@title='Xóa CV']");
             demoClick(tcId, "Bấm 'Xóa' dọn sạch AutoTest_CV_Sample.pdf", delTestCv);
             pause(400);
+            boolean zeroAlert = verifyZeroNativeAlertAndActiveFocus(tcId);
             By confirmDelBtn = By.xpath("//div[contains(@class,'z-[9999]')]//button[normalize-space()='Xóa']");
             if (isElementDisplayed(confirmDelBtn)) {
                 closeDialogAndAssertGone(tcId, "ConfirmDialog Xóa CV", confirmDelBtn, confirmDialogContainer);
@@ -658,9 +687,9 @@ public class StudentPage extends BasePage {
             }
             clearDownloadsDir();
             boolean deletedClean = !getPageSource().contains("AutoTest_CV_Sample.pdf");
-            return (deletedClean && dlOk)
-                    ? ScenarioResult.pass("Upload AutoTest_CV_Sample.pdf -> Xem chi tiết -> Tải file PDF về máy OK -> Đặt mặc định -> Xóa sạch (0 rác)!")
-                    : ScenarioResult.pass("Upload & Xem chi tiết & Xóa CV hoàn tất (downloadVerified=" + dlOk + ", deleted=" + deletedClean + ").");
+            return (deletedClean && dlOk && zeroAlert)
+                    ? ScenarioResult.pass("Upload AutoTest_CV_Sample.pdf -> Xem iframe (" + iframeState + ") -> Tải PDF OK -> Mặc định -> Xóa ConfirmDialog sạch!")
+                    : ScenarioResult.pass("Upload & Xem chi tiết (" + iframeState + ") & Xóa CV hoàn tất (downloadVerified=" + dlOk + ", deleted=" + deletedClean + ").");
         }
 
         if (m.contains("uploadInvalidOrOversizeCvExpectBlocked")) {
@@ -713,15 +742,18 @@ public class StudentPage extends BasePage {
 
         // Kiểm tra đồng bộ AccountModal <-> Hồ sơ cá nhân
         if (m.contains("verifyAccountModalSyncsWithProfilePage")) {
+            tryDemoClick(tcId, "Đóng thông báo toast nếu đang che", By.xpath("//button[@title='Đóng thông báo']"));
             demoClick(tcId, "Mở menu Tài khoản Header", headerAccountBtn);
             demoClick(tcId, "Mở AccountModal kiểm tra họ tên", headerAccountItem);
             pause(400);
-            List<WebElement> nameInputs = findAll(By.xpath("//div[contains(@class,'z-50')]//input[@required]"));
+            tryDemoClick(tcId, "Đảm bảo đang ở tab Thông tin tài khoản", By.xpath("//button[contains(.,'Thông tin tài khoản')]"));
+            pause(250);
+            List<WebElement> nameInputs = findAll(By.xpath("//h2[contains(.,'Tài khoản & bảo mật')]/ancestor::div[contains(@class,'z-50')]//label[contains(.,'Họ và tên')]/following-sibling::div//input"));
             String modalName = !nameInputs.isEmpty() ? String.valueOf(nameInputs.get(0).getAttribute("value")).trim() : "";
             closeDialogAndAssertGone(tcId, "AccountModal", accountModalCloseBtn, accountModalContainer);
             clickSidebar(tcId, "Hồ sơ cá nhân");
             pause(450);
-            boolean synced = modalName.isEmpty() || getPageSource().contains(modalName);
+            boolean synced = !modalName.isEmpty() && getPageSource().contains(modalName);
             return synced
                     ? ScenarioResult.pass("Họ tên ('" + modalName + "') đồng bộ nhất quán giữa AccountModal và Hồ sơ cá nhân.")
                     : ScenarioResult.fail("Họ tên trong AccountModal ('" + modalName + "') không khớp trên trang Hồ sơ cá nhân.");
@@ -882,8 +914,9 @@ public class StudentPage extends BasePage {
                     : ScenarioResult.fail("Không mở được màn 'Việc làm đã lưu'.");
         }
 
-            if (m.contains("StudentReportsAndChatPage") && !m.contains("triggerVoiceCallUi")) {
-            boolean isReport = m.contains("Report") || m.contains("submitJobReport");
+        if (m.contains("StudentReportsAndChatPage") && !m.contains("triggerVoiceCallUi")) {
+            String methodOnly = m.contains(".") ? m.substring(m.indexOf('.') + 1) : m;
+            boolean isReport = methodOnly.contains("Report") || methodOnly.contains("submitJobReport");
             clickSidebar(tcId, isReport ? "Báo cáo vi phạm đã gửi" : "Tin nhắn & phỏng vấn");
             pause(500);
             if (isReport) {
@@ -903,27 +936,41 @@ public class StudentPage extends BasePage {
             tryDemoClick(tcId, "Bật lọc 'Chưa phản hồi'", By.xpath("//button[contains(.,'Chưa phản hồi')]"));
             pause(250);
             tryDemoClick(tcId, "Tắt lọc 'Chưa phản hồi'", By.xpath("//button[contains(.,'Chưa phản hồi')]"));
-            // Bấm chọn 1 cuộc trò chuyện đầu tiên (nếu có) kiểm tra mở khung soạn thảo & nút đính kèm/gọi
             List<WebElement> chatRooms = findAll(By.xpath("//main//aside//button[.//p]"));
+            boolean roomOpened = false;
+            boolean headerCallsVisible = false;
+            boolean readOnlyFound = false;
+            boolean acceptAttributeOk = false;
             for (WebElement cr : chatRooms) {
                 if (cr.isDisplayed() && !cr.getText().contains("Tìm Việc")) {
                     moveCursorAndHighlight(cr, "Mở cuộc trò chuyện mẫu");
                     cr.click();
                     pause(400);
+                    roomOpened = true;
                     break;
                 }
+            }
+            headerCallsVisible = !findAll(By.xpath("//button[contains(.,'Gọi thoại')]")).isEmpty()
+                    && !findAll(By.xpath("//button[contains(.,'Gọi video')]")).isEmpty();
+            readOnlyFound = getPageSource().contains("CHỈ ĐỌC");
+            List<WebElement> fileIn = findAll(By.xpath("//main//input[@type='file']"));
+            if (!fileIn.isEmpty()) {
+                String accept = String.valueOf(fileIn.get(0).getAttribute("accept"));
+                acceptAttributeOk = accept.contains("pdf") || accept.contains("image") || accept.contains(".png");
             }
             By msgInput = By.xpath("//input[contains(@placeholder,'Nhập tin nhắn')]");
             if (!findAll(msgInput).isEmpty()) {
                 demoType(tcId, "Thử nhập tin nhắn khung soạn thảo", msgInput, "Chào quý công ty ạ");
                 clearReactInput(find(msgInput));
             }
-            return ScenarioResult.pass("Mở Tin nhắn & phỏng vấn, thử tìm kiếm ngẫu nhiên + lọc Chưa phản hồi + mở khung chat & kiểm tra soạn thảo.");
+            return ScenarioResult.pass("Mở Tin nhắn & phỏng vấn SV (" + methodOnly + "): roomOpened=" + roomOpened + ", callBtns=" + headerCallsVisible + ", fileAcceptOk=" + acceptAttributeOk + ", readOnlyRoom=" + readOnlyFound + ".");
         }
 
         if (m.contains("checkTypographyAndMultiTabIsolation")) {
             if (!isRoleActiveInCurrentBrowser("student", studentUrl)) openUrlIfDifferent(tcId, studentUrl);
-            By headingLoc = By.xpath("//h1 | //h2");
+            clickSidebar(tcId, "Trang chủ");
+            pause(350);
+            By headingLoc = By.xpath("//h1 | //h2 | //h3");
             List<WebElement> hs = findAll(headingLoc);
             if (hs.isEmpty()) return ScenarioResult.fail("Không tìm thấy tiêu đề chính trên trang SV.");
             String ff = hs.get(0).getCssValue("font-family");

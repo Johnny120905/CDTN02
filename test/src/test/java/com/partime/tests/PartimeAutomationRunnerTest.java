@@ -16,7 +16,7 @@ import java.util.Map;
 
 /**
  * Bộ điều phối kiểm thử tự động Data-Driven + Page Object Model (POM) cho 3 Role PARTIME.VN.
- * - Đọc 245 Test Cases từ TestCases_Selenium_PARTIME_VN.xlsx.
+ * - Đọc 251 Test Cases từ TestCases_Selenium_PARTIME_VN.xlsx.
  * - Sử dụng chung 1 WebDriver trình chiếu Chrome/Edge và lưu/nạp Cookie đăng nhập cho 3 Role.
  * - Gom kết quả sạch trong RAM và đồng bộ 1 lần xuống Excel sau khi kết thúc để tránh lỗi khóa file I/O.
  */
@@ -45,6 +45,8 @@ public class PartimeAutomationRunnerTest {
             } catch (Exception ignored) {}
             studentPage.pause(2000);
         }
+        // Đăng ký tài khoản test từ Excel để tự động làm mới JWT Cookie mỗi khi quá hạn 24h
+        preloadRoleCredentialsFromExcel();
 
         employerPage = new EmployerPage();
         employerPage.attachSharedContext(studentPage);
@@ -108,6 +110,7 @@ public class PartimeAutomationRunnerTest {
 
             if (result.getStatus() == ScenarioResult.Status.FAIL) {
                 String shotPath = studentPage.captureScreenshot(tcId);
+                studentPage.dismissOpenOverlaysAfterFail();
                 String errMsg = result.getLogMessage() + " | Screenshot: " + shotPath;
                 excelManager.bufferExecutionResult(sheetName, rowIndex, tcId, "FAIL", errMsg);
                 Assert.fail(errMsg);
@@ -118,6 +121,7 @@ public class PartimeAutomationRunnerTest {
             throw skip;
         } catch (Throwable ex) {
             String shotPath = studentPage.captureScreenshot(tcId);
+            studentPage.dismissOpenOverlaysAfterFail();
             String errMsg = ex.getClass().getSimpleName() + ": " + ex.getMessage() + " | Screenshot: " + shotPath;
             excelManager.bufferExecutionResult(sheetName, rowIndex, tcId, "FAIL", errMsg);
             throw ex;
@@ -141,6 +145,29 @@ public class PartimeAutomationRunnerTest {
         if (studentPage != null) {
             studentPage.quitDriver();
         }
+    }
+
+    private void preloadRoleCredentialsFromExcel() {
+        try {
+            for (Map<String, String> row : excelManager.readRoleTestCases("TestCases_Role Sinh viên")) {
+                if (String.valueOf(row.get("POM_Method")).contains("loginWithCookiePersistence")) {
+                    studentPage.registerRoleCredentials("student", row.get("Input_Data_1"), row.get("Input_Data_2"));
+                    break;
+                }
+            }
+            for (Map<String, String> row : excelManager.readRoleTestCases("TestCases_Role Nhà tuyển dụng")) {
+                if (String.valueOf(row.get("POM_Method")).contains("loginWithCookiePersistence")) {
+                    studentPage.registerRoleCredentials("employer", row.get("Input_Data_1"), row.get("Input_Data_2"));
+                    break;
+                }
+            }
+            for (Map<String, String> row : excelManager.readRoleTestCases("TestCases_Role Quản trị viên")) {
+                if (String.valueOf(row.get("POM_Method")).contains("loginWithCookiePersistence")) {
+                    studentPage.registerRoleCredentials("admin", row.get("Input_Data_1"), row.get("Input_Data_2"));
+                    break;
+                }
+            }
+        } catch (Exception ignored) {}
     }
 
     private void ensureBrowserSessionAlive() {
