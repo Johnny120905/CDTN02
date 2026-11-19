@@ -6,6 +6,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.WindowType;
 
+import java.io.File;
 import java.util.List;
 
 /**
@@ -45,6 +46,23 @@ public class AdminPage extends BasePage {
     public ScenarioResult executeScenario(String tcId, String pomMethod, String input1, String input2, String baseUrl) throws Exception {
         String adminUrl = envConfig.getOrDefault("ADMIN_PORT_URL", baseUrl + "/admin");
         String m = pomMethod == null ? "" : pomMethod;
+
+        if (m.contains("CrossRoleE2ETests")) {
+            CrossRoleAndApiHelper helper = new CrossRoleAndApiHelper();
+            helper.attachSharedContext(this);
+            if (m.contains("adminHideSensitiveJobSyncsToStudent") || m.contains("studentReportChatAdminReadRawAndResolve")) {
+                return helper.runAdminModerationSyncE2E(tcId, baseUrl);
+            }
+            return helper.runFullApplyInterviewChatCallReviewE2E(tcId, baseUrl);
+        }
+        if (m.contains("ApiTest")) {
+            CrossRoleAndApiHelper helper = new CrossRoleAndApiHelper();
+            helper.attachSharedContext(this);
+            return helper.runSafeApiAndRbacSuite(tcId, m, baseUrl);
+        }
+        if (m.contains("UnitTest")) {
+            return new CrossRoleAndApiHelper().runUnitValidationSuite(tcId, m);
+        }
 
         if (m.contains("loginWithCookiePersistence")) {
             String outcome = executeManualFirstThenCookieLogin(tcId, "admin", adminUrl, adminUrl);
@@ -169,14 +187,16 @@ public class AdminPage extends BasePage {
                     : ScenarioResult.fail("Không báo lỗi xác nhận mật khẩu Admin.");
         }
 
-        if (m.contains("verifySidebar10ModulesAndHeaderBell") || m.contains("verifyAdminBellRealtimeAlertsAndNavigation")) {
+        if (m.contains("verifyAdminBellRealtimeAlertsAndNavigation")) {
+            String bellRes = verifyBellNotificationClickRoutesMenu(tcId, headerNotiBtn, notiDropdownContainer);
+            return ScenarioResult.pass(bellRes);
+        }
+
+        if (m.contains("verifySidebar10ModulesAndHeaderBell")) {
             demoClick(tcId, "Mở Chuông thông báo Admin", headerNotiBtn);
             pause(350);
             if (isElementDisplayed(notiDropdownContainer)) {
                 closeDialogAndAssertGone(tcId, "Bảng Thông báo Admin", headerNotiBtn, notiDropdownContainer);
-            }
-            if (m.contains("verifyAdminBellRealtimeAlertsAndNavigation")) {
-                return ScenarioResult.pass("Mở Chuông thông báo Realtime Admin & bấm tắt Dropdown sạch sẽ.");
             }
             List<WebElement> allBtns = findAll(sidebarMenuItems);
             long visibleCount = allBtns.stream().filter(b -> {
@@ -209,14 +229,22 @@ public class AdminPage extends BasePage {
         }
 
         if (m.contains("filter5DimensionsAndExportExcel") || m.contains("verifyChartTooltipFixedHeightNoLayoutShift")
-                || m.contains("measureDashboardExcelExportSpeed")) {
+                || m.contains("measureDashboardExcelExportSpeed") || m.contains("randomizedCrossFilterAndResetMatrix")) {
             clickSidebar(tcId, "Trung tâm chỉ huy");
             pause(550);
             if (m.contains("measureDashboardExcelExportSpeed")) {
                 By exportBtn = By.xpath("//button[contains(.,'Xuất báo cáo Excel')]");
-                return isElementDisplayed(exportBtn) && isElementEnabled(exportBtn)
-                        ? ScenarioResult.pass("Nút 'Xuất báo cáo Excel' hiển thị sẵn sàng & tương tác hợp lệ trên Dashboard.")
-                        : ScenarioResult.fail("Không thấy nút Xuất báo cáo Excel.");
+                if (!isElementDisplayed(exportBtn) || !isElementEnabled(exportBtn)) {
+                    return ScenarioResult.fail("Không thấy nút Xuất báo cáo Excel.");
+                }
+                clearDownloadsDir();
+                long t0 = System.currentTimeMillis();
+                demoClick(tcId, "Bấm 'Xuất báo cáo Excel' đo tốc độ & tải tệp .xls", exportBtn);
+                pause(700);
+                File xls = waitForDownloadedFile(".xls", 8000);
+                long ms = System.currentTimeMillis() - t0;
+                clearDownloadsDir();
+                return ScenarioResult.pass("Xuất báo cáo Excel Dashboard Admin (downloaded=" + (xls != null) + ", elapsed=" + ms + "ms).");
             }
             if (m.contains("verifyChartTooltipFixedHeightNoLayoutShift")) {
                 By tooltipBox = By.xpath("//div[contains(@class,'h-12') and contains(@class,'rounded-xl')]");
@@ -231,14 +259,30 @@ public class AdminPage extends BasePage {
             By yearSel = By.xpath("//select[option[@value='' and contains(.,'Tất cả các năm')]]");
             By provSel = By.xpath("//select[option[@value='' and contains(.,'Toàn quốc')]]");
             By catSel = By.xpath("//select[option[@value='' and contains(.,'Tất cả nhóm ngành nghề')]]");
-            tryDemoSelectByValue(tcId, "Lọc Dashboard Năm 2026", yearSel, "2026");
-            tryDemoSelectByIndex(tcId, "Lọc Dashboard Tỉnh/Thành", provSel, 1);
-            tryDemoSelectByIndex(tcId, "Lọc Dashboard Ngành nghề", catSel, 1);
-            pause(350);
-            tryDemoSelectByValue(tcId, "Reset Năm", yearSel, "");
-            tryDemoSelectByValue(tcId, "Reset Tỉnh/Thành", provSel, "");
-            tryDemoSelectByValue(tcId, "Reset Ngành nghề", catSel, "");
-            return ScenarioResult.pass("Thực thi lọc Dashboard Admin theo Năm -> Tỉnh/Thành -> Ngành nghề & khôi phục Toàn thời gian.");
+            int rounds = m.contains("randomizedCrossFilterAndResetMatrix") ? 2 : 1;
+            String lastCombo = "";
+            for (int r = 1; r <= rounds; r++) {
+                String yr = demoSelectRandomNonDefaultOption(tcId, "Lọc Dashboard Năm ngẫu nhiên (Lượt " + r + ")", yearSel);
+                String pr = demoSelectRandomNonDefaultOption(tcId, "Lọc Dashboard Tỉnh/Thành ngẫu nhiên", provSel);
+                String ca = demoSelectRandomNonDefaultOption(tcId, "Lọc Dashboard Ngành nghề ngẫu nhiên", catSel);
+                pause(350);
+                tryDemoSelectByValue(tcId, "Reset Năm", yearSel, "");
+                tryDemoSelectByValue(tcId, "Reset Tỉnh/Thành", provSel, "");
+                tryDemoSelectByValue(tcId, "Reset Ngành nghề", catSel, "");
+                lastCombo = "Năm=" + yr + ", Tỉnh=" + pr + ", Ngành=" + ca;
+            }
+            boolean dlOk = false;
+            if (m.contains("filter5DimensionsAndExportExcel")) {
+                By exportBtn = By.xpath("//button[contains(.,'Xuất báo cáo Excel')]");
+                if (!findAll(exportBtn).isEmpty()) {
+                    clearDownloadsDir();
+                    demoClick(tcId, "Bấm 'Xuất báo cáo Excel' trên Dashboard", exportBtn);
+                    pause(700);
+                    dlOk = waitForDownloadedFile(".xls", 7000) != null;
+                    clearDownloadsDir();
+                }
+            }
+            return ScenarioResult.pass("Lọc Dashboard Admin tổ hợp ngẫu nhiên (" + lastCombo + ", " + rounds + " lượt, excelExport=" + dlOk + ") & khôi phục Toàn thời gian.");
         }
 
         if (m.contains("searchEmailIdAndFilter4Criteria")) {
@@ -248,19 +292,19 @@ public class AdminPage extends BasePage {
             By roleSel = By.xpath("//select[option[@value='' and contains(.,'Tất cả vai trò')]]");
             By lockSel = By.xpath("//select[option[@value='' and contains(.,'Tất cả trạng thái khóa')]]");
             By gpkdSel = By.xpath("//select[option[@value='all' and contains(.,'Tất cả trạng thái GPKD')]]");
+            String randUser = pickRandom(new String[]{"vuthelong", "gmail.com", "lethithuyngan"});
             if (!findAll(userSearchIn).isEmpty()) {
-                demoType(tcId, "Tìm kiếm người dùng theo Email", userSearchIn, "vuthelong");
+                demoType(tcId, "Tìm kiếm người dùng ngẫu nhiên: " + randUser, userSearchIn, randUser);
                 pause(350);
                 clearReactInput(find(userSearchIn));
             }
-            tryDemoSelectByValue(tcId, "Lọc vai trò Sinh viên", roleSel, "student");
-            tryDemoSelectByValue(tcId, "Lọc vai trò Nhà tuyển dụng", roleSel, "employer");
+            String rolePicked = demoSelectRandomNonDefaultOption(tcId, "Lọc Vai trò ngẫu nhiên", roleSel);
             tryDemoSelectByValue(tcId, "Reset vai trò", roleSel, "");
-            tryDemoSelectByValue(tcId, "Lọc trạng thái Đang hoạt động", lockSel, "active");
+            String lockPicked = demoSelectRandomNonDefaultOption(tcId, "Lọc Trạng thái khóa ngẫu nhiên", lockSel);
             tryDemoSelectByValue(tcId, "Reset trạng thái khóa", lockSel, "");
-            tryDemoSelectByValue(tcId, "Lọc GPKD Đã duyệt", gpkdSel, "gpkd_approved");
+            String gpkdPicked = demoSelectRandomNonDefaultOption(tcId, "Lọc Trạng thái GPKD ngẫu nhiên", gpkdSel);
             tryDemoSelectByValue(tcId, "Reset GPKD", gpkdSel, "all");
-            return ScenarioResult.pass("Tìm kiếm Email & lọc đủ 4 tiêu chí Quản lý người dùng -> reset sạch.");
+            return ScenarioResult.pass("Tìm kiếm & lọc ngẫu nhiên 4 tiêu chí Quản lý người dùng (" + randUser + " | " + rolePicked + " | " + lockPicked + " | " + gpkdPicked + ") -> reset sạch.");
         }
 
         if (m.contains("openUserDetailInspectCvAndGpkdPdf")) {
@@ -285,14 +329,18 @@ public class AdminPage extends BasePage {
             if (m.contains("verifyGpkdPdfViewerAndDownload")) {
                 List<WebElement> pdfBtns = findAll(By.xpath("//button[contains(.,'Xem file GPKD')]"));
                 if (pdfBtns.isEmpty()) return ScenarioResult.pass("Bàn thẩm định GPKD hiển thị bình thường (chưa có tệp PDF đính kèm).");
-                moveCursorAndHighlight(pdfBtns.get(0), "Bấm Xem file GPKD (PDF)");
-                pdfBtns.get(0).click();
+                demoClickRandomElement(tcId, "Chọn dòng GPKD ngẫu nhiên & bấm 'Xem file GPKD'", By.xpath("//button[contains(.,'Xem file GPKD')]"));
                 pause(650);
+                clearDownloadsDir();
+                tryDemoClick(tcId, "Bấm 'Tải về' PDF GPKD trong DocumentViewerModal", By.xpath("//button[@title='Tải tệp PDF về máy tính' or normalize-space()='Tải về']"));
+                pause(750);
+                File pdfDl = waitForDownloadedFile(".pdf", 8000);
+                clearDownloadsDir();
                 By closeDocBtn = By.xpath("//button[@title='Đóng modal']");
                 if (isElementDisplayed(closeDocBtn)) {
                     closeDialogAndAssertGone(tcId, "DocumentViewerModal GPKD Admin", closeDocBtn, closeDocBtn);
                 }
-                return ScenarioResult.pass("Mở DocumentViewerModal xem file GPKD PDF trên Bàn thẩm định & bấm Đóng sạch.");
+                return ScenarioResult.pass("Mở DocumentViewerModal GPKD + Tải file PDF về máy (downloaded=" + (pdfDl != null) + ") & đóng sạch.");
             }
             By gpkdSearch = By.xpath("//input[contains(@placeholder,'Tìm')]");
             if (!findAll(gpkdSearch).isEmpty()) {
@@ -309,8 +357,9 @@ public class AdminPage extends BasePage {
             clickSidebar(tcId, "Kiểm duyệt tin tuyển dụng");
             pause(500);
             By jobSearch = By.xpath("//input[contains(@placeholder,'Tìm kiếm')]");
+            String randJobKw = pickRandom(new String[]{"Phục vụ", "Bán hàng", "Pha chế", "Thu ngân"});
             if (!findAll(jobSearch).isEmpty()) {
-                demoType(tcId, "Tìm kiếm tin tuyển dụng cần kiểm duyệt", jobSearch, "Phục vụ");
+                demoType(tcId, "Tìm kiếm tin kiểm duyệt ngẫu nhiên: " + randJobKw, jobSearch, randJobKw);
                 pause(300);
                 clearReactInput(find(jobSearch));
             }
@@ -321,9 +370,9 @@ public class AdminPage extends BasePage {
             tryDemoClick(tcId, "Quay lại 'Tất cả tin'", By.xpath("//button[contains(.,'Tất cả tin')]"));
             By jobStatusSel = By.xpath("//select[option[@value='' and contains(.,'Tất cả trạng thái vận hành')]]");
             By jobModSel = By.xpath("//select[option[@value='' and contains(.,'Tất cả trạng thái kiểm duyệt')]]");
-            tryDemoSelectByValue(tcId, "Lọc vận hành Đang tuyển", jobStatusSel, "open");
+            String stPick = demoSelectRandomNonDefaultOption(tcId, "Lọc vận hành ngẫu nhiên", jobStatusSel);
             tryDemoSelectByValue(tcId, "Reset vận hành", jobStatusSel, "");
-            tryDemoSelectByValue(tcId, "Lọc kiểm duyệt Công khai", jobModSel, "public");
+            String modPick = demoSelectRandomNonDefaultOption(tcId, "Lọc kiểm duyệt ngẫu nhiên", jobModSel);
             tryDemoSelectByValue(tcId, "Reset kiểm duyệt", jobModSel, "");
             // Mở Modal Chi tiết tin tuyển dụng & đóng X sạch
             List<WebElement> jobRows = findAll(By.xpath("//table//tbody/tr"));
@@ -337,7 +386,7 @@ public class AdminPage extends BasePage {
                     closeDialogAndAssertGone(tcId, "Modal Chi tiết tin tuyển dụng Admin", jobModalClose, jobModalBody);
                 }
             }
-            return ScenarioResult.pass("Tìm kiếm, lọc nhanh 3 nút + 2 Select, mở & đóng Modal Chi tiết tin Kiểm duyệt sạch sẽ.");
+            return ScenarioResult.pass("Tìm kiếm & lọc ngẫu nhiên Kiểm duyệt tin (" + randJobKw + " | " + stPick + " | " + modPick + ") + mở/đóng Modal sạch sẽ.");
         }
 
         if (m.contains("preventDuplicateOrBlankKeyword") || m.contains("verifyKeywordHitCountAndDeleteKeyword")) {
@@ -368,19 +417,20 @@ public class AdminPage extends BasePage {
             clickSidebar(tcId, "Quản lý đánh giá");
             pause(500);
             By revSearch = By.xpath("//input[contains(@placeholder,'Tên sinh viên')]");
+            String randRevKw = pickRandom(new String[]{"Long", "Minh", "Coffee", "Partime"});
             if (!findAll(revSearch).isEmpty()) {
-                demoType(tcId, "Tìm kiếm đánh giá theo tên", revSearch, "Long");
+                demoType(tcId, "Tìm kiếm đánh giá ngẫu nhiên: " + randRevKw, revSearch, randRevKw);
                 pause(300);
                 clearReactInput(find(revSearch));
             }
             By revStatSel = By.xpath("//select[option[@value='all' and contains(.,'Tất cả đánh giá')]]");
             By revDirSel = By.xpath("//select[option[@value='all' and contains(.,'Tất cả chiều tương tác')]]");
             By revStarSel = By.xpath("//select[option[@value='all' and contains(.,'Tất cả số sao')]]");
-            tryDemoSelectByValue(tcId, "Lọc Đang hiển thị công khai", revStatSel, "public");
+            String rs1 = demoSelectRandomNonDefaultOption(tcId, "Lọc trạng thái đánh giá ngẫu nhiên", revStatSel);
             tryDemoSelectByValue(tcId, "Reset trạng thái đánh giá", revStatSel, "all");
-            tryDemoSelectByValue(tcId, "Lọc Sinh viên đánh giá Doanh nghiệp", revDirSel, "stu_to_emp");
+            String rs2 = demoSelectRandomNonDefaultOption(tcId, "Lọc chiều tương tác ngẫu nhiên", revDirSel);
             tryDemoSelectByValue(tcId, "Reset chiều tương tác", revDirSel, "all");
-            tryDemoSelectByValue(tcId, "Lọc đánh giá Tích cực 4-5 sao", revStarSel, "positive");
+            String rs3 = demoSelectRandomNonDefaultOption(tcId, "Lọc số sao ngẫu nhiên", revStarSel);
             tryDemoSelectByValue(tcId, "Reset số sao", revStarSel, "all");
             // Mở Modal Chi tiết bài đánh giá & đóng X
             List<WebElement> revRows = findAll(By.xpath("//table//tbody/tr"));
@@ -394,19 +444,21 @@ public class AdminPage extends BasePage {
                     closeDialogAndAssertGone(tcId, "Modal Chi tiết bài đánh giá", revDetailClose, revDetailH3);
                 }
             }
-            return ScenarioResult.pass("Tìm kiếm, lọc 3 Select (Trạng thái, Chiều tương tác, Số sao) & mở/đóng Modal Chi tiết đánh giá thành công.");
+            return ScenarioResult.pass("Tìm kiếm & lọc ngẫu nhiên Đánh giá (" + randRevKw + " | " + rs1 + " | " + rs2 + " | " + rs3 + ") + mở/đóng Modal chi tiết.");
         }
 
         if (m.contains("crudCategoryAndSync")) {
             clickSidebar(tcId, "Master Data");
             pause(450);
-            tryDemoClick(tcId, "Chọn tab Ngành Nghề", By.xpath("//button[contains(.,'Ngành Nghề')]"));
+            String chosenTab = pickRandom(new String[]{"Ngành Nghề", "Địa Điểm"});
+            tryDemoClick(tcId, "Chọn tab Master Data ngẫu nhiên: " + chosenTab, By.xpath("//button[contains(.,'" + chosenTab + "')]"));
             pause(250);
             By catNameIn = By.xpath("//input[contains(@placeholder,'ngành nghề mới') or contains(@placeholder,'địa điểm mới')]");
             By addCatBtn = By.xpath("//button[@type='submit' and contains(.,'Thêm danh mục')]");
             By catSearch = By.xpath("//input[contains(@placeholder,'Tìm kiếm (Tên danh mục)')]");
-            String tempCat = "[AutoTest] Ngành Thử Nghiệm";
-            String editedCat = "[AutoTest] Ngành Đã Sửa";
+            long uniq = System.currentTimeMillis() % 10000;
+            String tempCat = "[AutoTest] " + chosenTab + " " + uniq;
+            String editedCat = "[AutoTest] Đã Sửa " + uniq;
             if (!findAll(catNameIn).isEmpty()) {
                 demoType(tcId, "Nhập tên danh mục mới: " + tempCat, catNameIn, tempCat);
                 demoClick(tcId, "Bấm 'Thêm danh mục'", addCatBtn);
@@ -474,12 +526,13 @@ public class AdminPage extends BasePage {
             tryDemoClick(tcId, "Chuyển tab Địa điểm", By.xpath("//button[contains(.,'Địa Điểm') or contains(.,'Địa điểm')]"));
             tryDemoClick(tcId, "Quay lại tab Tất cả", By.xpath("//button[contains(.,'Tất Cả') or contains(.,'Tất cả')]"));
             By catSearch = By.xpath("//input[contains(@placeholder,'Tìm kiếm (Tên danh mục)')]");
+            String randCat = pickRandom(new String[]{"Phục vụ", "Quận", "Bán hàng", "Pha chế"});
             if (!findAll(catSearch).isEmpty()) {
-                demoType(tcId, "Tìm kiếm danh mục Master Data", catSearch, "Phục vụ");
+                demoType(tcId, "Tìm kiếm danh mục Master Data ngẫu nhiên: " + randCat, catSearch, randCat);
                 pause(300);
                 clearReactInput(find(catSearch));
             }
-            return ScenarioResult.pass("Chuyển đổi 3 tab & tìm kiếm danh mục Master Data thành công.");
+            return ScenarioResult.pass("Chuyển đổi 3 tab & tìm kiếm ngẫu nhiên ('" + randCat + "') danh mục Master Data thành công.");
         }
 
         if (m.contains("filter4TabsAndOpenEvidenceCv") || m.contains("measureReportsFilterAndRawChatLoadSpeed")) {
@@ -516,10 +569,12 @@ public class AdminPage extends BasePage {
             clickSidebar(tcId, "Nhật ký hoạt động");
             pause(450);
             By auditSel = By.xpath("//select[option[@value='all' and contains(.,'Tất cả hành động quản trị')]]");
-            tryDemoSelectByValue(tcId, "Lọc Audit Log: Duyệt GPKD", auditSel, "APPROVE_GPKD");
-            pause(300);
+            String picked1 = demoSelectRandomNonDefaultOption(tcId, "Lọc Audit Log ngẫu nhiên lượt 1", auditSel);
+            pause(250);
+            String picked2 = demoSelectRandomNonDefaultOption(tcId, "Lọc Audit Log ngẫu nhiên lượt 2", auditSel);
+            pause(250);
             tryDemoSelectByValue(tcId, "Reset Audit Log về Tất cả", auditSel, "all");
-            return ScenarioResult.pass("Lọc bảng Nhật ký hoạt động (Audit Log) theo nhóm hành động & reset sạch.");
+            return ScenarioResult.pass("Lọc ngẫu nhiên Nhật ký hoạt động (" + picked1 + " -> " + picked2 + ") & reset sạch.");
         }
 
         if (m.contains("publishMissingTitleOrBodyExpectBlocked")) {
@@ -537,14 +592,14 @@ public class AdminPage extends BasePage {
             clickSidebar(tcId, "Trung tâm chỉ huy");
             pause(350);
             By yearSel = By.xpath("//select[option[@value='' and contains(.,'Tất cả các năm')]]");
-            tryDemoSelectByValue(tcId, "Smoke QTV: Lọc năm 2026", yearSel, "2026");
+            String pickedYr = demoSelectRandomNonDefaultOption(tcId, "Smoke QTV: Lọc năm ngẫu nhiên", yearSel);
             tryDemoSelectByValue(tcId, "Smoke QTV: Reset năm", yearSel, "");
             clickSidebar(tcId, "Quản lý người dùng");
             pause(350);
             clickSidebar(tcId, "Kiểm duyệt tin tuyển dụng");
             pause(350);
             clickSidebar(tcId, "Trung tâm chỉ huy");
-            return ScenarioResult.pass("Hoàn thành hành trình Smoke End-to-End QTV: Dashboard -> Users -> Jobs Moderation -> Dashboard.");
+            return ScenarioResult.pass("Hoàn thành Smoke End-to-End QTV (Năm=" + pickedYr + "): Dashboard -> Users -> Jobs Moderation -> Dashboard.");
         }
 
         return ScenarioResult.needManualOrCloneData(

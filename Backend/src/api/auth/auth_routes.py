@@ -5,7 +5,7 @@ import threading
 from flask import Blueprint, request, jsonify
 from src.core.security import validate_email_format, validate_password_complexity, hash_password, verify_password, generate_jwt_token
 from src.core.database import db_manager
-from src.core.email_service import send_otp_email
+from src.core.email_service import send_otp_email, send_otp_email_with_status
 from src.core.notification_service import emit_socket_event, notify_admins
 from src.middlewares.auth_middleware import token_required, check_email_role_constraint
 
@@ -300,8 +300,15 @@ def send_otp():
     expires_in_seconds = 60
     otp_expires_at = time.time() + expires_in_seconds
 
-    # 1. Gửi email thực tế qua Brevo SMTP Relay đến Gmail người dùng
-    email_sent = send_otp_email(email, otp, purpose)
+    # 1. Gửi email thực tế qua Brevo HTTPS API v3 (ưu tiên) / SMTP fallback
+    email_sent, email_error = send_otp_email_with_status(email, otp, purpose)
+    if not email_sent:
+        return jsonify({
+            "success": False,
+            "email_sent": False,
+            "error_detail": email_error,
+            "message": f"Không thể gửi mã OTP tới {email}. Máy chủ email báo lỗi: {email_error}"
+        }), 502
 
     # 2. Lưu vào database
     if user:
@@ -321,11 +328,11 @@ def send_otp():
             upsert=True
         )
 
-    # 3. Trả về mã OTP chuẩn xác cho Frontend để kích hoạt tự động điền
+    # 3. Trả kết quả xác nhận đã gửi mail thành công
     return jsonify({
         "success": True,
-        "email_sent": email_sent,
-        "message": f"Mã xác thực OTP đã được gửi tới {email}. Vui lòng kiểm tra hộp thư Gmail của bạn.",
+        "email_sent": True,
+        "message": f"Mã xác thực OTP đã được gửi tới {email}. Vui lòng kiểm tra hộp thư Gmail của bạn (kể cả mục Thư rác/Spam).",
         "otp": otp,
         "expires_in": expires_in_seconds,
         "expires_at": otp_expires_at,

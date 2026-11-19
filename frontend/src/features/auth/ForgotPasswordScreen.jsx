@@ -91,8 +91,8 @@ export default function ForgotPasswordScreen({ onNavigate, initialRole = 'studen
         body: JSON.stringify({ email: email.trim(), purpose: 'forgot_password' })
       });
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        setErrorMsg(data.message || 'Không thể gửi mã OTP. Vui lòng kiểm tra lại email.');
+      if (!res.ok || !data.success || data.email_sent === false) {
+        setErrorMsg(data.message || data.error_detail || 'Không thể gửi mã OTP tới Gmail. Vui lòng kiểm tra cấu hình máy chủ email hoặc thử lại.');
       } else {
         const code = data.otp ? String(data.otp) : '';
         setReceivedOtp(code);
@@ -100,14 +100,10 @@ export default function ForgotPasswordScreen({ onNavigate, initialRole = 'studen
         setIsTimerActive(true);
         setStep(2);
         setOtpDigits(['', '', '', '', '', '']);
+        setSuccessMsg(data.message || `Mã OTP đã được gửi tới ${email.trim()}. Vui lòng kiểm tra Gmail (bao gồm mục Thư rác/Spam).`);
       }
     } catch (err) {
-      const demoOtp = '654321';
-      setReceivedOtp(demoOtp);
-      setOtpTimer(60);
-      setIsTimerActive(true);
-      setStep(2);
-      setOtpDigits(['', '', '', '', '', '']);
+      setErrorMsg('Không thể kết nối máy chủ để gửi mã OTP. Vui lòng kiểm tra kết nối và thử lại sau.');
     } finally {
       setLoading(false);
     }

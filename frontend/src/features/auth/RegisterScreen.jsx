@@ -214,16 +214,16 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
 
       const data = await res.json();
 
-      if (res.ok && data.success) {
-        const code = String(data.otp);
+      if (res.ok && data.success && data.email_sent !== false) {
+        const code = String(data.otp || '');
         setReceivedOtp(code);
         setOtpTimer(data.expires_in || 60);
         setIsTimerActive(true);
         setStep(2);
         setOtpDigits(['', '', '', '', '', '']);
-        setSuccessMsg(`Mã xác thực OTP gồm 6 chữ số đã được gửi tới ${cleanEmail}. Vui lòng nhập tay vào khung bên dưới.`);
+        setSuccessMsg(data.message || `Mã xác thực OTP gồm 6 chữ số đã được gửi tới ${cleanEmail}. Vui lòng nhập tay vào khung bên dưới.`);
       } else {
-        setErrorMsg(data.message || 'Không thể gửi mã xác thực OTP. Vui lòng kiểm tra lại email.');
+        setErrorMsg(data.message || data.error_detail || 'Không thể gửi mã xác thực OTP tới Gmail. Vui lòng kiểm tra lại email hoặc thử lại sau.');
       }
     } catch (err) {
       setErrorMsg('Không thể kết nối máy chủ để gửi mã OTP. Vui lòng kiểm tra kết nối và thử lại.');
@@ -247,15 +247,15 @@ export default function RegisterScreen({ onAuthSuccess, onNavigate, initialRole,
       });
 
       const data = await res.json();
-      if (res.ok && data.success) {
-        const code = String(data.otp);
+      if (res.ok && data.success && data.email_sent !== false) {
+        const code = String(data.otp || '');
         setReceivedOtp(code);
         setOtpTimer(data.expires_in || 60);
         setIsTimerActive(true);
         setOtpDigits(['', '', '', '', '', '']);
-        setSuccessMsg('Mã OTP mới đã được gửi tới hộp thư Gmail của bạn. Vui lòng nhập tay vào khung bên dưới.');
+        setSuccessMsg(data.message || 'Mã OTP mới đã được gửi tới hộp thư Gmail của bạn. Vui lòng nhập tay vào khung bên dưới.');
       } else {
-        setErrorMsg(data.message || 'Không thể gửi lại mã OTP. Vui lòng thử lại sau.');
+        setErrorMsg(data.message || data.error_detail || 'Không thể gửi lại mã OTP tới Gmail. Vui lòng thử lại sau.');
       }
     } catch (err) {
       setErrorMsg('Không thể kết nối máy chủ để gửi lại mã OTP. Vui lòng thử lại sau.');

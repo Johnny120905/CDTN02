@@ -1,8 +1,15 @@
-import smtplib
+import json
 import os
-from email.mime.text import MIMEText
+import smtplib
+import urllib.error
+import urllib.request
+from email.header import Header
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.utils import formataddr
+from typing import Tuple
 from dotenv import load_dotenv
+
 
 def reload_env():
     candidate_paths = [
@@ -20,25 +27,11 @@ def reload_env():
     load_dotenv(override=True)
     return False
 
+
 reload_env()
 
-def send_otp_email(recipient_email: str, otp_code: str, purpose: str = "forgot_password") -> bool:
-    """
-    Gui email chua ma OTP qua Brevo SMTP Relay.
-    An toan: Khong chua ky tu co dau trong print() de tranh loi UnicodeEncodeError tren Windows cmd.
-    """
-    reload_env()
-    smtp_server = os.getenv("BREVO_SMTP_SERVER", "smtp-relay.brevo.com")
-    smtp_port = int(os.getenv("BREVO_SMTP_PORT", "587"))
-    smtp_login = os.getenv("BREVO_SMTP_LOGIN", "").strip()
-    smtp_password = os.getenv("BREVO_SMTP_KEY", "").strip()
-    sender_email = os.getenv("BREVO_SENDER_EMAIL", "vuthelong1009@gmail.com").strip()
-    sender_name = os.getenv("BREVO_SENDER_NAME", "PARTIME.VN - Viec Lam Linh Hoat").strip()
 
-    if not smtp_login or not smtp_password:
-        print("[Brevo Email Warning] Missing BREVO_SMTP_LOGIN or BREVO_SMTP_KEY in environment.")
-        return False
-
+def _build_email_bodies(recipient_email: str, otp_code: str, purpose: str) -> Tuple[str, str, str, str]:
     if purpose == "register":
         purpose_text = "Đăng ký tài khoản"
     elif purpose == "forgot_password":
@@ -46,12 +39,8 @@ def send_otp_email(recipient_email: str, otp_code: str, purpose: str = "forgot_p
     else:
         purpose_text = "Xác thực tài khoản"
 
-    msg = MIMEMultipart("alternative")
-    msg["From"] = f"{sender_name} <{sender_email}>"
-    msg["To"] = recipient_email
-    msg["Subject"] = f"[{otp_code}] Ma xac thuc OTP {purpose_text} - PARTIME.VN"
+    subject = f"[{otp_code}] Ma xac thuc OTP {purpose_text} - PARTIME.VN"
 
-    # HTML Email Template
     html_content = f"""
     <!DOCTYPE html>
     <html lang="vi">
@@ -87,7 +76,7 @@ def send_otp_email(recipient_email: str, otp_code: str, purpose: str = "forgot_p
 
                 <p class="warning">
                     <b>Luu y bao mat:</b><br>
-                    • Ma xac thuc nay co hieu luc trong thoi gian ngan.<br>
+                    • Ma xac thuc nay co hieu luc trong 60 giay.<br>
                     • Tuyet doi khong chia se ma nay cho bat ky ai de bao ve tai khoan cua ban.<br>
                     • Neu ban khong yeu cau ma nay, vui long bo qua email nay.
                 </p>
@@ -101,18 +90,156 @@ def send_otp_email(recipient_email: str, otp_code: str, purpose: str = "forgot_p
     </html>
     """
 
-    plain_content = f"Ma xac thuc OTP {purpose_text} cua ban la: {otp_code}. Tuyet doi khong chia se ma nay cho bat ky ai."
+    plain_content = f"Ma xac thuc OTP {purpose_text} cua ban la: {otp_code}. Ma co hieu luc trong 60 giay. Tuyet doi khong chia se ma nay cho bat ky ai."
+    return purpose_text, subject, plain_content, html_content
+
+
+def _send_via_brevo_api(
+    api_key: str,
+    sender_email: str,
+    sender_name: str,
+    recipient_email: str,
+    subject: str,
+    plain_content: str,
+    html_content: str,
+) -> Tuple[bool, str]:
+    payload = {
+        "sender": {"name": sender_name or "PARTIME.VN", "email": sender_email},
+        "to": [{"email": recipient_email}],
+        "subject": subject,
+        "textContent": plain_content,
+        "htmlContent": html_content,
+    }
+    req = urllib.request.Request(
+        "https://api.brevo.com/v3/smtp/email",
+        data=json.dumps(payload).encode("utf-8"),
+        method="POST",
+        headers={
+            "api-key": api_key,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "PARTIME-VN-Backend/1.0",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            status = getattr(resp, "status", 200)
+            body = resp.read().decode("utf-8", errors="replace")
+            if 200 <= status < 300:
+                print(f"[Brevo API] Successfully sent OTP to {recipient_email} (HTTP {status}): {body[:160]}")
+                return True, ""
+            err = f"Brevo API unexpected HTTP {status}: {body[:200]}"
+            print(f"[Brevo API Warning] {err}")
+            return False, err
+    except urllib.error.HTTPError as http_err:
+        err_body = ""
+        try:
+            err_body = http_err.read().decode("utf-8", errors="replace")
+        except Exception:
+            pass
+        err = f"Brevo API HTTP {http_err.code}: {err_body or http_err.reason}"
+        print(f"[Brevo API Error] {err.encode('ascii', 'replace').decode('ascii')}")
+        return False, err
+    except Exception as ex:
+        err = f"Brevo API request failed: {ex}"
+        print(f"[Brevo API Warning] {err.encode('ascii', 'replace').decode('ascii')}")
+        return False, err
+
+
+def _send_via_brevo_smtp(
+    smtp_server: str,
+    smtp_port: int,
+    smtp_login: str,
+    smtp_password: str,
+    sender_email: str,
+    sender_name: str,
+    recipient_email: str,
+    subject: str,
+    plain_content: str,
+    html_content: str,
+) -> Tuple[bool, str]:
+    msg = MIMEMultipart("alternative")
+    # Chuan RFC 5322/2047: Chi ma hoa display name UTF-8, giu nguyen <sender_email>
+    msg["From"] = formataddr((str(Header(sender_name or "PARTIME.VN", "utf-8")), sender_email))
+    msg["To"] = recipient_email
+    msg["Subject"] = Header(subject, "utf-8")
 
     msg.attach(MIMEText(plain_content, "plain", "utf-8"))
     msg.attach(MIMEText(html_content, "html", "utf-8"))
 
     try:
-        with smtplib.SMTP(smtp_server, smtp_port, timeout=10) as server:
-            server.starttls()
-            server.login(smtp_login, smtp_password)
-            server.sendmail(sender_email, recipient_email, msg.as_string())
-        print(f"[Brevo Email] Successfully sent OTP to: {recipient_email}")
-        return True
-    except Exception as e:
-        print(f"[Brevo Email Warning] Could not send email: {e}")
-        return False
+        if smtp_port == 465:
+            with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=12) as server:
+                server.login(smtp_login, smtp_password)
+                server.sendmail(sender_email, [recipient_email], msg.as_string())
+        else:
+            with smtplib.SMTP(smtp_server, smtp_port, timeout=12) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(smtp_login, smtp_password)
+                server.sendmail(sender_email, [recipient_email], msg.as_string())
+        print(f"[Brevo SMTP] Successfully sent OTP to {recipient_email}")
+        return True, ""
+    except Exception as ex:
+        err = f"Brevo SMTP ({smtp_server}:{smtp_port}) failed: {ex}"
+        print(f"[Brevo SMTP Warning] {err.encode('ascii', 'replace').decode('ascii')}")
+        return False, err
+
+
+def send_otp_email_with_status(
+    recipient_email: str,
+    otp_code: str,
+    purpose: str = "forgot_password",
+) -> Tuple[bool, str]:
+    """
+    Gui email OTP uu tien qua Brevo HTTPS API v3 (cong 443, khong bi chan tren Render),
+    fallback ve Brevo SMTP (RFC 5322 formataddr) neu API key chua co hoac loi.
+    Tra ve (thanh_cong, chi_tiet_loi).
+    """
+    reload_env()
+    api_key = os.getenv("BREVO_API_KEY", "").strip()
+    smtp_server = (os.getenv("BREVO_SMTP_SERVER") or os.getenv("MAIL_SERVER") or "smtp-relay.brevo.com").strip()
+    try:
+        smtp_port = int(os.getenv("BREVO_SMTP_PORT") or os.getenv("MAIL_PORT") or "587")
+    except ValueError:
+        smtp_port = 587
+    smtp_login = (os.getenv("BREVO_SMTP_LOGIN") or os.getenv("MAIL_USERNAME") or "").strip()
+    smtp_password = (os.getenv("BREVO_SMTP_KEY") or os.getenv("MAIL_PASSWORD") or "").strip()
+    sender_email = (os.getenv("BREVO_SENDER_EMAIL") or os.getenv("MAIL_USERNAME") or "vuthelong1009@gmail.com").strip()
+    sender_name = (os.getenv("BREVO_SENDER_NAME") or "PARTIME.VN - Viec Lam Linh Hoat").strip()
+
+    if not api_key and smtp_password.startswith("xkeysib-"):
+        api_key = smtp_password
+
+    if not api_key and (not smtp_login or not smtp_password):
+        err = "Thieu BREVO_API_KEY va BREVO_SMTP_LOGIN/BREVO_SMTP_KEY trong Environment."
+        print(f"[Brevo Email Warning] {err}")
+        return False, err
+
+    _, subject, plain_content, html_content = _build_email_bodies(recipient_email, otp_code, purpose)
+    errors = []
+
+    if api_key:
+        ok, api_err = _send_via_brevo_api(
+            api_key, sender_email, sender_name, recipient_email, subject, plain_content, html_content
+        )
+        if ok:
+            return True, ""
+        errors.append(api_err)
+
+    if smtp_login and smtp_password:
+        ok, smtp_err = _send_via_brevo_smtp(
+            smtp_server, smtp_port, smtp_login, smtp_password, sender_email, sender_name,
+            recipient_email, subject, plain_content, html_content
+        )
+        if ok:
+            return True, ""
+        errors.append(smtp_err)
+
+    return False, " | ".join(errors) if errors else "Khong the gui email OTP."
+
+
+def send_otp_email(recipient_email: str, otp_code: str, purpose: str = "forgot_password") -> bool:
+    ok, _ = send_otp_email_with_status(recipient_email, otp_code, purpose)
+    return ok

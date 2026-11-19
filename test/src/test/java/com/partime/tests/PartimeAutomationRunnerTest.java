@@ -36,6 +36,15 @@ public class PartimeAutomationRunnerTest {
 
         studentPage = new StudentPage();
         studentPage.initDriver(envConfig);
+        String baseUrl = envConfig.getOrDefault("BASE_URL", "https://parttime-css0.onrender.com");
+        // Đánh thức server Render nếu đang ngủ đông trước khi chạy TC-SV-001
+        for (int i = 0; i < 3; i++) {
+            try {
+                int st = studentPage.httpGetStatus(baseUrl + "/api/jobs?limit=1");
+                if (st == 200) break;
+            } catch (Exception ignored) {}
+            studentPage.pause(2000);
+        }
 
         employerPage = new EmployerPage();
         employerPage.attachSharedContext(studentPage);

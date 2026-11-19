@@ -50,6 +50,46 @@ public class CookieSessionManager {
         }
     }
 
+    public String readSavedAuthToken(String role) {
+        File f = getRoleCookieFile(role);
+        if (!f.exists()) return "";
+        try {
+            Map<String, Object> payload = MAPPER.readValue(f, new TypeReference<>() {});
+            Object token = payload.get("authToken");
+            return token == null ? "" : String.valueOf(token).trim();
+        } catch (IOException e) {
+            return "";
+        }
+    }
+
+    /**
+     * Nạp riêng phiên cho Tab hiện tại mà vẫn giữ nguyên token của vai trò khác trong localStorage
+     * (dùng khi mở song song Tab Sinh viên <-> Tab Nhà tuyển dụng <-> Tab Admin trong cùng 1 Chrome).
+     */
+    public boolean activateRoleTabSession(WebDriver driver, JavascriptExecutor js, String role, String portalUrl) throws IOException {
+        File f = getRoleCookieFile(role);
+        if (!f.exists()) return false;
+        Map<String, Object> sessionFile = MAPPER.readValue(f, new TypeReference<>() {});
+        String authToken = String.valueOf(sessionFile.getOrDefault("authToken", ""));
+        String authUserJson = String.valueOf(sessionFile.getOrDefault("authUserJson", ""));
+        if (authToken.isBlank() || authUserJson.isBlank()) return false;
+
+        driver.get(portalUrl);
+        try { Thread.sleep(500); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+        js.executeScript(
+                "localStorage.setItem('partime_' + arguments[0] + '_token', arguments[1]);" +
+                "localStorage.setItem('partime_' + arguments[0] + '_user', arguments[2]);" +
+                "localStorage.setItem('partime_token', arguments[1]);" +
+                "localStorage.setItem('partime_user', arguments[2]);" +
+                "sessionStorage.setItem('partime_tab_active_' + arguments[0], 'true');" +
+                "sessionStorage.setItem('partime_tab_role', arguments[0]);",
+                role, authToken, authUserJson
+        );
+        driver.navigate().refresh();
+        try { Thread.sleep(900); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+        return "true".equals(String.valueOf(js.executeScript("return sessionStorage.getItem('partime_tab_active_' + arguments[0]);", role)));
+    }
+
     /**
      * Lần chạy đầu tiên: Chờ người dùng tự thao tác đăng nhập thủ công trên trình duyệt.
      * Ngay khi phát hiện đã đăng nhập thành công -> Lưu phiên vào Browser Cookie & file JSON.

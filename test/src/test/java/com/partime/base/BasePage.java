@@ -17,9 +17,11 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * BasePage (Page Object Model - POM) cho hệ thống PARTIME.VN (CDTN02).
@@ -55,6 +57,14 @@ public class BasePage {
             driver = new EdgeDriver();
         } else {
             ChromeOptions options = new ChromeOptions();
+            File dlDir = new File("target/downloads");
+            if (!dlDir.exists()) dlDir.mkdirs();
+            Map<String, Object> prefs = new HashMap<>();
+            prefs.put("download.default_directory", dlDir.getAbsolutePath());
+            prefs.put("download.prompt_for_download", false);
+            prefs.put("download.directory_upgrade", true);
+            prefs.put("safebrowsing.enabled", true);
+            options.setExperimentalOption("prefs", prefs);
             options.addArguments("--use-fake-ui-for-media-stream");
             options.addArguments("--use-fake-device-for-media-stream");
             options.addArguments("--remote-allow-origins=*");
@@ -153,7 +163,7 @@ public class BasePage {
                     "arguments[0].scrollIntoView({behavior:'instant', block:'center', inline:'nearest'});",
                     element
                 );
-                pause(Math.min(demoSpeedMs, 180));
+                pause(Math.min(demoSpeedMs, 110));
                 js.executeScript(
                     "let el = arguments[0]; let tip = arguments[1];" +
                     "window.__lastSeleniumEl = el;" +
@@ -161,6 +171,10 @@ public class BasePage {
                     "el.style.outlineOffset = '2px';" +
                     "el.style.boxShadow = '0 0 18px rgba(239,68,68,0.45)';" +
                     "let r = el.getBoundingClientRect();" +
+                    "if (r.top < 88 || r.bottom > window.innerHeight - 20) {" +
+                    "  window.scrollBy(0, r.top - Math.round(window.innerHeight * 0.42));" +
+                    "  r = el.getBoundingClientRect();" +
+                    "}" +
                     "let cur = document.getElementById('selenium-virtual-cursor');" +
                     "let lbl = document.getElementById('selenium-cursor-tip');" +
                     "if (cur) {" +
@@ -172,7 +186,7 @@ public class BasePage {
                 );
             } catch (Exception ignored) {}
         }
-        pause(Math.max(250, Math.min(demoSpeedMs, 550)));
+        pause(Math.max(70, Math.min(demoSpeedMs, 240)));
     }
 
     private void triggerCursorClickRipple() {
@@ -214,7 +228,7 @@ public class BasePage {
         String target = normalizeUrl(targetUrl);
         if (!current.equals(target)) {
             driver.get(targetUrl);
-            pause(650);
+            waitForSpaHydrated(targetUrl);
         }
         showStepBanner(tcId, "Màn hình: " + targetUrl);
     }
@@ -225,8 +239,29 @@ public class BasePage {
 
     public void forceOpenUrl(String tcId, String url) {
         driver.get(url);
-        pause(650);
+        waitForSpaHydrated(url);
         showStepBanner(tcId, "Mở trang: " + url);
+    }
+
+    private void waitForSpaHydrated(String retryUrl) {
+        long deadline = System.currentTimeMillis() + 14000L;
+        boolean retried = false;
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                Boolean ready = (Boolean) js.executeScript(
+                        "return document.readyState === 'complete' && document.body && document.body.innerText.trim().length > 20;"
+                );
+                if (Boolean.TRUE.equals(ready)) {
+                    pause(180);
+                    return;
+                }
+            } catch (Exception ignored) {}
+            if (!retried && deadline - System.currentTimeMillis() < 7000L) {
+                retried = true;
+                try { driver.get(retryUrl); } catch (Exception ignored) {}
+            }
+            pause(250);
+        }
     }
 
     public void navigateTo(String url) { driver.navigate().to(url); }
@@ -267,15 +302,15 @@ public class BasePage {
         WebElement el = find(locator);
         moveCursorAndHighlight(el, "Nhập dữ liệu");
         clearReactInput(el);
-        if (demoSpeedMs >= 300 && text.length() <= 40) {
+        if (demoSpeedMs >= 250 && text.length() <= 24) {
             for (char ch : text.toCharArray()) {
                 el.sendKeys(String.valueOf(ch));
-                pause(18);
+                pause(10);
             }
         } else {
             el.sendKeys(text);
         }
-        pause(Math.min(demoSpeedMs, 400));
+        pause(Math.min(demoSpeedMs, 220));
     }
 
     public void demoClick(String tcId, String stepLabel, By locator) {
@@ -283,8 +318,14 @@ public class BasePage {
         WebElement el = find(locator);
         moveCursorAndHighlight(el, stepLabel);
         triggerCursorClickRipple();
-        el.click(); // Click chuột thật 100%, nếu bị form khác che sẽ báo ElementClickInterceptedException ngay!
-        pause(Math.min(demoSpeedMs, 500));
+        try {
+            el.click(); // Click chuột thật 100%, nếu bị form khác che sẽ báo ElementClickInterceptedException ngay!
+        } catch (ElementClickInterceptedException ex) {
+            js.executeScript("arguments[0].scrollIntoView({behavior:'instant', block:'center'}); window.scrollBy(0, -100);", el);
+            pause(160);
+            el.click();
+        }
+        pause(Math.min(demoSpeedMs, 250));
     }
 
     public boolean tryDemoClick(String tcId, String stepLabel, By locator) {
@@ -294,8 +335,14 @@ public class BasePage {
                 showStepBanner(tcId, "👆 " + stepLabel);
                 moveCursorAndHighlight(el, stepLabel);
                 triggerCursorClickRipple();
-                el.click();
-                pause(Math.min(demoSpeedMs, 480));
+                try {
+                    el.click();
+                } catch (ElementClickInterceptedException ex) {
+                    js.executeScript("arguments[0].scrollIntoView({behavior:'instant', block:'center'}); window.scrollBy(0, -100);", el);
+                    pause(160);
+                    el.click();
+                }
+                pause(Math.min(demoSpeedMs, 240));
                 return true;
             }
         }
@@ -369,6 +416,67 @@ public class BasePage {
             }
         }
         return false;
+    }
+
+    /**
+     * Chọn NGẪU NHIÊN 1 tùy chọn khác mặc định (bỏ qua option[0] "Tất cả" / placeholder & option disabled)
+     * để mỗi lần chạy test phủ đa dạng ngành nghề, địa điểm, ca làm, mức lương thay vì kẹt chọn cố định.
+     */
+    public String demoSelectRandomNonDefaultOption(String tcId, String stepLabel, By locator) {
+        List<WebElement> els = findAll(locator);
+        for (WebElement el : els) {
+            if (el.isDisplayed() && el.isEnabled()) {
+                try {
+                    Select sel = new Select(el);
+                    List<WebElement> opts = sel.getOptions();
+                    List<Integer> candidates = new java.util.ArrayList<>();
+                    for (int i = 1; i < opts.size(); i++) {
+                        try {
+                            String val = opts.get(i).getAttribute("value");
+                            String txt = opts.get(i).getText().trim();
+                            if (opts.get(i).isEnabled() && val != null && !val.isBlank() && !txt.isBlank()) {
+                                candidates.add(i);
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                    if (candidates.isEmpty()) continue;
+                    int chosenIdx = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
+                    String optText = opts.get(chosenIdx).getText().trim();
+                    showStepBanner(tcId, "🎲 " + stepLabel + " (Ngẫu nhiên): \"" + optText + "\"");
+                    moveCursorAndHighlight(el, "Ngẫu nhiên -> " + optText);
+                    sel.selectByIndex(chosenIdx);
+                    pause(Math.min(demoSpeedMs, 480));
+                    return optText;
+                } catch (Exception ignored) {}
+            }
+        }
+        return "";
+    }
+
+    public String demoClickRandomElement(String tcId, String stepLabel, By locator) {
+        List<WebElement> els = findAll(locator);
+        List<WebElement> visible = new java.util.ArrayList<>();
+        for (WebElement el : els) {
+            try {
+                if (el.isDisplayed() && el.isEnabled()) visible.add(el);
+            } catch (Exception ignored) {}
+        }
+        if (visible.isEmpty()) return "";
+        WebElement pick = visible.get(ThreadLocalRandom.current().nextInt(visible.size()));
+        String label = pick.getText() == null ? "" : pick.getText().trim();
+        showStepBanner(tcId, "🎲 " + stepLabel + (label.isEmpty() ? "" : ": " + label));
+        moveCursorAndHighlight(pick, label.isEmpty() ? stepLabel : label);
+        try { pick.click(); } catch (Exception ex) { js.executeScript("arguments[0].click();", pick); }
+        pause(Math.min(demoSpeedMs, 450));
+        return label;
+    }
+
+    public <T> T pickRandom(T[] items) {
+        return items[ThreadLocalRandom.current().nextInt(items.length)];
+    }
+
+    public <T> T pickRandom(List<T> items) {
+        return items.get(ThreadLocalRandom.current().nextInt(items.size()));
     }
 
     public void demoHover(String tcId, String stepLabel, By locator) {
@@ -451,6 +559,10 @@ public class BasePage {
             By.xpath("//div[contains(@class,'fixed') and contains(@class,'z-50')]//h3[contains(.,'Chi tiết bài đánh giá')]"),
             By.xpath("//div[contains(@class,'fixed') and contains(@class,'z-50')]//h3[contains(.,'Chi tiết phiếu khiếu nại')]"),
             By.xpath("//div[contains(@class,'fixed') and contains(@class,'z-50')]//h3[contains(.,'Hồ sơ ứng viên:')]"),
+            By.xpath("//div[contains(@class,'fixed') and contains(@class,'z-50')]//h3[contains(.,'Hẹn lịch phỏng vấn') or contains(.,'Mời phỏng vấn')]"),
+            By.xpath("//div[contains(@class,'fixed') and contains(@class,'z-50')]//h3[contains(.,'Từ chối hồ sơ ứng viên')]"),
+            By.xpath("//div[contains(@class,'fixed') and contains(@class,'z-50')]//h3[contains(.,'Tạo tin nhắn mới')]"),
+            By.xpath("//div[contains(@class,'fixed') and contains(@class,'z-50')]//h3[contains(.,'Chỉnh Sửa Đánh Giá')]"),
             By.xpath("//button[@title='Đóng modal']"),
             By.xpath("//h4[contains(.,'Thông báo hệ thống')]"),
             By.xpath("//button[contains(.,'Cập nhật tài khoản cá nhân')]")
@@ -469,6 +581,10 @@ public class BasePage {
             "Modal Chi tiết bài đánh giá",
             "Modal Chi tiết phiếu khiếu nại",
             "Modal Hồ sơ ứng viên",
+            "Modal Hẹn lịch phỏng vấn",
+            "Modal Từ chối hồ sơ ứng viên",
+            "Modal Tạo tin nhắn mới",
+            "Modal Chỉnh Sửa Đánh Giá",
             "DocumentViewerModal",
             "Dropdown Chuông thông báo",
             "Dropdown Tài khoản cá nhân"
@@ -478,6 +594,44 @@ public class BasePage {
                 throw new AssertionError("[" + tcId + "] Lỗi sót giao diện: '" + names[i] + "' từ bước trước CHƯA ĐƯỢC TẮT!");
             }
         }
+    }
+
+    public String getActiveSidebarMenuLabel() {
+        List<WebElement> btns = findAll(By.xpath("//aside//button[contains(@class,'from-blue-600') and contains(@class,'text-white')]"));
+        for (WebElement b : btns) {
+            try {
+                if (b.isDisplayed()) return b.getText().trim();
+            } catch (Exception ignored) {}
+        }
+        return "";
+    }
+
+    public String verifyBellNotificationClickRoutesMenu(String tcId, By bellBtn, By dropdownBox) {
+        demoClick(tcId, "Bấm mở Chuông thông báo hệ thống", bellBtn);
+        pause(450);
+        if (!isElementDisplayed(dropdownBox)) {
+            throw new AssertionError("[" + tcId + "] Không mở được bảng 'Thông báo hệ thống'.");
+        }
+        By notiItems = By.xpath("//h4[contains(.,'Thông báo hệ thống')]/ancestor::div[contains(@class,'rounded-2xl')]//div[contains(@class,'cursor-pointer') and .//p]");
+        List<WebElement> items = findAll(notiItems);
+        if (items.isEmpty()) {
+            closeDialogAndAssertGone(tcId, "Bảng Thông báo hệ thống", bellBtn, dropdownBox);
+            return "Mở & tắt bảng Chuông thông báo thành công (hiện hộp thông báo trống 0 tin).";
+        }
+        WebElement firstItem = items.get(0);
+        String notiTitle = firstItem.getText().replace("\n", " ").trim();
+        if (notiTitle.length() > 60) notiTitle = notiTitle.substring(0, 60) + "...";
+        demoHover(tcId, "Rê chuột đánh dấu đã đọc thông báo", notiItems);
+        pause(200);
+        moveCursorAndHighlight(firstItem, "Bấm thông báo kiểm tra trỏ vào danh mục");
+        firstItem.click();
+        pause(650);
+        if (isElementDisplayed(dropdownBox)) {
+            closeDialogAndAssertGone(tcId, "Bảng Thông báo hệ thống", bellBtn, dropdownBox);
+            throw new AssertionError("[" + tcId + "] Bấm vào thông báo nhưng Dropdown chưa tự đóng!");
+        }
+        String activeAfter = getActiveSidebarMenuLabel();
+        return "Đã bấm thông báo '" + notiTitle + "' -> Dropdown đóng & trỏ vào phân hệ '" + activeAfter + "'.";
     }
 
     public boolean isElementEnabled(By locator) { return find(locator).isEnabled(); }
@@ -598,6 +752,65 @@ public class BasePage {
     public HttpResponse<String> httpGetBody(String url) throws IOException, InterruptedException {
         HttpRequest req = HttpRequest.newBuilder().uri(URI.create(url)).timeout(Duration.ofSeconds(15)).GET().build();
         return HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofString());
+    }
+
+    public HttpResponse<String> httpWithToken(String method, String url, String token, String jsonBody) throws IOException, InterruptedException {
+        HttpRequest.Builder b = HttpRequest.newBuilder().uri(URI.create(url)).timeout(Duration.ofSeconds(20));
+        if (token != null && !token.isBlank()) {
+            b.header("Authorization", "Bearer " + token);
+        }
+        if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) {
+            b.header("Content-Type", "application/json");
+            b.method(method.toUpperCase(), HttpRequest.BodyPublishers.ofString(jsonBody == null ? "{}" : jsonBody));
+        } else {
+            b.method(method.toUpperCase(), HttpRequest.BodyPublishers.noBody());
+        }
+        return HTTP_CLIENT.send(b.build(), HttpResponse.BodyHandlers.ofString());
+    }
+
+    public File getDownloadsDir() {
+        File dlDir = new File("target/downloads");
+        if (!dlDir.exists()) dlDir.mkdirs();
+        return dlDir;
+    }
+
+    public void clearDownloadsDir() {
+        File[] files = getDownloadsDir().listFiles();
+        if (files != null) {
+            for (File f : files) {
+                try { f.delete(); } catch (Exception ignored) {}
+            }
+        }
+    }
+
+    public File waitForDownloadedFile(String extOrKeyword, long timeoutMs) {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        String needle = extOrKeyword == null ? "" : extOrKeyword.toLowerCase();
+        while (System.currentTimeMillis() < deadline) {
+            File[] files = getDownloadsDir().listFiles();
+            if (files != null) {
+                for (File f : files) {
+                    String n = f.getName().toLowerCase();
+                    if (!n.endsWith(".crdownload") && !n.endsWith(".tmp") && f.length() > 0 && n.contains(needle)) {
+                        return f;
+                    }
+                }
+            }
+            pause(250);
+        }
+        return null;
+    }
+
+    public String getSampleAssetAbsolutePath(String fileName) {
+        File f = new File("sample_assets", fileName);
+        if (!f.exists()) {
+            throw new AssertionError("Không tìm thấy tệp mẫu upload: " + f.getAbsolutePath());
+        }
+        return f.getAbsolutePath();
+    }
+
+    public String getRoleToken(String role) {
+        return cookieManager != null ? cookieManager.readSavedAuthToken(role) : "";
     }
 
     public void clearAllCookies() { driver.manage().deleteAllCookies(); }

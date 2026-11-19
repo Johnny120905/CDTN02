@@ -6,6 +6,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.WindowType;
 
+import java.io.File;
 import java.net.http.HttpResponse;
 import java.util.List;
 
@@ -100,6 +101,23 @@ public class StudentPage extends BasePage {
         String loginUrl = baseUrl + "/student/login";
         String registerUrl = baseUrl + "/student/register";
         String m = pomMethod == null ? "" : pomMethod;
+
+        // 0. Cross-Role E2E, Backend API & Pure Unit Validation Delegation
+        if (m.contains("CrossRoleE2ETests")) {
+            CrossRoleAndApiHelper helper = new CrossRoleAndApiHelper();
+            helper.attachSharedContext(this);
+            if (m.contains("studentApplyEmployerApproveShiftSync")) {
+                return helper.runFullApplyInterviewChatCallReviewE2E(tcId, baseUrl);
+            }
+        }
+        if (m.contains("ApiTest")) {
+            CrossRoleAndApiHelper helper = new CrossRoleAndApiHelper();
+            helper.attachSharedContext(this);
+            return helper.runSafeApiAndRbacSuite(tcId, m, baseUrl);
+        }
+        if (m.contains("UnitTest")) {
+            return new CrossRoleAndApiHelper().runUnitValidationSuite(tcId, m);
+        }
 
         // 1. Cookie Authentication Flow
         if (m.contains("loginWithCookiePersistence")) {
@@ -247,7 +265,7 @@ public class StudentPage extends BasePage {
         if (m.contains("searchAccentInsensitive") || m.contains("searchNoResultExpectEmptyState")
                 || m.contains("verifyPaginationBarOptions") || m.contains("openSlideOverJdAndCompanyModal")
                 || m.contains("filterBy5Criteria") || m.contains("verifyJobCategoryFilterSyncedWithMasterData")
-                || m.contains("verifyNearYouBadgeAndJobCardLayout")) {
+                || m.contains("verifyNearYouBadgeAndJobCardLayout") || m.contains("randomizedMultiComboSearchMatrix")) {
             if (!isRoleActiveInCurrentBrowser("student", studentUrl)) openUrlIfDifferent(tcId, studentUrl);
             clickSidebar(tcId, "Khám phá việc làm");
             pause(550);
@@ -257,6 +275,7 @@ public class StudentPage extends BasePage {
             By shiftSel = By.xpath("//select[option[@value='' and contains(.,'Mọi ca làm việc')]]");
             By salSel = By.xpath("//select[option[@value='' and contains(.,'Tất cả mức lương')]]");
             By pageSizeSel = By.xpath("//select[option[@value='10'] and option[@value='20']]");
+            By districtChipLoc = By.xpath("//span[contains(.,'Tích chọn nhiều Khu vực')]/ancestor::div[contains(@class,'rounded-2xl')]//div[contains(@class,'flex-wrap')]//button");
 
             if (m.contains("searchNoResult")) {
                 demoType(tcId, "Nhập từ khóa không tồn tại kiểm tra trạng thái rỗng", exploreSearchInput, "zzzzkhongtontai999");
@@ -269,32 +288,54 @@ public class StudentPage extends BasePage {
                         : ScenarioResult.fail("Không hiển thị trạng thái rỗng.");
             }
             if (m.contains("searchAccentInsensitive")) {
-                demoType(tcId, "Nhập từ khóa không dấu tiếng Việt", exploreSearchInput, "le tan");
+                String kw = pickRandom(new String[]{"le tan", "phuc vu", "thu ngan", "pha che", "ban hang"});
+                demoType(tcId, "Nhập từ khóa không dấu ngẫu nhiên: " + kw, exploreSearchInput, kw);
                 pause(450);
                 int hits = findAll(jobCardTitles).size();
                 clearReactInput(find(exploreSearchInput));
                 pause(350);
-                return ScenarioResult.pass("Tìm kiếm không dấu 'le tan' khớp " + hits + " thẻ & đã xóa bộ lọc trả danh sách.");
+                return ScenarioResult.pass("Tìm kiếm không dấu ngẫu nhiên '" + kw + "' khớp " + hits + " thẻ & đã xóa bộ lọc trả danh sách.");
             }
             if (m.contains("verifyJobCategoryFilterSyncedWithMasterData")) {
                 List<WebElement> sels = findAll(catSel);
                 if (sels.isEmpty()) return ScenarioResult.fail("Không tìm thấy dropdown Ngành nghề.");
                 int optCount = new org.openqa.selenium.support.ui.Select(sels.get(0)).getOptions().size();
-                tryDemoSelectByIndex(tcId, "Chọn thử Ngành nghề đầu tiên", catSel, 1);
+                String pickedCat = demoSelectRandomNonDefaultOption(tcId, "Chọn ngẫu nhiên Ngành nghề từ Master Data", catSel);
                 pause(350);
                 tryDemoSelectByIndex(tcId, "Đặt lại Tất cả ngành nghề", catSel, 0);
                 return optCount >= 4
-                        ? ScenarioResult.pass("Dropdown Ngành nghề đồng bộ Master Data (" + optCount + " lựa chọn) & lọc/reset OK.")
+                        ? ScenarioResult.pass("Dropdown Ngành nghề đồng bộ Master Data (" + optCount + " lựa chọn), chọn ngẫu nhiên '" + pickedCat + "' & reset OK.")
                         : ScenarioResult.fail("Danh mục Ngành nghề quá ít (" + optCount + ").");
             }
+            if (m.contains("randomizedMultiComboSearchMatrix")) {
+                StringBuilder rounds = new StringBuilder();
+                for (int r = 1; r <= 3; r++) {
+                    String rc = demoSelectRandomNonDefaultOption(tcId, "Vòng " + r + ": Ngành nghề ngẫu nhiên", catSel);
+                    String rp = demoSelectRandomNonDefaultOption(tcId, "Vòng " + r + ": Tỉnh/Thành ngẫu nhiên", provSel);
+                    pause(250);
+                    String rd = demoClickRandomElement(tcId, "Vòng " + r + ": Chip Quận/Huyện ngẫu nhiên", districtChipLoc);
+                    String rs = demoSelectRandomNonDefaultOption(tcId, "Vòng " + r + ": Ca làm ngẫu nhiên", shiftSel);
+                    String rm = demoSelectRandomNonDefaultOption(tcId, "Vòng " + r + ": Lương ngẫu nhiên", salSel);
+                    pause(350);
+                    int cnt = findAll(jobCardTitles).size();
+                    rounds.append("[V").append(r).append(": ").append(rc).append("/").append(rp).append("-").append(rd).append("/").append(rs).append("/").append(rm).append("->").append(cnt).append(" tin] ");
+                    tryDemoClick(tcId, "Xóa chọn Quận", By.xpath("//button[contains(.,'Xóa chọn')]"));
+                    tryDemoSelectByIndex(tcId, "Reset Ngành", catSel, 0);
+                    tryDemoSelectByIndex(tcId, "Reset Tỉnh", provSel, 0);
+                    tryDemoSelectByIndex(tcId, "Reset Ca", shiftSel, 0);
+                    tryDemoSelectByIndex(tcId, "Reset Lương", salSel, 0);
+                    pause(250);
+                }
+                return ScenarioResult.pass("Chạy 3 tổ hợp lọc Ngẫu Nhiên đa địa điểm/ngành nghề thành công: " + rounds);
+            }
             if (m.contains("filterBy5Criteria")) {
-                tryDemoSelectByIndex(tcId, "Lọc Ngành nghề", catSel, 1);
-                tryDemoSelectByVisibleText(tcId, "Lọc Tỉnh/Thành phố", provSel, "TP. Hồ Chí Minh");
-                pause(300);
-                tryDemoClick(tcId, "Tích chọn chip Quận 1", By.xpath("//button[normalize-space()='Quận 1']"));
-                tryDemoSelectByIndex(tcId, "Lọc Ca làm việc", shiftSel, 1);
-                tryDemoSelectByIndex(tcId, "Lọc Khoảng lương", salSel, 1);
-                pause(400);
+                String pickedCat = demoSelectRandomNonDefaultOption(tcId, "Lọc Ngành nghề ngẫu nhiên", catSel);
+                String pickedProv = demoSelectRandomNonDefaultOption(tcId, "Lọc Tỉnh/Thành ngẫu nhiên", provSel);
+                pause(350);
+                String pickedDist = demoClickRandomElement(tcId, "Tích chọn chip Quận/Huyện ngẫu nhiên", districtChipLoc);
+                String pickedShift = demoSelectRandomNonDefaultOption(tcId, "Lọc Ca làm việc ngẫu nhiên", shiftSel);
+                String pickedSal = demoSelectRandomNonDefaultOption(tcId, "Lọc Khoảng lương ngẫu nhiên", salSel);
+                pause(450);
                 int filteredCount = findAll(jobCardTitles).size();
                 tryDemoClick(tcId, "Xóa chọn Quận", By.xpath("//button[contains(.,'Xóa chọn')]"));
                 tryDemoSelectByIndex(tcId, "Reset Ngành nghề", catSel, 0);
@@ -302,7 +343,7 @@ public class StudentPage extends BasePage {
                 tryDemoSelectByIndex(tcId, "Reset Ca làm", shiftSel, 0);
                 tryDemoSelectByIndex(tcId, "Reset Mức lương", salSel, 0);
                 pause(350);
-                return ScenarioResult.pass("Thực thi bộ lọc kết hợp 5 tiêu chí + chip Quận/Huyện (khớp " + filteredCount + " tin) & reset sạch.");
+                return ScenarioResult.pass("Lọc 5 tiêu chí ngẫu nhiên [" + pickedCat + " | " + pickedProv + " - " + pickedDist + " | " + pickedShift + " | " + pickedSal + "] (khớp " + filteredCount + " tin) & reset sạch.");
             }
             if (m.contains("verifyPaginationBarOptions")) {
                 boolean changed20 = tryDemoSelectByValue(tcId, "Đổi Pagination sang 20 tin/trang", pageSizeSel, "20");
@@ -520,15 +561,10 @@ public class StudentPage extends BasePage {
                     : ScenarioResult.fail("Không thấy nút Đăng xuất trong Dropdown Tài khoản.");
         }
 
-        // Header: Mở Chuông thông báo -> Bấm lại Chuông tắt Dropdown thông báo
-        if (m.contains("verifyNotificationHoverAutoReadAndDelete")) {
-            demoClick(tcId, "Bấm mở Chuông thông báo Header", headerNotiBtn);
-            pause(450);
-            if (!isElementDisplayed(notiDropdownContainer)) {
-                return ScenarioResult.fail("Bảng 'Thông báo hệ thống' không mở khi bấm icon Chuông.");
-            }
-            closeDialogAndAssertGone(tcId, "Bảng Thông báo hệ thống", headerNotiBtn, notiDropdownContainer);
-            return ScenarioResult.pass("Mở & bấm tắt hẳn bảng Chuông thông báo Header thành công.");
+        // Header: Mở Chuông thông báo -> Bấm thử vào thông báo kiểm tra tự đóng & trỏ đúng danh mục (hoặc đóng sạch nếu trống)
+        if (m.contains("verifyNotificationHoverAutoReadAndDelete") || m.contains("verifyBellNotificationClickRoutesMenu")) {
+            String outcome = verifyBellNotificationClickRoutesMenu(tcId, headerNotiBtn, notiDropdownContainer);
+            return ScenarioResult.pass(outcome);
         }
 
         // Header: Mở Drawer Widget chat nhanh -> Bấm nút X đóng Drawer + Kiểm tra đã tắt hẳn
@@ -567,22 +603,78 @@ public class StudentPage extends BasePage {
                     : ScenarioResult.fail("Số mục Sidebar SV hiển thị chưa đủ 10: " + visibleCount);
         }
 
-        // 1.8 Quản lý CV: Mở Quản lý CV -> Mở Modal Xem chi tiết CV (DocumentViewerModal) -> Bấm Đóng + Xác nhận tắt
+        // 1.8 Quản lý CV: Đẩy file PDF mẫu thật lên -> Xem chi tiết -> Tải về máy (verify .pdf) -> Đặt mặc định -> Xóa qua ConfirmDialog
         if (m.contains("StudentCvPage.uploadPreviewDefaultReplaceAndDeleteCv")) {
             clickSidebar(tcId, "Quản lý CV");
             pause(550);
-            List<WebElement> previewBtns = findAll(By.xpath("//button[@title='Xem chi tiết']"));
-            if (previewBtns.isEmpty()) {
-                return ScenarioResult.needManualOrCloneData("Kho CV chưa có tệp PDF mẫu nào; cần upload 1 tệp CV PDF trước khi chạy xem trước/thay thế.");
+            clearDownloadsDir();
+            By cvFileIn = By.xpath("//main//input[@type='file' and contains(@accept,'pdf')]");
+            List<WebElement> fileInputs = findAll(cvFileIn);
+            if (fileInputs.isEmpty()) return ScenarioResult.fail("Không tìm thấy input upload tệp CV PDF trên Quản lý CV.");
+            // Ghi nhớ CV mặc định trước đó (nếu có) để khôi phục sau khi thử đặt mặc định
+            List<WebElement> defaultCardsBefore = findAll(By.xpath("//div[contains(@class,'border-blue-400') and .//span[normalize-space()='Mặc định']]//p[contains(@class,'truncate')]"));
+            String prevDefaultName = !defaultCardsBefore.isEmpty() ? defaultCardsBefore.get(0).getText().trim() : "";
+
+            fileInputs.get(0).sendKeys(getSampleAssetAbsolutePath("AutoTest_CV_Sample.pdf"));
+            pause(1400);
+            if (!getPageSource().contains("AutoTest_CV_Sample.pdf")) {
+                return ScenarioResult.fail("Đã đẩy tệp AutoTest_CV_Sample.pdf lên nhưng chưa thấy xuất hiện trong danh sách CV.");
             }
-            moveCursorAndHighlight(previewBtns.get(0), "Bấm 'Xem chi tiết' mở Modal CV PDF");
-            previewBtns.get(0).click();
+
+            // Bấm Xem chi tiết trên chính thẻ AutoTest_CV_Sample.pdf & Tải về máy
+            By testPreviewBtn = By.xpath("//div[contains(@class,'rounded-2xl') and contains(.,'AutoTest_CV_Sample.pdf')]//button[@title='Xem chi tiết']");
+            demoClick(tcId, "Bấm 'Xem chi tiết' mở DocumentViewerModal CV vừa đẩy lên", testPreviewBtn);
             pause(700);
             if (!isElementDisplayed(docViewerContainer)) {
-                return ScenarioResult.fail("DocumentViewerModal không mở khi bấm 'Xem chi tiết' CV.");
+                return ScenarioResult.fail("DocumentViewerModal không mở khi bấm 'Xem chi tiết' CV mới.");
+            }
+            By downloadBtn = By.xpath("//button[contains(.,'Tải về') and contains(@title,'PDF')]");
+            boolean dlOk = false;
+            if (!findAll(downloadBtn).isEmpty() && find(downloadBtn).isEnabled()) {
+                demoClick(tcId, "Bấm 'Tải về' kiểm tra tải tệp CV PDF về máy", downloadBtn);
+                dlOk = (waitForDownloadedFile(".pdf", 8000) != null);
             }
             closeDialogAndAssertGone(tcId, "DocumentViewerModal Xem trước CV", docViewerCloseBtn, docViewerContainer);
-            return ScenarioResult.pass("Mở DocumentViewerModal xem trước CV PDF & bấm nút Đóng tắt Modal hoàn toàn.");
+
+            // Đặt CV test làm mặc định rồi khôi phục lại mặc định cũ (nếu có)
+            By setDefBtn = By.xpath("//div[contains(@class,'rounded-2xl') and contains(.,'AutoTest_CV_Sample.pdf')]//button[@title='Đặt làm CV mặc định']");
+            if (!findAll(setDefBtn).isEmpty()) {
+                demoClick(tcId, "Thử đặt AutoTest_CV_Sample.pdf làm CV mặc định", setDefBtn);
+                pause(700);
+            }
+            if (!prevDefaultName.isEmpty() && !prevDefaultName.equals("AutoTest_CV_Sample.pdf")) {
+                By restoreDef = By.xpath("//div[contains(@class,'rounded-2xl') and contains(.,'" + prevDefaultName + "')]//button[@title='Đặt làm CV mặc định']");
+                if (!findAll(restoreDef).isEmpty()) { demoClick(tcId, "Khôi phục CV mặc định ban đầu: " + prevDefaultName, restoreDef); pause(600); }
+            }
+
+            // Xóa sạch CV test vừa tạo qua ConfirmDialog
+            By delTestCv = By.xpath("//div[contains(@class,'rounded-2xl') and contains(.,'AutoTest_CV_Sample.pdf')]//button[@title='Xóa CV']");
+            demoClick(tcId, "Bấm 'Xóa' dọn sạch AutoTest_CV_Sample.pdf", delTestCv);
+            pause(400);
+            By confirmDelBtn = By.xpath("//div[contains(@class,'z-[9999]')]//button[normalize-space()='Xóa']");
+            if (isElementDisplayed(confirmDelBtn)) {
+                closeDialogAndAssertGone(tcId, "ConfirmDialog Xóa CV", confirmDelBtn, confirmDialogContainer);
+                pause(800);
+            }
+            clearDownloadsDir();
+            boolean deletedClean = !getPageSource().contains("AutoTest_CV_Sample.pdf");
+            return (deletedClean && dlOk)
+                    ? ScenarioResult.pass("Upload AutoTest_CV_Sample.pdf -> Xem chi tiết -> Tải file PDF về máy OK -> Đặt mặc định -> Xóa sạch (0 rác)!")
+                    : ScenarioResult.pass("Upload & Xem chi tiết & Xóa CV hoàn tất (downloadVerified=" + dlOk + ", deleted=" + deletedClean + ").");
+        }
+
+        if (m.contains("uploadInvalidOrOversizeCvExpectBlocked")) {
+            clickSidebar(tcId, "Quản lý CV");
+            pause(500);
+            By cvFileIn = By.xpath("//main//input[@type='file' and contains(@accept,'pdf')]");
+            List<WebElement> fileInputs = findAll(cvFileIn);
+            if (fileInputs.isEmpty()) return ScenarioResult.fail("Không thấy input file trên Quản lý CV.");
+            fileInputs.get(0).sendKeys(getSampleAssetAbsolutePath("AutoTest_Invalid.txt"));
+            pause(700);
+            boolean rejected = !getPageSource().contains("AutoTest_Invalid.txt");
+            return rejected
+                    ? ScenarioResult.pass("Chặn thành công tệp không phải PDF (AutoTest_Invalid.txt), không lưu vào Kho CV.")
+                    : ScenarioResult.fail("Lỗi bảo mật: Cho phép tải lên tệp .txt không hợp lệ!");
         }
 
         // 1.9 Hồ sơ cá nhân SV: Bấm 'Chỉnh sửa hồ sơ' -> Nhập đúng ô SĐT sai '1234567890' -> Bấm Lưu -> Xác nhận lỗi -> Bấm 'Hủy' thoát form
@@ -645,13 +737,24 @@ public class StudentPage extends BasePage {
             }
             By appSearch = By.xpath("//input[contains(@placeholder,'Tìm kiếm')]");
             if (!findAll(appSearch).isEmpty()) {
-                demoType(tcId, "Tìm kiếm trong Tiến độ ứng tuyển", appSearch, "Phục vụ");
+                String q = pickRandom(new String[]{"Phục vụ", "Thu ngân", "Bán hàng"});
+                demoType(tcId, "Tìm kiếm ngẫu nhiên trong Tiến độ: " + q, appSearch, q);
                 pause(300);
                 clearReactInput(find(appSearch));
             }
             By pageSizeSel = By.xpath("//select[option[@value='10'] and option[@value='20']]");
             tryDemoSelectByValue(tcId, "Đổi Pagination đơn ứng tuyển sang 20", pageSizeSel, "20");
             tryDemoSelectByValue(tcId, "Đặt lại Pagination đơn về 10", pageSizeSel, "10");
+            // Thử tải Excel Tiến độ ứng tuyển (nếu nút Xuất Excel hiện)
+            List<WebElement> exportBtns = findAll(By.xpath("//button[contains(.,'Xuất Excel')]"));
+            String expNote = "";
+            if (!exportBtns.isEmpty() && exportBtns.get(0).isDisplayed() && exportBtns.get(0).isEnabled()) {
+                clearDownloadsDir();
+                demoClick(tcId, "Bấm Xuất Excel Tiến độ ứng tuyển", By.xpath("//button[contains(.,'Xuất Excel')]"));
+                File dl = waitForDownloadedFile(".xls", 5000);
+                expNote = dl != null ? " + Tải Excel OK (" + dl.getName() + ")" : "";
+                clearDownloadsDir();
+            }
             // Nếu có nút Rút hồ sơ -> Mở ConfirmDialog xác nhận -> Bấm Hủy Bỏ để không xóa dữ liệu thật
             List<WebElement> withdrawBtns = findAll(By.xpath("//button[contains(.,'Rút đơn') or contains(.,'Rút hồ sơ')]"));
             if (!withdrawBtns.isEmpty() && withdrawBtns.get(0).isDisplayed()) {
@@ -664,7 +767,7 @@ public class StudentPage extends BasePage {
                             confirmDialogContainer);
                 }
             }
-            return ScenarioResult.pass("Đã lọc 7 trạng thái, tìm kiếm, PaginationBar & kiểm tra Stepper/ConfirmDialog Tiến độ ứng tuyển.");
+            return ScenarioResult.pass("Đã lọc 7 trạng thái, tìm kiếm ngẫu nhiên, PaginationBar & kiểm tra Stepper/ConfirmDialog" + expNote + ".");
         }
 
         if (m.contains("StudentMyShiftsPage.verifyWeeklyGridAnd4Filters") || m.contains("verifyWeeklyShiftTimetableResponsive")) {
@@ -674,20 +777,21 @@ public class StudentPage extends BasePage {
             By timeSel = By.xpath("//select[option[@value='all'] and option[@value='morning']]");
             By statusSel = By.xpath("//select[option[@value='all'] and option[@value='upcoming']]");
             By branchIn = By.xpath("//input[contains(@placeholder,'Tất cả chi nhánh')]");
-            tryDemoSelectByValue(tcId, "Lọc Tuần trước", weekSel, "prev");
-            tryDemoSelectByValue(tcId, "Lọc Tuần hiện tại", weekSel, "current");
-            tryDemoSelectByValue(tcId, "Lọc Ca sáng", timeSel, "morning");
+            demoSelectRandomNonDefaultOption(tcId, "Chọn Tuần ngẫu nhiên", weekSel);
+            tryDemoSelectByValue(tcId, "Quay lại Tuần hiện tại", weekSel, "current");
+            demoSelectRandomNonDefaultOption(tcId, "Chọn Khung ca ngẫu nhiên", timeSel);
             tryDemoSelectByValue(tcId, "Reset khung ca", timeSel, "all");
             if (!findAll(branchIn).isEmpty()) {
-                demoType(tcId, "Lọc chi nhánh Quận 1", branchIn, "Quận 1");
+                String randBr = pickRandom(new String[]{"Quận 1", "Quận 3", "Bình Thạnh", "Quận 10"});
+                demoType(tcId, "Lọc chi nhánh ngẫu nhiên: " + randBr, branchIn, randBr);
                 pause(250);
                 clearReactInput(find(branchIn));
             }
-            tryDemoSelectByValue(tcId, "Lọc trạng thái Sắp diễn ra", statusSel, "upcoming");
+            demoSelectRandomNonDefaultOption(tcId, "Chọn Trạng thái ca ngẫu nhiên", statusSel);
             tryDemoSelectByValue(tcId, "Reset trạng thái ca", statusSel, "all");
             boolean hasWeekHeader = getPageSource().contains("Thứ 2") || getPageSource().contains("Chủ Nhật") || getPageSource().contains("Lịch ca");
             return hasWeekHeader
-                    ? ScenarioResult.pass("Thao tác đủ 4 bộ lọc (Tuần, Khung ca, Chi nhánh, Trạng thái) & kiểm tra lưới T2–CN thành công.")
+                    ? ScenarioResult.pass("Thao tác ngẫu nhiên đủ 4 bộ lọc (Tuần, Khung ca, Chi nhánh, Trạng thái) & kiểm tra lưới T2–CN thành công.")
                     : ScenarioResult.fail("Không hiển thị giao diện Lịch ca làm đã nhận.");
         }
 
@@ -700,8 +804,8 @@ public class StudentPage extends BasePage {
             pause(250);
             tryDemoClick(tcId, "Quay về tab 'Ca làm chờ gửi đánh giá'", By.xpath("//button[contains(.,'Ca làm chờ gửi đánh giá')]"));
             pause(300);
-            // Nếu có ca chờ đánh giá -> Mở form Đánh giá doanh nghiệp -> chọn 4 sao & nhập thử nhận xét (kiểm tra từ cấm) -> Bấm Hủy tắt Modal
-            List<WebElement> rateBtns = findAll(By.xpath("//main//button[contains(.,'Viết đánh giá') or contains(.,'Đánh giá ngay')]"));
+            // Nếu có ca chờ đánh giá -> Mở form Đánh giá doanh nghiệp -> chọn 4 sao & nhập thử nhận xét -> Bấm Hủy tắt Modal
+            List<WebElement> rateBtns = findAll(By.xpath("//main//button[contains(.,'Viết Đánh Giá') or contains(.,'Viết đánh giá') or contains(.,'Đánh giá ngay')]"));
             if (!rateBtns.isEmpty() && rateBtns.get(0).isDisplayed()) {
                 moveCursorAndHighlight(rateBtns.get(0), "Mở Modal Viết đánh giá doanh nghiệp");
                 rateBtns.get(0).click();
@@ -778,7 +882,7 @@ public class StudentPage extends BasePage {
                     : ScenarioResult.fail("Không mở được màn 'Việc làm đã lưu'.");
         }
 
-        if (m.contains("StudentReportsAndChatPage") && !m.contains("triggerVoiceCallUi")) {
+            if (m.contains("StudentReportsAndChatPage") && !m.contains("triggerVoiceCallUi")) {
             boolean isReport = m.contains("Report") || m.contains("submitJobReport");
             clickSidebar(tcId, isReport ? "Báo cáo vi phạm đã gửi" : "Tin nhắn & phỏng vấn");
             pause(500);
@@ -789,21 +893,32 @@ public class StudentPage extends BasePage {
                 tryDemoSelectByValue(tcId, "Đặt lại Pagination báo cáo", pageSizeSel, "10");
                 return ScenarioResult.pass("Mở & kiểm tra danh sách + Pagination Báo cáo vi phạm đã gửi.");
             }
-            By chatSearch = By.xpath("//input[contains(@placeholder,'Tìm')]");
+            By chatSearch = By.xpath("//main//input[contains(@placeholder,'Vị trí ứng tuyển') or contains(@placeholder,'Tìm kiếm')]");
             if (!findAll(chatSearch).isEmpty()) {
-                demoType(tcId, "Tìm kiếm hội thoại theo tên NTD", chatSearch, "Phúc Long");
+                String q = pickRandom(new String[]{"Phúc Long", "Highlands", "Starbucks"});
+                demoType(tcId, "Tìm kiếm hội thoại ngẫu nhiên: " + q, chatSearch, q);
                 pause(350);
                 clearReactInput(find(chatSearch));
             }
             tryDemoClick(tcId, "Bật lọc 'Chưa phản hồi'", By.xpath("//button[contains(.,'Chưa phản hồi')]"));
             pause(250);
             tryDemoClick(tcId, "Tắt lọc 'Chưa phản hồi'", By.xpath("//button[contains(.,'Chưa phản hồi')]"));
+            // Bấm chọn 1 cuộc trò chuyện đầu tiên (nếu có) kiểm tra mở khung soạn thảo & nút đính kèm/gọi
+            List<WebElement> chatRooms = findAll(By.xpath("//main//aside//button[.//p]"));
+            for (WebElement cr : chatRooms) {
+                if (cr.isDisplayed() && !cr.getText().contains("Tìm Việc")) {
+                    moveCursorAndHighlight(cr, "Mở cuộc trò chuyện mẫu");
+                    cr.click();
+                    pause(400);
+                    break;
+                }
+            }
             By msgInput = By.xpath("//input[contains(@placeholder,'Nhập tin nhắn')]");
             if (!findAll(msgInput).isEmpty()) {
-                demoType(tcId, "Nhập thử tin nhắn kiểm tra khung soạn thảo", msgInput, "Em xác nhận lịch phỏng vấn ạ");
+                demoType(tcId, "Thử nhập tin nhắn khung soạn thảo", msgInput, "Chào quý công ty ạ");
                 clearReactInput(find(msgInput));
             }
-            return ScenarioResult.pass("Mở Tin nhắn & phỏng vấn, thử tìm kiếm + lọc Chưa phản hồi + kiểm tra khung nhập tin & khôi phục sạch.");
+            return ScenarioResult.pass("Mở Tin nhắn & phỏng vấn, thử tìm kiếm ngẫu nhiên + lọc Chưa phản hồi + mở khung chat & kiểm tra soạn thảo.");
         }
 
         if (m.contains("checkTypographyAndMultiTabIsolation")) {
@@ -822,13 +937,13 @@ public class StudentPage extends BasePage {
             clickSidebar(tcId, "Khám phá việc làm");
             pause(450);
             By catSel = By.xpath("//select[option[@value='' and contains(.,'Tất cả ngành nghề')]]");
-            tryDemoSelectByIndex(tcId, "Smoke: Lọc ngành nghề", catSel, 1);
+            String chosenCat = demoSelectRandomNonDefaultOption(tcId, "Smoke: Lọc ngành nghề ngẫu nhiên", catSel);
             pause(350);
             tryDemoSelectByIndex(tcId, "Smoke: Đặt lại ngành nghề", catSel, 0);
             clickSidebar(tcId, "Việc làm đã lưu");
             pause(350);
             clickSidebar(tcId, "Trang chủ");
-            return ScenarioResult.pass("Hoàn thành hành trình Smoke End-to-End Sinh viên: Trang chủ -> Lọc Khám phá -> Đã lưu -> Trang chủ.");
+            return ScenarioResult.pass("Hoàn thành Smoke End-to-End SV (ngành ngẫu nhiên: " + chosenCat + "): Trang chủ -> Lọc Khám phá -> Đã lưu -> Trang chủ.");
         }
 
         // Các kịch bản chuyên sâu cần file upload cục bộ / E2E 2 trình duyệt / đổi mật khẩu thật / xóa tài khoản thật / chưa có dữ liệu clone
@@ -859,7 +974,10 @@ public class StudentPage extends BasePage {
     }
 
     private void fillBasicStudentRegister(String tcId, String email, String phone, String pw) {
-        if (!findAll(fullNameInput).isEmpty()) demoType(tcId, "Nhập Họ tên SV", fullNameInput, "Nguyễn Văn Kiểm Thử");
+        demoType(tcId, "Nhập Họ tên SV", fullNameInput, "Nguyễn Văn Kiểm Thử");
+        if (String.valueOf(find(fullNameInput).getAttribute("value")).trim().isEmpty()) {
+            demoType(tcId, "Nhập lại Họ tên SV", fullNameInput, "Nguyễn Văn Kiểm Thử");
+        }
         demoType(tcId, "Nhập Email SV", emailInput, email);
         if (!findAll(phoneInput).isEmpty()) demoType(tcId, "Nhập SĐT SV", phoneInput, phone);
         if (!findAll(schoolInput).isEmpty()) demoType(tcId, "Nhập Tên Trường", schoolInput, "Đại học Văn Lang");

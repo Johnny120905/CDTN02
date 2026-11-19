@@ -73,10 +73,10 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
         body: JSON.stringify({ email, purpose })
       });
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        setErrorMsg(data.message || 'Không thể tạo mã OTP.');
+      if (!res.ok || !data.success || data.email_sent === false) {
+        setErrorMsg(data.message || data.error_detail || 'Không thể gửi mã OTP tới Gmail.');
       } else {
-        const code = data.otp || '849201';
+        const code = data.otp || '';
         setReceivedOtp(code);
         setOtpTimer(data.expires_in || 60); // 60 seconds (FR-SV-01.01)
         setIsOtpTimerActive(true);
