@@ -1161,16 +1161,21 @@ un.py.
    - `test/python/test_known_bugs.py` đổi thành `test_doi_chieu_tai_lieu.py`, tên test đặt theo mã TC/BR (VD `test_TC_QTV_029_tu_choi_GPKD_bat_buoc_ly_do`); bỏ 4 test (BUG-01, 03, 08, 12); test BUG-02 đổi thành `test_BR_CH_04_nhap_sai_OTP_bi_chan`. Kết quả: **64 test, 54 PASS, 10 FAIL**.
    - Excel: TC-SV-013, TC-SV-068, TC-NTD-008 khôi phục `POM_Method` như bản gốc; TC-SV-061, TC-QTV-029, TC-QTV-050 trỏ sang tên test mới; sheet `TestCases_Python` còn 64 dòng. Ghi chú: kịch bản TC-NTD-008 ghi MST "chỉ 10 hoặc 13 số" đang lệch FR-NTD-01.01 ("từ 10 đến 13").
    - Cập nhật `run_python_tests.py`, `BUG_LOG.md`, `README.md`, `kichban.md` cho khớp.
-   9. **Sửa lần 4 (21/11/2026): StudentPage.java – TC-SV-029 dùng từ khóa theo dữ liệu TC ('thu ngan') thay vì chọn ngẫu nhiên; TC-SV-032 kiểm tra thông báo "Không tìm thấy" trước khi reset bộ lọc (trước đây kiểm sau reset nên báo FAIL sai). Chỉ sửa code test, không đụng Backend/frontend.**
-   10. **Sửa backend theo kết quả kiểm thử (21/11/2026) – Người sửa code: Vũ Thế Long; ghi nhận: Lê Thị Thuỳ Ngân:**
+9. **Sửa lần 4 (21/11/2026): StudentPage.java – TC-SV-029 dùng từ khóa theo dữ liệu TC ('thu ngan') thay vì chọn ngẫu nhiên; TC-SV-032 kiểm tra thông báo "Không tìm thấy" trước khi reset bộ lọc (trước đây kiểm sau reset nên báo FAIL sai). Chỉ sửa code test, không đụng Backend/frontend.**
+10. **Sửa backend theo kết quả kiểm thử (21/11/2026) – Người sửa code: Vũ Thế Long; ghi nhận: Lê Thị Thuỳ Ngân:**
    - `Backend/src/api/admin/admin_routes.py` – `review_employer_gpkd()`: từ chối GPKD bắt buộc có lý do, để trống trả 400 (BUG-04, TC-QTV-029, BR-QTV-04, FR-QTV-04.04).
    - `Backend/src/api/admin/admin_routes.py` – `add_category()`: chặn thêm danh mục trùng tên (không phân biệt hoa thường, bỏ khoảng trắng), trả 409 (BUG-14, TC-QTV-050, BR-QTV-07).
    - `Backend/src/api/common/common_routes.py` – `upload_file()`: kiểm tra chữ ký `%PDF-`, tệp giả đuôi .pdf trả 400 (BUG-13, TC-SV-061, BR-SV-03, NFR-05).
-
+11. **Chốt kết quả kiểm thử (21–22/11/2026, Ngân):**
+   - `AdminPage.java` sửa lần 5: TC-QTV-016 dùng từ khóa ở Input_Data_1 thay vì chọn ngẫu nhiên; TC-QTV-026 chờ tải PDF 20 giây thay vì 8 giây. Không đổi điều kiện PASS.
+   - Chép `_base.py` và `test_doi_chieu_tai_lieu.py`: test tự tải 1 CV mẫu trước khi ứng tuyển (theo BUG-09, tài liệu bắt buộc có CV); riêng TC-SV-044 vẫn kiểm trường hợp chưa có CV.
+   - Dữ liệu: tải lại GPKD cho 1 doanh nghiệp có tệp cũ bị mất trên Render, Admin duyệt lại (lỗi dữ liệu, không sửa code).
+   - Kết quả chốt: Selenium 255 TC – 178 PASS / 0 FAIL / 77 Skip (76 Run_Mode=NO + TC-SV-075 thiếu dữ liệu), chạy gộp 3 vai bằng `mvn test` mất 23:21 phút; Python 64/64 PASS; 10 bug đã sửa, 5 mã bị loại vì không trái tài liệu.
+   
 ---
 
 > **Ghi chú đối chiếu lịch sử cho người đọc:** Các giai đoạn từ `01` đến `31` ở phần trên phản ánh đúng lịch sử tiến hóa qua từng buổi làm việc (bao gồm những thiết kế thử nghiệm cũ như giao diện Dark 4D, `16` collections, băm Bcrypt, OTP `10` phút, cổng local `8002`, hay bộ `9` `unittest` Python ban đầu). Kể từ **Giai đoạn 32 đến Giai đoạn 38**, toàn bộ kiến trúc hiện hành đã được chuẩn hóa thống nhất theo **Digital Light Dimension**, **MongoDB Atlas 18 Collections + GridFS**, **PBKDF2-HMAC-SHA256 (`100.000` vòng)**, **OTP 60 giây qua Brevo HTTPS API v3**, **Render Docker Deploy** và bộ kiểm thử **`251` Test Cases Selenium WebDriver Java POM** (`177 PASS / 0 FAIL`).
-## 39. GIAI ĐOẠN 39: KHẮC PHỤC 6 BUG KIỂM THỬ BACKEND (BUG-05, BUG-06, BUG-07, BUG-10, BUG-11, BUG-15) & CHUẨN HÓA THỤT LỀ
+## 40. GIAI ĐOẠN 40: KHẮC PHỤC 6 BUG KIỂM THỬ BACKEND (BUG-05, BUG-06, BUG-07, BUG-10, BUG-11, BUG-15) & CHUẨN HÓA THỤT LỀ
 **Thời gian:** 21/11/2026  
 **Người thực hiện:** Vũ Thế Long, Lê Thị Thuỳ Ngân  
 **Thành phần:** `Backend/src/api/admin/admin_routes.py`, `Backend/src/api/common/common_routes.py`  
@@ -1192,7 +1197,7 @@ un.py.
 
 ---
 
-## 40. GIAI ĐOẠN 40: KHẮC PHỤC BUG-09 (BẮT BUỘC CÓ CV KHI ỨNG TUYỂN) THEO FR-SV-06.01 & TC-SV-044
+## 41. GIAI ĐOẠN 41: KHẮC PHỤC BUG-09 (BẮT BUỘC CÓ CV KHI ỨNG TUYỂN) THEO FR-SV-06.01 & TC-SV-044
 **Thời gian:** 21/11/2026  
 **Người thực hiện:** Vũ Thế Long, Lê Thị Thuỳ Ngân  
 **Thành phần:** `Backend/src/api/student/student_routes.py`  
@@ -1201,6 +1206,24 @@ un.py.
    - Bổ sung xác thực `if not cv: return jsonify({"success": False, "message": "Vui lòng tải lên ít nhất 1 CV (PDF) trong Kho CV trước khi ứng tuyển."}), 400`.
    - Đảm bảo tuân thủ tuyệt đối quy tắc nghiệp vụ tại `FR-SV-06.01`, `dieukienrangbuoc.md` (dòng 85), `noidung.md` (dòng 606) và kịch bản kiểm thử `TC-SV-044`.
    - Tuyệt đối không can thiệp hay sửa đổi Frontend (`StudentPortal.jsx`), không thêm icon hay đổi giao diện.
+
+---
+
+## 42. GIAI ĐOẠN 42: SẮP XẾP LẠI THƯ MỤC TÀI LIỆU & CHỐT SỐ LIỆU KIỂM THỬ TRONG 6 TÀI LIỆU
+**Thời gian:** 22/11/2026  
+**Người thực hiện:** Lê Thị Thuỳ Ngân (theo yêu cầu của nhóm trưởng)  
+**Thành phần:** `tailieu/`, `tailieu/bailam/*.md`, `README.md`, `test/python/BUG_LOG.md`  
+**Nội dung thực hiện chi tiết:**
+1. **Sắp xếp lại thư mục `tailieu/`:**
+   - Xóa `tailieu/bailam/FR.xlsx`; nguồn đặc tả chính của nhóm chuyển sang `tailieu/bailam/Tonghop.xlsx`.
+   - Thêm `tailieu/bailam/Chamcong.xlsx` (bảng chấm công & tiến độ) và `tailieu/bailam/Tonghop.xlsx` (bảng tổng hợp đặc tả).
+   - Thay 3 sơ đồ cũ `tailieu/Architecture.drawio`, `tailieu/Layerd Clean Architecture.drawio`, `tailieu/ERD.drawio` bằng bản mới nhất của nhóm (lấy từ Google Drive nhóm), đồng thời thêm `tailieu/WBS01.drawio` và `tailieu/WBS02.drawio`.
+2. **Cập nhật tham chiếu:** đổi mọi chỗ ghi nguồn đặc tả `FR.xlsx` thành `Tonghop.xlsx` (9 sheet của `FR.xlsx` giữ nguyên trong `Tonghop.xlsx`, thêm sheet `Product Backlog`) trong `kichban.md`, `noidung.md`, `dieukienrangbuoc.md`, `test/python/BUG_LOG.md`, `README.md` (giữ nguyên tên `FR.xlsx` ở các giai đoạn cũ của file này vì đó là lịch sử).
+3. **Chốt số liệu kiểm thử (thay số liệu cũ 251 TC / 177 PASS):**
+   - Selenium: `255` TC (179 tự động, 76 thủ công) – **178 PASS / 0 FAIL / 77 Skip** (76 dòng `Run_Mode=NO` + TC-SV-075 thiếu dữ liệu), chạy gộp 3 vai bằng `mvn test` mất 23 phút 21 giây.
+   - Python: **64/64 PASS** (10 unit + 54 API). 10 bug web làm khác tài liệu đã được sửa hết ngày 21/11/2026; 5 mã bug bị loại vì web khớp tài liệu.
+   - Cập nhật `kichban.md` (mục 2.0 bảng kết quả chốt), `README.md` (cây thư mục và số lượng tệp tính theo GitHub: `35` thư mục, `122` tệp). Số liệu kiểm thử trong `noidung.md` (Bảng 4.2, mục 4.5) sẽ cập nhật ở lần sau.
+4. **Sửa đánh số giai đoạn:** giai đoạn sửa 6 bug của Long trước đó trùng số 39 với giai đoạn kiểm thử của Ngân, nay đánh lại thành 40; giai đoạn BUG-09 thành 41.
 
 ---
 

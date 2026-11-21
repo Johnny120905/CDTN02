@@ -97,5 +97,13 @@ class ApiTestCase(unittest.TestCase):
         r = self.api("post", "/api/employer/jobs", emp_token, json=body)
         return r
 
-    def apply(self, stu_token, job_id):
+    def apply(self, stu_token, job_id, with_cv=True):
+        # [Sửa 21/11/2026 - Ngân] FR-SV-06.01: phải có CV trong kho mới được nộp đơn -> tải 1 CV PDF mẫu trước khi nộp.
+        # with_cv=False dùng cho test kiểm tra trường hợp chưa có CV (TC-SV-044).
+        if with_cv:
+            import base64
+            pdf = base64.b64encode(b"%PDF-1.4\n%AutoTest CV\n%%EOF").decode()
+            self.api("post", "/api/student/resumes", stu_token, json={
+                "file_name": "CV_AutoTest.pdf", "file_url": "data:application/pdf;base64," + pdf,
+                "file_size": 40, "is_default": True})
         return self.api("post", "/api/student/applications", stu_token, json={"job_id": job_id})

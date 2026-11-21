@@ -1,6 +1,6 @@
 # KỊCH BẢN KIỂM THỬ SONG HÀNH MANUAL + SELENIUM WEBDRIVER JAVA POM (`PARTIME.VN — CDTN02`)
 
-> **Thay thế tài liệu cũ `test.md`** — Đồng bộ 100% với bộ kịch bản `test/TestCases_Selenium_PARTIME_VN.xlsx` (**251 Test Cases**), đặc tả `tailieu/bailam/FR.xlsx` (**161 FRs**, **41 BRs**, **13 NFRs**), mã nguồn kiểm thử `test/src/test/java/com/partime/**` và tài liệu **57 lệnh Selenium WebDriver Java** (`tailieu/noidung/CÁC LỆNH TRUY VẤN TRONG SELENIUM WEBDRIVER JAVA_PLT SOLUTIONS.pdf`).  
+> **Thay thế tài liệu cũ `test.md`** — Đồng bộ 100% với bộ kịch bản `test/TestCases_Selenium_PARTIME_VN.xlsx` (**255 Test Cases**), đặc tả `tailieu/bailam/Tonghop.xlsx` (**161 FRs**, **41 BRs**, **13 NFRs**), mã nguồn kiểm thử `test/src/test/java/com/partime/**` và tài liệu **57 lệnh Selenium WebDriver Java** (`tailieu/noidung/CÁC LỆNH TRUY VẤN TRONG SELENIUM WEBDRIVER JAVA_PLT SOLUTIONS.pdf`).  
 > **[Cập nhật 20/11/2026 - Lê Thị Thuỳ Ngân]** Bộ kịch bản nay có **255 Test Cases** (thêm TC-SV-088, TC-NTD-093/094/095 cho FR-SV-12.01, FR-NTD-12.01, FR-NTD-10.01/10.02 trước đây chưa có TC) và thêm **tầng test Python** (`test/python/`, 68 test, xem mục 1.4). Kết quả "177 PASS / 0 FAIL" ở mục 2.1 là của lần chạy trước khi rà soát; khi rà soát phát hiện 23 dòng Unit trong Java tự viết lại logic ngay trong file test (không gọi code web) và một số handler UI không có nhánh FAIL, nên con số 100% chưa phản ánh đúng chất lượng. Chi tiết từng chỗ sửa: `tailieu/bailam/thaydoi.md` Giai đoạn 39.
 > **Mục tiêu tài liệu:** Giúp người đảm nhận kiểm thử tiếp theo hiểu trọn vẹn toàn bộ bức tranh kiểm thử từ **Thủ công (Manual)** đến **Tự động hóa (Automation)**, từ **Dễ → Khó**, từ **Luồng Đúng (Happy Path / Smoke) → Luồng Sai (Negative)**, cũng như vai trò chính xác của từng lệnh Selenium ở tầng Frontend, Backend API và Data.
 
@@ -31,13 +31,32 @@
 ### 1.4. [Thêm 20/11/2026] Tầng test Python gọi thẳng code Backend (`test/python/`)
 * **Vì sao thêm:** các "Unit Test" Java cũ chỉ kiểm tra regex/công thức viết lại ngay trong file test nên luôn PASS dù web sai. Test Python `import` trực tiếp `Backend/src` và gọi API thật qua Flask test client.
 * **An toàn dữ liệu:** `_base.py` ép `MONGO_URI` về địa chỉ không tồn tại nên Backend tự chuyển sang kho dữ liệu RAM (3 tài khoản mẫu); không đọc/ghi MongoDB Atlas, không gọi Render, không gửi email (hàm gửi OTP được giả lập). Nhờ vậy tự động hóa được cả các thao tác trước đây phải để `Run_Mode=NO` vì sợ hỏng dữ liệu thật (khóa/xóa user, duyệt/từ chối GPKD, ẩn tin, xóa danh mục, thông báo hàng loạt).
-* **Quy mô:** [Sửa 21/11] 64 test = 10 Unit + 43 Integration (API) + 11 test đối chiếu tài liệu (`test_doi_chieu_tai_lieu.py`, tên theo mã TC/BR; 10 đang FAIL = 10 bug, danh sách ở `test/python/BUG_LOG.md`).
+* **Quy mô:** 64 test = 10 Unit + 43 Integration (API) + 11 test đối chiếu tài liệu (`test_doi_chieu_tai_lieu.py`, tên theo mã TC/BR). **[Chốt 22/11/2026] 64/64 PASS**: 10 bug web làm khác tài liệu (danh sách ở `test/python/BUG_LOG.md`) đã được Backend sửa hết ngày 21/11/2026 và kiểm thử lại PASS.
 * **Liên kết với Excel:** sheet `TestCases_Python` liệt kê từng test ↔ TC/FR; các dòng trong 3 sheet Role có `POM_Method` dạng `[UnitTest][PyTest] <tên test>` sẽ được Java runner gọi sang Python và ghi PASS/FAIL như các ca khác.
 * **Chạy:** `cd test` → `run_python_tests.bat` (hoặc `python -X utf8 python/run_python_tests.py --excel`).
 
 ---
 
-## 2. THỐNG KÊ ĐỊNH LƯỢNG 251 TEST CASES THEO ROLE × CẤP ĐỘ × LOẠI KỊCH BẢN
+## 2. THỐNG KÊ ĐỊNH LƯỢNG 255 TEST CASES THEO ROLE × CẤP ĐỘ × LOẠI KỊCH BẢN
+
+### 2.0. [Chốt 22/11/2026] Kết quả kiểm thử cuối cùng sau khi sửa 10 bug
+Chạy `mvn test` (cả 3 vai, tổng thời gian **23 phút 21 giây**) trên Render sau khi Backend sửa xong 10 bug, và chạy lại toàn bộ test Python:
+
+| Vai trò (Sheet) | Tổng TC | `Run_Mode=YES` | `Run_Mode=NO` | Trong đó dòng `[PyTest]` | Auto PASS | Auto FAIL | Skip |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| **Sinh viên** (`TC-SV-001..088`) | **88** | 63 | 25 | 4 | **62** | **0** | 26 *(25 NO + TC-SV-075)* |
+| **Nhà tuyển dụng** (`TC-NTD-001..095`) | **95** | 65 | 30 | 9 | **65** | **0** | 30 |
+| **Quản trị viên** (`TC-QTV-001..072`) | **72** | 51 | 21 | 9 | **51** | **0** | 21 |
+| **TỔNG HỆ THỐNG** | **255** | **179** | **76** | **22** | **178** | **0** | **77** |
+
+* **TC-SV-075** (`Run_Mode=YES`) báo `NOT RUN` vì trên Render chưa có phòng chat ở trạng thái chỉ đọc để kiểm tra giao diện; logic tương ứng (BR-CH-10) đã được test Python `test_TC_SV_075_don_bi_tu_choi_SV_khong_gui_duoc_tin` kiểm và PASS.
+* **Tầng test Python:** **64/64 PASS** (10 Unit + 54 API, gồm 11 test đối chiếu tài liệu).
+* **Vòng đời lỗi:** rà 15 mã lỗi với toàn bộ tài liệu nhóm → bỏ 5 mã web vẫn khớp tài liệu (BUG-01, 02, 03, 08, 12) → 10 bug có căn cứ (BUG-04, 05, 06, 07, 09, 10, 11, 13, 14, 15) → Backend sửa hết 21/11/2026 → kiểm thử hồi quy PASS. Chi tiết: `test/python/BUG_LOG.md`.
+* **Lỗi dữ liệu (không tính là bug code):** TC-QTV-026 từng FAIL vì 1 doanh nghiệp có GPKD trỏ tới tệp cũ `/uploads/...` đã mất trên Render; xử lý bằng cách tải lại GPKD (lưu vào MongoDB GridFS) và duyệt lại.
+* **Phân bổ theo cấp độ (`Test_Level`, 255 TC):** Unit 16 · Integration 49 · API / Web Service 27 · System / GUI 163.
+* **Phân bổ theo loại (`Test_Type`, 255 TC):** Happy Path 107 · Negative 77 · UI / Responsive 30 · Regression 16 · Smoke / Sanity 15 · Performance / Load 10.
+
+> Các bảng 2.1 và 2.2 dưới đây giữ nguyên để đối chiếu lịch sử (số liệu bộ 251 TC trước khi rà soát).
 
 Kết quả thực thi trực tiếp trên hệ thống Deploy Render (`https://parttime-css0.onrender.com/`):
 
@@ -67,7 +86,7 @@ Kết quả thực thi trực tiếp trên hệ thống Deploy Render (`https://
 
 ---
 
-## 3. LỘ TRÌNH KỊCH BẢN TỪ DỄ → KHÓ & LUỒNG ĐÚNG → LUỒNG SAI (ÁNH XẠ `TC_*` ↔ `FR.xlsx`)
+## 3. LỘ TRÌNH KỊCH BẢN TỪ DỄ → KHÓ & LUỒNG ĐÚNG → LUỒNG SAI (ÁNH XẠ `TC_*` ↔ `Tonghop.xlsx`)
 
 Để người tiếp nhận dễ đọc, kiểm thử và bảo trì, 251 Test Cases được sắp xếp thành **4 bậc độ khó tăng dần**, trong đó mỗi phân hệ luôn có cặp **Luồng Đúng (Happy Path / Smoke)** đi trước và **Luồng Sai (Negative / Security Guard)** đi kèm đối xứng:
 
@@ -81,7 +100,7 @@ Kết quả thực thi trực tiếp trên hệ thống Deploy Render (`https://
 * **Đang test gì?** Đăng nhập lưu/nạp Cookie (`TC-SV-007`, `TC-NTD-005`, `TC-QTV-002`), sửa `AccountModal` kiểm tra đồng bộ sang trang Hồ sơ, tìm kiếm đa từ không dấu & lọc nhiều Quận/Huyện, tải CV PDF lên GridFS và đọc trong `<iframe>`, CRUD Tin tuyển dụng sạch (`[AutoTest]`) & dọn dẹp 100%, chuyển đổi 3 chế độ ATS, lọc 5 chiều Dashboard 2026 & CRUD Master Data.
 * **Ánh xạ Luồng Đúng ↔ Luồng Sai theo từng Role:**
 
-| Role | Phân hệ nghiệp vụ (`FR.xlsx`) | Luồng Đúng (Happy Path / Smoke) | Luồng Sai / Ngoại lệ (Negative) |
+| Role | Phân hệ nghiệp vụ (`Tonghop.xlsx`) | Luồng Đúng (Happy Path / Smoke) | Luồng Sai / Ngoại lệ (Negative) |
 |---|---|---|---|
 | **Sinh viên** | `1.2` Tài khoản & Header | `TC-SV-015` (Sửa AccountModal & kiểm tra lưu bền vững), `TC-SV-018` (Đăng xuất xóa token + tự nạp Cookie), `TC-SV-019, 020, 023, 087` | `TC-SV-016` (Đổi MK không khớp báo lỗi đỏ), `TC-SV-017` (Mở Hủy TK -> bấm giữ lại) |
 | **Sinh viên** | `1.4–1.6` Tìm việc, Đã lưu, Tiến độ | `TC-SV-028, 029, 031..035, 037, 038, 085, 086` (Tìm không dấu, 5 tiêu chí + nhiều Quận ngẫu nhiên, Xem Slide-over JD + Hồ sơ DN, Saved Jobs) | `TC-SV-030` (Từ khóa không khớp -> Empty state), `TC-SV-039, 041, 042` (Không trùng bookmark, 7 nút lọc Tiến độ + Export Excel) |

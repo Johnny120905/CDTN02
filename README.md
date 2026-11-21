@@ -10,29 +10,29 @@
 
 Khi loại trừ các thư mục phụ thuộc/cache sinh tự động khi build hoặc chạy kiểm thử (`.git/`, `frontend/node_modules/`, `frontend/dist/`, `**/__pycache__/`, `test/target/`, `test/cookies/`, `test/screenshots/`, `test/test-output/` đã được khai báo trong `.gitignore`), toàn bộ kho mã nguồn chuẩn **`CDTN02-main`** gồm:
 
-* **Tổng số thư mục:** **`35` thư mục**, trong đó có **`5` thư mục cấp 1** (`.vscode`, `Backend`, `frontend`, `tailieu`, `test`) và **`30` thư mục con/cháu bên trong**.
-* **Tổng số tệp tin:** **`111` tệp tin** (`9` tệp ở gốc + `1` trong `.vscode/` + `16` trong `Backend/` + `41` trong `frontend/` + `24` trong `tailieu/` + `20` trong `test/`).
+* **Tổng số thư mục:** **`35` thư mục**, trong đó có **`4` thư mục cấp 1** (`Backend`, `frontend`, `tailieu`, `test`) và **`31` thư mục con/cháu bên trong**.
+* **Tổng số tệp tin:** **`122` tệp tin** (`10` tệp ở gốc + `15` trong `Backend/` + `41` trong `frontend/` + `27` trong `tailieu/` + `29` trong `test/`). *[Cập nhật 22/11/2026: đếm theo các tệp có trên GitHub; tệp cục bộ bị `.gitignore` chặn được liệt kê riêng ở cuối cây thư mục.]*
 
 ### Bảng tổng hợp số lượng theo từng nhánh thư mục
 
 | Thư mục cấp 1 | Số thư mục nhỏ bên trong | Tổng thư mục trong nhánh | Số tệp tin | Vai trò chính |
 |---|---:|---:|---:|---|
-| *Thư mục gốc (`CDTN02-main/`)* | — | — | **9** | Cấu hình Git, Docker, Render Blueprint và script khởi chạy nhanh. |
-| `.vscode/` | 0 | 1 | **1** | Cấu hình biên dịch Java trong VS Code. |
-| `Backend/` | 9 | 10 | **16** | Máy chủ Python Flask RESTful + Socket.IO + Bảo mật + Kết nối MongoDB Atlas & GridFS. |
+| *Thư mục gốc (`CDTN02-main/`)* | — | — | **10** | Cấu hình Git, Docker, Render Blueprint, script khởi chạy nhanh và `CLAUDE.md`. |
+| `Backend/` | 9 | 10 | **15** | Máy chủ Python Flask RESTful + Socket.IO + Bảo mật + Kết nối MongoDB Atlas & GridFS. |
 | `frontend/` | 9 | 10 | **41** | Giao diện SPA React 18 (*Digital Light Dimension*), Logo 3D WebGL & WebRTC Video Call. |
-| `tailieu/` | 2 | 3 | **24** | Sơ đồ Draw.io, tài liệu học phần, đặc tả `FR.xlsx` và 6 báo cáo `.md` đồng bộ. |
-| `test/` | 10 | 11 | **20** | Bộ kiểm thử lai `251` Test Cases Excel + Selenium WebDriver Java POM & `HttpClient`. |
-| **TỔNG CỘNG** | **30** | **35** | **111** | **Full-stack Monorepo (Frontend + Backend + Test + Docs + Deploy)** |
+| `tailieu/` | 2 | 3 | **27** | Tài liệu học phần, 5 sơ đồ `.drawio` (kiến trúc, ERD, WBS), bảng tổng hợp đặc tả `Tonghop.xlsx`, bảng chấm công `Chamcong.xlsx` và 6 báo cáo `.md` đồng bộ. |
+| `test/` | 11 | 12 | **29** | Bộ kiểm thử lai `255` Test Cases Excel + Selenium WebDriver Java POM & `HttpClient` + `64` test Python gọi thẳng Backend. |
+| **TỔNG CỘNG** | **31** | **35** | **122** | **Full-stack Monorepo (Frontend + Backend + Test + Docs + Deploy)** |
 
 ---
 
-### Cây thư mục chi tiết & Chú thích từng tệp (`35` thư mục · `111` tệp)
+### Cây thư mục chi tiết & Chú thích từng tệp (`35` thư mục · `122` tệp)
 
 ```text
-CDTN02-main/                                      # Thư mục gốc của toàn bộ dự án (9 tệp cấu hình/chạy gốc)
+CDTN02-main/                                      # Thư mục gốc của toàn bộ dự án (10 tệp cấu hình/chạy gốc)
 ├── .dockerignore                                 # Loại trừ .git, .env, node_modules, tailieu, test khi đóng gói Docker
 ├── .gitignore                                    # Chặn đẩy tệp nhạy cảm (.env, test/cookies/, local_db_store.json, build cache) lên Git
+├── CLAUDE.md                                     # Hướng dẫn cho trợ lý AI (Claude Code): lệnh chạy, cấu trúc mã nguồn, quy ước của dự án
 ├── Dockerfile                                    # Multi-stage build: Node 20 build frontend/dist rồi chạy Python 3.11 Flask cổng 8002
 ├── README.md                                     # Tài liệu hướng dẫn cấu trúc, tái tạo từ đầu, phát triển và triển khai (tệp này)
 ├── docker-compose.yml                            # Khởi chạy container nội bộ mở cổng 8002 + 3 cổng role 3001/3002/3003
@@ -41,12 +41,8 @@ CDTN02-main/                                      # Thư mục gốc của toàn
 ├── run.py                                        # Tự kiểm tra build frontend/dist rồi khởi chạy Flask + mở trình duyệt localhost:8002
 ├── run_separate_roles.bat                        # Script Windows mở 4 cửa sổ tách biệt: API (8002) + 3 cổng dev 3001/3002/3003
 │
-├── .vscode/                                      # [1 thư mục, 0 thư mục con, 1 tệp] Cấu hình IDE cho mã nguồn Java kiểm thử
-│   └── settings.json                             # Bật java.compile.nullAnalysis.mode để kiểm tra lỗi biên dịch Java trong VS Code
-│
-├── Backend/                                      # [1 thư mục gốc + 9 thư mục con = 10 thư mục, 16 tệp] Máy chủ API & Realtime
+├── Backend/                                      # [1 thư mục gốc + 9 thư mục con = 10 thư mục, 15 tệp] Máy chủ API & Realtime
 │   ├── .env.example                              # Tệp mẫu tên các biến môi trường (phải sao chép sang .env và tự điền key của bạn)
-│   ├── local_db_store.json                       # Kho JSON dự phòng tự động khi máy không có kết nối MongoDB Atlas (MemoryCollection)
 │   ├── requirements.txt                          # Danh sách thư viện Python (Flask, Flask-CORS, PyMongo, Dotenv, Flask-SocketIO...)
 │   ├── server.py                                 # Điểm khởi chạy Flask WSGI + SocketIO, phục vụ /uploads/* và SPA frontend/dist
 │   └── src/                                      # Thư mục mã nguồn phân lớp của Backend
@@ -123,19 +119,22 @@ CDTN02-main/                                      # Thư mục gốc của toàn
 │           ├── vietnamLocations.js               # Dữ liệu 63 tỉnh thành, 24 quận TP.HCM, 6 khung lương và 5 khung ca làm việc
 │           └── webrtcSocketService.js            # Cấu hình STUN, khởi tạo kết nối Socket.IO client và luồng getUserMedia WebRTC
 │
-├── tailieu/                                      # [1 thư mục gốc + 2 thư mục con = 3 thư mục, 24 tệp] Tài liệu đồ án & Đặc tả
-│   ├── Architecture.drawio                       # Sơ đồ kiến trúc tổng thể hệ thống dạng Draw.io
-│   ├── ERD.drawio                                # Sơ đồ thực thể - quan hệ cơ sở dữ liệu dạng Draw.io
-│   ├── Layerd Clean Architecture.drawio          # Sơ đồ kiến trúc phân tầng giữa 3 thành viên dạng Draw.io
-│   ├── bailam/                                   # Nhóm tài liệu phân tích, thiết kế, công nghệ & báo cáo của nhóm (8 tệp)
+├── tailieu/                                      # [1 thư mục gốc + 2 thư mục con = 3 thư mục, 27 tệp] Tài liệu đồ án, đặc tả & quản lý dự án
+│   ├── Architecture.drawio                       # Sơ đồ kiến trúc tổng thể hệ thống (bản cập nhật 22/11/2026)
+│   ├── ERD.drawio                                # Sơ đồ thực thể – quan hệ CSDL MongoDB (bản cập nhật 22/11/2026)
+│   ├── Layerd Clean Architecture.drawio          # Sơ đồ kiến trúc phân tầng Clean Architecture (bản cập nhật 22/11/2026)
+│   ├── WBS01.drawio                              # Sơ đồ phân rã công việc WBS – bản 01
+│   ├── WBS02.drawio                              # Sơ đồ phân rã công việc WBS – bản 02 (cây chức năng 3 vai trò)
+│   ├── bailam/                                   # Nhóm tài liệu phân tích, thiết kế, công nghệ, quản lý dự án & báo cáo của nhóm (9 tệp)
+│   │   ├── Chamcong.xlsx                         # Bảng chấm công & tiến độ: Project Schedule (WBS), Project Log, Performance Review theo 10 buổi
 │   │   ├── CongNghe.docx                         # Tài liệu luận chứng lựa chọn công nghệ ban đầu (gốc)
-│   │   ├── FR.xlsx                               # Bảng đặc tả chuẩn gồm 9 sheet: 161 FR, 41 BR, 24 BF, 33 UF, 13 NFR, 29 RW, 24 LC, 41 TCND
 │   │   ├── congnghe.md                           # Đối chiếu CongNghe.docx với công nghệ thực tế & từ điển giải thích từng hàm/biến
 │   │   ├── dieukienrangbuoc.md                   # Đặc tả 18 collections + GridFS, 41 BR, 13 NFR, PBKDF2, Brevo API v3 & bản đồ API
-│   │   ├── kichban.md                            # Lộ trình 251 kịch bản kiểm thử Manual/Selenium + bảng đối chiếu đủ 57 lệnh PLT Solutions PDF
+│   │   ├── kichban.md                            # Lộ trình 255 kịch bản kiểm thử Manual/Selenium + 64 test Python + bảng đối chiếu đủ 57 lệnh PLT Solutions PDF
 │   │   ├── noidung.md                            # Báo cáo đồ án CDTN02 hoàn chỉnh theo đúng cấu trúc mục lục ĐH Văn Lang (Chương 1–5)
-│   │   ├── thaydoi.md                            # Nhật ký tiến hóa 38 giai đoạn xuyên suốt quá trình phát triển và kiểm thử
-│   │   └── thietke.md                            # Bộ 42 Google Stitch Prompts đồng bộ 1-1 với giao diện Digital Light Dimension thực tế
+│   │   ├── thaydoi.md                            # Nhật ký tiến hóa 42 giai đoạn xuyên suốt quá trình phát triển và kiểm thử
+│   │   ├── thietke.md                            # Bộ 42 Google Stitch Prompts đồng bộ 1-1 với giao diện Digital Light Dimension thực tế
+│   │   └── Tonghop.xlsx                          # Bảng tổng hợp đặc tả 10 sheet: 161 FR, 41 BR, 24 BF, 33 UF, 13 NFR, 29 RW, 24 LC, 41 TCND, Đối chiếu phạm vi, Product Backlog 171 mục
 │   └── noidung/                                  # Tài liệu hướng dẫn từ Giảng viên & Nhà trường (13 tệp)
 │       ├── Buoi01_ChuyenDeTotNghiep2.pdf         # Slide hướng dẫn học phần Buổi 01
 │       ├── Buoi02_ChuyenDeTotNghiep2.pdf         # Slide hướng dẫn học phần Buổi 02
@@ -151,15 +150,13 @@ CDTN02-main/                                      # Thư mục gốc của toàn
 │       ├── Maubaocao_ChuyenDeTotNghiep2.docx     # Mẫu định dạng báo cáo chuẩn của Khoa CNTT
 │       └── Nhatkythuchien.docx                   # Biểu mẫu nhật ký thực hiện đề tài
 │
-└── test/                                         # [1 thư mục gốc + 10 thư mục con = 11 thư mục, 20 tệp] Kiểm thử lai Manual + Selenium POM
+└── test/                                         # [1 thư mục gốc + 11 thư mục con = 12 thư mục, 29 tệp] Kiểm thử lai Manual + Selenium POM + test Python
     ├── TestCases_Selenium_PARTIME_VN.xlsx        # Sổ kịch bản 6 sheet (255 TC, 17 cột 3 màu + cột ghi chú R, 5 biểu đồ, sheet TestCases_Python) dùng chung Manual & Automation
     ├── cleanup_and_sync_excel.bat                # Script Windows dọn tệp tạm và chạy ExcelTestManager đồng bộ kết quả
-    ├── latest_run_results.json                   # Kết quả chi tiết ở định dạng JSON của đợt chạy TestNG gần nhất
     ├── pom.xml                                   # Cấu hình Maven Java 17 (Selenium 4.25.0, TestNG 7.10.2, Apache POI 5.3.0, Jackson)
     ├── resolve_cp.py                             # Script Python quét ~/.m2/repository dựng classpath JAR khi chạy javac/java trực tiếp
     ├── run_python_tests.bat                      # [Thêm 20/11] Chạy toàn bộ test Python gọi thẳng Backend trên dữ liệu RAM (không chạm Atlas/Render)
     ├── run_selenium_tests.bat                    # Script Windows tự tìm Maven hoặc JDK để biên dịch và chạy toàn bộ bộ test
-    ├── sources.txt                               # Danh sách tạm đường dẫn nguồn .java phục vụ biên dịch trực tiếp
     ├── testng.xml                                # Cấu hình Suite TestNG trỏ tới PartimeAutomationRunnerTest
     ├── python/                                   # [Thêm 20/11] Test Python thật (unittest) gọi trực tiếp Backend/src, dữ liệu RAM (10 tệp)
     │   ├── _base.py                              # Ép Backend chạy chế độ test RAM (MONGO_URI giả), tạo app Flask + hàm tiện ích login/tạo user/tin/đơn
@@ -169,9 +166,9 @@ CDTN02-main/                                      # Thư mục gốc của toàn
     │   ├── test_api_flow.py                      # Integration SV<->NTD: đăng tin, ứng tuyển, trạng thái đơn, chấm công, đánh giá, chat
     │   ├── test_api_more.py                      # Integration: snapshot hồ sơ, upload PDF 10MB, upsert/ẩn đánh giá, Dashboard chỉ @gmail, trim danh mục
     │   ├── test_api_reports.py                   # Integration: khiếu nại & báo cáo vi phạm (FR-NTD-10.01/10.02, FR-QTV-09.04)
-    │   ├── test_doi_chieu_tai_lieu.py            # 11 test đối chiếu tài liệu, tên theo mã TC/BR (7 đang FAIL = 7 bug còn mở, 3 bug đã sửa 21/11, xem BUG_LOG.md)
+    │   ├── test_doi_chieu_tai_lieu.py            # 11 test đối chiếu tài liệu, tên theo mã TC/BR (10 bug đã được sửa hết ngày 21/11/2026, xem BUG_LOG.md)
     │   ├── run_python_tests.py                   # Chạy tất cả, in tóm tắt, ghi ket_qua_python.json; --excel ghi vào sheet TestCases_Python
-    │   └── BUG_LOG.md                            # Danh sách bug kèm căn cứ tài liệu (10 bug còn mở, 5 mã đã bỏ)
+    │   └── BUG_LOG.md                            # Danh sách 10 bug kèm căn cứ tài liệu (đã sửa hết 21/11/2026), 5 mã đã bỏ, ghi chú lỗi dữ liệu
     ├── sample_assets/                            # Tệp mẫu phục vụ kiểm thử tải lên & kiểm tra định dạng (3 tệp)
     │   ├── AutoTest_CV_Sample.pdf                # Tệp PDF hợp lệ (có header %PDF) dùng test upload/xem CV
     │   ├── AutoTest_Chat_Attachment.png          # Ảnh PNG mẫu dùng test đính kèm trong phòng chat
@@ -185,7 +182,7 @@ CDTN02-main/                                      # Thư mục gốc của toàn
         │   ├── EmployerPage.java                 # Kịch bản UI NTD (GPKD, Đăng tin, ATS Kanban/Lưới/Danh sách, Chấm công, Chat)
         │   └── StudentPage.java                  # Kịch bản UI Sinh viên (Guest, Auth, Tìm kiếm Quận 1, Ứng tuyển, CV PDF, Chat)
         ├── tests/                                # Lớp điều phối chạy TestNG (1 tệp)
-        │   └── PartimeAutomationRunnerTest.java  # Đọc 251 dòng Excel qua DataProvider, định tuyến theo TC_ID và ghi lại bảng Excel
+        │   └── PartimeAutomationRunnerTest.java  # Đọc 255 dòng Excel qua DataProvider, định tuyến theo TC_ID và ghi lại bảng Excel
         └── utils/                                # Công cụ hỗ trợ phiên & Excel (3 tệp)
             ├── CookieSessionManager.java         # Lưu/nạp/làm mới Cookie + Token theo từng Role vào test/cookies/*.json (gitignored)
             ├── ExcelTestManager.java             # Đọc sheet Config_Environment & Role sheets, ghi PASS/FAIL không làm hỏng 5 biểu đồ
@@ -194,6 +191,7 @@ CDTN02-main/                                      # Thư mục gốc của toàn
 
 > **Thư mục tự động sinh khi cài đặt / chạy (không commit lên Git):**
 > `frontend/node_modules/`, `frontend/dist/`, `Backend/**/__pycache__/`, `test/target/`, `test/cookies/`, `test/screenshots/`, `test/test-output/`.
+> Ngoài ra một số tệp chỉ có trên máy cá nhân, không đẩy lên Git: `.vscode/settings.json`, `Backend/local_db_store.json` (kho JSON dự phòng khi không có Atlas), `test/latest_run_results.json` (kết quả JSON lần chạy TestNG gần nhất), `test/sources.txt`, `test/python/ket_qua_python.json`.
 
 ---
 
@@ -353,6 +351,7 @@ Hệ thống áp dụng quy tắc **`1 Email @gmail.com = 1 Role duy nhất`** v
    * Lọc chạy riêng từng role: `mvn test -DroleFilter=SV` *(hoặc `NTD` / `QTV`)*.
    * Hoặc chạy bằng script Windows: `run_selenium_tests.bat`.
    * Kết quả mới nhất của toàn bộ **`255` Test Cases** *(179 ca `Run_Mode=YES`, 76 ca Manual/Clone/OTP/JMeter `Run_Mode=NO`, số liệu sau lần sửa 20/11)* sẽ tự động cập nhật kèm **5 biểu đồ** vào sheet `Overview_Summary` và file JSON `test/latest_run_results.json`.
+   * [Chốt 22/11/2026] Chạy `mvn test` cả 3 vai: **255 TC – 178 PASS / 0 FAIL / 77 Skip**, tổng thời gian **23 phút 21 giây**.
    * Các dòng có `POM_Method` bắt đầu bằng `[UnitTest][PyTest]` sẽ gọi test Python trong `test/python/` (cần Python + `pip install -r Backend/requirements.txt`; trên Mac/Linux thêm `-DpythonCmd=python3`).
 4. **[Thêm 20/11] Chạy riêng tầng test Python (nhanh, an toàn, không cần trình duyệt, không chạm Atlas/Render):**
    ```bash
@@ -360,7 +359,7 @@ Hệ thống áp dụng quy tắc **`1 Email @gmail.com = 1 Role duy nhất`** v
    run_python_tests.bat            # Windows
    python -X utf8 python/run_python_tests.py --excel   # ghi kết quả vào sheet TestCases_Python
    ```
-   * [Sửa 21/11] Tổng 64 test: 57 PASS, 7 FAIL (sau khi sửa BUG-04/13/14 ngày 21/11). 7 FAIL đều nằm trong `test_doi_chieu_tai_lieu.py` (web làm khác tài liệu = 7 bug, xem `test/python/BUG_LOG.md`).
+   * [Chốt 22/11/2026] Tổng 64 test: **64/64 PASS** (10 unit + 54 API). 10 bug web làm khác tài liệu đã được sửa hết ngày 21/11/2026 (xem `test/python/BUG_LOG.md`); 5 mã bug bị loại vì web khớp tài liệu.
 
 ---
 

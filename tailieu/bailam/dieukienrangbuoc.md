@@ -1,7 +1,7 @@
 # TÀI LIỆU ĐẶC TẢ ĐIỀU KIỆN RÀNG BUỘC & QUY TẮC NGHIỆP VỤ HỆ THỐNG (VERIFIED SPECIFICATION)
 
 > **Dự án:** Nền tảng Tuyển dụng Việc làm Part-time theo ca cho Sinh viên — **PARTIME.VN** (`CDTN02`)  
-> **Đối chiếu đồng bộ 100% từ:** Mã nguồn Backend (`Backend/src/**`), Giao diện Frontend (`frontend/src/**`), Đặc tả `tailieu/bailam/FR.xlsx` (**161 FRs**, **41 Business Rules**, **13 NFRs**) và Bộ kiểm thử `test/TestCases_Selenium_PARTIME_VN.xlsx` (**251 Test Cases**).  
+> **Đối chiếu đồng bộ 100% từ:** Mã nguồn Backend (`Backend/src/**`), Giao diện Frontend (`frontend/src/**`), Đặc tả `tailieu/bailam/Tonghop.xlsx` (**161 FRs**, **41 Business Rules**, **13 NFRs**) và Bộ kiểm thử `test/TestCases_Selenium_PARTIME_VN.xlsx` (**251 Test Cases**).  
 > **Triển khai thực tế (Production Render):** `https://parttime-css0.onrender.com/` (Sinh viên) | `/employer` (Nhà tuyển dụng) | `/admin` (Quản trị viên) | Local hợp nhất cổng `8002`.
 
 ---
@@ -133,7 +133,7 @@
 
 ---
 
-## PHẦN 5: BẢNG ĐỐI CHIẾU 13 YÊU CẦU PHI CHỨC NĂNG (`NFR-01..13` — `FR.xlsx`)
+## PHẦN 5: BẢNG ĐỐI CHIẾU 13 YÊU CẦU PHI CHỨC NĂNG (`NFR-01..13` — `Tonghop.xlsx`)
 
 | Mã NFR | Nhóm | Chỉ số / Ràng buộc đo lường thực tế |
 |---|---|---|

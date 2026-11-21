@@ -252,7 +252,7 @@ Về kỹ thuật, hệ thống sử dụng **React 18 + Vite + TailwindCSS** th
 | **Bảng 3.1** | Phân tích bài toán theo mô hình 5W1H | Mục 3.1.2 | Làm rõ đối tượng, bối cảnh, mục tiêu và phương thức giải quyết. |
 | **Bảng 3.2** | Ma trận chức năng theo vai trò tác nhân | Mục 3.3.1 | Bảng phân quyền tổng quát giữa 4 nhóm người dùng. |
 | **Bảng 3.3** | Danh sách Use Case và quan hệ `«include»`/`«extend»` | Mục 3.3.3 | Ánh xạ cấu trúc phụ thuộc giữa các ca sử dụng. |
-| **Bảng 3.4** | Thống kê `161` Yêu cầu Chức năng (`FR.xlsx`) | Mục 3.5.1 | Tổng hợp `56` FR SV + `59` FR NTD + `46` FR QTV (`70` Cơ bản, `12` Mục 10, `79` Nâng cao). |
+| **Bảng 3.4** | Thống kê `161` Yêu cầu Chức năng (`Tonghop.xlsx`) | Mục 3.5.1 | Tổng hợp `56` FR SV + `59` FR NTD + `46` FR QTV (`70` Cơ bản, `12` Mục 10, `79` Nâng cao). |
 | **Bảng 3.5** | Bảng tổng hợp `13` Yêu cầu Phi chức năng (`NFR-01..13`) | Mục 3.5.3 | Các ngưỡng đo về hiệu năng, bảo mật, đa thiết bị và kiểm toán. |
 | **Bảng 3.6** | Kế hoạch phát triển theo 10 buổi học phần & 6 Sprint | Mục 3.6.4 | Mốc thời gian, đầu ra và nghiệm thu từng Sprint. |
 | **Bảng 3.7** | Bảng lựa chọn công nghệ thực tế và lý do lựa chọn | Mục 3.7.3 | Lý giải chuyển đổi lý thuyết -> giải pháp tối ưu trong sản phẩm thật. |
@@ -331,7 +331,7 @@ Xây dựng và triển khai hoàn chỉnh nền tảng tuyển dụng việc l�
 ### 1.3.2. Phạm vi nghiên cứu
 * **Phạm vi người dùng:** Khách vãng lai (*Guest*), Sinh viên đang tìm việc, Nhà tuyển dụng đại diện doanh nghiệp/cơ sở kinh doanh, và Quản trị viên vận hành sàn.
 * **Phạm vi không gian & địa lý trong dữ liệu:** Hỗ trợ dữ liệu lọc **63 Tỉnh/Thành phố** Việt Nam (có danh mục quận/huyện chi tiết cho 10 tỉnh/thành trọng điểm và 24 quận/huyện tại TP. Hồ Chí Minh), khung lương chuẩn `15.000 – 200.000 VNĐ/giờ`.
-* **Phạm vi chức năng:** Thực hiện đầy đủ Mục 1–7 và Mục 10 theo đặc tả `FR.xlsx` (`161` FR); theo **Change Request (`CR-01`, `CR-02`)**, dự án **không** tích hợp cổng thanh toán trực tuyến tiền thật (Mục 8) và **không** xây dựng app di động cài đặt riêng iOS/Android native (Mục 9) mà tối ưu Web Responsive chạy mượt trên trình duyệt di động.
+* **Phạm vi chức năng:** Thực hiện đầy đủ Mục 1–7 và Mục 10 theo đặc tả `Tonghop.xlsx` (`161` FR); theo **Change Request (`CR-01`, `CR-02`)**, dự án **không** tích hợp cổng thanh toán trực tuyến tiền thật (Mục 8) và **không** xây dựng app di động cài đặt riêng iOS/Android native (Mục 9) mà tối ưu Web Responsive chạy mượt trên trình duyệt di động.
 
 ### 1.3.3. Nội dung nghiên cứu
 1. Khảo sát thực trạng thị trường tuyển dụng part-time và phân tích bài toán theo 5W1H.
@@ -369,7 +369,7 @@ Sản phẩm bàn giao hoàn chỉnh trong kho lưu trữ `CDTN02-main/` gồm 4
 1. **Mã nguồn Backend (`Backend/`):** Dịch vụ Flask RESTful + Socket.IO + Email Service + GridFS (`server.py` và `Backend/src/**`).
 2. **Mã nguồn Frontend (`frontend/`):** Ứng dụng SPA React 18 + Vite + TailwindCSS + WebGL 3D Logo (`frontend/src/**`).
 3. **Bộ kiểm thử song hành (`test/`):** Dự án Maven Java 17 (`pom.xml`), 9 tệp nguồn POM + `HttpClient`, tệp cấu hình tài nguyên mẫu và sổ kiểm thử Excel `TestCases_Selenium_PARTIME_VN.xlsx` (`251` Test Cases).
-4. **Hệ thống tài liệu kỹ thuật & triển khai:** Bộ đặc tả `FR.xlsx`, 5 tài liệu `.md` (`noidung.md`, `dieukienrangbuoc.md`, `thietke.md`, `kichban.md`, `thaydoi.md`) cùng `Dockerfile`, `docker-compose.yml` và `render.yaml`.
+4. **Hệ thống tài liệu kỹ thuật & triển khai:** Bộ đặc tả `Tonghop.xlsx`, 5 tài liệu `.md` (`noidung.md`, `dieukienrangbuoc.md`, `thietke.md`, `kichban.md`, `thaydoi.md`) cùng `Dockerfile`, `docker-compose.yml` và `render.yaml`.
 
 ---
 
@@ -512,7 +512,7 @@ Qua khảo sát nhu cầu sinh viên Trường Đại học Văn Lang và các m
 ## 3.2. Phạm vi dự án
 
 ### 3.2.1. Các chức năng trong và ngoài phạm vi
-* **Trong phạm vi xây dựng (In-Scope — Mục 1–7 & Mục 10 của `FR.xlsx`):** Toàn bộ `161` yêu cầu chức năng trải rộng trên `3` phân hệ chính: Xác thực & Phân quyền đa tab (`@gmail.com`, OTP 60s), Trang Khách xem trước, Quản lý CV PDF & Tìm kiếm nâng cao cho Sinh viên, Quản lý GPKD PDF & Tuyển dụng ATS + Ca làm cho Nhà tuyển dụng, Phân hệ Hội thoại Chat + WebRTC Call + Cảnh báo từ cấm, và Bảng điều khiển Quản trị viên + Nhật ký kiểm toán + Broadcast.
+* **Trong phạm vi xây dựng (In-Scope — Mục 1–7 & Mục 10 của `Tonghop.xlsx`):** Toàn bộ `161` yêu cầu chức năng trải rộng trên `3` phân hệ chính: Xác thực & Phân quyền đa tab (`@gmail.com`, OTP 60s), Trang Khách xem trước, Quản lý CV PDF & Tìm kiếm nâng cao cho Sinh viên, Quản lý GPKD PDF & Tuyển dụng ATS + Ca làm cho Nhà tuyển dụng, Phân hệ Hội thoại Chat + WebRTC Call + Cảnh báo từ cấm, và Bảng điều khiển Quản trị viên + Nhật ký kiểm toán + Broadcast.
 * **Ngoài phạm vi (Out-of-Scope):** Không xây dựng ví điện tử/thanh toán tiền lương qua ngân hàng trong hệ thống; không xuất bản ứng dụng cài đặt riêng cho kho App Store/CH Play.
 
 ### 3.2.2. Quản lý thay đổi phạm vi (Change Request)
@@ -647,7 +647,7 @@ Truy cập `/admin` (luôn yêu cầu đăng nhập, không có chế độ khá
 ## 3.5. Đặc tả yêu cầu phần mềm (SRS)
 
 ### 3.5.1. Yêu cầu chức năng
-Tổng cộng hệ thống đặc tả chính xác **`161` Yêu cầu Chức năng (`FR`)** trong tài liệu `tailieu/bailam/FR.xlsx` (sau khi tinh gọn `4` FR trùng lặp với `NFR-11` và hợp nhất ở commit `fa08c4d`), bổ sung kèm **`41` Business Rules (`BR`)**, **`24` Business Flows (`BF`)**, **`33` User Flows (`UF`)**, **`29` Rules & Workflows (`RW`)**, **`24` Location/City rules (`LC`)** và **`41` Tiêu chuẩn nội dung (`TCND`)**.
+Tổng cộng hệ thống đặc tả chính xác **`161` Yêu cầu Chức năng (`FR`)** trong tài liệu `tailieu/bailam/Tonghop.xlsx` (sau khi tinh gọn `4` FR trùng lặp với `NFR-11` và hợp nhất ở commit `fa08c4d`), bổ sung kèm **`41` Business Rules (`BR`)**, **`24` Business Flows (`BF`)**, **`33` User Flows (`UF`)**, **`29` Rules & Workflows (`RW`)**, **`24` Location/City rules (`LC`)** và **`41` Tiêu chuẩn nội dung (`TCND`)**.
 
 **Bảng 3.4. Thống kê số lượng 161 Yêu cầu Chức năng theo Vai trò và Mức độ:**
 
@@ -953,7 +953,7 @@ CDTN02-main/
 │   ├── cookies/                         # Lưu phiên student_session.json, employer_session.json, admin_session.json
 │   └── src/test/java/com/partime/       # BasePage, StudentPage, EmployerPage, AdminPage, CrossRoleAndApiHelper,
 │                                        # PartimeAutomationRunnerTest, CookieSessionManager, ExcelTestManager, ScenarioResult
-└── tailieu/bailam/                      # FR.xlsx + 5 tài liệu báo cáo đồng bộ (.md)
+└── tailieu/bailam/                      # Tonghop.xlsx, Chamcong.xlsx + 5 tài liệu báo cáo đồng bộ (.md)
 ```
 
 ### 4.1.2. Quản lý mã nguồn với Git/GitHub
@@ -971,7 +971,7 @@ Mã nguồn được quản lý liên tục trên GitHub. Các thay đổi quan 
 ## 4.2. Kết quả thực hiện theo Sprint (Sprint 0 → Sprint 5)
 
 ### 4.2.1. Sprint 0 (Buổi 1–3): Khởi tạo dự án, phân tích yêu cầu và lập kế hoạch
-Hoàn thành khảo sát, xác định bài toán 5W1H, quản lý thay đổi `CR-01`–`CR-03`, lập danh mục tác nhân, ma trận Use Case, bảng Product Backlog MoSCoW và chốt tệp đặc tả nguồn `FR.xlsx` gồm `161` FR, `41` BR và `13` NFR.
+Hoàn thành khảo sát, xác định bài toán 5W1H, quản lý thay đổi `CR-01`–`CR-03`, lập danh mục tác nhân, ma trận Use Case, bảng Product Backlog MoSCoW và chốt tệp đặc tả nguồn `Tonghop.xlsx` gồm `161` FR, `41` BR và `13` NFR.
 
 ### 4.2.2. Sprint 1 (Buổi 4–5): Thiết kế hệ thống – Mốc đánh giá giữa kỳ 1
 Hoàn thành thiết kế kiến trúc Client–Server phân lớp, từ điển dữ liệu MongoDB Atlas 18 collections + GridFS, đặc tả API RESTful + Socket.IO, chuyển đổi giao diện sang phong cách *Digital Light Dimension* 8 cột sáng, loại bỏ hoàn toàn emoji và dựng prototype Wireframe 3 role.
@@ -1052,7 +1052,7 @@ Trang chủ `/admin` hiển thị **Trung tâm chỉ huy Analytics 2026** với 
 
 **Bảng 4.1. Tổng hợp mức độ hoàn thành theo Product Backlog đã chốt:**
 
-| Hạng mục đặc tả (`FR.xlsx`) | Số lượng chốt | Số lượng đã xây dựng & vận hành | Tỷ lệ hoàn thành |
+| Hạng mục đặc tả (`Tonghop.xlsx`) | Số lượng chốt | Số lượng đã xây dựng & vận hành | Tỷ lệ hoàn thành |
 |---|---:|---:|---:|
 | Yêu cầu chức năng Sinh viên (`FR-SV`) | 56 | 56 | **100%** |
 | Yêu cầu chức năng Nhà tuyển dụng (`FR-NTD`) | 59 | 59 | **100%** |
@@ -1158,7 +1158,7 @@ Hệ thống được triển khai theo mô hình **All-in-One Docker Container*
 |---|---|---|---|
 | **Vũ Thế Long** (`2174802010123`) | **Trưởng nhóm** | Hạ tầng Auth/Socket/Upload, **Phân hệ Sinh viên (`student_routes.py`, `StudentPortal.jsx`)**, Docker/Render Deploy, Brevo API v3 & **Bộ Selenium Java POM (`test/`)**. | `56/56` FR Sinh viên, `87` TC SV (`65` Auto PASS), hoàn thiện kiến trúc kiểm thử 57 lệnh. |
 | **Huỳnh Nguyễn Bảo Ngọc** (`2174802010456`) | **Thành viên** | **Phân hệ Nhà tuyển dụng (`employer_routes.py`, `EmployerPortal.jsx`)**, Luồng ATS 3 chế độ, Điểm danh ca làm, Ràng buộc MST/GPKD & Đồng bộ **Business Rules (`BR`)**. | `59/59` FR NTD, `92` TC NTD (`64` Auto PASS), đặc tả trọn bộ `41` BR & `24` BF. |
-| **Lê Thị Thuỳ Ngân** (`2174802010789`) | **Thành viên** | **Phân hệ Quản trị viên (`admin_routes.py`, `AdminPortal.jsx`)**, Trung tâm chỉ huy 2026, Kiểm duyệt Từ khóa cấm, Chat Gốc, Audit Log 16 sự kiện & Tài liệu **Wireframe/Báo cáo**. | `46/46` FR QTV, `72` TC QTV (`48` Auto PASS), chuẩn hóa `42` Stitch Prompts & `FR.xlsx`. |
+| **Lê Thị Thuỳ Ngân** (`2174802010789`) | **Thành viên** | **Phân hệ Quản trị viên (`admin_routes.py`, `AdminPortal.jsx`)**, Trung tâm chỉ huy 2026, Kiểm duyệt Từ khóa cấm, Chat Gốc, Audit Log 16 sự kiện & Tài liệu **Wireframe/Báo cáo**. | `46/46` FR QTV, `72` TC QTV (`48` Auto PASS), chuẩn hóa `42` Stitch Prompts & `Tonghop.xlsx`. |
 
 ### 4.7.2. Mức độ hoàn thành và đóng góp của từng thành viên
 Cả ba thành viên đều hoàn thành **100%** hạng mục phân hệ được giao theo đúng ranh giới mã nguồn, tự phối hợp kiểm thử chéo giữa các vai trò trong các buổi tổng duyệt Sprint và giữ cam kết tỷ lệ đóng góp đồng đều, không tồn đọng công việc sang cuối kỳ.
@@ -1242,7 +1242,7 @@ Từ những hạn chế trên, đề tài có 4 hướng nâng cấp giá trị
 
 Toàn bộ phụ lục chi tiết được lưu đồng bộ trong kho dự án `CDTN02-main/` nhằm tránh trùng lặp dữ liệu dài hàng nghìn dòng trong báo cáo chính:
 
-1. **Phụ lục A — Ma trận Đặc tả Yêu cầu Phần mềm gốc (`FR.xlsx`):** Gồm 9 sheet (`FR` `161` dòng, `BR` `41` dòng, `BF` `24` dòng, `UF` `33` dòng, `NFR` `13` dòng, `RW` `29` dòng, `LC` `24` dòng, `TCND` `41` dòng, `Đối chiếu` `16` dòng) tại `tailieu/bailam/FR.xlsx`.
+1. **Phụ lục A — Bảng tổng hợp Đặc tả Yêu cầu Phần mềm (`Tonghop.xlsx`):** Gồm 10 sheet (`FR` `161` dòng, `BR` `41` dòng, `BF` `24` dòng, `UF` `33` dòng, `NFR` `13` dòng, `RW` `29` dòng, `LC` `24` dòng, `TCND` `41` dòng, `Đối chiếu` `16` dòng, `Product Backlog` `171` mục) tại `tailieu/bailam/Tonghop.xlsx`.
 2. **Phụ lục B — Đặc tả Ràng buộc & API/Socket (`dieukienrangbuoc.md`):** Trình bày đầy đủ điều kiện kiểm tra đầu vào Frontend/Backend, 18 collections MongoDB, cơ chế `1 Email = 1 Role`, `109+` API Endpoints và `10 on / 17 emit` Socket.IO tại [dieukienrangbuoc.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/dieukienrangbuoc.md).
 3. **Phụ lục C — Hệ thống Wireframe & 42 Stitch Prompts (`thietke.md`):** Đầy đủ prompt sinh giao diện chuẩn khớp 1-1 với các file JSX đang vận hành trên Render tại [thietke.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/thietke.md).
 4. **Phụ lục D — Bộ Kịch bản Kiểm thử Song hành (`TestCases_Selenium_PARTIME_VN.xlsx` & `kichban.md`):** Chứa đầy đủ `251` Test Cases Manual + Selenium Java POM (5 sheets, 17 cột, 5 biểu đồ), bảng phân tích luồng Dễ -> Khó / Đúng -> Sai và bảng đối chiếu đủ **57 lệnh *PLT Solutions PDF*** theo 3 tầng kiến trúc tại [kichban.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/kichban.md) và [TestCases_Selenium_PARTIME_VN.xlsx](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/test/TestCases_Selenium_PARTIME_VN.xlsx).

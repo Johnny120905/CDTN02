@@ -1,0 +1,1179 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="WBS01_Project_Schedule_4Levels" id="wbs01_schedule">
+    <mxGraphModel grid="1" page="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" pageScale="1" pageWidth="2980" pageHeight="1404" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="root_wbs01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#1E293B;fontColor=#FFFFFF;fontStyle=1;fontSize=14;arcSize=10;shadow=1;" value="0. DỰ ÁN HỆ THỐNG TÌM KIẾM VIỆC LÀM BÁN THỜI GIAN PARTIME.VN&#xa;Kế hoạch 6 Sprint / 10 Buổi (21/09/2026 – 30/11/2026) · Báo cáo: 30/11/2026" vertex="1">
+          <mxGeometry height="75" width="640" x="1100" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="sprint_0" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E3A8A;strokeColor=#1E40AF;fontColor=#FFFFFF;fontStyle=1;fontSize=12;arcSize=8;shadow=1;" value="Sprint 0: Khởi động &amp; Đặc tả yêu cầu&#xa;(21/09/2026 – 11/10/2026)" vertex="1">
+          <mxGeometry height="65" width="410" x="60" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="e_bus_sprint_0" edge="1" parent="1" source="root_wbs01" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;" target="sprint_0">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1420" y="145" />
+              <mxPoint x="265" y="145" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="1.1. Thiết lập dự án &amp; Hạ tầng quản lý" vertex="1">
+          <mxGeometry height="42" width="382" x="90" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_0_wbs_1_1" edge="1" parent="1" source="sprint_0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_1_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="72" y="291" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_1_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.1.1. Tổ chức nhân sự &amp; Quy chế phối hợp" vertex="1">
+          <mxGeometry height="36" width="347" x="125" y="322" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_1_1_wbs_1_1_1" edge="1" parent="1" source="wbs_1_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_1_1_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="108" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_1_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.1.2. Khởi tạo môi trường kỹ thuật" vertex="1">
+          <mxGeometry height="36" width="347" x="125" y="364" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_1_1_wbs_1_1_2" edge="1" parent="1" source="wbs_1_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_1_1_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="108" y="382" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_1_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.1.3. Quản lý tiến độ &amp; Theo dõi công việc" vertex="1">
+          <mxGeometry height="36" width="347" x="125" y="406" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_1_1_wbs_1_1_3" edge="1" parent="1" source="wbs_1_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_1_1_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="108" y="424" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="1.2. Phân tích &amp; Đặc tả yêu cầu hệ thống" vertex="1">
+          <mxGeometry height="42" width="382" x="90" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_0_wbs_1_2" edge="1" parent="1" source="sprint_0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_1_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="72" y="481" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_2_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.2.1. Xác định ranh giới phạm vi dự án" vertex="1">
+          <mxGeometry height="36" width="347" x="125" y="512" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_1_2_wbs_1_2_1" edge="1" parent="1" source="wbs_1_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_1_2_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="108" y="530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_2_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.2.2. Đặc tả chi tiết yêu cầu chức năng" vertex="1">
+          <mxGeometry height="36" width="347" x="125" y="554" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_1_2_wbs_1_2_2" edge="1" parent="1" source="wbs_1_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_1_2_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="108" y="572" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_2_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.2.3. Xác định yêu cầu phi chức năng" vertex="1">
+          <mxGeometry height="36" width="347" x="125" y="596" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_1_2_wbs_1_2_3" edge="1" parent="1" source="wbs_1_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_1_2_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="108" y="614" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="1.3. Mô hình hóa Actor, Use Case &amp; Phác thảo giao diện" vertex="1">
+          <mxGeometry height="42" width="382" x="90" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_0_wbs_1_3" edge="1" parent="1" source="sprint_0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_1_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="72" y="671" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_3_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.3.1. Định nghĩa tác nhân và quyền hạn" vertex="1">
+          <mxGeometry height="36" width="347" x="125" y="702" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_1_3_wbs_1_3_1" edge="1" parent="1" source="wbs_1_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_1_3_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="108" y="720" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_3_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.3.2. Thiết kế sơ đồ ngữ cảnh &amp; Use Case" vertex="1">
+          <mxGeometry height="36" width="347" x="125" y="744" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_1_3_wbs_1_3_2" edge="1" parent="1" source="wbs_1_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_1_3_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="108" y="762" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_3_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.3.3. Biên soạn kịch bản đặc tả luồng xử lý" vertex="1">
+          <mxGeometry height="36" width="347" x="125" y="786" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_1_3_wbs_1_3_3" edge="1" parent="1" source="wbs_1_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_1_3_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="108" y="804" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_3_4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.3.4. Phác thảo khung xương giao diện (Wireframe)" vertex="1">
+          <mxGeometry height="36" width="347" x="125" y="828" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_1_3_wbs_1_3_4" edge="1" parent="1" source="wbs_1_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_1_3_4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="108" y="846" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="1.4. Lập kế hoạch quản lý công việc (Agile/Scrum Backlog)" vertex="1">
+          <mxGeometry height="42" width="382" x="90" y="882" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_0_wbs_1_4" edge="1" parent="1" source="sprint_0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_1_4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="72" y="903" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_4_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.4.1. Chuyển đổi yêu cầu thành User Story" vertex="1">
+          <mxGeometry height="36" width="347" x="125" y="934" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_1_4_wbs_1_4_1" edge="1" parent="1" source="wbs_1_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_1_4_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="108" y="952" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_4_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.4.2. Định nghĩa tiêu chuẩn hoàn thành (DoD &amp; Acceptance Criteria)" vertex="1">
+          <mxGeometry height="36" width="347" x="125" y="976" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_1_4_wbs_1_4_2" edge="1" parent="1" source="wbs_1_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_1_4_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="108" y="994" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_4_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.4.3. Ước lượng và lập kế hoạch phân bổ Sprint" vertex="1">
+          <mxGeometry height="36" width="347" x="125" y="1018" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_1_4_wbs_1_4_3" edge="1" parent="1" source="wbs_1_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_1_4_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="108" y="1036" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="1.5. Đóng gói sản phẩm giai đoạn khởi tạo" vertex="1">
+          <mxGeometry height="42" width="382" x="90" y="1072" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_0_wbs_1_5" edge="1" parent="1" source="sprint_0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_1_5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="72" y="1093" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_5_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.5.1. Tổng hợp tài liệu đặc tả yêu cầu" vertex="1">
+          <mxGeometry height="36" width="347" x="125" y="1124" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_1_5_wbs_1_5_1" edge="1" parent="1" source="wbs_1_5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_1_5_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="108" y="1142" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_1_5_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.5.2. Nghiệm thu mốc khởi tạo" vertex="1">
+          <mxGeometry height="36" width="347" x="125" y="1166" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_1_5_wbs_1_5_2" edge="1" parent="1" source="wbs_1_5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_1_5_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="108" y="1184" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sprint_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E3A8A;strokeColor=#1E40AF;fontColor=#FFFFFF;fontStyle=1;fontSize=12;arcSize=8;shadow=1;" value="Sprint 1: Thiết kế kiến trúc &amp; CSDL&#xa;(12/10/2026 – 25/10/2026)" vertex="1">
+          <mxGeometry height="65" width="410" x="535" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="e_bus_sprint_1" edge="1" parent="1" source="root_wbs01" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;" target="sprint_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1420" y="145" />
+              <mxPoint x="740" y="145" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_2_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="2.1. Thiết kế kiến trúc &amp; Hạ tầng giải pháp" vertex="1">
+          <mxGeometry height="42" width="382" x="565" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_1_wbs_2_1" edge="1" parent="1" source="sprint_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_2_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="547" y="291" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_2_1_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.1.1. Chuẩn hóa mô hình kiến trúc tổng thể" vertex="1">
+          <mxGeometry height="36" width="347" x="600" y="322" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_2_1_wbs_2_1_1" edge="1" parent="1" source="wbs_2_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_2_1_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="583" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_2_1_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.1.2. Thiết kế sơ đồ kiến trúc phân lớp &amp; luồng dữ liệu" vertex="1">
+          <mxGeometry height="36" width="347" x="600" y="364" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_2_1_wbs_2_1_2" edge="1" parent="1" source="wbs_2_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_2_1_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="583" y="382" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_2_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="2.2. Thiết kế Cơ sở dữ liệu" vertex="1">
+          <mxGeometry height="42" width="382" x="565" y="418" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_1_wbs_2_2" edge="1" parent="1" source="sprint_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_2_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="547" y="439" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_2_2_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.2.1. Xây dựng cấu trúc tập dữ liệu và mô hình tài liệu" vertex="1">
+          <mxGeometry height="36" width="347" x="600" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_2_2_wbs_2_2_1" edge="1" parent="1" source="wbs_2_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_2_2_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="583" y="488" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_2_2_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.2.2. Hoàn thiện sơ đồ quan hệ thực thể &amp; từ điển dữ liệu" vertex="1">
+          <mxGeometry height="36" width="347" x="600" y="512" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_2_2_wbs_2_2_2" edge="1" parent="1" source="wbs_2_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_2_2_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="583" y="530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_2_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="2.3. Thiết kế Giao diện kết nối (API Contract)" vertex="1">
+          <mxGeometry height="42" width="382" x="565" y="566" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_1_wbs_2_3" edge="1" parent="1" source="sprint_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_2_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="547" y="587" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_2_3_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.3.1. Xác định danh mục điểm truy vấn dịch vụ" vertex="1">
+          <mxGeometry height="36" width="347" x="600" y="618" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_2_3_wbs_2_3_1" edge="1" parent="1" source="wbs_2_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_2_3_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="583" y="636" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_2_3_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.3.2. Thiết kế cấu trúc dữ liệu truyền nhận" vertex="1">
+          <mxGeometry height="36" width="347" x="600" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_2_3_wbs_2_3_2" edge="1" parent="1" source="wbs_2_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_2_3_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="583" y="678" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_2_3_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.3.3. Biên soạn tài liệu đặc tả API" vertex="1">
+          <mxGeometry height="36" width="347" x="600" y="702" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_2_3_wbs_2_3_3" edge="1" parent="1" source="wbs_2_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_2_3_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="583" y="720" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_2_4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="2.4. Thiết kế Luồng người dùng &amp; Giao diện chi tiết" vertex="1">
+          <mxGeometry height="42" width="382" x="565" y="756" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_1_wbs_2_4" edge="1" parent="1" source="sprint_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_2_4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="547" y="777" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_2_4_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.4.1. Sơ đồ luồng chuyển trang thao tác" vertex="1">
+          <mxGeometry height="36" width="347" x="600" y="808" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_2_4_wbs_2_4_1" edge="1" parent="1" source="wbs_2_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_2_4_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="583" y="826" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_2_4_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.4.2. Hoàn thiện bộ khung giao diện tương tác trực quan" vertex="1">
+          <mxGeometry height="36" width="347" x="600" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_2_4_wbs_2_4_2" edge="1" parent="1" source="wbs_2_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_2_4_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="583" y="868" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_2_5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="2.5. Đóng gói hồ sơ thiết kế &amp; Kiểm định giữa kỳ" vertex="1">
+          <mxGeometry height="42" width="382" x="565" y="904" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_1_wbs_2_5" edge="1" parent="1" source="sprint_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_2_5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="547" y="925" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_2_5_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.5.1. Tổng hợp hồ sơ thiết kế đồng bộ" vertex="1">
+          <mxGeometry height="36" width="347" x="600" y="956" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_2_5_wbs_2_5_1" edge="1" parent="1" source="wbs_2_5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_2_5_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="583" y="974" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_2_5_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.5.2. Báo cáo giải pháp và kiểm định giữa kỳ" vertex="1">
+          <mxGeometry height="36" width="347" x="600" y="998" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_2_5_wbs_2_5_2" edge="1" parent="1" source="wbs_2_5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_2_5_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="583" y="1016" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sprint_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E3A8A;strokeColor=#1E40AF;fontColor=#FFFFFF;fontStyle=1;fontSize=12;arcSize=8;shadow=1;" value="Sprint 2: Hiện thực Xác thực &amp; Hồ sơ&#xa;(26/10/2026 – 01/11/2026)" vertex="1">
+          <mxGeometry height="65" width="410" x="1010" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="e_bus_sprint_2" edge="1" parent="1" source="root_wbs01" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;" target="sprint_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1420" y="145" />
+              <mxPoint x="1215" y="145" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="3.1. Thiết lập môi trường máy chủ &amp; Cơ sở dữ liệu" vertex="1">
+          <mxGeometry height="42" width="382" x="1040" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_2_wbs_3_1" edge="1" parent="1" source="sprint_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_3_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1022" y="291" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_1_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.1.1. Cấu trúc mã nguồn máy chủ" vertex="1">
+          <mxGeometry height="36" width="347" x="1075" y="322" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_3_1_wbs_3_1_1" edge="1" parent="1" source="wbs_3_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_3_1_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1058" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_1_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.1.2. Kết nối cơ sở dữ liệu và cấu hình chỉ mục" vertex="1">
+          <mxGeometry height="36" width="347" x="1075" y="364" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_3_1_wbs_3_1_2" edge="1" parent="1" source="wbs_3_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_3_1_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1058" y="382" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="3.2. Lập trình phân hệ Xác thực (Authentication Module)" vertex="1">
+          <mxGeometry height="42" width="382" x="1040" y="418" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_2_wbs_3_2" edge="1" parent="1" source="sprint_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_3_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1022" y="439" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_2_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.2.1. Kiểm tra dữ liệu đầu vào và mã hóa mật khẩu" vertex="1">
+          <mxGeometry height="36" width="347" x="1075" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_3_2_wbs_3_2_1" edge="1" parent="1" source="wbs_3_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_3_2_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1058" y="488" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_2_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.2.2. Dịch vụ đăng ký tài khoản và xử lý xung đột" vertex="1">
+          <mxGeometry height="36" width="347" x="1075" y="512" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_3_2_wbs_3_2_2" edge="1" parent="1" source="wbs_3_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_3_2_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1058" y="530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_2_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.2.3. Dịch vụ đăng nhập và quản lý phiên định danh" vertex="1">
+          <mxGeometry height="36" width="347" x="1075" y="554" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_3_2_wbs_3_2_3" edge="1" parent="1" source="wbs_3_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_3_2_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1058" y="572" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="3.3. Lập trình cơ chế Phân quyền (RBAC)" vertex="1">
+          <mxGeometry height="42" width="382" x="1040" y="608" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_2_wbs_3_3" edge="1" parent="1" source="sprint_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_3_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1022" y="629" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_3_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.3.1. Middleware xác thực mã thông báo" vertex="1">
+          <mxGeometry height="36" width="347" x="1075" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_3_3_wbs_3_3_1" edge="1" parent="1" source="wbs_3_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_3_3_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1058" y="678" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_3_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.3.2. Bộ quy tắc kiểm tra vai trò người dùng" vertex="1">
+          <mxGeometry height="36" width="347" x="1075" y="702" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_3_3_wbs_3_3_2" edge="1" parent="1" source="wbs_3_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_3_3_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1058" y="720" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="3.4. Lập trình phân hệ Quản lý Hồ sơ người dùng" vertex="1">
+          <mxGeometry height="42" width="382" x="1040" y="756" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_2_wbs_3_4" edge="1" parent="1" source="sprint_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_3_4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1022" y="777" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_4_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.4.1. Quản lý thông tin cá nhân và kho CV sinh viên" vertex="1">
+          <mxGeometry height="36" width="347" x="1075" y="808" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_3_4_wbs_3_4_1" edge="1" parent="1" source="wbs_3_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_3_4_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1058" y="826" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_4_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.4.2. Tích hợp lưu trữ tệp đám mây chuyên dụng" vertex="1">
+          <mxGeometry height="36" width="347" x="1075" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_3_4_wbs_3_4_2" edge="1" parent="1" source="wbs_3_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_3_4_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1058" y="868" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_4_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.4.3. Quản lý thông tin định danh doanh nghiệp" vertex="1">
+          <mxGeometry height="36" width="347" x="1075" y="892" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_3_4_wbs_3_4_3" edge="1" parent="1" source="wbs_3_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_3_4_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1058" y="910" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="3.5. Xây dựng tầng giao diện người dùng (Frontend)" vertex="1">
+          <mxGeometry height="42" width="382" x="1040" y="946" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_2_wbs_3_5" edge="1" parent="1" source="sprint_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_3_5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1022" y="967" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_5_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.5.1. Hệ thống định tuyến và bảo vệ đường dẫn" vertex="1">
+          <mxGeometry height="36" width="347" x="1075" y="998" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_3_5_wbs_3_5_1" edge="1" parent="1" source="wbs_3_5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_3_5_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1058" y="1016" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_5_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.5.2. Cấu hình kết nối mạng tập trung và xử lý lỗi" vertex="1">
+          <mxGeometry height="36" width="347" x="1075" y="1040" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_3_5_wbs_3_5_2" edge="1" parent="1" source="wbs_3_5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_3_5_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1058" y="1058" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_5_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.5.3. Lập trình màn hình giao diện xác thực và hồ sơ" vertex="1">
+          <mxGeometry height="36" width="347" x="1075" y="1082" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_3_5_wbs_3_5_3" edge="1" parent="1" source="wbs_3_5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_3_5_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1058" y="1100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="3.6. Kiểm thử đơn vị phân hệ xác thực &amp; hồ sơ" vertex="1">
+          <mxGeometry height="42" width="382" x="1040" y="1136" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_2_wbs_3_6" edge="1" parent="1" source="sprint_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_3_6">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1022" y="1157" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_6_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.6.1. Kiểm thử điểm truy vấn dịch vụ xác thực" vertex="1">
+          <mxGeometry height="36" width="347" x="1075" y="1188" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_3_6_wbs_3_6_1" edge="1" parent="1" source="wbs_3_6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_3_6_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1058" y="1206" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_3_6_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.6.2. Đối soát phân quyền và bảo mật dữ liệu" vertex="1">
+          <mxGeometry height="36" width="347" x="1075" y="1230" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_3_6_wbs_3_6_2" edge="1" parent="1" source="wbs_3_6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_3_6_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1058" y="1248" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sprint_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E3A8A;strokeColor=#1E40AF;fontColor=#FFFFFF;fontStyle=1;fontSize=12;arcSize=8;shadow=1;" value="Sprint 3: Hiện thực Việc làm &amp; Tuyển dụng&#xa;(02/11/2026 – 08/11/2026)" vertex="1">
+          <mxGeometry height="65" width="410" x="1485" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="e_bus_sprint_3" edge="1" parent="1" source="root_wbs01" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;" target="sprint_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1420" y="145" />
+              <mxPoint x="1690" y="145" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="4.1. Lập trình nghiệp vụ Quản lý Tin tuyển dụng" vertex="1">
+          <mxGeometry height="42" width="382" x="1515" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_3_wbs_4_1" edge="1" parent="1" source="sprint_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_4_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1497" y="291" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_1_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="4.1.1. Kiểm tra tính hợp lệ dữ liệu biểu mẫu đăng tin" vertex="1">
+          <mxGeometry height="36" width="347" x="1550" y="322" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_4_1_wbs_4_1_1" edge="1" parent="1" source="wbs_4_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_4_1_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1533" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_1_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="4.1.2. Khởi tạo tin tuyển dụng gắn kết định danh" vertex="1">
+          <mxGeometry height="36" width="347" x="1550" y="364" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_4_1_wbs_4_1_2" edge="1" parent="1" source="wbs_4_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_4_1_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1533" y="382" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_1_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="4.1.3. Truy vấn, cập nhật và đóng/gỡ tin tuyển dụng" vertex="1">
+          <mxGeometry height="36" width="347" x="1550" y="406" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_4_1_wbs_4_1_3" edge="1" parent="1" source="wbs_4_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_4_1_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1533" y="424" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="4.2. Lập trình nghiệp vụ Tìm kiếm &amp; Tra cứu việc làm" vertex="1">
+          <mxGeometry height="42" width="382" x="1515" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_3_wbs_4_2" edge="1" parent="1" source="sprint_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_4_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1497" y="481" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_2_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="4.2.1. Tra cứu công khai danh sách việc làm" vertex="1">
+          <mxGeometry height="36" width="347" x="1550" y="512" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_4_2_wbs_4_2_1" edge="1" parent="1" source="wbs_4_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_4_2_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1533" y="530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_2_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="4.2.2. Tích hợp tham số lọc dữ liệu nâng cao" vertex="1">
+          <mxGeometry height="36" width="347" x="1550" y="554" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_4_2_wbs_4_2_2" edge="1" parent="1" source="wbs_4_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_4_2_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1533" y="572" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_2_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="4.2.3. Cơ chế phân trang dữ liệu" vertex="1">
+          <mxGeometry height="36" width="347" x="1550" y="596" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_4_2_wbs_4_2_3" edge="1" parent="1" source="wbs_4_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_4_2_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1533" y="614" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="4.3. Lập trình nghiệp vụ Ứng tuyển &amp; Quản lý đơn tuyển" vertex="1">
+          <mxGeometry height="42" width="382" x="1515" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_3_wbs_4_3" edge="1" parent="1" source="sprint_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_4_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1497" y="671" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_3_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="4.3.1. Dịch vụ nộp đơn ứng tuyển" vertex="1">
+          <mxGeometry height="36" width="347" x="1550" y="702" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_4_3_wbs_4_3_1" edge="1" parent="1" source="wbs_4_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_4_3_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1533" y="720" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_3_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="4.3.2. Ràng buộc chống nộp trùng lặp đơn tuyển" vertex="1">
+          <mxGeometry height="36" width="347" x="1550" y="744" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_4_3_wbs_4_3_2" edge="1" parent="1" source="wbs_4_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_4_3_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1533" y="762" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_3_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="4.3.3. Theo dõi lịch sử ứng tuyển và danh sách tiếp nhận" vertex="1">
+          <mxGeometry height="36" width="347" x="1550" y="786" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_4_3_wbs_4_3_3" edge="1" parent="1" source="wbs_4_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_4_3_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1533" y="804" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_3_4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="4.3.4. Cập nhật trạng thái xét duyệt hồ sơ" vertex="1">
+          <mxGeometry height="36" width="347" x="1550" y="828" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_4_3_wbs_4_3_4" edge="1" parent="1" source="wbs_4_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_4_3_4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1533" y="846" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="4.4. Xây dựng giao diện phân hệ Nghiệp vụ Lõi" vertex="1">
+          <mxGeometry height="42" width="382" x="1515" y="882" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_3_wbs_4_4" edge="1" parent="1" source="sprint_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_4_4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1497" y="903" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_4_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="4.4.1. Giao diện quản lý tin đăng của nhà tuyển dụng" vertex="1">
+          <mxGeometry height="36" width="347" x="1550" y="934" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_4_4_wbs_4_4_1" edge="1" parent="1" source="wbs_4_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_4_4_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1533" y="952" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_4_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="4.4.2. Giao diện danh sách ứng viên và xét duyệt hồ sơ" vertex="1">
+          <mxGeometry height="36" width="347" x="1550" y="976" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_4_4_wbs_4_4_2" edge="1" parent="1" source="wbs_4_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_4_4_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1533" y="994" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_4_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="4.4.3. Giao diện trang chủ tìm kiếm và nộp hồ sơ cho sinh viên" vertex="1">
+          <mxGeometry height="36" width="347" x="1550" y="1018" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_4_4_wbs_4_4_3" edge="1" parent="1" source="wbs_4_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_4_4_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1533" y="1036" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_4_4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="4.4.4. Giao diện theo dõi trạng thái đơn ứng tuyển cá nhân" vertex="1">
+          <mxGeometry height="36" width="347" x="1550" y="1060" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_4_4_wbs_4_4_4" edge="1" parent="1" source="wbs_4_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_4_4_4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1533" y="1078" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="4.5. Tích hợp hệ thống &amp; Kiểm định mốc Giữa kỳ 2" vertex="1">
+          <mxGeometry height="42" width="382" x="1515" y="1114" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_3_wbs_4_5" edge="1" parent="1" source="sprint_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_4_5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1497" y="1135" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_5_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="4.5.1. Khớp nối đồng bộ truyền nhận dữ liệu" vertex="1">
+          <mxGeometry height="36" width="347" x="1550" y="1166" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_4_5_wbs_4_5_1" edge="1" parent="1" source="wbs_4_5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_4_5_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1533" y="1184" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_4_5_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="4.5.2. Rà soát tiến độ và đánh giá mốc checkpoint" vertex="1">
+          <mxGeometry height="36" width="347" x="1550" y="1208" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_4_5_wbs_4_5_2" edge="1" parent="1" source="wbs_4_5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_4_5_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1533" y="1226" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sprint_4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E3A8A;strokeColor=#1E40AF;fontColor=#FFFFFF;fontStyle=1;fontSize=12;arcSize=8;shadow=1;" value="Sprint 4: Đánh giá chéo &amp; Kiểm thử&#xa;(09/11/2026 – 15/11/2026)" vertex="1">
+          <mxGeometry height="65" width="410" x="1960" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="e_bus_sprint_4" edge="1" parent="1" source="root_wbs01" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;" target="sprint_4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1420" y="145" />
+              <mxPoint x="2165" y="145" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_5_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="5.1. Lập trình phân hệ Vòng đời công việc &amp; Đánh giá chất lượng" vertex="1">
+          <mxGeometry height="42" width="382" x="1990" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_4_wbs_5_1" edge="1" parent="1" source="sprint_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_5_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1972" y="291" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_5_1_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="5.1.1. Cập nhật vòng đời và trạng thái công việc thực tế" vertex="1">
+          <mxGeometry height="36" width="347" x="2025" y="322" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_5_1_wbs_5_1_1" edge="1" parent="1" source="wbs_5_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_5_1_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2008" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_5_1_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="5.1.2. Cấu trúc dữ liệu lưu trữ đánh giá hai chiều" vertex="1">
+          <mxGeometry height="36" width="347" x="2025" y="364" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_5_1_wbs_5_1_2" edge="1" parent="1" source="wbs_5_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_5_1_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2008" y="382" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_5_1_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="5.1.3. Gửi phản hồi đánh giá kèm ràng buộc chống trùng lặp" vertex="1">
+          <mxGeometry height="36" width="347" x="2025" y="406" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_5_1_wbs_5_1_3" edge="1" parent="1" source="wbs_5_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_5_1_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2008" y="424" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_5_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="5.2. Xây dựng giao diện Quản lý trạng thái &amp; Đánh giá" vertex="1">
+          <mxGeometry height="42" width="382" x="1990" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_4_wbs_5_2" edge="1" parent="1" source="sprint_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_5_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1972" y="481" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_5_2_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="5.2.1. Điều phối vòng đời công việc trên bảng điều khiển" vertex="1">
+          <mxGeometry height="36" width="347" x="2025" y="512" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_5_2_wbs_5_2_1" edge="1" parent="1" source="wbs_5_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_5_2_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2008" y="530" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_5_2_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="5.2.2. Hộp thoại tương tác đánh giá gắn sao" vertex="1">
+          <mxGeometry height="36" width="347" x="2025" y="554" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_5_2_wbs_5_2_2" edge="1" parent="1" source="wbs_5_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_5_2_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2008" y="572" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_5_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="5.3. Thiết kế kịch bản kiểm thử hệ thống" vertex="1">
+          <mxGeometry height="42" width="382" x="1990" y="608" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_4_wbs_5_3" edge="1" parent="1" source="sprint_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_5_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1972" y="629" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_5_3_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="5.3.1. Danh mục tình huống kiểm thử toàn diện" vertex="1">
+          <mxGeometry height="36" width="347" x="2025" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_5_3_wbs_5_3_1" edge="1" parent="1" source="wbs_5_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_5_3_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2008" y="678" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_5_3_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="5.3.2. Lập trình mã kiểm thử tự động" vertex="1">
+          <mxGeometry height="36" width="347" x="2025" y="702" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_5_3_wbs_5_3_2" edge="1" parent="1" source="wbs_5_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_5_3_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2008" y="720" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_5_4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="5.4. Thực thi kiểm thử &amp; Quản lý vòng đời lỗi" vertex="1">
+          <mxGeometry height="42" width="382" x="1990" y="756" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_4_wbs_5_4" edge="1" parent="1" source="sprint_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_5_4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1972" y="777" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_5_4_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="5.4.1. Chạy thực nghiệm tình huống kiểm thử cục bộ" vertex="1">
+          <mxGeometry height="36" width="347" x="2025" y="808" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_5_4_wbs_5_4_1" edge="1" parent="1" source="wbs_5_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_5_4_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2008" y="826" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_5_4_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="5.4.2. Ghi nhận lỗi, phân loại và sửa lỗi kỹ thuật" vertex="1">
+          <mxGeometry height="36" width="347" x="2025" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_5_4_wbs_5_4_2" edge="1" parent="1" source="wbs_5_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_5_4_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2008" y="868" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_5_4_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="5.4.3. Kiểm thử hồi quy và làm sạch mã nguồn" vertex="1">
+          <mxGeometry height="36" width="347" x="2025" y="892" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_5_4_wbs_5_4_3" edge="1" parent="1" source="wbs_5_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_5_4_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2008" y="910" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_5_5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="5.5. Đóng gói kết quả kiểm định chất lượng" vertex="1">
+          <mxGeometry height="42" width="382" x="1990" y="946" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_4_wbs_5_5" edge="1" parent="1" source="sprint_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_5_5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1972" y="967" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_5_5_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="5.5.1. Biên bản tổng kết kết quả kiểm thử" vertex="1">
+          <mxGeometry height="36" width="347" x="2025" y="998" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_5_5_wbs_5_5_1" edge="1" parent="1" source="wbs_5_5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_5_5_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2008" y="1016" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sprint_5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E3A8A;strokeColor=#1E40AF;fontColor=#FFFFFF;fontStyle=1;fontSize=12;arcSize=8;shadow=1;" value="Sprint 5: Triển khai Đám mây &amp; Báo cáo&#xa;(16/11/2026 – 30/11/2026)" vertex="1">
+          <mxGeometry height="65" width="410" x="2435" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="e_bus_sprint_5" edge="1" parent="1" source="root_wbs01" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;" target="sprint_5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1420" y="145" />
+              <mxPoint x="2640" y="145" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_6_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="6.1. Chuẩn bị hạ tầng &amp; Triển khai sản phẩm thực tế" vertex="1">
+          <mxGeometry height="42" width="382" x="2465" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_5_wbs_6_1" edge="1" parent="1" source="sprint_5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_6_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2447" y="291" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_6_1_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="6.1.1. Cấu hình biến môi trường và tập lệnh triển khai" vertex="1">
+          <mxGeometry height="36" width="347" x="2500" y="322" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_6_1_wbs_6_1_1" edge="1" parent="1" source="wbs_6_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_6_1_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2483" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_6_1_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="6.1.2. Triển khai dịch vụ máy chủ lên đám mây" vertex="1">
+          <mxGeometry height="36" width="347" x="2500" y="364" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_6_1_wbs_6_1_2" edge="1" parent="1" source="wbs_6_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_6_1_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2483" y="382" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_6_1_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="6.1.3. Triển khai gói sản phẩm giao diện tĩnh" vertex="1">
+          <mxGeometry height="36" width="347" x="2500" y="406" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_6_1_wbs_6_1_3" edge="1" parent="1" source="wbs_6_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_6_1_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2483" y="424" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_6_1_4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="6.1.4. Khởi tạo dữ liệu mẫu và tài khoản giả lập" vertex="1">
+          <mxGeometry height="36" width="347" x="2500" y="448" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_6_1_wbs_6_1_4" edge="1" parent="1" source="wbs_6_1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_6_1_4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2483" y="466" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_6_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="6.2. Biên soạn Báo cáo tổng kết dự án" vertex="1">
+          <mxGeometry height="42" width="382" x="2465" y="502" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_5_wbs_6_2" edge="1" parent="1" source="sprint_5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_6_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2447" y="523" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_6_2_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="6.2.1. Biên soạn nội dung báo cáo hoàn chỉnh 8 chương" vertex="1">
+          <mxGeometry height="36" width="347" x="2500" y="554" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_6_2_wbs_6_2_1" edge="1" parent="1" source="wbs_6_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_6_2_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2483" y="572" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_6_2_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="6.2.2. Hoàn thiện hình ảnh minh họa và số liệu thực nghiệm" vertex="1">
+          <mxGeometry height="36" width="347" x="2500" y="596" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_6_2_wbs_6_2_2" edge="1" parent="1" source="wbs_6_2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_6_2_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2483" y="614" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_6_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="6.3. Tổng duyệt &amp; Chuẩn bị bảo vệ chính thức" vertex="1">
+          <mxGeometry height="42" width="382" x="2465" y="650" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_5_wbs_6_3" edge="1" parent="1" source="sprint_5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_6_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2447" y="671" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_6_3_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="6.3.1. Thiết kế bộ slide trình bày trực quan" vertex="1">
+          <mxGeometry height="36" width="347" x="2500" y="702" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_6_3_wbs_6_3_1" edge="1" parent="1" source="wbs_6_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_6_3_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2483" y="720" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_6_3_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="6.3.2. Quay video ghi hình thao tác luồng nghiệp vụ" vertex="1">
+          <mxGeometry height="36" width="347" x="2500" y="744" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_6_3_wbs_6_3_2" edge="1" parent="1" source="wbs_6_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_6_3_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2483" y="762" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_6_3_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="6.3.3. Tổ chức tập dượt thuyết trình và phản hồi giả lập" vertex="1">
+          <mxGeometry height="36" width="347" x="2500" y="786" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_6_3_wbs_6_3_3" edge="1" parent="1" source="wbs_6_3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_6_3_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2483" y="804" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_6_4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="6.4. Bàn giao tài sản &amp; Nghiệm thu kết thúc dự án (Báo cáo 30/11/2026)" vertex="1">
+          <mxGeometry height="42" width="382" x="2465" y="840" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sprint_5_wbs_6_4" edge="1" parent="1" source="sprint_5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0293;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="wbs_6_4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2447" y="861" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_6_4_1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="6.4.1. Hoàn thiện hồ sơ chấm công và nhật ký công việc" vertex="1">
+          <mxGeometry height="36" width="347" x="2500" y="892" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_6_4_wbs_6_4_1" edge="1" parent="1" source="wbs_6_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_6_4_1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2483" y="910" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_6_4_2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="6.4.2. Đóng gói mã nguồn và tài sản bàn giao" vertex="1">
+          <mxGeometry height="36" width="347" x="2500" y="934" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_6_4_wbs_6_4_2" edge="1" parent="1" source="wbs_6_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_6_4_2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2483" y="952" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wbs_6_4_3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#94A3B8;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="6.4.3. Báo cáo bảo vệ trước Hội đồng &amp; Nghiệm thu kết thúc môn (30/11/2026)" vertex="1">
+          <mxGeometry height="36" width="347" x="2500" y="976" as="geometry" />
+        </mxCell>
+        <mxCell id="e_wbs_6_4_wbs_6_4_3" edge="1" parent="1" source="wbs_6_4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0471;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="wbs_6_4_3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="2483" y="994" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -65,7 +65,7 @@ class DoiChieuTaiLieuTest(ApiTestCase):
         uid, acc = self.new_user("student")
         s = self.login(acc, "student")
         job = self.create_job(e).get_json()["data"]["_id"]
-        r = self.apply(s, job)
+        r = self.apply(s, job, with_cv=False)
         self.assertNotEqual(r.status_code, 201, "Nộp đơn thành công dù kho CV trống ('Không có file CV')")
 
     def test_TC_SV_075_don_bi_tu_choi_SV_khong_gui_duoc_tin(self):

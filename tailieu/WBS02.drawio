@@ -1,0 +1,2006 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="WBS02_Feature_Breakdown_4Levels" id="wbs02_features">
+    <mxGraphModel grid="1" page="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" pageScale="1" pageWidth="2260" pageHeight="3636" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="root_wbs02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F172A;strokeColor=#1E293B;fontColor=#FFFFFF;fontStyle=1;fontSize=14;arcSize=10;shadow=1;" value="0. HỆ THỐNG YÊU CẦU CHỨC NĂNG PARTIME.VN (161 FRs)&#xa;Cấu trúc Phân rã 4 Cấp độ Ánh xạ 100% từ Tonghop.xlsx (Sheet FR)" vertex="1">
+          <mxGeometry height="75" width="680" x="760" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="role_sv" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1E40AF;strokeColor=#1D4ED8;fontColor=#FFFFFF;fontStyle=1;fontSize=12.5;arcSize=8;shadow=1;" value="1. Phân hệ Sinh viên&#xa;(12 Tính năng · 56 Chức năng)" vertex="1">
+          <mxGeometry height="65" width="640" x="60" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="e_bus_role_sv" edge="1" parent="1" source="root_wbs02" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;" target="role_sv">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="145" />
+              <mxPoint x="380" y="145" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_sv_f1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 1.1. Xác thực tài khoản" vertex="1">
+          <mxGeometry height="42" width="610" x="92" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_role_sv_f1" edge="1" parent="1" source="role_sv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="role_sv_f1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="74" y="291" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_01_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.1.1. Đăng ký tài khoản [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="322" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f1_fn_FR_SV_01_01" edge="1" parent="1" source="role_sv_f1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_01_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_01_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.1.2. Đăng nhập tài khoản [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="364" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f1_fn_FR_SV_01_02" edge="1" parent="1" source="role_sv_f1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_01_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="382" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_01_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.1.3. Khôi phục mật khẩu OTP 3 bước [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="406" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f1_fn_FR_SV_01_03" edge="1" parent="1" source="role_sv_f1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_01_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="424" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_01_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.1.4. Xem chế độ khách (Guest Mode) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="448" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f1_fn_FR_SV_01_04" edge="1" parent="1" source="role_sv_f1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_01_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="466" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_sv_f2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 1.2. Quản lý tài khoản &amp; Điều hướng" vertex="1">
+          <mxGeometry height="42" width="610" x="92" y="502" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_role_sv_f2" edge="1" parent="1" source="role_sv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="role_sv_f2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="74" y="523" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_02_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.2.1. Cập nhật tài khoản cá nhân [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="554" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f2_fn_FR_SV_02_01" edge="1" parent="1" source="role_sv_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_02_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="572" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_02_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.2.2. Đổi mật khẩu tài khoản [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="596" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f2_fn_FR_SV_02_02" edge="1" parent="1" source="role_sv_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_02_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="614" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_02_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.2.3. Hủy tài khoản vĩnh viễn [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="638" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f2_fn_FR_SV_02_03" edge="1" parent="1" source="role_sv_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_02_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="656" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_02_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.2.4. Đăng xuất tài khoản [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f2_fn_FR_SV_02_04" edge="1" parent="1" source="role_sv_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_02_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="698" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_02_05" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.2.5. Điều hướng Header, Sidebar 10 danh mục &amp; tìm nhanh [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="722" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f2_fn_FR_SV_02_05" edge="1" parent="1" source="role_sv_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_02_05">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="740" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_02_06" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.2.6. Xem, tự đọc &amp; xóa thông báo Chuông Header [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="764" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f2_fn_FR_SV_02_06" edge="1" parent="1" source="role_sv_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_02_06">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="782" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_02_07" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.2.7. Mở Drawer Chat nhanh từ Header [Nâng cao - Mục 10]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="806" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f2_fn_FR_SV_02_07" edge="1" parent="1" source="role_sv_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_02_07">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="824" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_02_08" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.2.8. Xem Footer, liên kết nhanh &amp; Cẩm nang tìm việc an toàn [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="848" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f2_fn_FR_SV_02_08" edge="1" parent="1" source="role_sv_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_02_08">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="866" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_sv_f3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 1.3. Trang chủ &amp; KPI thực tế" vertex="1">
+          <mxGeometry height="42" width="610" x="92" y="902" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_role_sv_f3" edge="1" parent="1" source="role_sv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="role_sv_f3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="74" y="923" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_03_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.3.1. Tìm nhanh Banner (Khách/Đã ĐN) &amp; 6 chip ngành nghề [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="954" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f3_fn_FR_SV_03_01" edge="1" parent="1" source="role_sv_f3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_03_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="972" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_03_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.3.2. Xem 6 thẻ chỉ số KPI thực tế &amp; điều hướng nhanh [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="996" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f3_fn_FR_SV_03_02" edge="1" parent="1" source="role_sv_f3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_03_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="1014" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_03_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.3.3. Xem lưới 6 việc làm nổi bật ưu tiên gần địa chỉ [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="1038" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f3_fn_FR_SV_03_03" edge="1" parent="1" source="role_sv_f3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_03_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="1056" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_sv_f4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 1.4. Khám phá &amp; tìm kiếm việc làm" vertex="1">
+          <mxGeometry height="42" width="610" x="92" y="1092" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_role_sv_f4" edge="1" parent="1" source="role_sv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="role_sv_f4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="74" y="1113" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_04_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.4.1. Tìm kiếm việc làm đa từ không dấu [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="1144" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f4_fn_FR_SV_04_01" edge="1" parent="1" source="role_sv_f4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_04_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="1162" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_04_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.4.2. Lọc việc làm 5 tiêu chí &amp; ưu tiên gần địa chỉ [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="1186" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f4_fn_FR_SV_04_02" edge="1" parent="1" source="role_sv_f4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_04_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="1204" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_04_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.4.3. Phân trang danh sách việc làm [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="1228" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f4_fn_FR_SV_04_03" edge="1" parent="1" source="role_sv_f4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_04_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="1246" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_04_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.4.4. Xem chi tiết tin tuyển dụng (Slide-over JD) [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="1270" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f4_fn_FR_SV_04_04" edge="1" parent="1" source="role_sv_f4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_04_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="1288" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_04_05" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.4.5. Xem hồ sơ doanh nghiệp công khai [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="1312" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f4_fn_FR_SV_04_05" edge="1" parent="1" source="role_sv_f4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_04_05">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="1330" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_sv_f5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 1.5. Việc làm đã lưu" vertex="1">
+          <mxGeometry height="42" width="610" x="92" y="1366" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_role_sv_f5" edge="1" parent="1" source="role_sv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="role_sv_f5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="74" y="1387" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_05_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.5.1. Lưu / Bỏ lưu việc làm yêu thích (Bookmark) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="1418" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f5_fn_FR_SV_05_01" edge="1" parent="1" source="role_sv_f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_05_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="1436" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_05_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.5.2. Xem &amp; phân trang Việc làm đã lưu [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="1460" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f5_fn_FR_SV_05_02" edge="1" parent="1" source="role_sv_f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_05_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="1478" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_sv_f6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 1.6. Ứng tuyển &amp; tiến độ đơn" vertex="1">
+          <mxGeometry height="42" width="610" x="92" y="1514" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_role_sv_f6" edge="1" parent="1" source="role_sv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="role_sv_f6">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="74" y="1535" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_06_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.6.1. Nộp hồ sơ ứng tuyển 1-chạm bằng CV PDF từ kho [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="1566" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f6_fn_FR_SV_06_01" edge="1" parent="1" source="role_sv_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_06_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="1584" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_06_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.6.2. Tìm kiếm, lọc 7 nút trạng thái &amp; lọc ngày Tiến độ ứng tuyển [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="1608" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f6_fn_FR_SV_06_02" edge="1" parent="1" source="role_sv_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_06_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="1626" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_06_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.6.3. Xem tiến độ 4 chặng, lịch hẹn PV, lý do từ chối &amp; mở Chat [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="1650" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f6_fn_FR_SV_06_03" edge="1" parent="1" source="role_sv_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_06_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="1668" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_06_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.6.4. Rút hồ sơ ứng tuyển [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="1692" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f6_fn_FR_SV_06_04" edge="1" parent="1" source="role_sv_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_06_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="1710" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_06_05" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.6.5. Xóa đơn ứng tuyển khỏi danh sách [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="1734" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f6_fn_FR_SV_06_05" edge="1" parent="1" source="role_sv_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_06_05">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="1752" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_06_06" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.6.6. Xuất Excel danh sách Đơn ứng tuyển (.xls) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="1776" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f6_fn_FR_SV_06_06" edge="1" parent="1" source="role_sv_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_06_06">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="1794" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_sv_f7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 1.7. Lịch ca làm đã nhận" vertex="1">
+          <mxGeometry height="42" width="610" x="92" y="1830" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_role_sv_f7" edge="1" parent="1" source="role_sv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="role_sv_f7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="74" y="1851" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_07_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.7.1. Xem Thời khóa biểu ca tuần (T2–CN) &amp; 3 KPI công/thu nhập [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="1882" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f7_fn_FR_SV_07_01" edge="1" parent="1" source="role_sv_f7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_07_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="1900" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_07_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.7.2. Lọc lịch ca làm (Tuần, Khung ca, Chi nhánh &amp; Trạng thái ca) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="1924" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f7_fn_FR_SV_07_02" edge="1" parent="1" source="role_sv_f7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_07_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="1942" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_07_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.7.3. Xem chi tiết ca làm việc qua Modal [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="1966" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f7_fn_FR_SV_07_03" edge="1" parent="1" source="role_sv_f7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_07_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="1984" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_07_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.7.4. Cập nhật trạng thái ca làm (Vào ca làm / Xong ca) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="2008" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f7_fn_FR_SV_07_04" edge="1" parent="1" source="role_sv_f7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_07_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="2026" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_07_05" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.7.5. Xuất Excel Lịch ca làm (.xls) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="2050" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f7_fn_FR_SV_07_05" edge="1" parent="1" source="role_sv_f7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_07_05">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="2068" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_07_06" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.7.6. Xuất Excel Bảng chấm công (.xls) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="2092" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f7_fn_FR_SV_07_06" edge="1" parent="1" source="role_sv_f7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_07_06">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="2110" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_sv_f8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 1.8. Kho quản lý CV PDF" vertex="1">
+          <mxGeometry height="42" width="610" x="92" y="2146" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_role_sv_f8" edge="1" parent="1" source="role_sv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="role_sv_f8">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="74" y="2167" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_08_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.8.1. Tải lên tệp CV PDF mới (&lt;= 10MB) [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="2198" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f8_fn_FR_SV_08_01" edge="1" parent="1" source="role_sv_f8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_08_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="2216" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_08_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.8.2. Xem trước chi tiết CV PDF chuẩn A4 &amp; tải về [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="2240" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f8_fn_FR_SV_08_02" edge="1" parent="1" source="role_sv_f8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_08_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="2258" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_08_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.8.3. Đặt làm CV mặc định [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="2282" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f8_fn_FR_SV_08_03" edge="1" parent="1" source="role_sv_f8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_08_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="2300" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_08_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.8.4. Thay thế tệp CV PDF cho hồ sơ CV hiện có [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="2324" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f8_fn_FR_SV_08_04" edge="1" parent="1" source="role_sv_f8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_08_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="2342" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_08_05" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.8.5. Xóa tệp CV PDF khỏi kho [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="2366" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f8_fn_FR_SV_08_05" edge="1" parent="1" source="role_sv_f8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_08_05">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="2384" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_sv_f9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 1.9. Hồ sơ cá nhân Sinh viên" vertex="1">
+          <mxGeometry height="42" width="610" x="92" y="2420" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_role_sv_f9" edge="1" parent="1" source="role_sv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="role_sv_f9">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="74" y="2441" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_09_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.9.1. Xem thông tin Hồ sơ cá nhân [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="2472" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f9_fn_FR_SV_09_01" edge="1" parent="1" source="role_sv_f9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_09_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="2490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_09_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.9.2. Chỉnh sửa Hồ sơ cá nhân [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="2514" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f9_fn_FR_SV_09_02" edge="1" parent="1" source="role_sv_f9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_09_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="2532" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_09_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.9.3. Tải lên / Kéo thả Ảnh bìa &amp; Ảnh đại diện [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="2556" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f9_fn_FR_SV_09_03" edge="1" parent="1" source="role_sv_f9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_09_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="2574" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_09_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.9.4. Xóa Ảnh bìa &amp; Ảnh đại diện về mặc định [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="2598" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f9_fn_FR_SV_09_04" edge="1" parent="1" source="role_sv_f9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_09_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="2616" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_sv_f10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 1.10. Đánh giá 2 chiều" vertex="1">
+          <mxGeometry height="42" width="610" x="92" y="2652" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_role_sv_f10" edge="1" parent="1" source="role_sv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="role_sv_f10">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="74" y="2673" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_10_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.10.1. Viết &amp; gửi đánh giá Doanh nghiệp (1–5 sao) [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="2704" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f10_fn_FR_SV_10_01" edge="1" parent="1" source="role_sv_f10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_10_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="2722" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_10_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.10.2. Xem chi tiết bài đánh giá đã gửi [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="2746" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f10_fn_FR_SV_10_02" edge="1" parent="1" source="role_sv_f10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_10_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="2764" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_10_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.10.3. Chỉnh sửa bài đánh giá Doanh nghiệp [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="2788" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f10_fn_FR_SV_10_03" edge="1" parent="1" source="role_sv_f10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_10_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="2806" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_10_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.10.4. Xóa bài đánh giá Doanh nghiệp [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="2830" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f10_fn_FR_SV_10_04" edge="1" parent="1" source="role_sv_f10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_10_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="2848" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_10_05" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.10.5. Xem tab &#39;Nhà tuyển dụng đánh giá tôi&#39; [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="2872" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f10_fn_FR_SV_10_05" edge="1" parent="1" source="role_sv_f10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_10_05">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="2890" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_sv_f11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 1.11. Báo cáo &amp; Chat / WebRTC" vertex="1">
+          <mxGeometry height="42" width="610" x="92" y="2926" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_role_sv_f11" edge="1" parent="1" source="role_sv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="role_sv_f11">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="74" y="2947" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_11_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.11.1. Gửi Báo cáo vi phạm Tin tuyển dụng / Hội thoại [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="2978" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f11_fn_FR_SV_11_01" edge="1" parent="1" source="role_sv_f11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_11_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="2996" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_11_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.11.2. Xem &amp; phân trang tiến độ Báo cáo vi phạm đã gửi [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="3020" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f11_fn_FR_SV_11_02" edge="1" parent="1" source="role_sv_f11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_11_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="3038" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_11_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.11.3. Tìm kiếm &amp; lọc hội thoại &#39;Chưa phản hồi&#39; trong Chat [Nâng cao - Mục 10]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="3062" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f11_fn_FR_SV_11_03" edge="1" parent="1" source="role_sv_f11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_11_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="3080" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_11_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.11.4. Nhắn tin văn bản 1-1 Realtime cô lập theo đơn [Nâng cao - Mục 10]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="3104" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f11_fn_FR_SV_11_04" edge="1" parent="1" source="role_sv_f11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_11_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="3122" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_11_05" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.11.5. Đính kèm &amp; xem trước tệp PDF/Ảnh trong Chat [Nâng cao - Mục 10]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="3146" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f11_fn_FR_SV_11_05" edge="1" parent="1" source="role_sv_f11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_11_05">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="3164" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_11_06" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.11.6. Gọi thoại WebRTC trực tiếp [Nâng cao - Mục 10]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="3188" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f11_fn_FR_SV_11_06" edge="1" parent="1" source="role_sv_f11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_11_06">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="3206" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_11_07" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.11.7. Gọi Video WebRTC, Nhận cuộc gọi đến &amp; Điều khiển Mic/Camera [Nâng cao - Mục 10]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="3230" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f11_fn_FR_SV_11_07" edge="1" parent="1" source="role_sv_f11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_11_07">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="3248" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_sv_f12" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#3B82F6;fontColor=#1E3A8A;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 1.12. Đồng bộ &amp; Chuẩn giao diện" vertex="1">
+          <mxGeometry height="42" width="610" x="92" y="3284" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_role_sv_f12" edge="1" parent="1" source="role_sv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#2563EB;strokeWidth=1.5;" target="role_sv_f12">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="74" y="3305" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_SV_12_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="1.12.1. Đồng bộ Realtime toàn sàn không cần F5 (Socket.IO) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="128" y="3336" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_sv_f12_fn_FR_SV_12_01" edge="1" parent="1" source="role_sv_f12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_SV_12_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="110" y="3354" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_ntd" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0F766E;strokeColor=#0D9488;fontColor=#FFFFFF;fontStyle=1;fontSize=12.5;arcSize=8;shadow=1;" value="2. Phân hệ Nhà tuyển dụng (Doanh nghiệp)&#xa;(12 Tính năng · 59 Chức năng)" vertex="1">
+          <mxGeometry height="65" width="640" x="770" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="e_bus_role_ntd" edge="1" parent="1" source="root_wbs02" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;" target="role_ntd">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="145" />
+              <mxPoint x="1090" y="145" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_ntd_f1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#10B981;fontColor=#065F46;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 2.1. Xác thực tài khoản" vertex="1">
+          <mxGeometry height="42" width="610" x="802" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_role_ntd_f1" edge="1" parent="1" source="role_ntd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#059669;strokeWidth=1.5;" target="role_ntd_f1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="784" y="291" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_01_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.1.1. Đăng ký tài khoản Doanh nghiệp [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="322" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f1_fn_FR_NTD_01_01" edge="1" parent="1" source="role_ntd_f1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_01_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_01_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.1.2. Đăng nhập Cổng Nhà tuyển dụng [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="364" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f1_fn_FR_NTD_01_02" edge="1" parent="1" source="role_ntd_f1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_01_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="382" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_01_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.1.3. Khôi phục mật khẩu Doanh nghiệp OTP 3 bước [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="406" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f1_fn_FR_NTD_01_03" edge="1" parent="1" source="role_ntd_f1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_01_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="424" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_01_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.1.4. Xem Chế độ Khách (Guest Mode - Nhà tuyển dụng) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="448" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f1_fn_FR_NTD_01_04" edge="1" parent="1" source="role_ntd_f1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_01_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="466" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_ntd_f2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#10B981;fontColor=#065F46;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 2.2. Quản lý tài khoản &amp; Điều hướng" vertex="1">
+          <mxGeometry height="42" width="610" x="802" y="502" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_role_ntd_f2" edge="1" parent="1" source="role_ntd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#059669;strokeWidth=1.5;" target="role_ntd_f2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="784" y="523" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_02_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.2.1. Cập nhật tài khoản đại diện Doanh nghiệp [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="554" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f2_fn_FR_NTD_02_01" edge="1" parent="1" source="role_ntd_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_02_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="572" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_02_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.2.2. Đổi mật khẩu tài khoản [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="596" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f2_fn_FR_NTD_02_02" edge="1" parent="1" source="role_ntd_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_02_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="614" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_02_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.2.3. Hủy tài khoản Doanh nghiệp vĩnh viễn [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="638" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f2_fn_FR_NTD_02_03" edge="1" parent="1" source="role_ntd_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_02_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="656" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_02_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.2.4. Đăng xuất tài khoản [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f2_fn_FR_NTD_02_04" edge="1" parent="1" source="role_ntd_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_02_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="698" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_02_05" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.2.5. Điều hướng Header (Đăng tin mới) &amp; Sidebar 10 danh mục [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="722" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f2_fn_FR_NTD_02_05" edge="1" parent="1" source="role_ntd_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_02_05">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="740" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_02_06" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.2.6. Xem, tự đọc &amp; xóa thông báo Chuông Header [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="764" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f2_fn_FR_NTD_02_06" edge="1" parent="1" source="role_ntd_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_02_06">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="782" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_02_07" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.2.7. Mở Drawer Chat nhanh từ Header [Nâng cao - Mục 10]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="806" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f2_fn_FR_NTD_02_07" edge="1" parent="1" source="role_ntd_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_02_07">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="824" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_02_08" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.2.8. Xem Footer, liên kết nhanh &amp; tổng đài hỗ trợ DN [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="848" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f2_fn_FR_NTD_02_08" edge="1" parent="1" source="role_ntd_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_02_08">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="866" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_ntd_f3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#10B981;fontColor=#065F46;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 2.3. Bảng điều khiển tuyển dụng" vertex="1">
+          <mxGeometry height="42" width="610" x="802" y="902" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_role_ntd_f3" edge="1" parent="1" source="role_ntd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#059669;strokeWidth=1.5;" target="role_ntd_f3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="784" y="923" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_03_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.3.1. Xem 3 thẻ KPI tuyển dụng thật &amp; quy trình 3 bước [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="954" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f3_fn_FR_NTD_03_01" edge="1" parent="1" source="role_ntd_f3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_03_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="972" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_03_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.3.2. Xem Biểu đồ phễu &amp; Bảng hiệu suất tin/chi nhánh [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="996" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f3_fn_FR_NTD_03_02" edge="1" parent="1" source="role_ntd_f3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_03_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="1014" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_03_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.3.3. Xem nhanh Kanban ATS &amp; chuyển sang Quản trị ứng viên [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="1038" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f3_fn_FR_NTD_03_03" edge="1" parent="1" source="role_ntd_f3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_03_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="1056" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_ntd_f4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#10B981;fontColor=#065F46;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 2.4. Hồ sơ doanh nghiệp &amp; GPKD" vertex="1">
+          <mxGeometry height="42" width="610" x="802" y="1092" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_role_ntd_f4" edge="1" parent="1" source="role_ntd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#059669;strokeWidth=1.5;" target="role_ntd_f4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="784" y="1113" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_04_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.4.1. Xem thông tin Hồ sơ doanh nghiệp &amp; trạng thái GPKD [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="1144" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f4_fn_FR_NTD_04_01" edge="1" parent="1" source="role_ntd_f4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_04_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="1162" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_04_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.4.2. Chỉnh sửa thông tin Hồ sơ doanh nghiệp [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="1186" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f4_fn_FR_NTD_04_02" edge="1" parent="1" source="role_ntd_f4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_04_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="1204" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_04_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.4.3. Tải lại tệp GPKD PDF mới (kích hoạt Chờ duyệt lại) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="1228" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f4_fn_FR_NTD_04_03" edge="1" parent="1" source="role_ntd_f4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_04_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="1246" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_04_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.4.4. Xem trước chi tiết bản in GPKD PDF [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="1270" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f4_fn_FR_NTD_04_04" edge="1" parent="1" source="role_ntd_f4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_04_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="1288" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_04_05" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.4.5. Kéo thả / Tải lên Ảnh bìa &amp; Logo công ty [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="1312" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f4_fn_FR_NTD_04_05" edge="1" parent="1" source="role_ntd_f4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_04_05">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="1330" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_04_06" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.4.6. Xóa Ảnh bìa &amp; Logo công ty về mặc định [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="1354" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f4_fn_FR_NTD_04_06" edge="1" parent="1" source="role_ntd_f4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_04_06">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="1372" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_ntd_f5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#10B981;fontColor=#065F46;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 2.5. Đăng &amp; Quản lý tin tuyển dụng" vertex="1">
+          <mxGeometry height="42" width="610" x="802" y="1408" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_role_ntd_f5" edge="1" parent="1" source="role_ntd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#059669;strokeWidth=1.5;" target="role_ntd_f5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="784" y="1429" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_05_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.5.1. Đăng tin tuyển dụng part-time theo ca mới [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="1460" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f5_fn_FR_NTD_05_01" edge="1" parent="1" source="role_ntd_f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_05_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="1478" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_05_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.5.2. Kiểm duyệt tin tự động 2 luồng &amp; cảnh báo từ cấm [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="1502" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f5_fn_FR_NTD_05_02" edge="1" parent="1" source="role_ntd_f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_05_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="1520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_05_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.5.3. Tìm kiếm, lọc tin &amp; phân trang Quản lý tin [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="1544" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f5_fn_FR_NTD_05_03" edge="1" parent="1" source="role_ntd_f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_05_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="1562" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_05_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.5.4. Xem chi tiết tin tuyển dụng [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="1586" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f5_fn_FR_NTD_05_04" edge="1" parent="1" source="role_ntd_f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_05_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="1604" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_05_05" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.5.5. Chỉnh sửa tin tuyển dụng [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="1628" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f5_fn_FR_NTD_05_05" edge="1" parent="1" source="role_ntd_f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_05_05">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="1646" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_05_06" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.5.6. Bật / Tắt tuyển dụng &amp; Chốt nhận đủ người [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="1670" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f5_fn_FR_NTD_05_06" edge="1" parent="1" source="role_ntd_f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_05_06">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="1688" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_05_07" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.5.7. Xóa vĩnh viễn tin tuyển dụng [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="1712" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f5_fn_FR_NTD_05_07" edge="1" parent="1" source="role_ntd_f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_05_07">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="1730" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_05_08" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.5.8. Mở form &#39;Tạo tin tuyển dụng&#39; / &#39;Quay lại danh sách&#39; tại Quản lý tin [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="1754" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f5_fn_FR_NTD_05_08" edge="1" parent="1" source="role_ntd_f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_05_08">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="1772" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_ntd_f6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#10B981;fontColor=#065F46;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 2.6. Quản trị ứng viên (ATS)" vertex="1">
+          <mxGeometry height="42" width="610" x="802" y="1808" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_role_ntd_f6" edge="1" parent="1" source="role_ntd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#059669;strokeWidth=1.5;" target="role_ntd_f6">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="784" y="1829" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_06_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.6.1. Xem ứng viên chế độ Bảng Kanban 4 cột [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="1860" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f6_fn_FR_NTD_06_01" edge="1" parent="1" source="role_ntd_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_06_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="1878" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_06_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.6.2. Xem ứng viên chế độ Lưới thẻ 5 tab trạng thái [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="1902" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f6_fn_FR_NTD_06_02" edge="1" parent="1" source="role_ntd_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_06_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="1920" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_06_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.6.3. Xem danh sách ứng viên (chế độ Danh sách dạng bảng) [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="1944" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f6_fn_FR_NTD_06_03" edge="1" parent="1" source="role_ntd_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_06_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="1962" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_06_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.6.4. Tìm kiếm &amp; lọc ứng viên theo Tin tuyển dụng và 5 tiêu chí [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="1986" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f6_fn_FR_NTD_06_04" edge="1" parent="1" source="role_ntd_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_06_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2004" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_06_05" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.6.5. Xem chi tiết hồ sơ ứng viên &amp; CV PDF (Modal 2 cột) [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="2028" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f6_fn_FR_NTD_06_05" edge="1" parent="1" source="role_ntd_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_06_05">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2046" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_06_06" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.6.6. Duyệt trúng tuyển ứng viên [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="2070" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f6_fn_FR_NTD_06_06" edge="1" parent="1" source="role_ntd_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_06_06">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2088" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_06_07" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.6.7. Đặt lịch hẹn Mời phỏng vấn qua Modal [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="2112" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f6_fn_FR_NTD_06_07" edge="1" parent="1" source="role_ntd_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_06_07">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_06_08" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.6.8. Từ chối ứng viên kèm chọn/nhập lý do cụ thể [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="2154" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f6_fn_FR_NTD_06_08" edge="1" parent="1" source="role_ntd_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_06_08">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2172" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_06_09" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.6.9. Xóa hồ sơ ứng viên khỏi danh sách [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="2196" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f6_fn_FR_NTD_06_09" edge="1" parent="1" source="role_ntd_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_06_09">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2214" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_06_10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.6.10. Xuất Excel danh sách ứng viên (.xls) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="2238" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f6_fn_FR_NTD_06_10" edge="1" parent="1" source="role_ntd_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_06_10">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2256" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_ntd_f7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#10B981;fontColor=#065F46;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 2.7. Lịch phỏng vấn trực tuyến" vertex="1">
+          <mxGeometry height="42" width="610" x="802" y="2292" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_role_ntd_f7" edge="1" parent="1" source="role_ntd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#059669;strokeWidth=1.5;" target="role_ntd_f7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="784" y="2313" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_07_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.7.1. Xem &amp; lọc Lịch phỏng vấn 2 chế độ (Thẻ ứng viên / Khung lịch theo ngày) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="2344" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f7_fn_FR_NTD_07_01" edge="1" parent="1" source="role_ntd_f7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_07_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2362" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_07_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.7.2. Đặt mới &amp; Cập nhật lịch hẹn phỏng vấn [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="2386" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f7_fn_FR_NTD_07_02" edge="1" parent="1" source="role_ntd_f7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_07_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2404" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_07_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.7.3. Gọi Video/Thoại WebRTC, Xem CV &amp; Nhắn tin từ Lịch hẹn [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="2428" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f7_fn_FR_NTD_07_03" edge="1" parent="1" source="role_ntd_f7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_07_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2446" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_ntd_f8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#10B981;fontColor=#065F46;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 2.8. Xác nhận ca làm &amp; chấm công" vertex="1">
+          <mxGeometry height="42" width="610" x="802" y="2482" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_role_ntd_f8" edge="1" parent="1" source="role_ntd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#059669;strokeWidth=1.5;" target="role_ntd_f8">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="784" y="2503" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_08_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.8.1. Xem Lịch ca nhân sự 2 chế độ (Theo tin &amp; điểm danh / Tuần T2–CN) &amp; Lọc [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="2534" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f8_fn_FR_NTD_08_01" edge="1" parent="1" source="role_ntd_f8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_08_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2552" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_08_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.8.2. Điểm danh Duyệt xong ca hoặc Vắng mặt [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="2576" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f8_fn_FR_NTD_08_02" edge="1" parent="1" source="role_ntd_f8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_08_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2594" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_08_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.8.3. Chốt nhận đủ người &amp; Đóng / kết thúc đợt tuyển [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="2618" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f8_fn_FR_NTD_08_03" edge="1" parent="1" source="role_ntd_f8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_08_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2636" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_08_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.8.4. Xuất Excel Bảng chấm công (.xls) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="2660" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f8_fn_FR_NTD_08_04" edge="1" parent="1" source="role_ntd_f8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_08_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2678" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_ntd_f9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#10B981;fontColor=#065F46;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 2.9. Đánh giá năng lực sinh viên" vertex="1">
+          <mxGeometry height="42" width="610" x="802" y="2714" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_role_ntd_f9" edge="1" parent="1" source="role_ntd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#059669;strokeWidth=1.5;" target="role_ntd_f9">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="784" y="2735" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_09_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.9.1. Chấm điểm &amp; gửi đánh giá Sinh viên (1–5 sao) [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="2766" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f9_fn_FR_NTD_09_01" edge="1" parent="1" source="role_ntd_f9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_09_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2784" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_09_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.9.2. Xem chi tiết bài đánh giá Sinh viên đã gửi [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="2808" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f9_fn_FR_NTD_09_02" edge="1" parent="1" source="role_ntd_f9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_09_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2826" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_09_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.9.3. Chỉnh sửa bài đánh giá Sinh viên [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="2850" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f9_fn_FR_NTD_09_03" edge="1" parent="1" source="role_ntd_f9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_09_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2868" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_09_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.9.4. Xóa bài đánh giá Sinh viên [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="2892" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f9_fn_FR_NTD_09_04" edge="1" parent="1" source="role_ntd_f9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_09_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2910" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_09_05" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.9.5. Xem tab &#39;Đánh giá từ Sinh viên&#39; [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="2934" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f9_fn_FR_NTD_09_05" edge="1" parent="1" source="role_ntd_f9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_09_05">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2952" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_ntd_f10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#10B981;fontColor=#065F46;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 2.10. Khiếu nại &amp; Báo cáo vi phạm" vertex="1">
+          <mxGeometry height="42" width="610" x="802" y="2988" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_role_ntd_f10" edge="1" parent="1" source="role_ntd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#059669;strokeWidth=1.5;" target="role_ntd_f10">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="784" y="3009" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_10_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.10.1. Gửi Báo cáo vi phạm ứng viên / hội thoại chat [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="3040" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f10_fn_FR_NTD_10_01" edge="1" parent="1" source="role_ntd_f10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_10_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="3058" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_10_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.10.2. Xem &amp; phân trang &#39;Khiếu nại &amp; báo cáo đã gửi&#39; [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="3082" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f10_fn_FR_NTD_10_02" edge="1" parent="1" source="role_ntd_f10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_10_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="3100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_ntd_f11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#10B981;fontColor=#065F46;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 2.11. Tin nhắn &amp; Phỏng vấn WebRTC" vertex="1">
+          <mxGeometry height="42" width="610" x="802" y="3136" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_role_ntd_f11" edge="1" parent="1" source="role_ntd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#059669;strokeWidth=1.5;" target="role_ntd_f11">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="784" y="3157" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_11_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.11.1. Tạo tin nhắn mới tới ứng viên qua Modal [Nâng cao - Mục 10]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="3188" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f11_fn_FR_NTD_11_01" edge="1" parent="1" source="role_ntd_f11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_11_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="3206" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_11_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.11.2. Tìm kiếm, lọc theo Tin tuyển dụng &amp; &#39;Chưa phản hồi&#39; trong Chat [Nâng cao - Mục 10]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="3230" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f11_fn_FR_NTD_11_02" edge="1" parent="1" source="role_ntd_f11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_11_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="3248" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_11_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.11.3. Nhắn tin văn bản 1-1 Realtime cô lập theo đơn [Nâng cao - Mục 10]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="3272" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f11_fn_FR_NTD_11_03" edge="1" parent="1" source="role_ntd_f11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_11_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="3290" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_11_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.11.4. Đính kèm &amp; xem trước tệp PDF/Ảnh trong Chat [Nâng cao - Mục 10]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="3314" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f11_fn_FR_NTD_11_04" edge="1" parent="1" source="role_ntd_f11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_11_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="3332" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_11_05" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.11.5. Gọi thoại &amp; Gọi Video phỏng vấn WebRTC 2 chiều [Nâng cao - Mục 10]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="3356" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f11_fn_FR_NTD_11_05" edge="1" parent="1" source="role_ntd_f11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_11_05">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="3374" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_ntd_f12" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F0FDF4;strokeColor=#10B981;fontColor=#065F46;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 2.12. Đồng bộ &amp; Chuẩn giao diện" vertex="1">
+          <mxGeometry height="42" width="610" x="802" y="3410" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_role_ntd_f12" edge="1" parent="1" source="role_ntd" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#059669;strokeWidth=1.5;" target="role_ntd_f12">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="784" y="3431" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_NTD_12_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="2.12.1. Đồng bộ Realtime toàn sàn không cần F5 (Socket.IO) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="838" y="3462" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_ntd_f12_fn_FR_NTD_12_01" edge="1" parent="1" source="role_ntd_f12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_NTD_12_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="3480" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_qtv" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#6B21A8;strokeColor=#7E22CE;fontColor=#FFFFFF;fontStyle=1;fontSize=12.5;arcSize=8;shadow=1;" value="3. Phân hệ Quản trị viên&#xa;(11 Tính năng · 46 Chức năng)" vertex="1">
+          <mxGeometry height="65" width="640" x="1480" y="180" as="geometry" />
+        </mxCell>
+        <mxCell id="e_bus_role_qtv" edge="1" parent="1" source="root_wbs02" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;" target="role_qtv">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1100" y="145" />
+              <mxPoint x="1800" y="145" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_qtv_f1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF5FF;strokeColor=#A855F7;fontColor=#581C87;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 3.1. Xác thực &amp; Điều hướng Admin" vertex="1">
+          <mxGeometry height="42" width="610" x="1512" y="270" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_role_qtv_f1" edge="1" parent="1" source="role_qtv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9333EA;strokeWidth=1.5;" target="role_qtv_f1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1494" y="291" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_01_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.1.1. Đăng nhập Cổng Quản trị viên (/admin) [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="322" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f1_fn_FR_QTV_01_01" edge="1" parent="1" source="role_qtv_f1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_01_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_01_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.1.2. Xem định danh Quản trị &amp; Đổi mật khẩu (AccountModal) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="364" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f1_fn_FR_QTV_01_02" edge="1" parent="1" source="role_qtv_f1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_01_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="382" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_01_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.1.3. Đăng xuất tài khoản Admin cô lập phiên [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="406" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f1_fn_FR_QTV_01_03" edge="1" parent="1" source="role_qtv_f1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_01_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="424" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_01_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.1.4. Điều hướng Sidebar 10 phân hệ quản trị kèm bộ đếm [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="448" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f1_fn_FR_QTV_01_04" edge="1" parent="1" source="role_qtv_f1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_01_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="466" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_01_05" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.1.5. Xem, tự đọc &amp; xóa thông báo Chuông Realtime Header Admin [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f1_fn_FR_QTV_01_05" edge="1" parent="1" source="role_qtv_f1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_01_05">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="508" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_qtv_f2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF5FF;strokeColor=#A855F7;fontColor=#581C87;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 3.2. Analytics Dashboard 2026" vertex="1">
+          <mxGeometry height="42" width="610" x="1512" y="544" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_role_qtv_f2" edge="1" parent="1" source="role_qtv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9333EA;strokeWidth=1.5;" target="role_qtv_f2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1494" y="565" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_02_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.2.1. Xem 4 thẻ KPI tổng quan thực tế năm 2026 [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="596" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f2_fn_FR_QTV_02_01" edge="1" parent="1" source="role_qtv_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_02_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="614" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_02_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.2.2. Phân tích 3 Biểu đồ SVG thực tế 2026 (Cột, Đường, Donut) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="638" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f2_fn_FR_QTV_02_02" edge="1" parent="1" source="role_qtv_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_02_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="656" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_02_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.2.3. Lọc Dashboard đa chiều &amp; Xem tất cả dữ liệu [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="680" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f2_fn_FR_QTV_02_03" edge="1" parent="1" source="role_qtv_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_02_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="698" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_02_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.2.4. Xuất Báo cáo thống kê quản trị Excel (.xls) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="722" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f2_fn_FR_QTV_02_04" edge="1" parent="1" source="role_qtv_f2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_02_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="740" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_qtv_f3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF5FF;strokeColor=#A855F7;fontColor=#581C87;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 3.3. Quản lý người dùng" vertex="1">
+          <mxGeometry height="42" width="610" x="1512" y="776" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_role_qtv_f3" edge="1" parent="1" source="role_qtv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9333EA;strokeWidth=1.5;" target="role_qtv_f3">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1494" y="797" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_03_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.3.1. Tìm kiếm, lọc 4 tiêu chí &amp; phân trang Người dùng [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="828" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f3_fn_FR_QTV_03_01" edge="1" parent="1" source="role_qtv_f3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_03_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="846" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_03_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.3.2. Xem chi tiết hồ sơ Người dùng (CV PDF / Bản in GPKD) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="870" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f3_fn_FR_QTV_03_02" edge="1" parent="1" source="role_qtv_f3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_03_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="888" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_03_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.3.3. Khóa tài khoản người dùng kèm lý do bắt buộc [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="912" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f3_fn_FR_QTV_03_03" edge="1" parent="1" source="role_qtv_f3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_03_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="930" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_03_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.3.4. Mở khóa tài khoản người dùng [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="954" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f3_fn_FR_QTV_03_04" edge="1" parent="1" source="role_qtv_f3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_03_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="972" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_03_05" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.3.5. Xóa vĩnh viễn tài khoản người dùng dây chuyền [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="996" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f3_fn_FR_QTV_03_05" edge="1" parent="1" source="role_qtv_f3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_03_05">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="1014" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_qtv_f4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF5FF;strokeColor=#A855F7;fontColor=#581C87;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 3.4. Bàn thẩm định GPKD" vertex="1">
+          <mxGeometry height="42" width="610" x="1512" y="1050" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_role_qtv_f4" edge="1" parent="1" source="role_qtv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9333EA;strokeWidth=1.5;" target="role_qtv_f4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1494" y="1071" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_04_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.4.1. Tìm kiếm, lọc đa tiêu chí &amp; phân trang hồ sơ GPKD [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="1102" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f4_fn_FR_QTV_04_01" edge="1" parent="1" source="role_qtv_f4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_04_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="1120" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_04_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.4.2. Xem file GPKD PDF gốc (DocumentViewerModal) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="1144" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f4_fn_FR_QTV_04_02" edge="1" parent="1" source="role_qtv_f4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_04_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="1162" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_04_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.4.3. Phê duyệt hồ sơ GPKD Doanh nghiệp [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="1186" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f4_fn_FR_QTV_04_03" edge="1" parent="1" source="role_qtv_f4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_04_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="1204" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_04_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.4.4. Từ chối hồ sơ GPKD kèm lý do thông báo NTD [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="1228" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f4_fn_FR_QTV_04_04" edge="1" parent="1" source="role_qtv_f4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_04_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="1246" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_qtv_f5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF5FF;strokeColor=#A855F7;fontColor=#581C87;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 3.5. Kiểm duyệt tin tuyển dụng" vertex="1">
+          <mxGeometry height="42" width="610" x="1512" y="1282" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_role_qtv_f5" edge="1" parent="1" source="role_qtv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9333EA;strokeWidth=1.5;" target="role_qtv_f5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1494" y="1303" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_05_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.5.1. Tìm kiếm, lọc trạng thái &amp; lọc nhanh (Chờ duyệt / Nhạy cảm / Tag từ khóa) [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="1334" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f5_fn_FR_QTV_05_01" edge="1" parent="1" source="role_qtv_f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_05_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="1352" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_05_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.5.2. Xem chi tiết tin tuyển dụng &amp; từ nhạy cảm khớp [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="1376" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f5_fn_FR_QTV_05_02" edge="1" parent="1" source="role_qtv_f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_05_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="1394" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_05_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.5.3. Duyệt tin &amp; công khai (thông báo NTD kèm link) [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="1418" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f5_fn_FR_QTV_05_03" edge="1" parent="1" source="role_qtv_f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_05_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="1436" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_05_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.5.4. Ẩn tin tuyển dụng vi phạm kèm lý do bắt buộc [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="1460" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f5_fn_FR_QTV_05_04" edge="1" parent="1" source="role_qtv_f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_05_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="1478" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_05_05" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.5.5. Khôi phục hiển thị công khai tin tuyển dụng đã ẩn [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="1502" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f5_fn_FR_QTV_05_05" edge="1" parent="1" source="role_qtv_f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_05_05">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="1520" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_05_06" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.5.6. Xóa vĩnh viễn tin tuyển dụng [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="1544" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f5_fn_FR_QTV_05_06" edge="1" parent="1" source="role_qtv_f5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_05_06">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="1562" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_qtv_f6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF5FF;strokeColor=#A855F7;fontColor=#581C87;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 3.6. Kiểm duyệt từ khóa cấm" vertex="1">
+          <mxGeometry height="42" width="610" x="1512" y="1598" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_role_qtv_f6" edge="1" parent="1" source="role_qtv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9333EA;strokeWidth=1.5;" target="role_qtv_f6">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1494" y="1619" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_06_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.6.1. Cập nhật hàng loạt danh sách Từ khóa cấm [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="1650" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f6_fn_FR_QTV_06_01" edge="1" parent="1" source="role_qtv_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_06_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="1668" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_06_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.6.2. Xem thống kê tin khớp từ cấm &amp; chuyển sang Tin cảnh báo [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="1692" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f6_fn_FR_QTV_06_02" edge="1" parent="1" source="role_qtv_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_06_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="1710" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_06_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.6.3. Chỉnh sửa inline từ khóa cấm [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="1734" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f6_fn_FR_QTV_06_03" edge="1" parent="1" source="role_qtv_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_06_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="1752" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_06_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.6.4. Xóa từ khóa cấm khỏi bộ lọc [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="1776" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f6_fn_FR_QTV_06_04" edge="1" parent="1" source="role_qtv_f6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_06_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="1794" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_qtv_f7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF5FF;strokeColor=#A855F7;fontColor=#581C87;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 3.7. Quản lý đánh giá chéo 2 chiều" vertex="1">
+          <mxGeometry height="42" width="610" x="1512" y="1830" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_role_qtv_f7" edge="1" parent="1" source="role_qtv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9333EA;strokeWidth=1.5;" target="role_qtv_f7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1494" y="1851" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_07_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.7.1. Tìm kiếm, lọc đánh giá &amp; phân trang [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="1882" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f7_fn_FR_QTV_07_01" edge="1" parent="1" source="role_qtv_f7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_07_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="1900" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_07_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.7.2. Xem chi tiết bài đánh giá chéo qua Modal [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="1924" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f7_fn_FR_QTV_07_02" edge="1" parent="1" source="role_qtv_f7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_07_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="1942" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_07_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.7.3. Ẩn đánh giá vi phạm hoặc Khôi phục hiển thị công khai [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="1966" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f7_fn_FR_QTV_07_03" edge="1" parent="1" source="role_qtv_f7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_07_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="1984" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_07_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.7.4. Xóa vĩnh viễn bài đánh giá vi phạm [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="2008" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f7_fn_FR_QTV_07_04" edge="1" parent="1" source="role_qtv_f7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_07_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="2026" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_qtv_f8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF5FF;strokeColor=#A855F7;fontColor=#581C87;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 3.8. Quản trị Master Data" vertex="1">
+          <mxGeometry height="42" width="610" x="1512" y="2062" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_role_qtv_f8" edge="1" parent="1" source="role_qtv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9333EA;strokeWidth=1.5;" target="role_qtv_f8">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1494" y="2083" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_08_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.8.1. Tìm kiếm, lọc tab Ngành nghề / Địa điểm &amp; phân trang [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="2114" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f8_fn_FR_QTV_08_01" edge="1" parent="1" source="role_qtv_f8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_08_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="2132" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_08_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.8.2. Thêm mới danh mục Ngành nghề hoặc Địa điểm [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="2156" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f8_fn_FR_QTV_08_02" edge="1" parent="1" source="role_qtv_f8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_08_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="2174" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_08_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.8.3. Chỉnh sửa tên danh mục inline [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="2198" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f8_fn_FR_QTV_08_03" edge="1" parent="1" source="role_qtv_f8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_08_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="2216" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_08_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.8.4. Bật / Tắt trạng thái áp dụng danh mục [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="2240" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f8_fn_FR_QTV_08_04" edge="1" parent="1" source="role_qtv_f8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_08_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="2258" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_08_05" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.8.5. Xóa danh mục khỏi Master Data [Cơ bản]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="2282" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f8_fn_FR_QTV_08_05" edge="1" parent="1" source="role_qtv_f8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_08_05">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="2300" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_qtv_f9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF5FF;strokeColor=#A855F7;fontColor=#581C87;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 3.9. Xử lý khiếu nại &amp; báo cáo" vertex="1">
+          <mxGeometry height="42" width="610" x="1512" y="2336" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_role_qtv_f9" edge="1" parent="1" source="role_qtv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9333EA;strokeWidth=1.5;" target="role_qtv_f9">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1494" y="2357" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_09_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.9.1. Tìm kiếm, lọc 4 tab loại phiếu &amp; 4 trạng thái xử lý [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="2388" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f9_fn_FR_QTV_09_01" edge="1" parent="1" source="role_qtv_f9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_09_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="2406" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_09_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.9.2. Xem chi tiết phiếu khiếu nại &amp; mở CV PDF liên quan [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="2430" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f9_fn_FR_QTV_09_02" edge="1" parent="1" source="role_qtv_f9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_09_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="2448" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_09_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.9.3. Xem Lịch sử Chat gốc cô lập theo room_id báo cáo [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="2472" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f9_fn_FR_QTV_09_03" edge="1" parent="1" source="role_qtv_f9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_09_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="2490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_09_04" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.9.4. Cập nhật trạng thái xử lý &amp; gửi thông báo song song [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="2514" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f9_fn_FR_QTV_09_04" edge="1" parent="1" source="role_qtv_f9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_09_04">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="2532" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_09_05" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.9.5. Xóa phiếu khiếu nại / báo cáo vi phạm [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="2556" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f9_fn_FR_QTV_09_05" edge="1" parent="1" source="role_qtv_f9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_09_05">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="2574" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_qtv_f10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF5FF;strokeColor=#A855F7;fontColor=#581C87;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 3.10. Nhật ký &amp; Thông báo hệ thống" vertex="1">
+          <mxGeometry height="42" width="610" x="1512" y="2610" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_role_qtv_f10" edge="1" parent="1" source="role_qtv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9333EA;strokeWidth=1.5;" target="role_qtv_f10">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1494" y="2631" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_10_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.10.1. Tra cứu &amp; lọc Nhật ký hoạt động (Audit Log) (16 sự kiện / 13 nhóm lọc) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="2662" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f10_fn_FR_QTV_10_01" edge="1" parent="1" source="role_qtv_f10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_10_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="2680" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_10_02" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.10.2. Phát Thông báo hệ thống hàng loạt (Broadcast) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="2704" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f10_fn_FR_QTV_10_02" edge="1" parent="1" source="role_qtv_f10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_10_02">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="2722" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_10_03" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.10.3. Xóa &amp; Thu hồi Realtime thông báo hệ thống đã phát [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="2746" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f10_fn_FR_QTV_10_03" edge="1" parent="1" source="role_qtv_f10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_10_03">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="2764" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="role_qtv_f11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAF5FF;strokeColor=#A855F7;fontColor=#581C87;fontStyle=1;fontSize=10.5;arcSize=6;align=left;spacingLeft=10;" value="Tính năng: 3.11. Đồng bộ &amp; Chuẩn UI quản trị" vertex="1">
+          <mxGeometry height="42" width="610" x="1512" y="2800" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_role_qtv_f11" edge="1" parent="1" source="role_qtv" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0219;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#9333EA;strokeWidth=1.5;" target="role_qtv_f11">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1494" y="2821" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="fn_FR_QTV_11_01" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CBD5E1;fontColor=#0F172A;fontSize=9.5;arcSize=5;align=left;spacingLeft=8;" value="3.11.1. Đồng bộ Realtime toàn sàn không cần F5 (Socket.IO) [Nâng cao]" vertex="1">
+          <mxGeometry height="36" width="574" x="1548" y="2852" as="geometry" />
+        </mxCell>
+        <mxCell id="e_role_qtv_f11_fn_FR_QTV_11_01" edge="1" parent="1" source="role_qtv_f11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.0295;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=#64748B;strokeWidth=1.2;" target="fn_FR_QTV_11_01">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1530" y="2870" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -319,7 +319,9 @@ public class AdminPage extends BasePage {
             By roleSel = By.xpath("//select[option[@value='' and contains(.,'Tất cả vai trò')]]");
             By lockSel = By.xpath("//select[option[@value='' and contains(.,'Tất cả trạng thái khóa')]]");
             By gpkdSel = By.xpath("//select[option[@value='all' and contains(.,'Tất cả trạng thái GPKD')]]");
-            String randUser = pickRandom(new String[]{"vuthelong", "gmail.com", "lethithuyngan"});
+            // [Sửa lần 5 - 21/11/2026 - Ngân] Dùng từ khóa ở cột Input_Data_1 của TC (TC-QTV-016: 'vuthelong1009@gmail.com'); chỉ chọn ngẫu nhiên khi ô trống.
+            String randUser = (input1 != null && !input1.isBlank() && !"None".equals(input1)) ? input1.trim().toLowerCase()
+                    : pickRandom(new String[]{"vuthelong", "gmail.com", "lethithuyngan"});
             // [Sửa 20/11/2026 - Ngân] Thêm kiểm tra: kết quả tìm kiếm phải có dòng chứa từ khóa vừa gõ.
             boolean searchHit = false;
             if (findAll(userSearchIn).isEmpty()) return ScenarioResult.fail("Không thấy ô Tìm kiếm (Email; ID) ở Quản lý người dùng.");
@@ -384,7 +386,8 @@ public class AdminPage extends BasePage {
                 clearDownloadsDir();
                 tryDemoClick(tcId, "Bấm 'Tải về' PDF GPKD trong DocumentViewerModal", By.xpath("//button[@title='Tải tệp PDF về máy tính' or normalize-space()='Tải về']"));
                 pause(750);
-                File pdfDl = waitForDownloadedFile(".pdf", 8000);
+                // [Sửa lần 5 - 21/11/2026 - Ngân] Tăng thời gian chờ tải file từ 8 giây lên 20 giây (Render tải PDF chậm, lần trước 8 giây chưa kịp).
+                File pdfDl = waitForDownloadedFile(".pdf", 20000);
                 clearDownloadsDir();
                 By closeDocBtn = By.xpath("//button[@title='Đóng modal']");
                 if (isElementDisplayed(closeDocBtn)) {
