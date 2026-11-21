@@ -379,6 +379,8 @@ def apply_job(url_job_id=None):
     if not cv:
         cvs = list(res_col.find({"student_id": stu["_id"]}))
         cv = cvs[0] if cvs else None
+    if not cv:
+        return jsonify({"success": False, "message": "Vui lòng tải lên ít nhất 1 CV (PDF) trong Kho CV trước khi ứng tuyển."}), 400
 
     shift_reg = data.get("shift_registered") or job.get("work_time") or "Ca linh hoạt"
     free_sched = stu.get("free_schedule") if isinstance(stu.get("free_schedule"), dict) else {}
