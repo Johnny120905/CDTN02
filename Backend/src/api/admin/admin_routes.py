@@ -279,6 +279,8 @@ def ban_user(user_id):
     reason = data.get("reason", "Vi phạm điều khoản cộng đồng PARTIME.VN")
     
     users_col = db_manager.get_collection("users")
+    if not users_col.find_one({"_id": user_id}):
+        return jsonify({"success": False, "message": "Không tìm thấy tài khoản."}), 404
     users_col.update_one(
         {"_id": user_id},
         {"$set": {"is_banned": True, "ban_reason": reason, "status": "banned"}}
@@ -401,6 +403,8 @@ def review_employer_gpkd(user_id):
     status = data.get("status", "approved") # approved | rejected
     reason = data.get("reason") or data.get("reject_reason") or ""
     reason = str(reason).strip()
+    if status not in ("approved", "rejected"):
+        return jsonify({"success": False, "message": "Trạng thái thẩm định GPKD chỉ được là Đã duyệt hoặc Từ chối."}), 400
     if status == "rejected" and not reason:
         return jsonify({"success": False, "message": "Vui lòng nhập lý do từ chối GPKD."}), 400
 
@@ -528,8 +532,12 @@ def approve_job_moderation(job_id):
 @role_required("admin")
 def hide_job(job_id):
     data = request.get_json() or {}
-    reason = data.get("reason", "Tin tuyển dụng có dấu hiệu vi phạm")
+    reason = str(data.get("reason") or "").strip()
+    if not reason:
+        return jsonify({"success": False, "message": "Vui lòng nhập lý do ẩn tin tuyển dụng."}), 400
     jobs_col = db_manager.get_collection("jobs")
+    if not jobs_col.find_one({"_id": job_id}):
+        return jsonify({"success": False, "message": "Không tìm thấy tin tuyển dụng."}), 404
     jobs_col.update_one(
         {"_id": job_id},
         {"$set": {"is_hidden": True, "hidden_reason": reason, "is_admin_reviewed": True}}
@@ -680,6 +688,10 @@ def add_category():
 @role_required("admin")
 def update_category(cat_id):
     data = request.get_json() or {}
+    if "name" in data:
+        data["name"] = str(data.get("name") or "").strip()
+        if not data["name"]:
+            return jsonify({"success": False, "message": "Tên danh mục không được để trống."}), 400
     cat_col = db_manager.get_collection("categories")
     cat_col.update_one({"_id": cat_id}, {"$set": data})
     emit_socket_event("categories-updated", {"action": "update", "cat_id": cat_id})
@@ -763,6 +775,8 @@ def list_reports():
 def update_report_status(rep_id):
     data = request.get_json() or {}
     new_status = data.get("status", "resolved") # pending, investigating, resolved, dismissed
+    if new_status not in ("pending", "investigating", "resolved", "dismissed"):
+        return jsonify({"success": False, "message": "Trạng thái phiếu khiếu nại không hợp lệ."}), 400
     note = data.get("note", "")
     
     rep_col = db_manager.get_collection("reports")

@@ -1132,4 +1132,26 @@ un.py.
 
 ---
 
-> **Ghi chú đối chiếu lịch sử cho người đọc:** Các giai đoạn từ `01` đến `31` ở phần trên phản ánh đúng lịch sử tiến hóa qua từng buổi làm việc (bao gồm những thiết kế thử nghiệm cũ như giao diện Dark 4D, `16` collections, băm Bcrypt, OTP `10` phút, cổng local `8002`, hay bộ `9` `unittest` Python ban đầu). Kể từ **Giai đoạn 32 đến Giai đoạn 38**, toàn bộ kiến trúc hiện hành đã được chuẩn hóa thống nhất theo **Digital Light Dimension**, **MongoDB Atlas 18 Collections + GridFS**, **PBKDF2-HMAC-SHA256 (`100.000` vòng)**, **OTP 60 giây qua Brevo HTTPS API v3**, **Render Docker Deploy** và bộ kiểm thử **`251` Test Cases Selenium WebDriver Java POM** (`177 PASS / 0 FAIL`).
+## 39. GIAI ĐOẠN 39: KHẮC PHỤC 6 BUG KIỂM THỬ BACKEND (BUG-05, BUG-06, BUG-07, BUG-10, BUG-11, BUG-15) & CHUẨN HÓA THỤT LỀ
+**Thời gian:** 21/11/2026  
+**Người thực hiện:** Vũ Thế Long, Lê Thị Thuỳ Ngân  
+**Thành phần:** `Backend/src/api/admin/admin_routes.py`, `Backend/src/api/common/common_routes.py`  
+**Nội dung thực hiện chi tiết:**
+1. **BUG-05 – Ràng buộc trạng thái thẩm định GPKD (`review_employer_gpkd`):**
+   - Bổ sung xác thực `status in ("approved", "rejected")`, chặn các giá trị không hợp lệ theo BR-QTV-04 và TC-QTV-064 (trả HTTP 400).
+2. **BUG-07 – Trả HTTP 404 khi khóa tài khoản không tồn tại (`ban_user`):**
+   - Bổ sung kiểm tra sự tồn tại của `user_id` trong collection `users` trước khi cập nhật; trả HTTP 404 nếu không tìm thấy tài khoản theo TC-QTV-064.
+3. **BUG-06 + BUG-07 (phần 2) – Bắt buộc lý do ẩn tin & Trả HTTP 404 khi tin không tồn tại (`hide_job`):**
+   - Cắt khoảng trắng lý do `reason`, chặn lý do rỗng (trả HTTP 400 theo FR-QTV-05.04 và TC-QTV-023); kiểm tra tin tồn tại trong collection `jobs`, trả HTTP 404 nếu sai ID theo TC-QTV-064.
+4. **BUG-11 – Chặn sửa tên danh mục thành chuỗi rỗng (`update_category`):**
+   - Cắt khoảng trắng `data["name"]`, chặn cập nhật danh mục thành tên rỗng (trả HTTP 400 theo BR-QTV-07 và TC-QTV-047).
+5. **BUG-15 – Kiểm chuẩn 4 trạng thái hợp lệ của phiếu khiếu nại (`update_report_status`):**
+   - Ràng buộc `new_status` chỉ thuộc tập `{"pending", "investigating", "resolved", "dismissed"}` theo FR-QTV-09.04 và BR-QTV-08; trả HTTP 400 nếu trạng thái không hợp lệ.
+6. **BUG-10 – Chế độ phòng chat Chỉ đọc (Read-Only) phía Sinh viên đối với đơn Từ chối / Đã hủy (`send_message`):**
+   - Đồng bộ ràng buộc BR-CH-10 và TC-SV-075: chặn Sinh viên gửi tin nhắn trong phòng chat liên kết với đơn ứng tuyển có trạng thái `rejected`, `cancelled`, `withdrawn` hoặc `is_cancelled=True` (trả HTTP 403).
+7. **Chuẩn hóa thụt lề Python:**
+   - Chuẩn hóa thụt lề 4/8/12/16 dấu cách chuẩn PEP 8 cho cả hai file `admin_routes.py` và `common_routes.py`, biên dịch cú pháp đạt 100% qua `py_compile`.
+
+---
+
+> **Ghi chú đối chiếu lịch sử cho người đọc:** Các giai đoạn từ `01` đến `31` ở phần trên phản ánh đúng lịch sử tiến hóa qua từng buổi làm việc (bao gồm những thiết kế thử nghiệm cũ như giao diện Dark 4D, `16` collections, băm Bcrypt, OTP `10` phút, cổng local `8002`, hay bộ `9` `unittest` Python ban đầu). Kể từ **Giai đoạn 32 đến Giai đoạn 39**, toàn bộ kiến trúc hiện hành đã được chuẩn hóa thống nhất theo **Digital Light Dimension**, **MongoDB Atlas 18 Collections + GridFS**, **PBKDF2-HMAC-SHA256 (`100.000` vòng)**, **OTP 60 giây qua Brevo HTTPS API v3**, **Render Docker Deploy** và bộ kiểm thử **`251` Test Cases Selenium WebDriver Java POM** (`177 PASS / 0 FAIL`).

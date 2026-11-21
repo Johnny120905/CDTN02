@@ -575,6 +575,18 @@ def send_message():
                         "message": "Đơn ứng tuyển đã bị 'Từ chối' hoặc 'Đã hủy'. Hệ thống giới hạn cuộc trò chuyện ở chế độ CHỈ ĐỌC (Read-Only) và không cho phép gửi thêm tin nhắn!"
                     }), 403
 
+    # BR-CH-10: đơn đã Từ chối/Hủy -> phòng chat Chỉ đọc cho cả Sinh viên
+    if user.get("role") == "student":
+        if not app_id and isinstance(room_id, str) and "_app_" in room_id:
+            app_id = room_id.split("_app_", 1)[1].strip()
+        if app_id:
+            app_record = db_manager.get_collection("applications").find_one({"_id": app_id})
+            if app_record and (app_record.get("application_status") in ["rejected", "cancelled", "withdrawn"] or app_record.get("is_cancelled")):
+                return jsonify({
+                    "success": False,
+                    "message": "Đơn ứng tuyển đã bị 'Từ chối' hoặc 'Đã hủy'. Cuộc trò chuyện ở chế độ CHỈ ĐỌC (Read-Only), không thể gửi thêm tin nhắn!"
+                }), 403
+
     # Ràng buộc tệp đính kèm Chat: chỉ .pdf, .png, .jpg <= 10MB; chặn tệp thực thi/nén
     if file_name:
         ext = file_name.lower().split(".")[-1] if "." in file_name else ""
