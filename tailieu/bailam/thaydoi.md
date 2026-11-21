@@ -1154,4 +1154,16 @@ un.py.
 
 ---
 
-> **Ghi chú đối chiếu lịch sử cho người đọc:** Các giai đoạn từ `01` đến `31` ở phần trên phản ánh đúng lịch sử tiến hóa qua từng buổi làm việc (bao gồm những thiết kế thử nghiệm cũ như giao diện Dark 4D, `16` collections, băm Bcrypt, OTP `10` phút, cổng local `8002`, hay bộ `9` `unittest` Python ban đầu). Kể từ **Giai đoạn 32 đến Giai đoạn 39**, toàn bộ kiến trúc hiện hành đã được chuẩn hóa thống nhất theo **Digital Light Dimension**, **MongoDB Atlas 18 Collections + GridFS**, **PBKDF2-HMAC-SHA256 (`100.000` vòng)**, **OTP 60 giây qua Brevo HTTPS API v3**, **Render Docker Deploy** và bộ kiểm thử **`251` Test Cases Selenium WebDriver Java POM** (`177 PASS / 0 FAIL`).
+## 40. GIAI ĐOẠN 40: KHẮC PHỤC BUG-09 (BẮT BUỘC CÓ CV KHI ỨNG TUYỂN) THEO FR-SV-06.01 & TC-SV-044
+**Thời gian:** 21/11/2026  
+**Người thực hiện:** Vũ Thế Long, Lê Thị Thuỳ Ngân  
+**Thành phần:** `Backend/src/api/student/student_routes.py`  
+**Nội dung thực hiện chi tiết:**
+1. **BUG-09 – Ràng buộc bắt buộc có ít nhất 1 CV trong Kho CV trước khi nộp đơn ứng tuyển (`apply_job`):**
+   - Bổ sung xác thực `if not cv: return jsonify({"success": False, "message": "Vui lòng tải lên ít nhất 1 CV (PDF) trong Kho CV trước khi ứng tuyển."}), 400`.
+   - Đảm bảo tuân thủ tuyệt đối quy tắc nghiệp vụ tại `FR-SV-06.01`, `dieukienrangbuoc.md` (dòng 85), `noidung.md` (dòng 606) và kịch bản kiểm thử `TC-SV-044`.
+   - Tuyệt đối không can thiệp hay sửa đổi Frontend (`StudentPortal.jsx`), không thêm icon hay đổi giao diện.
+
+---
+
+> **Ghi chú đối chiếu lịch sử cho người đọc:** Các giai đoạn từ `01` đến `31` ở phần trên phản ánh đúng lịch sử tiến hóa qua từng buổi làm việc (bao gồm những thiết kế thử nghiệm cũ như giao diện Dark 4D, `16` collections, băm Bcrypt, OTP `10` phút, cổng local `8002`, hay bộ `9` `unittest` Python ban đầu). Kể từ **Giai đoạn 32 đến Giai đoạn 40**, toàn bộ kiến trúc hiện hành đã được chuẩn hóa thống nhất theo **Digital Light Dimension**, **MongoDB Atlas 18 Collections + GridFS**, **PBKDF2-HMAC-SHA256 (`100.000` vòng)**, **OTP 60 giây qua Brevo HTTPS API v3**, **Render Docker Deploy** và bộ kiểm thử **`251` Test Cases Selenium WebDriver Java POM** (`177 PASS / 0 FAIL`).
