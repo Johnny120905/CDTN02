@@ -400,6 +400,9 @@ def review_employer_gpkd(user_id):
     data = request.get_json() or {}
     status = data.get("status", "approved") # approved | rejected
     reason = data.get("reason") or data.get("reject_reason") or ""
+     reason = str(reason).strip()
+    if status == "rejected" and not reason:
+        return jsonify({"success": False, "message": "Vui lòng nhập lý do từ chối GPKD."}), 400
 
     emp_col = db_manager.get_collection("employers")
     emp = emp_col.find_one({"user_id": user_id}) or emp_col.find_one({"_id": user_id})
@@ -659,6 +662,10 @@ def add_category():
         return jsonify({"success": False, "message": "Tên danh mục không được để trống."}), 400
 
     cat_col = db_manager.get_collection("categories")
+     # BR-QTV-07 / TC-QTV-050: không cho thêm danh mục trùng tên (không phân biệt hoa thường)
+    for c in cat_col.find({"type": c_type}):
+        if str(c.get("name", "")).strip().lower() == name.lower():
+            return jsonify({"success": False, "message": "Danh mục này đã tồn tại."}), 409
     new_cat = {
         "_id": f"cat_{uuid.uuid4().hex[:8]}",
         "name": name,

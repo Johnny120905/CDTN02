@@ -38,6 +38,8 @@ def upload_file():
         file_size = len(file_bytes)
         if file_size > MAX_UPLOAD_BYTES:
             return jsonify({"success": False, "message": "Dung lượng tệp vượt quá giới hạn 10MB!"}), 400
+     if not file_bytes.startswith(b"%PDF-"):
+            return jsonify({"success": False, "message": "Tệp không phải PDF hợp lệ (sai chữ ký %PDF)!"}), 400
 
         try:
             file_id = db_manager.save_file(file_bytes, filename=filename, content_type="application/pdf", metadata={"source": "upload"})
