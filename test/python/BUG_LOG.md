@@ -10,19 +10,19 @@ Cách chạy riêng 1 test (đứng ở thư mục `test\python`):
 python -X utf8 -m unittest -v test_doi_chieu_tai_lieu.DoiChieuTaiLieuTest.test_TC_QTV_029_tu_choi_GPKD_bat_buoc_ly_do
 ```
 
-## Bug còn mở (10)
+## Danh sách bug (10 mã: 7 còn mở, 3 đã sửa 21/11/2026)
 
 | Mã | Mức độ | Phân hệ | Căn cứ tài liệu | Hiện tượng | Mong đợi theo tài liệu | Test phát hiện | Trạng thái |
 |---|---|---|---|---|---|---|---|
-| BUG-04 | TB | QTV `api/admin` | TC-QTV-029 (kịch bản gốc), BR-QTV-04, FR-QTV-04.04 | Từ chối GPKD bỏ trống lý do vẫn trả 200 | 400 | `test_TC_QTV_029_tu_choi_GPKD_bat_buoc_ly_do` | Chưa sửa |
+| BUG-04 | TB | QTV `api/admin` | TC-QTV-029 (kịch bản gốc), BR-QTV-04, FR-QTV-04.04 | Từ chối GPKD bỏ trống lý do vẫn trả 200 | 400 | `test_TC_QTV_029_tu_choi_GPKD_bat_buoc_ly_do` | Đã sửa 21/11/2026 (Vũ Thế Long), kiểm thử lại Python PASS |
 | BUG-05 | TB | QTV `api/admin` | TC-QTV-064 (kịch bản gốc), BR-QTV-04 ("thuộc {Đã duyệt, Từ chối}") | Thẩm định GPKD với trạng thái lạ `abc_xyz` vẫn 200 | 400 | `test_TC_QTV_064_trang_thai_GPKD_la_bi_chan` | Chưa sửa |
 | BUG-06 | TB | QTV `api/admin` | FR-QTV-05.04 ("lý do ẩn bắt buộc"), TC-QTV-023 | Ẩn tin vi phạm không có lý do vẫn 200 | 400 | `test_TC_QTV_023_an_tin_bat_buoc_ly_do` | Chưa sửa. Cần test tay TC-QTV-023: nếu giao diện chặn đúng thì ghi vào Hạn chế (chỉ lệch ở API) |
 | BUG-07 | TB | QTV `api/admin` | TC-QTV-064 (kịch bản gốc: sai ID -> 404) | Khóa user / ẩn tin với ID không tồn tại vẫn báo thành công | 404 | `test_TC_QTV_064_ID_khong_ton_tai_tra_404` | Chưa sửa |
 | BUG-09 | TB | SV `api/student` | FR-SV-06.01, `dieukienrangbuoc.md` dòng 85, `noidung.md` dòng 606 | SV chưa có CV vẫn nộp đơn thành công 201 | Chặn, yêu cầu tải CV | `test_TC_SV_044_chua_co_CV_khong_duoc_nop_don` | Chưa sửa. Cần test tay TC-SV-044 như BUG-06 |
 | BUG-10 | TB | Dùng chung chat | BR-CH-10, `dieukienrangbuoc.md` dòng 109 | Đơn bị Từ chối: NTD bị khóa chat nhưng SV vẫn gửi tin được | Chỉ đọc cho cả 2 phía (403) | `test_TC_SV_075_don_bi_tu_choi_SV_khong_gui_duoc_tin` | Chưa sửa |
 | BUG-11 | Thấp | QTV `api/admin` | BR-QTV-07 ("tên danh mục sau cắt khoảng trắng != rỗng") | Sửa tên danh mục thành chuỗi trắng vẫn 200 | 400 | `test_BR_QTV_07_sua_ten_danh_muc_rong_bi_chan` | Chưa sửa. Cần test tay TC-QTV-047 như BUG-06 |
-| BUG-13 | TB | Dùng chung upload | TC-SV-061 (kịch bản gốc), BR-SV-03 ("định dạng thực == PDF"), NFR-05, `dieukienrangbuoc.md` dòng 78 | Tệp `.exe` đổi đuôi `.pdf` vẫn tải lên được | 400 | `test_TC_SV_061_chan_file_gia_PDF` | Chưa sửa |
-| BUG-14 | Thấp | QTV `api/admin` | TC-QTV-050 (kịch bản gốc: "không trùng lặp") | Thêm danh mục trùng tên (sau khi cắt khoảng trắng) vẫn 201 | 400/409 | `test_TC_QTV_050_chan_danh_muc_trung_ten` | Chưa sửa |
+| BUG-13 | TB | Dùng chung upload | TC-SV-061 (kịch bản gốc), BR-SV-03 ("định dạng thực == PDF"), NFR-05, `dieukienrangbuoc.md` dòng 78 | Tệp `.exe` đổi đuôi `.pdf` vẫn tải lên được | 400 | `test_TC_SV_061_chan_file_gia_PDF` | Đã sửa 21/11/2026 (Vũ Thế Long), kiểm thử lại Python PASS |
+| BUG-14 | Thấp | QTV `api/admin` | TC-QTV-050 (kịch bản gốc: "không trùng lặp") | Thêm danh mục trùng tên (sau khi cắt khoảng trắng) vẫn 201 | 400/409 | `test_TC_QTV_050_chan_danh_muc_trung_ten` | Đã sửa 21/11/2026 (Vũ Thế Long), kiểm thử lại Python PASS |
 | BUG-15 | Thấp | QTV `api/admin` | FR-QTV-09.04, BR-QTV-08 ("thuộc {pending, investigating, resolved, dismissed}") | Cập nhật phiếu khiếu nại với trạng thái lạ vẫn 200 | 400 | `test_FR_QTV_09_04_trang_thai_khieu_nai_chi_4_gia_tri` | Chưa sửa |
 
 ## Đã bỏ khỏi danh sách bug ngày 21/11/2026 (web khớp tài liệu)

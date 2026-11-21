@@ -169,7 +169,7 @@ CDTN02-main/                                      # Thư mục gốc của toàn
     │   ├── test_api_flow.py                      # Integration SV<->NTD: đăng tin, ứng tuyển, trạng thái đơn, chấm công, đánh giá, chat
     │   ├── test_api_more.py                      # Integration: snapshot hồ sơ, upload PDF 10MB, upsert/ẩn đánh giá, Dashboard chỉ @gmail, trim danh mục
     │   ├── test_api_reports.py                   # Integration: khiếu nại & báo cáo vi phạm (FR-NTD-10.01/10.02, FR-QTV-09.04)
-    │   ├── test_doi_chieu_tai_lieu.py            # 11 test đối chiếu tài liệu, tên theo mã TC/BR (10 đang FAIL = 10 bug, xem BUG_LOG.md)
+    │   ├── test_doi_chieu_tai_lieu.py            # 11 test đối chiếu tài liệu, tên theo mã TC/BR (7 đang FAIL = 7 bug còn mở, 3 bug đã sửa 21/11, xem BUG_LOG.md)
     │   ├── run_python_tests.py                   # Chạy tất cả, in tóm tắt, ghi ket_qua_python.json; --excel ghi vào sheet TestCases_Python
     │   └── BUG_LOG.md                            # Danh sách bug kèm căn cứ tài liệu (10 bug còn mở, 5 mã đã bỏ)
     ├── sample_assets/                            # Tệp mẫu phục vụ kiểm thử tải lên & kiểm tra định dạng (3 tệp)
@@ -360,7 +360,7 @@ Hệ thống áp dụng quy tắc **`1 Email @gmail.com = 1 Role duy nhất`** v
    run_python_tests.bat            # Windows
    python -X utf8 python/run_python_tests.py --excel   # ghi kết quả vào sheet TestCases_Python
    ```
-   * [Sửa 21/11] Tổng 64 test: 54 PASS, 10 FAIL. 10 FAIL đều nằm trong `test_doi_chieu_tai_lieu.py` (web làm khác tài liệu = 10 bug, xem `test/python/BUG_LOG.md`).
+   * [Sửa 21/11] Tổng 64 test: 57 PASS, 7 FAIL (sau khi sửa BUG-04/13/14 ngày 21/11). 7 FAIL đều nằm trong `test_doi_chieu_tai_lieu.py` (web làm khác tài liệu = 7 bug, xem `test/python/BUG_LOG.md`).
 
 ---
 
