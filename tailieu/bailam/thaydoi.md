@@ -1132,4 +1132,41 @@ un.py.
 
 ---
 
+## 39. GIAI ĐOẠN 39: RÀ SOÁT ĐỘ PHỦ TEST, THÊM TẦNG TEST PYTHON GỌI CODE THẬT & GHI 15 BUG BACKEND
+**Thời gian:** 20/11/2026  
+**Người thực hiện:** Lê Thị Thuỳ Ngân, Huỳnh Nguyễn Bảo Ngọc (kiểm thử)     
+**Phạm vi:** chỉ `test/`, `tailieu/bailam/kichban.md`, `tailieu/bailam/thaydoi.md`, `README.md`, `.gitignore`. **Không sửa `Backend/` và `frontend/`.**  
+**Nội dung thực hiện chi tiết:**
+1. **Kết quả rà soát:** 23 dòng Unit trong Java tự viết lại logic ngay trong file test (không gọi code web) nên luôn PASS; 46 handler UI không có nhánh FAIL; 10 dòng có log mâu thuẫn với kết quả PASS (VD: TC-SV-075 log `readOnlyRoom=false` mà vẫn PASS); FR-SV-12.01, FR-NTD-12.01, FR-NTD-10.01 chưa có TC nào.
+2. **Thêm mới `test/python/`** (10 tệp) + `test/run_python_tests.bat`: 68 test `unittest` gọi trực tiếp `Backend/src` trên dữ liệu RAM (không chạm Atlas/Render). Kết quả 20/11: **53 PASS, 15 FAIL = 15 bug Backend** ghi trong `test/python/BUG_LOG.md` (BUG-01..15).
+3. **Sửa Java (`test/src/test/java/com/partime/pages/`):**
+   - `CrossRoleAndApiHelper.java`: thêm hàm `runPythonUnittest()`; `runUnitValidationSuite()` gặp nhãn `[PyTest]` thì chạy test Python tương ứng (tham số `-DpythonCmd`, mặc định `python`).
+   - `StudentPage.java`: thêm nhánh FAIL cho tìm không dấu ra 0 kết quả (TC-SV-029), lọc 5 tiêu chí (TC-SV-032), handler chat tìm phòng "CHỈ ĐỌC" thật (TC-SV-074/075).
+   - `AdminPage.java`: viết lại kiểm tra tách phiên Admin/SV (TC-QTV-008); nhánh không thấy tooltip thành FAIL (TC-QTV-012); bộ lọc Dashboard phải chọn đủ tiêu chí + có biểu đồ (TC-QTV-013/071); xem/tải PDF GPKD (TC-QTV-026); tìm kiếm user (TC-QTV-016).
+   - Mọi chỗ sửa có chú thích `[Sửa 20/11/2026 - Ngân]`. `mvn -o test-compile` biên dịch đạt.
+4. **Sửa `test/TestCases_Selenium_PARTIME_VN.xlsx`** (191 thay đổi, ô sửa tô vàng, chi tiết từng ô trong file `Nhat_ky_sua_test_20_11.xlsx`):
+   - Thêm cột R `Ghi_Chu_Sua_20_11` ở 3 sheet Role ghi lý do sửa từng dòng.
+   - 24 dòng trỏ sang test Python (`[UnitTest][PyTest] ...`), trong đó 8 dòng trước để `NO` nay chạy được: TC-SV-082, TC-NTD-044, 056, 073, 086, TC-QTV-022, 029, 065.
+   - 7 dòng có phép tính nằm ở frontend chuyển sang test tay (`System / GUI`, `NO`): TC-SV-051, 057, 083, TC-NTD-025, 054, 055, 068.
+   - Xóa kết quả PASS cũ ở các dòng đã sửa để chạy lại; ghi chú các dòng kịch bản và code chưa khớp (TC-SV-039/040, TC-QTV-030, 041).
+   - Thêm 4 TC: TC-SV-088 (Realtime SV), TC-NTD-093 (Realtime NTD), TC-NTD-094 (Báo cáo vi phạm, giao diện), TC-NTD-095 (Báo cáo vi phạm, API).
+   - Thêm sheet `TestCases_Python`; mở rộng vùng công thức `Overview_Summary` để đếm cả dòng mới (tổng 255 TC).
+5. **Tài liệu:** cập nhật `kichban.md` (mục 1.4 mới, ghi chú mục 2.1/2.2), `README.md` (cây thư mục `test/python/`, Bước 6), `.gitignore` (bỏ qua `test/python/ket_qua_python.json`).
+6. **Việc cần nhóm làm tiếp:** người phụ trách từng phân hệ sửa BUG-01..15 trong Backend rồi chạy `run_python_tests.bat`; chạy lại Selenium cho các dòng tô vàng; test tay 4 TC mới và 7 dòng chuyển sang test tay.
+7. **Sửa lần 2 (20/11/2026, sau lần chạy `mvn test -DroleFilter=QTV` đầu tiên: 72 dòng, 2 FAIL, 27 Skip):**
+   - `AdminPage.java` (TC-QTV-008): kiểm tra lại phiên Admin ngay ở Tab 1 sau khi tải lại trang, không mở `/admin` ở tab mới nữa (web cố ý bắt tab mới bấm "Vào tài khoản", nên bản trước báo FAIL sai).
+   - `CrossRoleAndApiHelper.java`: đầu hàm `runSafeApiAndRbacSuite()` gặp nhãn `[PyTest]` thì chạy test Python ngay. Lý do: tên lớp Python như `MoreApiTest`, `AdminApiTest` chứa chữ `ApiTest` nên trước đó bị chuyển nhầm sang bộ API.
+8. **Sửa lần 3 (21/11/2026): chỉ tính bug khi web làm khác tài liệu của nhóm.**
+   - Rà lại 15 bug với toàn bộ `tailieu/bailam/`: bỏ 5 mã web vẫn khớp tài liệu (BUG-01, 02, 03, 08, 12; lý do từng mã ghi trong `test/python/BUG_LOG.md`), giữ 10 bug có căn cứ.
+   - `test/python/test_known_bugs.py` đổi thành `test_doi_chieu_tai_lieu.py`, tên test đặt theo mã TC/BR (VD `test_TC_QTV_029_tu_choi_GPKD_bat_buoc_ly_do`); bỏ 4 test (BUG-01, 03, 08, 12); test BUG-02 đổi thành `test_BR_CH_04_nhap_sai_OTP_bi_chan`. Kết quả: **64 test, 54 PASS, 10 FAIL**.
+   - Excel: TC-SV-013, TC-SV-068, TC-NTD-008 khôi phục `POM_Method` như bản gốc; TC-SV-061, TC-QTV-029, TC-QTV-050 trỏ sang tên test mới; sheet `TestCases_Python` còn 64 dòng. Ghi chú: kịch bản TC-NTD-008 ghi MST "chỉ 10 hoặc 13 số" đang lệch FR-NTD-01.01 ("từ 10 đến 13").
+   - Cập nhật `run_python_tests.py`, `BUG_LOG.md`, `README.md`, `kichban.md` cho khớp.
+   9. **Sửa lần 4 (21/11/2026): StudentPage.java – TC-SV-029 dùng từ khóa theo dữ liệu TC ('thu ngan') thay vì chọn ngẫu nhiên; TC-SV-032 kiểm tra thông báo "Không tìm thấy" trước khi reset bộ lọc (trước đây kiểm sau reset nên báo FAIL sai). Chỉ sửa code test, không đụng Backend/frontend.**
+   10. **Sửa backend theo kết quả kiểm thử (21/11/2026) – Người sửa code: Vũ Thế Long; ghi nhận: Lê Thị Thuỳ Ngân:**
+   - `Backend/src/api/admin/admin_routes.py` – `review_employer_gpkd()`: từ chối GPKD bắt buộc có lý do, để trống trả 400 (BUG-04, TC-QTV-029, BR-QTV-04, FR-QTV-04.04).
+   - `Backend/src/api/admin/admin_routes.py` – `add_category()`: chặn thêm danh mục trùng tên (không phân biệt hoa thường, bỏ khoảng trắng), trả 409 (BUG-14, TC-QTV-050, BR-QTV-07).
+   - `Backend/src/api/common/common_routes.py` – `upload_file()`: kiểm tra chữ ký `%PDF-`, tệp giả đuôi .pdf trả 400 (BUG-13, TC-SV-061, BR-SV-03, NFR-05).
+
+---
+
 > **Ghi chú đối chiếu lịch sử cho người đọc:** Các giai đoạn từ `01` đến `31` ở phần trên phản ánh đúng lịch sử tiến hóa qua từng buổi làm việc (bao gồm những thiết kế thử nghiệm cũ như giao diện Dark 4D, `16` collections, băm Bcrypt, OTP `10` phút, cổng local `8002`, hay bộ `9` `unittest` Python ban đầu). Kể từ **Giai đoạn 32 đến Giai đoạn 38**, toàn bộ kiến trúc hiện hành đã được chuẩn hóa thống nhất theo **Digital Light Dimension**, **MongoDB Atlas 18 Collections + GridFS**, **PBKDF2-HMAC-SHA256 (`100.000` vòng)**, **OTP 60 giây qua Brevo HTTPS API v3**, **Render Docker Deploy** và bộ kiểm thử **`251` Test Cases Selenium WebDriver Java POM** (`177 PASS / 0 FAIL`).

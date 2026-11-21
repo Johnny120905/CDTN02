@@ -97,21 +97,34 @@ public class AdminPage extends BasePage {
         }
 
         if (m.contains("verifyAdminTabNotAffectedByStudentLogout")) {
+            // [Sửa 20/11/2026 - Ngân] Bản cũ tự ghi token giả rồi tự đọc lại nên luôn PASS (không kiểm tra web).
+            // Bản mới: Admin phải đang đăng nhập thật -> mở tab SV, xóa phiên SV giống thao tác Đăng xuất SV
+            // -> tải lại /admin: Admin vẫn ở trong Trung tâm chỉ huy, không bị đẩy về màn đăng nhập.
+            if (!ensureCookieSessionIfPresent("admin", adminUrl)) return ScenarioResult.waitCookie("admin");
+            Object adminTok = js.executeScript("return localStorage.getItem('partime_admin_token');");
+            if (adminTok == null || String.valueOf(adminTok).isBlank()) {
+                return ScenarioResult.fail("Admin chưa có phiên partime_admin_token thật trước khi kiểm tra.");
+            }
             String mainHandle = driver.getWindowHandle();
+            // Tab 2: mở cổng SV và xóa phiên SV (giống SV bấm Đăng xuất)
             driver.switchTo().newWindow(WindowType.TAB);
             try {
                 forceOpenUrl(tcId, baseUrl + "/");
                 pause(350);
-                js.executeScript("localStorage.setItem('partime_admin_token','simulated_admin_token_isolated');");
-                js.executeScript("localStorage.removeItem('partime_student_token');");
-                Object stillHasAdmin = js.executeScript("return localStorage.getItem('partime_admin_token');");
-                js.executeScript("localStorage.removeItem('partime_admin_token');");
-                return "simulated_admin_token_isolated".equals(String.valueOf(stillHasAdmin))
-                        ? ScenarioResult.pass("Khóa phiên partime_admin_token tách biệt hoàn toàn khi đăng xuất SV.")
-                        : ScenarioResult.fail("Không xác nhận được cô lập key Admin.");
+                js.executeScript("localStorage.removeItem('partime_student_token'); localStorage.removeItem('partime_student_user');");
             } finally {
                 safeCloseSubTab(mainHandle);
             }
+            // [Sửa lần 2 - 20/11/2026 - Ngân] Kiểm tra lại ở chính Tab 1 (/admin), không mở /admin ở tab mới:
+            // web cố ý bắt tab MỚI phải bấm "Vào tài khoản" (sessionStorage riêng từng tab) nên tab mới luôn hiện màn đăng nhập.
+            driver.navigate().refresh();
+            pause(900);
+            Object tokAfter = js.executeScript("return localStorage.getItem('partime_admin_token');");
+            boolean loginShown = isElementDisplayed(adminLoginBtn);
+            boolean stillLoggedIn = !loginShown && String.valueOf(adminTok).equals(String.valueOf(tokAfter));
+            return stillLoggedIn
+                    ? ScenarioResult.pass("Đăng xuất phiên SV ở Tab 2 không ảnh hưởng Tab 1 /admin: token Admin giữ nguyên, vẫn ở Trung tâm chỉ huy.")
+                    : ScenarioResult.fail("Tab 1 /admin bị mất phiên sau khi xóa phiên SV ở Tab 2 (loginScreen=" + loginShown + ").");
         }
 
         if (m.contains("checkAdminAllTables4Viewports")) {
@@ -260,7 +273,7 @@ public class AdminPage extends BasePage {
                 int hAfter = !findAll(tooltipBox).isEmpty() ? findAll(tooltipBox).get(0).getSize().getHeight() : 0;
                 return (hBefore > 0 && hBefore == hAfter)
                         ? ScenarioResult.pass("Tooltip biểu đồ giữ nguyên chiều cao h-12 (" + hBefore + "px), tuyệt đối không giật layout.")
-                        : ScenarioResult.pass("Kiểm tra tương tác hover biểu đồ & khung tooltip Dashboard.");
+                        : ScenarioResult.fail("Tooltip biểu đồ đổi chiều cao hoặc không tìm thấy khung h-12 (trước=" + hBefore + "px, sau=" + hAfter + "px)."); // [Sửa 20/11/2026 - Ngân] nhánh này trước đây vẫn PASS
             }
             By yearSel = By.xpath("//select[option[@value='' and contains(.,'Tất cả các năm')]]");
             By provSel = By.xpath("//select[option[@value='' and contains(.,'Toàn quốc')]]");
@@ -288,7 +301,15 @@ public class AdminPage extends BasePage {
                     clearDownloadsDir();
                 }
             }
-            return ScenarioResult.pass("Lọc Dashboard Admin tổ hợp ngẫu nhiên (" + lastCombo + ", " + rounds + " lượt, excelExport=" + dlOk + ") & khôi phục Toàn thời gian.");
+            // [Sửa 20/11/2026 - Ngân] Trước đây luôn PASS (kể cả excelExport=false). Nay: phải chọn được Năm/Tỉnh/Ngành,
+            // Dashboard vẫn hiển thị biểu đồ sau khi lọc, và TC-QTV-013 bắt buộc tải được tệp .xls.
+            boolean pickedAll = !lastCombo.contains("Năm=,") && !lastCombo.contains("Tỉnh=,") && !lastCombo.endsWith("Ngành=");
+            boolean chartsOk = !findAll(By.cssSelector("svg")).isEmpty();
+            boolean exportOk = !m.contains("filter5DimensionsAndExportExcel") || dlOk;
+            String dashLog = "(" + lastCombo + ", " + rounds + " lượt, excelExport=" + dlOk + ", charts=" + chartsOk + ")";
+            return (pickedAll && chartsOk && exportOk)
+                    ? ScenarioResult.pass("Lọc Dashboard Admin tổ hợp ngẫu nhiên " + dashLog + " & khôi phục Toàn thời gian.")
+                    : ScenarioResult.fail("Lọc Dashboard Admin chưa đạt " + dashLog + " pickedAll=" + pickedAll);
         }
 
         if (m.contains("searchEmailIdAndFilter4Criteria")) {
@@ -299,11 +320,16 @@ public class AdminPage extends BasePage {
             By lockSel = By.xpath("//select[option[@value='' and contains(.,'Tất cả trạng thái khóa')]]");
             By gpkdSel = By.xpath("//select[option[@value='all' and contains(.,'Tất cả trạng thái GPKD')]]");
             String randUser = pickRandom(new String[]{"vuthelong", "gmail.com", "lethithuyngan"});
-            if (!findAll(userSearchIn).isEmpty()) {
-                demoType(tcId, "Tìm kiếm người dùng ngẫu nhiên: " + randUser, userSearchIn, randUser);
-                pause(350);
-                clearReactInput(find(userSearchIn));
+            // [Sửa 20/11/2026 - Ngân] Thêm kiểm tra: kết quả tìm kiếm phải có dòng chứa từ khóa vừa gõ.
+            boolean searchHit = false;
+            if (findAll(userSearchIn).isEmpty()) return ScenarioResult.fail("Không thấy ô Tìm kiếm (Email; ID) ở Quản lý người dùng.");
+            demoType(tcId, "Tìm kiếm người dùng ngẫu nhiên: " + randUser, userSearchIn, randUser);
+            pause(450);
+            for (WebElement row : findAll(By.xpath("//table//tbody/tr"))) {
+                try { if (row.getText().toLowerCase().contains(randUser)) { searchHit = true; break; } } catch (Exception ignored) {}
             }
+            clearReactInput(find(userSearchIn));
+            if (!searchHit) return ScenarioResult.fail("Tìm '" + randUser + "' không ra dòng người dùng nào chứa từ khóa.");
             String rolePicked = demoSelectRandomNonDefaultOption(tcId, "Lọc Vai trò ngẫu nhiên", roleSel);
             tryDemoSelectByValue(tcId, "Reset vai trò", roleSel, "");
             String lockPicked = demoSelectRandomNonDefaultOption(tcId, "Lọc Trạng thái khóa ngẫu nhiên", lockSel);
@@ -350,7 +376,8 @@ public class AdminPage extends BasePage {
                     clearReactInput(find(gpkdSearch));
                 }
                 List<WebElement> pdfBtns = findAll(By.xpath("//button[contains(.,'Xem file GPKD')]"));
-                if (pdfBtns.isEmpty()) return ScenarioResult.pass("Bàn thẩm định GPKD hiển thị bình thường (chưa có tệp PDF đính kèm).");
+                // [Sửa 20/11/2026 - Ngân] Không có tệp GPKD nào thì chưa kiểm được trình xem PDF -> NOT RUN thay vì PASS.
+                if (pdfBtns.isEmpty()) return ScenarioResult.needManualOrCloneData("Bàn thẩm định chưa có hồ sơ nào kèm tệp GPKD PDF để mở thử.");
                 demoClickRandomElement(tcId, "Chọn dòng GPKD & bấm 'Xem file GPKD'", By.xpath("//button[contains(.,'Xem file GPKD')]"));
                 pause(650);
                 String iframeState = verifyPdfIframeNavigation(tcId);
@@ -363,7 +390,14 @@ public class AdminPage extends BasePage {
                 if (isElementDisplayed(closeDocBtn)) {
                     closeDialogAndAssertGone(tcId, "DocumentViewerModal GPKD Admin", closeDocBtn, closeDocBtn);
                 }
-                return ScenarioResult.pass("Mở DocumentViewerModal GPKD (" + iframeState + ") + Tải file PDF về máy (downloaded=" + (pdfDl != null) + ") & đóng sạch.");
+                // [Sửa 20/11/2026 - Ngân] Trước đây downloaded=false vẫn PASS. Nay: phải đọc được iframe PDF;
+                // riêng TC-QTV-026 (verifyGpkdPdfViewerAndDownload) bắt buộc tải về được tệp .pdf.
+                boolean iframeOk = iframeState != null && !iframeState.startsWith("NO_IFRAME");
+                boolean dlRequired = m.contains("verifyGpkdPdfViewerAndDownload");
+                String gpLog = "DocumentViewerModal GPKD (" + iframeState + ", downloaded=" + (pdfDl != null) + ")";
+                return (iframeOk && (!dlRequired || pdfDl != null))
+                        ? ScenarioResult.pass("Mở " + gpLog + " & đóng sạch.")
+                        : ScenarioResult.fail("Xem/Tải GPKD chưa đạt: " + gpLog);
             }
             By mstSel = By.xpath("//select[option[contains(.,'10')] or option[contains(.,'MST')]]");
             String mstPick = demoSelectRandomNonDefaultOption(tcId, "Lọc định dạng MST tại Bàn GPKD", mstSel);

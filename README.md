@@ -152,14 +152,26 @@ CDTN02-main/                                      # Thư mục gốc của toàn
 │       └── Nhatkythuchien.docx                   # Biểu mẫu nhật ký thực hiện đề tài
 │
 └── test/                                         # [1 thư mục gốc + 10 thư mục con = 11 thư mục, 20 tệp] Kiểm thử lai Manual + Selenium POM
-    ├── TestCases_Selenium_PARTIME_VN.xlsx        # Sổ kịch bản 5 sheet (251 TC, 17 cột 3 màu, 5 biểu đồ) dùng chung Manual & Automation
+    ├── TestCases_Selenium_PARTIME_VN.xlsx        # Sổ kịch bản 6 sheet (255 TC, 17 cột 3 màu + cột ghi chú R, 5 biểu đồ, sheet TestCases_Python) dùng chung Manual & Automation
     ├── cleanup_and_sync_excel.bat                # Script Windows dọn tệp tạm và chạy ExcelTestManager đồng bộ kết quả
     ├── latest_run_results.json                   # Kết quả chi tiết ở định dạng JSON của đợt chạy TestNG gần nhất
     ├── pom.xml                                   # Cấu hình Maven Java 17 (Selenium 4.25.0, TestNG 7.10.2, Apache POI 5.3.0, Jackson)
     ├── resolve_cp.py                             # Script Python quét ~/.m2/repository dựng classpath JAR khi chạy javac/java trực tiếp
+    ├── run_python_tests.bat                      # [Thêm 20/11] Chạy toàn bộ test Python gọi thẳng Backend trên dữ liệu RAM (không chạm Atlas/Render)
     ├── run_selenium_tests.bat                    # Script Windows tự tìm Maven hoặc JDK để biên dịch và chạy toàn bộ bộ test
     ├── sources.txt                               # Danh sách tạm đường dẫn nguồn .java phục vụ biên dịch trực tiếp
     ├── testng.xml                                # Cấu hình Suite TestNG trỏ tới PartimeAutomationRunnerTest
+    ├── python/                                   # [Thêm 20/11] Test Python thật (unittest) gọi trực tiếp Backend/src, dữ liệu RAM (10 tệp)
+    │   ├── _base.py                              # Ép Backend chạy chế độ test RAM (MONGO_URI giả), tạo app Flask + hàm tiện ích login/tạo user/tin/đơn
+    │   ├── test_unit_core.py                     # Unit test hàm thật: mật khẩu 5 điều kiện, email, PBKDF2, JWT 24h, từ cấm, phòng chat
+    │   ├── test_api_auth_rbac.py                 # Integration: đăng nhập 3 vai trò, OTP 60s, đổi mật khẩu, 401/403, khóa/mở khóa
+    │   ├── test_api_admin.py                     # Integration QTV: Dashboard, xóa dây chuyền, GPKD, kiểm duyệt/ẩn tin, từ cấm, danh mục, thông báo
+    │   ├── test_api_flow.py                      # Integration SV<->NTD: đăng tin, ứng tuyển, trạng thái đơn, chấm công, đánh giá, chat
+    │   ├── test_api_more.py                      # Integration: snapshot hồ sơ, upload PDF 10MB, upsert/ẩn đánh giá, Dashboard chỉ @gmail, trim danh mục
+    │   ├── test_api_reports.py                   # Integration: khiếu nại & báo cáo vi phạm (FR-NTD-10.01/10.02, FR-QTV-09.04)
+    │   ├── test_doi_chieu_tai_lieu.py            # 11 test đối chiếu tài liệu, tên theo mã TC/BR (10 đang FAIL = 10 bug, xem BUG_LOG.md)
+    │   ├── run_python_tests.py                   # Chạy tất cả, in tóm tắt, ghi ket_qua_python.json; --excel ghi vào sheet TestCases_Python
+    │   └── BUG_LOG.md                            # Danh sách bug kèm căn cứ tài liệu (10 bug còn mở, 5 mã đã bỏ)
     ├── sample_assets/                            # Tệp mẫu phục vụ kiểm thử tải lên & kiểm tra định dạng (3 tệp)
     │   ├── AutoTest_CV_Sample.pdf                # Tệp PDF hợp lệ (có header %PDF) dùng test upload/xem CV
     │   ├── AutoTest_Chat_Attachment.png          # Ảnh PNG mẫu dùng test đính kèm trong phòng chat
@@ -169,7 +181,7 @@ CDTN02-main/                                      # Thư mục gốc của toàn
         │   └── BasePage.java                     # Khởi tạo ChromeDriver, banner/con trỏ trình chiếu, wrapper 57 lệnh PLT & chụp ảnh lỗi
         ├── pages/                                # Page Object theo từng vai trò & lớp kiểm thử chéo (4 tệp)
         │   ├── AdminPage.java                    # Kịch bản UI cổng /admin (Dashboard 2026, GPKD, Từ cấm, Master Data, Audit Log)
-        │   ├── CrossRoleAndApiHelper.java        # 3 kịch bản E2E đa tab (SV-NTD-QTV), 26 ca HttpClient API/RBAC & 23 hàm Unit Test Java
+        │   ├── CrossRoleAndApiHelper.java        # 3 kịch bản E2E đa tab (SV-NTD-QTV), 26 ca HttpClient API/RBAC, hàm Unit Java cũ & cầu nối [PyTest] gọi test Python (20/11)
         │   ├── EmployerPage.java                 # Kịch bản UI NTD (GPKD, Đăng tin, ATS Kanban/Lưới/Danh sách, Chấm công, Chat)
         │   └── StudentPage.java                  # Kịch bản UI Sinh viên (Guest, Auth, Tìm kiếm Quận 1, Ứng tuyển, CV PDF, Chat)
         ├── tests/                                # Lớp điều phối chạy TestNG (1 tệp)
@@ -340,7 +352,15 @@ Hệ thống áp dụng quy tắc **`1 Email @gmail.com = 1 Role duy nhất`** v
    ```
    * Lọc chạy riêng từng role: `mvn test -DroleFilter=SV` *(hoặc `NTD` / `QTV`)*.
    * Hoặc chạy bằng script Windows: `run_selenium_tests.bat`.
-   * Kết quả mới nhất của toàn bộ **`251` Test Cases** *(177 ca chạy tự động `Run_Mode=YES`, 74 ca Manual/Clone/OTP/JMeter `Run_Mode=NO`)* sẽ tự động cập nhật kèm **5 biểu đồ** vào sheet `Overview_Summary` và file JSON `test/latest_run_results.json`.
+   * Kết quả mới nhất của toàn bộ **`255` Test Cases** *(179 ca `Run_Mode=YES`, 76 ca Manual/Clone/OTP/JMeter `Run_Mode=NO`, số liệu sau lần sửa 20/11)* sẽ tự động cập nhật kèm **5 biểu đồ** vào sheet `Overview_Summary` và file JSON `test/latest_run_results.json`.
+   * Các dòng có `POM_Method` bắt đầu bằng `[UnitTest][PyTest]` sẽ gọi test Python trong `test/python/` (cần Python + `pip install -r Backend/requirements.txt`; trên Mac/Linux thêm `-DpythonCmd=python3`).
+4. **[Thêm 20/11] Chạy riêng tầng test Python (nhanh, an toàn, không cần trình duyệt, không chạm Atlas/Render):**
+   ```bash
+   cd test
+   run_python_tests.bat            # Windows
+   python -X utf8 python/run_python_tests.py --excel   # ghi kết quả vào sheet TestCases_Python
+   ```
+   * [Sửa 21/11] Tổng 64 test: 54 PASS, 10 FAIL. 10 FAIL đều nằm trong `test_doi_chieu_tai_lieu.py` (web làm khác tài liệu = 10 bug, xem `test/python/BUG_LOG.md`).
 
 ---
 

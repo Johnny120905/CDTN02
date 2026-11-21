@@ -50,3 +50,5 @@ test/screenshots/
 test/sources.txt
 test/latest_run_results.json
 
+# [Them 20/11/2026 - Ngan] Ket qua sinh ra khi chay test Python
+test/python/ket_qua_python.json

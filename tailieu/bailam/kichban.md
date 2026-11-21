@@ -1,6 +1,7 @@
 # KỊCH BẢN KIỂM THỬ SONG HÀNH MANUAL + SELENIUM WEBDRIVER JAVA POM (`PARTIME.VN — CDTN02`)
 
 > **Thay thế tài liệu cũ `test.md`** — Đồng bộ 100% với bộ kịch bản `test/TestCases_Selenium_PARTIME_VN.xlsx` (**251 Test Cases**), đặc tả `tailieu/bailam/FR.xlsx` (**161 FRs**, **41 BRs**, **13 NFRs**), mã nguồn kiểm thử `test/src/test/java/com/partime/**` và tài liệu **57 lệnh Selenium WebDriver Java** (`tailieu/noidung/CÁC LỆNH TRUY VẤN TRONG SELENIUM WEBDRIVER JAVA_PLT SOLUTIONS.pdf`).  
+> **[Cập nhật 20/11/2026 - Lê Thị Thuỳ Ngân]** Bộ kịch bản nay có **255 Test Cases** (thêm TC-SV-088, TC-NTD-093/094/095 cho FR-SV-12.01, FR-NTD-12.01, FR-NTD-10.01/10.02 trước đây chưa có TC) và thêm **tầng test Python** (`test/python/`, 68 test, xem mục 1.4). Kết quả "177 PASS / 0 FAIL" ở mục 2.1 là của lần chạy trước khi rà soát; khi rà soát phát hiện 23 dòng Unit trong Java tự viết lại logic ngay trong file test (không gọi code web) và một số handler UI không có nhánh FAIL, nên con số 100% chưa phản ánh đúng chất lượng. Chi tiết từng chỗ sửa: `tailieu/bailam/thaydoi.md` Giai đoạn 39.
 > **Mục tiêu tài liệu:** Giúp người đảm nhận kiểm thử tiếp theo hiểu trọn vẹn toàn bộ bức tranh kiểm thử từ **Thủ công (Manual)** đến **Tự động hóa (Automation)**, từ **Dễ → Khó**, từ **Luồng Đúng (Happy Path / Smoke) → Luồng Sai (Negative)**, cũng như vai trò chính xác của từng lệnh Selenium ở tầng Frontend, Backend API và Data.
 
 ---
@@ -27,13 +28,21 @@
 * **Cookie Auto-Refresh (`CookieSessionManager.java`):** Trong lượt chạy đầu tiên (hoặc khi xóa file trong `test/cookies/`), `AUTH_COOKIE_MODE=MANUAL_FIRST_THEN_COOKIE` mở trang đăng nhập để người test thao tác nhập tay (nhằm giữ an toàn mật khẩu và hỗ trợ đổi tài khoản bất kỳ lúc nào), sau đó tự động trích xuất Token + Cookie lưu vào `cookies/student_session.json`, `cookies/employer_session.json`, `cookies/admin_session.json`. Từ lần chạy thứ hai trở đi, Selenium tự nạp lại vào `localStorage`, `sessionStorage` và `driver.manage().addCookie()` (kèm làm mới phiên nếu cần) nên có thể chạy liên tục nhiều đợt không bị mất phiên hoặc văng đăng xuất giữa chừng.
 * **Lưu ý về Kiến trúc POM Routing:** Cột `POM_Method` trong Excel ghi tên **Sub-Page logic theo chức năng màn hình** (VD: `StudentCvPage.uploadPreviewDefaultReplaceAndDeleteCv()`, `EmployerAtsPage.switchBetweenKanbanGridListModes()`, `[HttpClient API] ...`) giúp cả người test tay lẫn kỹ sư Automation nhận diện ngay phân hệ. Trong Java, `PartimeAutomationRunnerTest.java` định tuyến theo tiền tố `TC_ID` vào 4 lớp POM thực tế kế thừa `BasePage`: `StudentPage`, `EmployerPage`, `AdminPage` và `CrossRoleAndApiHelper`.
 
+### 1.4. [Thêm 20/11/2026] Tầng test Python gọi thẳng code Backend (`test/python/`)
+* **Vì sao thêm:** các "Unit Test" Java cũ chỉ kiểm tra regex/công thức viết lại ngay trong file test nên luôn PASS dù web sai. Test Python `import` trực tiếp `Backend/src` và gọi API thật qua Flask test client.
+* **An toàn dữ liệu:** `_base.py` ép `MONGO_URI` về địa chỉ không tồn tại nên Backend tự chuyển sang kho dữ liệu RAM (3 tài khoản mẫu); không đọc/ghi MongoDB Atlas, không gọi Render, không gửi email (hàm gửi OTP được giả lập). Nhờ vậy tự động hóa được cả các thao tác trước đây phải để `Run_Mode=NO` vì sợ hỏng dữ liệu thật (khóa/xóa user, duyệt/từ chối GPKD, ẩn tin, xóa danh mục, thông báo hàng loạt).
+* **Quy mô:** [Sửa 21/11] 64 test = 10 Unit + 43 Integration (API) + 11 test đối chiếu tài liệu (`test_doi_chieu_tai_lieu.py`, tên theo mã TC/BR; 10 đang FAIL = 10 bug, danh sách ở `test/python/BUG_LOG.md`).
+* **Liên kết với Excel:** sheet `TestCases_Python` liệt kê từng test ↔ TC/FR; các dòng trong 3 sheet Role có `POM_Method` dạng `[UnitTest][PyTest] <tên test>` sẽ được Java runner gọi sang Python và ghi PASS/FAIL như các ca khác.
+* **Chạy:** `cd test` → `run_python_tests.bat` (hoặc `python -X utf8 python/run_python_tests.py --excel`).
+
 ---
 
 ## 2. THỐNG KÊ ĐỊNH LƯỢNG 251 TEST CASES THEO ROLE × CẤP ĐỘ × LOẠI KỊCH BẢN
 
 Kết quả thực thi trực tiếp trên hệ thống Deploy Render (`https://parttime-css0.onrender.com/`):
 
-### 2.1. Phân bổ theo Vai trò & Trạng thái Chạy Thực tế mới nhất
+### 2.1. Phân bổ theo Vai trò & Trạng thái Chạy (lần chạy 20/11 TRƯỚC khi rà soát)
+> **Lưu ý 20/11:** Bảng dưới giữ nguyên để đối chiếu lịch sử. Sau khi rà soát: 255 TC, `Run_Mode` 179 YES / 76 NO; các dòng đã sửa được xóa kết quả cũ (ô tô vàng, cột `Ghi_Chu_Sua_20_11`) và cần chạy lại. Các dòng trỏ vào bug Backend (TC-SV-013, 061, 068, TC-NTD-008, TC-QTV-029, 050) sẽ FAIL cho tới khi Backend được sửa.
 | Vai trò (Sheet) | Tổng TC | `Run_Mode=YES` (Selenium/API/Unit) | `Run_Mode=NO` (Manual / Clone / JMeter) | Auto PASS | Auto FAIL | `NOT RUN` (Chờ Manual/Clone) | Tỷ lệ Auto chạy đạt trên tập `YES` |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | **Sinh viên** (`TC-SV-001..087`) | **87** | 65 | 22 | **65** | **0** | 22 | **100%** (65/65) |
@@ -48,6 +57,7 @@ Kết quả thực thi trực tiếp trên hệ thống Deploy Render (`https://
 | **Cấp độ 2: Integration Test** (Liên thông phiên, Socket, Upload->DB, E2E nhiều role) | 16 | 17 | 14 | **47** | 18.7% |
 | **Cấp độ 3: API / Web Service Test** (`HttpClient` kiểm tra HTTP 200/201/400/401/403/404/409) | 6 | 10 | 10 | **26** | 10.4% |
 | **Cấp độ 4: System / GUI Test** (Selenium thao tác trình duyệt thực tế & UI) | 57 | 56 | 42 | **155** | 61.8% |
+| *Sau sửa 20/11 (Test_Level):* | *Unit 5 / Int 17 / API 6 / GUI 60* | *Unit 5 / Int 18 / API 11 / GUI 61* | *Unit 6 / Int 14 / API 10 / GUI 42* | *Unit 16 / Int 49 / API 27 / GUI 163* | *(255 TC)* |
 | **Loại 1: Happy Path Testing** (Luồng nghiệp vụ chuẩn thành công) | 37 | 39 | 28 | **104** | 41.4% |
 | **Loại 2: Negative Testing** (Ngoại lệ, nhập sai, chặn quyền, khóa thao tác) | 26 | 27 | 23 | **76** | 30.3% |
 | **Loại 3: UI / Responsive Testing** (Bố cục, 4 màn hình, tooltip, chuẩn chữ, thứ tự nút) | 12 | 10 | 8 | **30** | 12.0% |

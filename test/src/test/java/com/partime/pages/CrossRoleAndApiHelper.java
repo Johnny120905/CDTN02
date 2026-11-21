@@ -300,6 +300,9 @@ public class CrossRoleAndApiHelper extends BasePage {
      * Bộ kiểm thử API / Web Service (GET 200, RBAC 401/403, Invalid ID 404/400) bằng token thật từ Cookie session.
      */
     public ScenarioResult runSafeApiAndRbacSuite(String tcId, String m, String baseUrl) throws Exception {
+        // [Sửa lần 2 - 20/11/2026 - Ngân] Tên lớp test Python như MoreApiTest/AdminApiTest có chứa chữ "ApiTest"
+        // nên trang POM chuyển nhầm sang đây; dòng [PyTest] phải luôn chạy test Python.
+        if (m.contains("[PyTest]")) return runPythonUnittest(tcId, m);
         String stuTk = getRoleToken("student");
         String empTk = getRoleToken("employer");
         String admTk = getRoleToken("admin");
@@ -540,7 +543,53 @@ public class CrossRoleAndApiHelper extends BasePage {
     /**
      * Bộ Unit Test Logic nghiệp vụ chuẩn hóa Java khớp Frontend & Backend.
      */
+    
+    /**
+     * [Thêm 20/11/2026 - Ngân] Chạy các test Python được ghi sau nhãn [PyTest] trong cột POM_Method.
+     * Ví dụ: "[UnitTest][PyTest] test_unit_core.SecurityUnitTest.test_password_complexity_5_rules".
+     * PASS khi tất cả test Python đạt (exit code 0), ngược lại FAIL kèm dòng lỗi cuối.
+     * Lệnh python có thể đổi bằng -DpythonCmd=py (Windows) nếu máy không có lệnh "python".
+     */
+    private ScenarioResult runPythonUnittest(String tcId, String m) {
+        String after = m.substring(m.indexOf("[PyTest]") + "[PyTest]".length());
+        List<String> ids = new ArrayList<>();
+        for (String tok : after.split("[\\s,;()]+")) {
+            if (tok.matches("test_[A-Za-z0-9_]+(\\.[A-Za-z0-9_]+)*")) ids.add(tok);
+        }
+        if (ids.isEmpty()) return ScenarioResult.fail("[PyTest] Không đọc được tên test Python trong POM_Method: " + m);
+        java.io.File pyDir = new java.io.File("python");
+        if (!pyDir.isDirectory()) pyDir = new java.io.File("test", "python");
+        if (!pyDir.isDirectory()) return ScenarioResult.fail("[PyTest] Không tìm thấy thư mục test/python (chạy mvn trong thư mục test).");
+        List<String> cmd = new ArrayList<>();
+        cmd.add(System.getProperty("pythonCmd", "python"));
+        cmd.add("-X"); cmd.add("utf8");
+        cmd.add("-m"); cmd.add("unittest");
+        cmd.addAll(ids);
+        try {
+            ProcessBuilder pb = new ProcessBuilder(cmd).directory(pyDir).redirectErrorStream(true);
+            pb.environment().put("PYTHONIOENCODING", "utf-8");
+            Process p = pb.start();
+            String out = new String(p.getInputStream().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            boolean done = p.waitFor(180, java.util.concurrent.TimeUnit.SECONDS);
+            if (!done) { p.destroyForcibly(); return ScenarioResult.fail("[PyTest] Quá 180 giây chưa chạy xong: " + ids); }
+            String tail = out.replaceAll("(?m)^\\[Database\\].*$", "").trim();
+            String summary = tail.length() > 600 ? tail.substring(tail.length() - 600) : tail;
+            summary = summary.replace("\r", " ").replace("\n", " | ");
+            return p.exitValue() == 0
+                    ? ScenarioResult.pass("[PyTest] " + String.join(", ", ids) + " -> OK | " + summary)
+                    : ScenarioResult.fail("[PyTest] " + String.join(", ", ids) + " -> FAIL | " + summary);
+        } catch (Exception ex) {
+            return ScenarioResult.fail("[PyTest] Không chạy được Python (" + ex.getMessage() + "). Cài Python + pip install -r Backend/requirements.txt.");
+        }
+    }
+
     public ScenarioResult runUnitValidationSuite(String tcId, String m) {
+        // [Sửa 20/11/2026 - Ngân] Unit test THẬT: gọi bộ test Python trong test/python (gọi trực tiếp hàm/API của Backend
+        // trên kho dữ liệu RAM, không chạm Atlas). Các nhánh cũ bên dưới chỉ tự kiểm tra regex viết sẵn trong Java
+        // nên luôn PASS; giữ lại để đối chiếu nhưng không còn dòng Excel nào trỏ tới.
+        if (m.contains("[PyTest]")) {
+            return runPythonUnittest(tcId, m);
+        }
         if (m.contains("testGmailFormatRule")) {
             boolean ok1 = "sinhvien@gmail.com".matches("^[\\w.-]+@gmail\\.com$");
             boolean bad1 = "sinhvien@yahoo.com".matches("^[\\w.-]+@gmail\\.com$");

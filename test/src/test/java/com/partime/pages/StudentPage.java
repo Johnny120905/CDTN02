@@ -297,13 +297,18 @@ public class StudentPage extends BasePage {
                         : ScenarioResult.fail("Không hiển thị trạng thái rỗng.");
             }
             if (m.contains("searchAccentInsensitive")) {
-                String kw = pickRandom(new String[]{"le tan", "phuc vu", "thu ngan", "pha che", "ban hang"});
+                // [Sửa 21/11/2026 - Ngân] Dùng từ khóa ở cột Input_Data_1 của TC (TC-SV-029: 'thu ngan'); chỉ chọn ngẫu nhiên khi ô trống.
+                String kw = (input1 != null && !input1.isBlank() && !"None".equals(input1)) ? input1.trim()
+                        : pickRandom(new String[]{"le tan", "phuc vu", "thu ngan", "pha che", "ban hang"});
                 demoType(tcId, "Nhập từ khóa không dấu ngẫu nhiên: " + kw, exploreSearchInput, kw);
                 pause(450);
                 int hits = findAll(jobCardTitles).size();
                 clearReactInput(find(exploreSearchInput));
                 pause(350);
-                return ScenarioResult.pass("Tìm kiếm không dấu ngẫu nhiên '" + kw + "' khớp " + hits + " thẻ & đã xóa bộ lọc trả danh sách.");
+                // [Sửa 20/11/2026 - Ngân] Trước đây 0 kết quả vẫn PASS; nay bắt buộc tìm ra >= 1 tin cho từ khóa phổ biến.
+                return hits > 0
+                        ? ScenarioResult.pass("Tìm kiếm không dấu ngẫu nhiên '" + kw + "' khớp " + hits + " thẻ & đã xóa bộ lọc trả danh sách.")
+                        : ScenarioResult.fail("Tìm kiếm không dấu '" + kw + "' không ra tin nào (kỳ vọng tìm được tin có dấu tương ứng).");
             }
             if (m.contains("verifyJobCategoryFilterSyncedWithMasterData")) {
                 List<WebElement> sels = findAll(catSel);
@@ -338,6 +343,7 @@ public class StudentPage extends BasePage {
                 return ScenarioResult.pass("Chạy 3 tổ hợp lọc Ngẫu Nhiên đa địa điểm/ngành nghề thành công: " + rounds);
             }
             if (m.contains("filterBy5Criteria")) {
+                int totalBefore = findAll(jobCardTitles).size();
                 String pickedCat = demoSelectRandomNonDefaultOption(tcId, "Lọc Ngành nghề ngẫu nhiên", catSel);
                 tryDemoSelectByVisibleText(tcId, "Chọn Tỉnh/Thành bằng VisibleText", provSel, "TP. Hồ Chí Minh");
                 String selState = verifySelectSingleAndSelectedOptions(tcId, provSel);
@@ -348,13 +354,24 @@ public class StudentPage extends BasePage {
                 String pickedSal = demoSelectRandomNonDefaultOption(tcId, "Lọc Khoảng lương ngẫu nhiên", salSel);
                 pause(450);
                 int filteredCount = findAll(jobCardTitles).size();
+                // [Sửa 21/11/2026 - Ngân] Kiểm tra thông báo rỗng NGAY khi đang lọc (trước đây kiểm sau khi reset nên luôn sai).
+                boolean emptyOk = filteredCount > 0 || getPageSource().contains("Không tìm thấy");
                 tryDemoClick(tcId, "Xóa chọn Quận", By.xpath("//button[contains(.,'Xóa chọn')]"));
                 tryDemoSelectByIndex(tcId, "Reset Ngành nghề", catSel, 0);
                 tryDemoSelectByIndex(tcId, "Reset Tỉnh/Thành", provSel, 0);
                 tryDemoSelectByIndex(tcId, "Reset Ca làm", shiftSel, 0);
                 tryDemoSelectByIndex(tcId, "Reset Mức lương", salSel, 0);
                 pause(350);
-                return ScenarioResult.pass("Lọc 5 tiêu chí [" + pickedCat + " | " + pickedProv + " - " + pickedDist + " | " + pickedShift + " | " + pickedSal + "] (" + selState + ", khớp " + filteredCount + " tin) & reset sạch.");
+                // [Sửa 20/11/2026 - Ngân] Trước đây luôn PASS (kể cả khớp 0 tin, không chọn được quận). Nay kiểm tra:
+                // chọn được đủ tiêu chí, kết quả không nhiều hơn trước khi lọc, 0 tin thì phải có thông báo rỗng, reset trả lại danh sách.
+                int countAfterReset = findAll(jobCardTitles).size();
+                boolean picked = !pickedCat.isBlank() && !pickedProv.isBlank() && !pickedDist.isBlank();
+                boolean narrowed = filteredCount <= Math.max(totalBefore, countAfterReset);
+                boolean resetOk = countAfterReset >= filteredCount;
+                String detail = "[" + pickedCat + " | " + pickedProv + " - " + pickedDist + " | " + pickedShift + " | " + pickedSal + "] (" + selState + ", trước lọc " + totalBefore + ", khớp " + filteredCount + ", sau reset " + countAfterReset + ")";
+                return (picked && narrowed && emptyOk && resetOk)
+                        ? ScenarioResult.pass("Lọc 5 tiêu chí " + detail + " & reset sạch.")
+                        : ScenarioResult.fail("Lọc 5 tiêu chí chưa đạt " + detail + " picked=" + picked + ", narrowed=" + narrowed + ", emptyState=" + emptyOk + ", reset=" + resetOk);
             }
             if (m.contains("verifyPaginationBarOptions")) {
                 boolean changed20 = tryDemoSelectByValue(tcId, "Đổi Pagination sang 20 tin/trang", pageSizeSel, "20");
@@ -941,13 +958,17 @@ public class StudentPage extends BasePage {
             boolean headerCallsVisible = false;
             boolean readOnlyFound = false;
             boolean acceptAttributeOk = false;
+            boolean wantReadOnly = methodOnly.contains("ReadOnly");
+            int visibleRooms = 0;
             for (WebElement cr : chatRooms) {
                 if (cr.isDisplayed() && !cr.getText().contains("Tìm Việc")) {
+                    visibleRooms++;
                     moveCursorAndHighlight(cr, "Mở cuộc trò chuyện mẫu");
                     cr.click();
                     pause(400);
                     roomOpened = true;
-                    break;
+                    // [Sửa 20/11/2026 - Ngân] Kịch bản Chỉ đọc: duyệt tiếp các phòng tới khi gặp phòng 'CHỈ ĐỌC'
+                    if (!wantReadOnly || getPageSource().contains("CHỈ ĐỌC")) break;
                 }
             }
             headerCallsVisible = !findAll(By.xpath("//button[contains(.,'Gọi thoại')]")).isEmpty()
@@ -963,7 +984,17 @@ public class StudentPage extends BasePage {
                 demoType(tcId, "Thử nhập tin nhắn khung soạn thảo", msgInput, "Chào quý công ty ạ");
                 clearReactInput(find(msgInput));
             }
-            return ScenarioResult.pass("Mở Tin nhắn & phỏng vấn SV (" + methodOnly + "): roomOpened=" + roomOpened + ", callBtns=" + headerCallsVisible + ", fileAcceptOk=" + acceptAttributeOk + ", readOnlyRoom=" + readOnlyFound + ".");
+                        // [Sửa 20/11/2026 - Ngân] Trước đây luôn PASS (kể cả readOnlyRoom=false ở TC-SV-075). Nay:
+            // - không có hội thoại nào -> NOT RUN (thiếu dữ liệu), không mở được phòng -> FAIL;
+            // - phải thấy 2 nút Gọi thoại/Gọi video và ô chọn tệp chỉ nhận PDF/ảnh;
+            // - kịch bản Chỉ đọc: tài khoản chưa có đơn bị từ chối/rút -> NOT RUN; có mà không khóa -> FAIL.
+            String chatLog = "Tin nhắn & phỏng vấn SV (" + methodOnly + "): rooms=" + visibleRooms + ", roomOpened=" + roomOpened + ", callBtns=" + headerCallsVisible + ", fileAcceptOk=" + acceptAttributeOk + ", readOnlyRoom=" + readOnlyFound;
+            if (visibleRooms == 0) return ScenarioResult.needManualOrCloneData("Tài khoản SV test chưa có hội thoại nào. " + chatLog);
+            if (!roomOpened || !headerCallsVisible || !acceptAttributeOk) return ScenarioResult.fail(chatLog);
+            if (wantReadOnly && !readOnlyFound) {
+                return ScenarioResult.needManualOrCloneData("Chưa có phòng chat nào ở trạng thái CHỈ ĐỌC (cần 1 đơn bị Từ chối/Rút). " + chatLog);
+            }
+            return ScenarioResult.pass(chatLog + ".");
         }
 
         if (m.contains("checkTypographyAndMultiTabIsolation")) {
