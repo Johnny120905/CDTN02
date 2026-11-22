@@ -1321,3 +1321,17 @@ un.py.
   - Đã loại bỏ hoàn toàn thư mục tạm `tailieu/bailam/hinhanh/`.
   - Đã xóa hoàn tất 2 tệp nhị phân tạm `Poster_PARTIME_VN_60x90.pptx` và `BieuDo_KiemThu_PARTIME_VN.xlsx` sau khi giải phóng tiến trình khóa.
   - Thư mục `tailieu/bailam/` đã trở về trạng thái chuẩn hóa 100% gồm đúng 8 tệp cốt lõi (`Chamcong.xlsx`, `Tonghop.xlsx`, `noidung.md`, `congnghe.md`, `thietke.md`, `dieukienrangbuoc.md`, `kichban.md`, `thaydoi.md`).
+
+---
+
+## Giai đoạn 11: Thêm máy chủ TURN cho WebRTC gọi khác mạng
+
+- **Thời gian thực hiện:** Ngày 23/11/2026.
+- **Người thực hiện:** Vũ Thế Long, Huỳnh Nguyễn Bảo Ngọc.
+- **Nguyên nhân & Lý do chỉnh sửa:**
+  - Trước đó cấu hình `RTC_CONFIG` trong `frontend/src/shared/webrtcSocketService.js` chỉ sử dụng 5 máy chủ STUN của Google, chưa có máy chủ TURN nên khi 2 thiết bị khác mạng (Wifi ↔ 4G, mạng trường chặn kết nối P2P trực tiếp qua NAT) cuộc gọi vẫn đổ chuông và nhận máy nhưng không truyền được âm thanh và hình ảnh.
+  - Bổ sung 4 cấu hình máy chủ TURN/TURNS (`global.relay.metered.ca` trên các cổng `80`, `443` và giao thức `tcp`/`tls`) vào mảng `iceServers` để chuyển tiếp (relay) luồng media khi kết nối P2P trực tiếp bị chặn bởi NAT/Firewall.
+- **Danh sách file chỉnh sửa:**
+  - `frontend/src/shared/webrtcSocketService.js`: Thêm cấu hình máy chủ TURN vào `RTC_CONFIG.iceServers` (giữ nguyên 5 dòng STUN của Google, không thay đổi giao diện hay logic Backend nên không ảnh hưởng các ca kiểm thử Selenium `TC-SV-076`, `TC-NTD-057`, `TC-NTD-078`, `TC-SV-079`).
+  - `tailieu/bailam/thaydoi.md`: Ghi nhận nhật ký cập nhật Giai đoạn 11.
+

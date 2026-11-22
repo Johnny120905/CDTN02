@@ -7,7 +7,12 @@ export const RTC_CONFIG = {
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
     { urls: 'stun:stun3.l.google.com:19302' },
-    { urls: 'stun:stun4.l.google.com:19302' }
+    { urls: 'stun:stun4.l.google.com:19302' },
+    // TURN chuyển tiếp khi 2 máy khác mạng (NAT)
+    { urls: 'turn:global.relay.metered.ca:80', username: 'a476edb9448a0c5c73aea899', credential: 'y6k0gGAyTFAo/R0B' },
+    { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: 'a476edb9448a0c5c73aea899', credential: 'y6k0gGAyTFAo/R0B' },
+    { urls: 'turn:global.relay.metered.ca:443', username: 'a476edb9448a0c5c73aea899', credential: 'y6k0gGAyTFAo/R0B' },
+    { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: 'a476edb9448a0c5c73aea899', credential: 'y6k0gGAyTFAo/R0B' }
   ]
 };
 
