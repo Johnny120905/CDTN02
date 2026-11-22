@@ -58,6 +58,7 @@ public class PartimeAutomationRunnerTest {
     @DataProvider(name = "excelHybridTestCases")
     public Object[][] provideAllRoleTestCases() throws IOException {
         String roleFilter = System.getProperty("roleFilter", "").trim().toUpperCase();
+        String tcFilter = System.getProperty("tcFilter", System.getProperty("tc", "")).trim();
         List<Map<String, String>> allCases = new ArrayList<>();
         if (roleFilter.isEmpty() || "SV".equals(roleFilter) || "STUDENT".equals(roleFilter)) {
             allCases.addAll(excelManager.readRoleTestCases("TestCases_Role Sinh viên"));
@@ -67,6 +68,14 @@ public class PartimeAutomationRunnerTest {
         }
         if (roleFilter.isEmpty() || "QTV".equals(roleFilter) || "ADMIN".equals(roleFilter)) {
             allCases.addAll(excelManager.readRoleTestCases("TestCases_Role Quản trị viên"));
+        }
+
+        if (!tcFilter.isEmpty()) {
+            final String filterUpper = tcFilter.toUpperCase();
+            allCases.removeIf(tc -> {
+                String id = tc.getOrDefault("TC_ID", "").toUpperCase();
+                return !id.equals(filterUpper) && !id.contains(filterUpper);
+            });
         }
 
         Object[][] data = new Object[allCases.size()][1];
