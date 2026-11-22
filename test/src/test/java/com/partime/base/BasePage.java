@@ -941,7 +941,13 @@ public class BasePage {
      * PLT #52 switchTo().activeElement(), #54 defaultContent(), #55 frame(WebElement), #56 parentFrame().
      */
     public String verifyPdfIframeNavigation(String tcId) {
-        List<WebElement> iframes = findAll(By.xpath("//div[contains(@class,'fixed')]//iframe"));
+        By iframeLoc = By.xpath("//div[contains(@class,'fixed')]//iframe | //iframe");
+        long deadline = System.currentTimeMillis() + 4000L;
+        List<WebElement> iframes = findAll(iframeLoc);
+        while (iframes.isEmpty() && System.currentTimeMillis() < deadline) {
+            pause(200);
+            iframes = findAll(iframeLoc);
+        }
         if (iframes.isEmpty()) return "NO_IFRAME_RENDERED";
         WebElement frameEl = iframes.get(0);
         try {

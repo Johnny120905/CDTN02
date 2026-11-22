@@ -748,8 +748,18 @@ public class StudentPage extends BasePage {
             demoClick(tcId, "Bấm 'Chỉnh sửa hồ sơ'", editProfileBtn);
             pause(350);
             demoClick(tcId, "Bấm 'Lưu thông tin' xác nhận lưu hợp lệ", profileSaveBtn);
-            pause(700);
-            boolean closedAfterSave = !isElementDisplayed(profileSaveBtn);
+            
+            // Chờ API Cloud (Render) phản hồi và Form tự đóng (tối đa 4 giây)
+            boolean closedAfterSave = false;
+            long deadline = System.currentTimeMillis() + 4000L;
+            while (System.currentTimeMillis() < deadline) {
+                if (!isElementDisplayed(profileSaveBtn)) {
+                    closedAfterSave = true;
+                    break;
+                }
+                pause(200);
+            }
+
             if (!closedAfterSave) {
                 closeDialogAndAssertGone(tcId, "Form Chỉnh sửa Hồ sơ", profileCancelBtn, profileSaveBtn);
                 return ScenarioResult.fail("Đã bấm Lưu thông tin nhưng Form chỉnh sửa không tự đóng hoặc lỗi validate.");
