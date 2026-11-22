@@ -6,9 +6,9 @@
 
 ---
 
-## 1. TỔNG QUAN & THỐNG KÊ CẤU TRÚC THƯ MỤC `CDTN02-main`
+## 1. TỔNG QUAN & THỐNG KÊ CẤU TRÚC THƯ MỤC `CDTN02`
 
-Khi loại trừ các thư mục phụ thuộc/cache sinh tự động khi build hoặc chạy kiểm thử (`.git/`, `frontend/node_modules/`, `frontend/dist/`, `**/__pycache__/`, `test/target/`, `test/cookies/`, `test/screenshots/`, `test/test-output/` đã được khai báo trong `.gitignore`), toàn bộ kho mã nguồn chuẩn **`CDTN02-main`** gồm:
+Khi loại trừ các thư mục phụ thuộc/cache sinh tự động khi build hoặc chạy kiểm thử (`.git/`, `frontend/node_modules/`, `frontend/dist/`, `**/__pycache__/`, `test/target/`, `test/cookies/`, `test/screenshots/`, `test/test-output/` đã được khai báo trong `.gitignore`), toàn bộ kho mã nguồn chuẩn **`CDTN02`** gồm:
 
 * **Tổng số thư mục:** **`35` thư mục**, trong đó có **`4` thư mục cấp 1** (`Backend`, `frontend`, `tailieu`, `test`) và **`31` thư mục con/cháu bên trong**.
 * **Tổng số tệp tin:** **`122` tệp tin** (`10` tệp ở gốc + `15` trong `Backend/` + `41` trong `frontend/` + `27` trong `tailieu/` + `29` trong `test/`). *[Cập nhật 22/11/2026: đếm theo các tệp có trên GitHub; tệp cục bộ bị `.gitignore` chặn được liệt kê riêng ở cuối cây thư mục.]*
@@ -17,7 +17,7 @@ Khi loại trừ các thư mục phụ thuộc/cache sinh tự động khi build
 
 | Thư mục cấp 1 | Số thư mục nhỏ bên trong | Tổng thư mục trong nhánh | Số tệp tin | Vai trò chính |
 |---|---:|---:|---:|---|
-| *Thư mục gốc (`CDTN02-main/`)* | — | — | **10** | Cấu hình Git, Docker, Render Blueprint, script khởi chạy nhanh và `CLAUDE.md`. |
+| *Thư mục gốc (`CDTN02/`)* | — | — | **10** | Cấu hình Git, Docker, Render Blueprint, script khởi chạy nhanh và `CLAUDE.md`. |
 | `Backend/` | 9 | 10 | **15** | Máy chủ Python Flask RESTful + Socket.IO + Bảo mật + Kết nối MongoDB Atlas & GridFS. |
 | `frontend/` | 9 | 10 | **41** | Giao diện SPA React 18 (*Digital Light Dimension*), Logo 3D WebGL & WebRTC Video Call. |
 | `tailieu/` | 2 | 3 | **27** | Tài liệu học phần, 5 sơ đồ `.drawio` (kiến trúc, ERD, WBS), bảng tổng hợp đặc tả `Tonghop.xlsx`, bảng chấm công `Chamcong.xlsx` và 6 báo cáo `.md` đồng bộ. |
@@ -29,7 +29,7 @@ Khi loại trừ các thư mục phụ thuộc/cache sinh tự động khi build
 ### Cây thư mục chi tiết & Chú thích từng tệp (`35` thư mục · `122` tệp)
 
 ```text
-CDTN02-main/                                      # Thư mục gốc của toàn bộ dự án (10 tệp cấu hình/chạy gốc)
+CDTN02/                                      # Thư mục gốc của toàn bộ dự án (10 tệp cấu hình/chạy gốc)
 ├── .dockerignore                                 # Loại trừ .git, .env, node_modules, tailieu, test khi đóng gói Docker
 ├── .gitignore                                    # Chặn đẩy tệp nhạy cảm (.env, test/cookies/, local_db_store.json, build cache) lên Git
 ├── CLAUDE.md                                     # Hướng dẫn cho trợ lý AI (Claude Code): lệnh chạy, cấu trúc mã nguồn, quy ước của dự án
@@ -214,12 +214,12 @@ Hướng dẫn dưới đây giúp một lập trình viên mới **tạo lại 
 
 * **Cách A — Lấy mã nguồn từ Repository GitHub:**
   ```bash
-  git clone https://github.com/Johnny120905/CDTN02.git CDTN02-main
-  cd CDTN02-main
+  git clone https://github.com/Johnny120905/CDTN02.git CDTN02
+  cd CDTN02
   ```
 * **Cách B — Tự dựng lại cây thư mục từ đầu (nếu tái tạo thủ công từ thư mục rỗng):**
   ```bash
-  mkdir CDTN02-main && cd CDTN02-main
+  mkdir CDTN02 && cd CDTN02
   mkdir -p Backend/src/core Backend/src/middlewares Backend/src/api/{auth,student,employer,admin,common}
   mkdir -p frontend/public frontend/src/{canvas3d,shared} frontend/src/features/{auth,student,employer,admin}
   mkdir -p tailieu/{bailam,noidung}
@@ -298,7 +298,7 @@ cd ..
 #### 4.2. Chọn 1 trong 3 Chế độ Khởi chạy
 
 * **Cách 1 (Khuyên dùng khi Demo & Chạy Hợp nhất — 1 cổng `8002` duy nhất):**
-  Từ thư mục gốc `CDTN02-main/`, chạy:
+  Từ thư mục gốc `CDTN02/`, chạy:
   ```bash
   python run.py
   ```
@@ -327,7 +327,7 @@ Hệ thống áp dụng quy tắc **`1 Email @gmail.com = 1 Role duy nhất`** v
 2. **Tạo tài khoản Nhà tuyển dụng (`role: "employer"`):**
    * Vào `http://localhost:8002/employer/register` -> chọn loại hình doanh nghiệp, nhập **Mã số thuế 10 hoặc 13 chữ số**, tải lên 1 tệp **Giấy phép kinh doanh định dạng `.pdf`** (có thể lấy file mẫu `test/sample_assets/AutoTest_CV_Sample.pdf` khi chạy thử nghiệm cục bộ) -> xác nhận OTP 60 giây.
 3. **Tạo tài khoản Quản trị viên (`role: "admin"`):**
-   * Vì lý do bảo mật (`BR-QTV-01`), màn `/admin` **cố ý không có nút Đăng ký công khai**. Bạn tự tạo tài khoản Admin đầu tiên trực tiếp vào bảng `users` trong MongoDB Atlas (hoặc chạy script Python nhỏ cục bộ sử dụng chính hàm `hash_password("<YOUR_OWN_ADMIN_PASSWORD>")` của [Backend/src/core/security.py](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/Backend/src/core/security.py)):
+   * Vì lý do bảo mật (`BR-QTV-01`), màn `/admin` **cố ý không có nút Đăng ký công khai**. Bạn tự tạo tài khoản Admin đầu tiên trực tiếp vào bảng `users` trong MongoDB Atlas (hoặc chạy script Python nhỏ cục bộ sử dụng chính hàm `hash_password("<YOUR_OWN_ADMIN_PASSWORD>")` của [Backend/src/core/security.py](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/Backend/src/core/security.py)):
    ```python
    # Chạy trong thư mục Backend/ (chỉ để sinh hash từ mật khẩu bạn tự đặt)
    python -c "from src.core.database import db_manager; from src.core.security import hash_password; db_manager.get_collection('users').insert_one({'_id':'user_admin_init','email':'<your_admin_email>@gmail.com','password_hash':hash_password('<YOUR_OWN_ADMIN_PASSWORD>'),'role':'admin','full_name':'Quan Tri Vien','is_banned':False,'status':'active'})"
@@ -338,7 +338,7 @@ Hệ thống áp dụng quy tắc **`1 Email @gmail.com = 1 Role duy nhất`** v
 
 ### Bước 6: Chạy Bộ Kiểm thử Song hành Excel + Selenium Java POM (`test/`)
 
-1. Mở [TestCases_Selenium_PARTIME_VN.xlsx](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/test/TestCases_Selenium_PARTIME_VN.xlsx), sang sheet **`Config_Environment`**:
+1. Mở [TestCases_Selenium_PARTIME_VN.xlsx](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/test/TestCases_Selenium_PARTIME_VN.xlsx), sang sheet **`Config_Environment`**:
    * Sửa `BASE_URL` thành `http://localhost:8002` (khi test trên máy) hoặc URL Render của bạn.
    * Đặt `HEADLESS_MODE` = `FALSE` nếu muốn xem Chrome tự động trình chiếu kèm con trỏ chuột ảo và banner mô tả từng bước; đặt `TRUE` để chạy nhanh nền.
 2. **Cách cung cấp thông tin đăng nhập an toàn cho kiểm thử Cookie (`MANUAL_FIRST_THEN_COOKIE`):**
@@ -394,12 +394,12 @@ Kiểm tra container khỏe mạnh bằng cách mở `http://localhost:8002/api/
 
 | Tài liệu | Liên kết | Nội dung chính |
 |---|---|---|
-| **Báo cáo Đồ án CDTN02** | [noidung.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/noidung.md) | Báo cáo hoàn chỉnh 5 Chương chuẩn ĐH Văn Lang, trình bày rõ ràng cho cả người mới đọc. |
-| **Đối chiếu Công nghệ & Hàm/Biến** | [congnghe.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/congnghe.md) | Đối chiếu `CongNghe.docx` với thực tế code + từ điển giải thích vai trò từng hàm/biến. |
-| **Đặc tả Ràng buộc & API/Socket** | [dieukienrangbuoc.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/dieukienrangbuoc.md) | 18 Collections + GridFS, 41 BR, 13 NFR, PBKDF2, OTP 60s, `109+` API & `10 on/17 emit` Socket.IO. |
-| **Thiết kế UI & 42 Stitch Prompts** | [thietke.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/thietke.md) | Hệ thống 8 cột màu *Digital Light Dimension* & 42 prompt đồng bộ 1-1 với màn hình JSX thật. |
-| **Kịch bản Kiểm thử & 57 lệnh PLT** | [kichban.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/kichban.md) | Phân tầng 251 TC (Dễ -> Khó, Đúng -> Sai) và giải thích đủ 57 lệnh Selenium WebDriver Java. |
-| **Nhật ký Tiến hóa 38 Giai đoạn** | [thaydoi.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/thaydoi.md) | Ghi vết toàn bộ lịch sử chỉnh sửa, nâng cấp và kiểm chứng chất lượng qua từng chặng. |
+| **Báo cáo Đồ án CDTN02** | [noidung.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/noidung.md) | Báo cáo hoàn chỉnh 5 Chương chuẩn ĐH Văn Lang, trình bày rõ ràng cho cả người mới đọc. |
+| **Đối chiếu Công nghệ & Hàm/Biến** | [congnghe.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/congnghe.md) | Đối chiếu `CongNghe.docx` với thực tế code + từ điển giải thích vai trò từng hàm/biến. |
+| **Đặc tả Ràng buộc & API/Socket** | [dieukienrangbuoc.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/dieukienrangbuoc.md) | 18 Collections + GridFS, 41 BR, 13 NFR, PBKDF2, OTP 60s, `109+` API & `10 on/17 emit` Socket.IO. |
+| **Thiết kế UI & 42 Stitch Prompts** | [thietke.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/thietke.md) | Hệ thống 8 cột màu *Digital Light Dimension* & 42 prompt đồng bộ 1-1 với màn hình JSX thật. |
+| **Kịch bản Kiểm thử & 57 lệnh PLT** | [kichban.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/kichban.md) | Phân tầng 255 Test Cases Selenium (tổng 319 TCs gồm 64 Python TCs, Dễ -> Khó, Đúng -> Sai) và giải thích đủ 57 lệnh Selenium WebDriver Java. |
+| **Nhật ký Tiến hóa 38 Giai đoạn** | [thaydoi.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/thaydoi.md) | Ghi vết toàn bộ lịch sử chỉnh sửa, nâng cấp và kiểm chứng chất lượng qua từng chặng. |
 
 ---
 

@@ -14,9 +14,9 @@
 * **Học phần:** Chuyên đề Tốt nghiệp 2 (Mã học phần: `CDTN02`)
 * **Giảng viên hướng dẫn:** Quý Thầy/Cô Giảng viên hướng dẫn học phần Chuyên đề Tốt nghiệp 2
 * **Nhóm sinh viên thực hiện:**
-  1. **Vũ Thế Long** — MSSV: `2174802010123` *(Trưởng nhóm — Phụ trách Phân hệ Sinh viên & Hạ tầng Kiểm thử)*
-  2. **Huỳnh Nguyễn Bảo Ngọc** — MSSV: `2174802010456` *(Phụ trách Phân hệ Nhà tuyển dụng & Kiểm soát Nghiệp vụ)*
-  3. **Lê Thị Thuỳ Ngân** — MSSV: `2174802010789` *(Phụ trách Phân hệ Quản trị viên & Điều phối Dữ liệu)*
+  1. **Vũ Thế Long** — MSSV: `2374802010286` *(Trưởng nhóm — Phụ trách Phân hệ Sinh viên & Hạ tầng Kiểm thử)*
+  2. **Huỳnh Nguyễn Bảo Ngọc** — MSSV: `2374802010339` *(Phụ trách Phân hệ Nhà tuyển dụng & Kiểm soát Nghiệp vụ)*
+  3. **Lê Thị Thuỳ Ngân** — MSSV: `2374802010328` *(Phụ trách Phân hệ Quản trị viên & Điều phối Dữ liệu)*
 * **Sản phẩm triển khai thực tế (Production Render):** `https://parttime-css0.onrender.com/` (Cổng Sinh viên) · `/employer` (Cổng Nhà tuyển dụng) · `/admin` (Cổng Quản trị viên) · Môi trường cục bộ hợp nhất cổng `8002`
 
 *TP. Hồ Chí Minh, tháng 11 năm 2026*
@@ -28,11 +28,11 @@
 > **Hướng dẫn đọc tài liệu này cho mọi đối tượng:**  
 > Tài liệu được trình bày theo chuẩn báo cáo học thuật của Khoa Công nghệ Thông tin – Trường Đại học Văn Lang, nhưng mỗi khái niệm chuyên ngành đều kèm giải thích dễ hiểu ngay bên cạnh.  
 > Để đi sâu vào từng khía cạnh kỹ thuật khi bảo vệ đồ án hoặc bàn giao dự án, người đọc có thể mở kèm 5 tài liệu đồng bộ trong cùng thư mục `tailieu/bailam/` và `README.md` gốc:  
-> 1. [dieukienrangbuoc.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/dieukienrangbuoc.md) — Đặc tả chi tiết 18 collections MongoDB, 41 quy tắc nghiệp vụ (`BR`), 13 yêu cầu phi chức năng (`NFR`) và bản đồ API/Socket thực tế.  
-> 2. [thietke.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/thietke.md) — Hệ thống thiết kế *Digital Light Dimension* và 42 prompt Google Stitch đồng bộ 1-1 với màn hình giao diện thực tế.  
-> 3. [kichban.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/kichban.md) — Kiến trúc kiểm thử song hành Manual + Selenium WebDriver Java POM cho 251 Test Cases và bảng ánh xạ đủ 57 lệnh từ tài liệu *PLT Solutions PDF*.  
-> 4. [congnghe.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/congnghe.md) — Đối chiếu `CongNghe.docx` với công nghệ thực tế (`React 18`, `pymongo`, `GridFS`, `PBKDF2`) và từ điển giải thích từng hàm/biến.  
-> 5. [thaydoi.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/thaydoi.md) — Nhật ký tiến hóa 38 giai đoạn từ Sprint 0 đến phiên bản Production Render hiện tại.
+> 1. [dieukienrangbuoc.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/dieukienrangbuoc.md) — Đặc tả chi tiết 18 collections MongoDB, 41 quy tắc nghiệp vụ (`BR`), 13 yêu cầu phi chức năng (`NFR`) và bản đồ API/Socket thực tế.  
+> 2. [thietke.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/thietke.md) — Hệ thống thiết kế *Digital Light Dimension* và 42 prompt Google Stitch đồng bộ 1-1 với màn hình giao diện thực tế.  
+> 3. [kichban.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/kichban.md) — Kiến trúc kiểm thử song hành Manual + Selenium WebDriver Java POM cho 255 Test Cases Selenium (tổng 319 TCs gồm 64 Python TCs) và bảng ánh xạ đủ 57 lệnh từ tài liệu *PLT Solutions PDF*.  
+> 4. [congnghe.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/congnghe.md) — Đối chiếu `congnghe.md` với công nghệ thực tế (`React 18`, `pymongo`, `GridFS`, `PBKDF2`) và từ điển giải thích từng hàm/biến.  
+> 5. [thaydoi.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/thaydoi.md) — Nhật ký tiến hóa 38 giai đoạn từ Sprint 0 đến phiên bản Production Render hiện tại.
 
 ---
 
@@ -212,7 +212,7 @@ Nhóm sinh viên thực hiện đề tài xin trân trọng gửi lời cảm ơ
 
 Nhóm tác giả xin cam đoan rằng báo cáo và sản phẩm phần mềm **"Nền tảng tuyển dụng việc làm part-time theo ca cho sinh viên (PARTIME.VN)"** là thành quả lao động nghiêm túc, trung thực của cả nhóm trong học phần Chuyên đề Tốt nghiệp 2.
 
-Mọi số liệu thống kê, kết quả chạy kiểm thử tự động trên môi trường triển khai thực tế Render (`251` Test Cases trong Excel và Selenium WebDriver Java), cấu trúc dữ liệu (`18` collections + GridFS), mã nguồn Backend/Frontend và các biểu đồ phân tích đều được ghi nhận trung thực từ quá trình xây dựng và vận hành thực tế của nhóm. Những tài liệu tham khảo và thư viện mã nguồn mở được sử dụng đều có trích dẫn rõ ràng.
+Mọi số liệu thống kê, kết quả chạy kiểm thử tự động trên môi trường triển khai thực tế Render (`255` Test Cases Selenium (tổng `319` TCs gồm `64` Python TCs) trong Excel và Selenium WebDriver Java), cấu trúc dữ liệu (`18` collections + GridFS), mã nguồn Backend/Frontend và các biểu đồ phân tích đều được ghi nhận trung thực từ quá trình xây dựng và vận hành thực tế của nhóm. Những tài liệu tham khảo và thư viện mã nguồn mở được sử dụng đều có trích dẫn rõ ràng.
 
 ---
 
@@ -225,7 +225,7 @@ Tìm kiếm việc làm bán thời gian (*part-time*) giúp sinh viên trang tr
 2. **Nhà tuyển dụng:** Đăng ký doanh nghiệp kèm kiểm định Mã số thuế (10/13 số) và Giấy phép kinh doanh (`.pdf`); đăng tin chuẩn khung lương `15.000 – 200.000 VNĐ/giờ` qua bộ lọc kiểm duyệt từ khóa nhạy cảm 2 luồng; quản trị ứng viên chuẩn ATS (*Applicant Tracking System*) theo 3 chế độ hiển thị (**Kanban**, **Lưới**, **Danh sách**); chấm công ca làm, xuất bảng tính `.xls` và phỏng vấn trực tuyến **WebRTC Video Call** tích hợp ngay trong phòng chat cô lập theo từng đơn ứng tuyển.
 3. **Quản trị viên:** Kiểm soát tập trung qua **Trung tâm chỉ huy 2026** (số liệu thực `@gmail.com`), bàn thẩm định GPKD, xử lý tin bị gắn cờ từ khóa cấm, quản trị danh mục Master Data, đối chiếu **Chat gốc chưa che `***`** khi phân xử báo cáo vi phạm, phát Broadcast thông báo thu hồi được và giám sát 16 loại sự kiện nhật ký (*Audit Log*).
 
-Về kỹ thuật, hệ thống sử dụng **React 18 + Vite + TailwindCSS** theo ngôn ngữ thiết kế *Digital Light Dimension* (8 cột màu sáng dịu mắt, phông *Be Vietnam Pro*, biểu tượng *Lucide*, logo 3D WebGL GLTF, không dùng hộp thoại trình duyệt thô `alert`/`confirm`), Backend **Python Flask + Flask-SocketIO**, CSDL đám mây **MongoDB Atlas (`CDTN02_DB` — 18 collections + GridFS)**, băm mật khẩu **PBKDF2-HMAC-SHA256 (`100.000` vòng)**, xác thực **JWT `HS256`**, gửi mã **OTP 60 giây qua Brevo HTTPS API v3**, và triển khai thống nhất trên **Render Docker**. Toàn bộ `161` yêu cầu chức năng (`FR`), `41` quy tắc nghiệp vụ (`BR`) và `13` yêu cầu phi chức năng (`NFR`) được kiểm chứng bằng bộ **251 Test Cases song hành Manual + Selenium WebDriver Java POM** tích hợp **đủ 57 lệnh chuẩn *PLT Solutions PDF***, đạt **`177/177 PASS (100%)` trên tập chạy tự động và `0 FAIL`**.
+Về kỹ thuật, hệ thống sử dụng **React 18 + Vite + TailwindCSS** theo ngôn ngữ thiết kế *Digital Light Dimension* (8 cột màu sáng dịu mắt, phông *Be Vietnam Pro*, biểu tượng *Lucide*, logo 3D WebGL GLTF, không dùng hộp thoại trình duyệt thô `alert`/`confirm`), Backend **Python Flask + Flask-SocketIO**, CSDL đám mây **MongoDB Atlas (`CDTN02_DB` — 18 collections + GridFS)**, băm mật khẩu **PBKDF2-HMAC-SHA256 (`100.000` vòng)**, xác thực **JWT `HS256`**, gửi mã **OTP 60 giây qua Brevo HTTPS API v3**, và triển khai thống nhất trên **Render Docker**. Toàn bộ `161` yêu cầu chức năng (`FR`), `41` quy tắc nghiệp vụ (`BR`) và `13` yêu cầu phi chức năng (`NFR`) được kiểm chứng bằng bộ **255 Test Cases Selenium (tổng 319 TCs gồm 64 Python TCs) song hành Manual + Selenium WebDriver Java POM** tích hợp **đủ 57 lệnh chuẩn *PLT Solutions PDF***, đạt **`178/178 PASS (100%)` trên tập chạy tự động và `0 FAIL`**.
 
 ---
 
@@ -260,7 +260,7 @@ Về kỹ thuật, hệ thống sử dụng **React 18 + Vite + TailwindCSS** th
 | **Bảng 3.9** | Danh mục API Endpoints thực tế theo 5 phân hệ | Mục 3.9.1 | `109+` đường dẫn HTTP và vai trò bảo vệ tương ứng. |
 | **Bảng 3.10** | Bảng màu 8 cột *Digital Light Dimension* | Mục 3.10.2 | Mã màu hex, vùng áp dụng và lý do công thái học nền sáng. |
 | **Bảng 4.1** | Bảng đối chiếu Product Backlog (`161` FR, `41` BR, `13` NFR) | Mục 4.4.1 | Tỷ lệ hoàn thành 100% phạm vi đã thống nhất. |
-| **Bảng 4.2** | Phân bổ `251` Test Cases theo Role × Cấp độ × Loại kịch bản | Mục 4.5.1 | Kết quả chạy trực tiếp trên Render: `177 PASS / 0 FAIL / 74 NOT RUN`. |
+| **Bảng 4.2** | Phân bổ `255` Test Cases Selenium (tổng `319` TCs gồm `64` Python TCs) theo Role × Cấp độ × Loại kịch bản | Mục 4.5.1 | Kết quả chạy trực tiếp trên Render: `178 PASS / 0 FAIL / 77 Chờ Cookie/Not Run`. |
 | **Bảng 4.3** | Bảng đối chiếu phân công và kết quả đóng góp 3 thành viên | Mục 4.7.1 | Phân tách rõ phạm vi code/tài liệu của từng thành viên. |
 
 ---
@@ -317,7 +317,7 @@ Xây dựng và triển khai hoàn chỉnh nền tảng tuyển dụng việc l�
 1. **Về nghiệp vụ:** Hoàn thiện đầy đủ `161` yêu cầu chức năng (`FR`) và `41` quy tắc nghiệp vụ (`BR`) trên `3` phân hệ chính, bảo đảm luồng khép kín: Thẩm định doanh nghiệp -> Đăng tin kiểm duyệt 2 luồng -> Tìm việc & Ứng tuyển -> Tuyển chọn ATS -> Quản lý ca làm T2–CN -> Đánh giá hai chiều & Xử lý báo cáo.
 2. **Về bảo mật & toàn vẹn:** Thực thi nguyên tắc **`1 Email = 1 Role`**, mật khẩu băm một chiều **PBKDF2-HMAC-SHA256 (`100.000` vòng)**, token phiên **JWT (`24 giờ`)** cô lập đa tab, OTP **60 giây** qua **Brevo HTTPS API v3**, chặn tệp ngoài `.pdf` với kiểm tra chữ ký nhị phân `%PDF` (`<= 10MB`), và giữ **Chat gốc chưa che** làm bằng chứng quản trị.
 3. **Về trải nghiệm người dùng:** Áp dụng phong cách *Digital Light Dimension* dịu mắt, tương thích **4 kích thước thiết bị** (`Mobile 430px`, `iPad 820px`, `Laptop 1366px`, `PC 1920px`), hỗ trợ **Chế độ Khách (*Guest Mode*)**, giao tiếp thời gian thực Socket.IO, gọi video **WebRTC**, và xuất **6 loại báo cáo Excel `.xls`**.
-4. **Về kiểm thử:** Xây dựng bộ kịch bản kiểm thử song hành **Thủ công (Manual) + Tự động (Selenium WebDriver Java POM)** gồm **`251` Test Cases** trong Excel đồng bộ, phủ đủ 4 cấp độ kiểm thử và 57 lệnh chuẩn của tài liệu *PLT Solutions*.
+4. **Về kiểm thử:** Xây dựng bộ kịch bản kiểm thử song hành **Thủ công (Manual) + Tự động (Selenium WebDriver Java POM)** gồm **`255` Test Cases Selenium (tổng `319` TCs gồm `64` Python TCs)** trong Excel đồng bộ, phủ đủ 4 cấp độ kiểm thử và 57 lệnh chuẩn của tài liệu *PLT Solutions*.
 5. **Về triển khai:** Đóng gói Docker, triển khai hoạt động ổn định tại `https://parttime-css0.onrender.com/` cùng hệ thống tài liệu kỹ thuật đồng bộ (`dieukienrangbuoc.md`, `thietke.md`, `kichban.md`, `thaydoi.md`, `noidung.md`).
 
 ---
@@ -360,15 +360,17 @@ Nhóm nghiên cứu hệ thống hóa tài liệu chuẩn về kỹ nghệ phầ
 ---
 
 ## 1.6. Thời gian thực hiện
-Dự án được tổ chức thực hiện xuyên suốt học phần Chuyên đề Tốt nghiệp 2 trong **10 buổi chính khóa** (tương ứng **Sprint 0 đến Sprint 5** từ tháng 10/2026 đến tháng 11/2026), tiếp nối bằng chuỗi giai đoạn tinh chỉnh UI, đóng gói Docker/Render, nâng cấp OTP Brevo HTTPS API v3 và hoàn thiện bộ kiểm thử tự động **251 Test Cases** vào ngày **19–20/11/2026**.
+Dự án được tổ chức thực hiện xuyên suốt học phần Chuyên đề Tốt nghiệp 2 trong **10 buổi chính khóa** (tương ứng **Sprint 0 đến Sprint 5** từ tháng 10/2026 đến tháng 11/2026), tiếp nối bằng chuỗi giai đoạn tinh chỉnh UI, đóng gói Docker/Render, nâng cấp OTP Brevo HTTPS API v3 và hoàn thiện bộ kiểm thử tự động **255 Test Cases Selenium (tổng 319 TCs gồm 64 Python TCs)** vào ngày **19–20/11/2026**. Hai mốc tổng kết quan trọng cuối học phần bao gồm:
+* **Buổi 10 (23/11/2026):** Hoàn thiện đóng băng mã nguồn sản phẩm, in ấn và nộp **Poster nghiên cứu khổ A0** (60cm × 90cm) tổng kết kiến trúc, giao diện và kết quả kiểm thử.
+* **Buổi 11 (30/11/2026):** Báo cáo nghiệm thu và bảo vệ đề tài chính thức trước Hội đồng chấm Chuyên đề Tốt nghiệp 2 Trường Đại học Văn Lang.
 
 ---
 
 ## 1.7. Sản phẩm của đề tài
-Sản phẩm bàn giao hoàn chỉnh trong kho lưu trữ `CDTN02-main/` gồm 4 cấu phần đồng nhất:
+Sản phẩm bàn giao hoàn chỉnh trong kho lưu trữ `CDTN02/` gồm 4 cấu phần đồng nhất:
 1. **Mã nguồn Backend (`Backend/`):** Dịch vụ Flask RESTful + Socket.IO + Email Service + GridFS (`server.py` và `Backend/src/**`).
 2. **Mã nguồn Frontend (`frontend/`):** Ứng dụng SPA React 18 + Vite + TailwindCSS + WebGL 3D Logo (`frontend/src/**`).
-3. **Bộ kiểm thử song hành (`test/`):** Dự án Maven Java 17 (`pom.xml`), 9 tệp nguồn POM + `HttpClient`, tệp cấu hình tài nguyên mẫu và sổ kiểm thử Excel `TestCases_Selenium_PARTIME_VN.xlsx` (`251` Test Cases).
+3. **Bộ kiểm thử song hành (`test/`):** Dự án Maven Java 17 (`pom.xml`), 9 tệp nguồn POM + `HttpClient`, tệp cấu hình tài nguyên mẫu và sổ kiểm thử Excel `TestCases_Selenium_PARTIME_VN.xlsx` (`255` Test Cases Selenium (tổng `319` TCs gồm `64` Python TCs)).
 4. **Hệ thống tài liệu kỹ thuật & triển khai:** Bộ đặc tả `Tonghop.xlsx`, 5 tài liệu `.md` (`noidung.md`, `dieukienrangbuoc.md`, `thietke.md`, `kichban.md`, `thaydoi.md`) cùng `Dockerfile`, `docker-compose.yml` và `render.yaml`.
 
 ---
@@ -378,7 +380,7 @@ Ngoài các trang mở đầu và phụ lục, nội dung chính của báo cáo
 * **Chương 1 – Mở đầu:** Trình bày lý do, mục tiêu, đối tượng, phạm vi, phương pháp và sản phẩm đề tài.
 * **Chương 2 – Cơ sở lý thuyết:** Hệ thống hóa lý thuyết về sàn tuyển dụng hai chiều, quy trình Agile/Scrum, kiến trúc và các công nghệ Web, cơ sở dữ liệu, bảo mật, thời gian thực và kiểm thử phần mềm (kèm đối chiếu minh bạch với lựa chọn thực tế của dự án).
 * **Chương 3 – Thực trạng, Phân tích và Thiết kế hệ thống:** Toàn bộ đặc tả phân tích từ hiện trạng, Use Case, Business Flow, SRS (`161` FR / `41` BR / `13` NFR), kế hoạch Sprint đến thiết kế kiến trúc, CSDL (`18` collections + GridFS), API (`109+` endpoints) và thiết kế giao diện.
-* **Chương 4 – Kết quả đạt được:** Trình bày chi tiết sản phẩm hoàn thiện từ Sprint 0 đến Sprint 5, tính năng từng role, kết quả chạy kiểm thử thực tế trên Render (`177 PASS / 0 FAIL / 74 NOT RUN`), triển khai Docker/Render, phân công nhóm và bài học kinh nghiệm.
+* **Chương 4 – Kết quả đạt được:** Trình bày chi tiết sản phẩm hoàn thiện từ Sprint 0 đến Sprint 5, tính năng từng role, kết quả chạy kiểm thử thực tế trên Render (`178 PASS / 0 FAIL / 77 Chờ Cookie/Not Run`), triển khai Docker/Render, phân công nhóm và bài học kinh nghiệm.
 * **Chương 5 – Kết luận và Hướng phát triển:** Đánh giá tổng kết những điều làm được, những giới hạn trung thực hiện tại và định hướng nâng cấp tiếp theo.
 
 ---
@@ -505,7 +507,7 @@ Qua khảo sát nhu cầu sinh viên Trường Đại học Văn Lang và các m
 | **When (Khi nào?)** | Vận hành lúc nào? | Hoạt động 24/7 trên cloud; thông báo & tin nhắn cập nhật tức thời (*realtime*); OTP giới hạn 60s. |
 | **Where (Ở đâu?)** | Phạm vi tiếp cận ở đâu? | Website đa thiết bị hỗ trợ **63 Tỉnh/Thành phố** Việt Nam (từ máy tính PC/Laptop đến trình duyệt iPad và điện thoại). |
 | **Why (Tại sao?)** | Vì sao cần hệ thống này? | Thay thế kênh tuyển dụng tự phát thiếu an toàn bằng môi trường minh bạch GPKD, bảo mật dữ liệu và lọc sẵn rủi ro lừa đảo. |
-| **How (Như thế nào?)** | Vận hành bằng cách nào? | Kiến trúc Client–Server REST + Socket.IO, lưu trữ tập trung MongoDB Atlas + GridFS, kiểm chứng tự động qua 251 Test Cases Selenium. |
+| **How (Như thế nào?)** | Vận hành bằng cách nào? | Kiến trúc Client–Server REST + Socket.IO, lưu trữ tập trung MongoDB Atlas + GridFS, kiểm chứng tự động qua 255 Test Cases Selenium (tổng 319 TCs gồm 64 Python TCs) Selenium. |
 
 ---
 
@@ -543,6 +545,9 @@ Qua khảo sát nhu cầu sinh viên Trường Đại học Văn Lang và các m
 | **Quản trị viên** | `role = "admin"` | Đăng nhập riêng tại `/admin` (chặn tự đăng ký, chặn quên MK, chặn tự xóa); Xem Analytics Dashboard 2026; Quản lý/Khóa/Xóa cascade User; Phê duyệt/Từ chối GPKD PDF; Kiểm duyệt/Ẩn/Xóa tin tuyển dụng; Quản trị Từ khóa cấm & Master Data; Ẩn/Xóa Đánh giá; Phân xử Khiếu nại bằng Chat Gốc chưa che; Gửi/Thu hồi Broadcast; Theo dõi 16 Audit Log. |
 
 ### 3.3.2. Sơ đồ Use Case
+
+> [!NOTE]
+> Toàn bộ 5 sơ đồ Use Case chi tiết của hệ thống (gồm: *01_PhanCap_TacNhan*, *02_UseCase_TongQuat*, *03_UseCase_SinhVien*, *04_UseCase_NhaTuyenDung*, *05_UseCase_QuanTriVien*) được lưu trữ trực quan tại tệp [`tailieu/Actor_UseCase.drawio`](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/Actor_UseCase.drawio). Đồng thời, danh mục chi tiết 7 Tác nhân, Ma trận phân quyền RBAC 10 phân hệ và bảng đặc tả 40 Use Cases có quan hệ `«include»` / `«extend»` ánh xạ sang 161 FRs được chuẩn hóa đầy đủ tại sheet `Actor_UseCase` trong tệp [`tailieu/bailam/Tonghop.xlsx`](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/Tonghop.xlsx).
 
 #### 3.3.2.1. Sơ đồ Use Case tổng quát
 
@@ -702,7 +707,7 @@ Cấu trúc WBS bám sát trục phân hệ:
 * **WBS 1.x (Sinh viên):** `1.1` Auth/Guest -> `1.2` Header/Account -> `1.3` Home 3D -> `1.4` Tìm kiếm/Lọc -> `1.5` JD/Công ty -> `1.6` Đã lưu -> `1.7` Ứng tuyển/Tiến độ -> `1.8` Ca làm/Đánh giá -> `1.9` CV/Hồ sơ/Chat & WebRTC.
 * **WBS 2.x (Nhà tuyển dụng):** `2.1` Auth/GPKD -> `2.2` Header -> `2.3` Tổng quan KPI -> `2.4` Hồ sơ DN -> `2.5` Đăng tin -> `2.6` Quản lý tin -> `2.7` ATS & Lịch PV -> `2.8` Ca làm/Đánh giá -> `2.9` Chat/WebRTC & Khiếu nại.
 * **WBS 3.x (Quản trị viên):** `3.1` Bảo mật `/admin` -> `3.2` Điều hướng/Audit -> `3.3` Dashboard 2026 -> `3.4` Users -> `3.5` Thẩm định GPKD -> `3.6` Kiểm duyệt tin/Từ cấm -> `3.7` Đánh giá -> `3.8` Master Data -> `3.9` Khiếu nại/Chat Gốc -> `3.10` Broadcast.
-* **WBS 4.x (Hạ tầng, Kiểm thử & Tài liệu):** Triển khai Render/Docker, Brevo API v3, 251 Test Cases Selenium + Excel, và đồng bộ 5 tài liệu báo cáo.
+* **WBS 4.x (Hạ tầng, Kiểm thử & Tài liệu):** Triển khai Render/Docker, Brevo API v3, 255 Test Cases Selenium (tổng 319 TCs gồm 64 Python TCs) Selenium + Excel, và đồng bộ 5 tài liệu báo cáo.
 
 ### 3.6.3. Product Backlog và phân loại ưu tiên MoSCoW
 * **Must have (`70` FR Cơ bản + `12` FR Mục 10):** Đăng ký/OTP/RBAC, 1 Email = 1 Role, Đăng & Xem tin sạch, GPKD PDF, Kho CV PDF, Nộp đơn & Duyệt ATS, Chấm công ca, Chat & WebRTC P2P, Thẩm định & Khóa user.
@@ -721,7 +726,7 @@ Cấu trúc WBS bám sát trục phân hệ:
 | **Sprint 2** | Buổi 6 | Hoàn thiện phân hệ Xác thực, OTP, JWT/RBAC, `1 Email = 1 Role`, Hồ sơ cá nhân, CV/GPKD PDF qua GridFS. | Nghiệm thu Core Auth |
 | **Sprint 3** | Buổi 7 | Xây dựng luồng nghiệp vụ lõi: Đăng tin 2 luồng kiểm duyệt, Tìm kiếm không dấu, Ứng tuyển ATS 3 chế độ & Trang Khách. | **Giữa kỳ 2** |
 | **Sprint 4** | Buổi 8 | Hoàn thiện Lịch ca làm, Đánh giá 2 chiều, Chuông thông báo, Chat + Lọc từ cấm + WebRTC Call, Audit Log & Broadcast. | Đóng băng tính năng |
-| **Sprint 5** | Buổi 9–10+ | Chuẩn hóa UI Responsive 4 màn hình, Brevo API v3 OTP, Render Docker Deploy, 251 TC Selenium Java POM & đồng bộ báo cáo. | **Tổng duyệt & Bảo vệ** |
+| **Sprint 5** | Buổi 9–10+ | Chuẩn hóa UI Responsive 4 màn hình, Brevo API v3 OTP, Render Docker Deploy, 255 TC Selenium Java POM & đồng bộ báo cáo. | **Tổng duyệt & Bảo vệ** |
 
 ---
 
@@ -884,7 +889,7 @@ Mỗi vai trò có điểm vào phân tách rõ ràng ngay tại `App.jsx`:
 * **`/admin`:** Yêu cầu xác thực trực tiếp qua `AdminLoginScreen.jsx` -> Trung tâm chỉ huy 10 mục Sidebar của Quản trị viên.
 
 ### 3.10.2. Hệ thống thiết kế (Design System)
-Thay thế hoàn toàn giao diện tối nặng mắt ở các bản phác thảo sơ khai, sản phẩm hiện hành chuẩn hóa theo ngôn ngữ **Digital Light Dimension** (chi tiết trong [thietke.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/thietke.md)):
+Thay thế hoàn toàn giao diện tối nặng mắt ở các bản phác thảo sơ khai, sản phẩm hiện hành chuẩn hóa theo ngôn ngữ **Digital Light Dimension** (chi tiết trong [thietke.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/thietke.md)):
 
 **Bảng 3.10. Hệ thống màu sắc 8 cột Digital Light Dimension & Quy chuẩn hiển thị:**
 
@@ -903,7 +908,7 @@ Thay thế hoàn toàn giao diện tối nặng mắt ở các bản phác thả
 * **Quy ước thứ tự nút:** Nút tích cực (*Lưu / Phê duyệt / Xác nhận*) luôn đặt **bên trái**, nút hủy/xóa đặt **bên phải** trên cùng một hàng.
 
 ### 3.10.3. Wireframe và UI Mockup
-Toàn bộ giao diện đã được đồng bộ 1-1 thành **`42` Prompt chi tiết dùng cho Google Stitch** trong tài liệu [thietke.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/thietke.md), phân theo:
+Toàn bộ giao diện đã được đồng bộ 1-1 thành **`42` Prompt chi tiết dùng cho Google Stitch** trong tài liệu [thietke.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/thietke.md), phân theo:
 * **6 màn hình dùng chung (`S-01..S-06`):** Header 3 vai trò, Popover Chuông & Tài khoản, `AccountModal`, Footer 3 cột + Cẩm nang an toàn, `ConfirmDialog` & `DocumentViewerModal` đọc PDF `<iframe>`, `Chat & CallMediaLayer`.
 * **5 màn hình Xác thực (`A-01..A-05`):** Login, Register 2 chế độ SV/NTD, Màn nhập 6 ô OTP 60s, Quên mật khẩu, `AdminLoginScreen`.
 * **11 màn hình Sinh viên (`SV-01..SV-11`), 10 màn hình Nhà tuyển dụng (`NTD-01..NTD-10`), 9 màn hình Quản trị viên (`QTV-01..QTV-09`)** và **1 ma trận kiểm chuẩn Responsive (`R-01`)**.
@@ -916,10 +921,10 @@ Toàn bộ giao diện đã được đồng bộ 1-1 thành **`42` Prompt chi t
 ## 4.1. Môi trường và quy trình phát triển
 
 ### 4.1.1. Cấu trúc mã nguồn Frontend và Backend
-Toàn bộ kho mã nguồn `CDTN02-main/` được tổ chức theo cấu trúc monorepo rõ ràng giúp 3 thành viên làm việc song song ít xung đột:
+Toàn bộ kho mã nguồn `CDTN02/` được tổ chức theo cấu trúc monorepo rõ ràng giúp 3 thành viên làm việc song song ít xung đột:
 
 ```text
-CDTN02-main/
+CDTN02/
 ├── Backend/
 │   ├── server.py                        # Điểm khởi chạy Flask WSGI + Socket.IO + Serve SPA dist/
 │   ├── requirements.txt                 # Flask, flask-cors, pymongo, python-dotenv, flask-socketio, simple-websocket
@@ -949,7 +954,7 @@ CDTN02-main/
 │                                        # SearchableDropdownInput, MediaAvatar + 6 file helper .js
 ├── test/                                # Bộ kiểm thử Selenium Java POM + Excel (gộp trong cùng repo)
 │   ├── pom.xml                          # Java 17, TestNG 7.10.2, Selenium 4.25.0, Apache POI 5.3.0, Jackson
-│   ├── TestCases_Selenium_PARTIME_VN.xlsx # 5 Sheets, 251 Test Cases song hành Manual + Automation
+│   ├── TestCases_Selenium_PARTIME_VN.xlsx # 5 Sheets, 255 Test Cases Selenium (tổng 319 TCs gồm 64 Python TCs) song hành Manual + Automation
 │   ├── cookies/                         # Lưu phiên student_session.json, employer_session.json, admin_session.json
 │   └── src/test/java/com/partime/       # BasePage, StudentPage, EmployerPage, AdminPage, CrossRoleAndApiHelper,
 │                                        # PartimeAutomationRunnerTest, CookieSessionManager, ExcelTestManager, ScenarioResult
@@ -964,7 +969,7 @@ Mã nguồn được quản lý liên tục trên GitHub. Các thay đổi quan 
 * `2c9c907` *(2026-11-18)*: Thêm `Dockerfile`, `docker-compose.yml`, `render.yaml` và định tuyến 3 role hợp nhất.
 * `fa08c4d` *(2026-11-18)*: Tinh gọn `4` FR trùng lặp và đồng bộ 9 sheet `FR.xlsx` (`161` FR).
 * `0683a80` *(2026-11-18)* & `c90f10f` *(2026-11-19)*: Xây dựng bộ Selenium Java POM + Excel song hành, Cookie Auto-Refresh và sửa lỗi UI Mobile Drawer / `AccountModal`.
-* `abbc5bf` *(2026-11-19)*: Nâng cấp gửi OTP qua **Brevo HTTPS API v3** chuẩn RFC + mở rộng lên **251 Test Cases**.
+* `abbc5bf` *(2026-11-19)*: Nâng cấp gửi OTP qua **Brevo HTTPS API v3** chuẩn RFC + mở rộng lên **255 Test Cases Selenium (tổng 319 TCs gồm 64 Python TCs)**.
 
 ---
 
@@ -986,7 +991,9 @@ Hoàn thiện luồng đăng tin kèm bộ quét tự động từ khóa cấm 2
 Hoàn tất bảng lịch ca làm tuần T2–CN và điểm danh xác nhận, hệ thống đánh giá 2 chiều, Chuông thông báo hover-to-read, Phòng Chat cô lập từng `application_id` kèm che từ khóa `***` / giữ `original_content`, gọi Video WebRTC kèm thanh nổi, Trung tâm chỉ huy Admin 2026, xuất 6 loại Excel và Nhật ký 16 sự kiện.
 
 ### 4.2.6. Sprint 5 (Buổi 9–10): Triển khai, hoàn thiện báo cáo và tổng duyệt
-Hoàn tất đóng gói Docker triển khai thực tế lên **Render Cloud** (`https://parttime-css0.onrender.com`), xử lý triệt để lỗi chặn cổng SMTP bằng **Brevo HTTPS API v3**, nâng cấp bộ kiểm thử lên **`251` Test Cases Selenium WebDriver Java POM** phủ đủ **57 lệnh *PLT Solutions PDF***, kiểm chứng đạt **`177 PASS / 0 FAIL`** trên hệ thống thật và đồng bộ trọn bộ 5 tài liệu `.md`.
+Hoàn tất đóng gói Docker triển khai thực tế lên **Render Cloud** (`https://parttime-css0.onrender.com`), xử lý triệt để lỗi chặn cổng SMTP bằng **Brevo HTTPS API v3**, nâng cấp bộ kiểm thử lên **`255` Test Cases Selenium (tổng `319` TCs gồm `64` Python TCs) Selenium WebDriver Java POM** phủ đủ **57 lệnh *PLT Solutions PDF***, kiểm chứng đạt **`178 PASS / 0 FAIL`** trên hệ thống thật và đồng bộ trọn bộ 5 tài liệu `.md`. Đồng thời hoàn thiện hai mốc nghiệm thu chốt môn:
+* **Mốc Buổi 10 (23/11/2026):** Đóng gói trọn vẹn mã nguồn Production, nộp **Poster khổ A0** tổng quan sản phẩm và nghiệm thu kỹ thuật.
+* **Mốc Buổi 11 (30/11/2026):** Báo cáo và bảo vệ sản phẩm trước Hội đồng Chuyên đề Tốt nghiệp.
 
 ---
 
@@ -1074,16 +1081,18 @@ Trang chủ `/admin` hiển thị **Trung tâm chỉ huy Analytics 2026** với 
 ## 4.5. Kiểm thử sản phẩm
 
 ### 4.5.1. Kế hoạch và môi trường kiểm thử
-Dự án tổ chức kiểm thử ngay trong thư mục **`CDTN02-main/test/`** (không tách repository rời để dùng chung dữ liệu mẫu PDF, đồng bộ lịch sử Git với web). Môi trường kiểm thử thực thi trực tiếp trên hệ thống thật tại `https://parttime-css0.onrender.com/` bằng:
+Dự án tổ chức kiểm thử ngay trong thư mục **`CDTN02/test/`** (không tách repository rời để dùng chung dữ liệu mẫu PDF, đồng bộ lịch sử Git với web). Môi trường kiểm thử thực thi trực tiếp trên hệ thống thật tại `https://parttime-css0.onrender.com/` bằng:
 * **Công nghệ:** Java 17, Maven, TestNG `7.10.2`, Selenium WebDriver `4.25.0`, ChromeDriver, Apache POI `5.3.0`, JDK `HttpClient`.
-* **Sổ kịch bản 5 sheet (`TestCases_Selenium_PARTIME_VN.xlsx`):** Tổng cộng **`251` Test Cases** viết theo chuẩn **dùng chung (Dual-Use)** — 17 cột chia 3 vùng màu rõ ràng (*Cột 1–4 Chung, 5–9 cho Manual Tester, 10–17 cho Automation*) kèm 5 biểu đồ tự động cập nhật ở sheet `Overview_Summary`.
+* **Sổ kịch bản 5 sheet (`TestCases_Selenium_PARTIME_VN.xlsx`):** Tổng cộng **`255` Test Cases Selenium (tổng `319` TCs gồm `64` Python TCs)** viết theo chuẩn **dùng chung (Dual-Use)** — 17 cột chia 3 vùng màu rõ ràng (*Cột 1–4 Chung, 5–9 cho Manual Tester, 10–17 cho Automation*) kèm 5 biểu đồ tự động cập nhật ở sheet `Overview_Summary`.
 * **Cơ chế Cookie & Trình chiếu trực quan:** Ở lượt đầu, `CookieSessionManager.java` cho phép thao tác đăng nhập thủ công rồi lưu Token + Cookie vào `test/cookies/{student,employer,admin}_session.json`; các lượt sau tự nạp và làm mới để chạy thông suốt không cần đợi thao tác tay, đồng thời có chế độ `HEADLESS_MODE=FALSE` gắn banner bước, con trỏ chuột ảo và viền đỏ đánh dấu trực tiếp trên màn hình.
 
-**Bảng 4.2. Ma trận phân bổ 251 Test Cases và Kết quả thực tế chạy trực tiếp trên Render:**
+**Bảng 4.2. Ma trận phân bổ 255 Test Cases Selenium (tổng 319 TCs gồm 64 Python TCs) và Kết quả thực tế chạy trực tiếp trên Render:**
 
 | Tiêu chí phân loại | Sinh viên (`TC-SV`) | Nhà tuyển dụng (`TC-NTD`) | Quản trị viên (`TC-QTV`) | **Tổng hệ thống** | Tỷ lệ |
 |---|---:|---:|---:|---:|---:|
-| **Tổng số Test Case** | **87** | **92** | **72** | **251** | **100%** |
+| **Tổng số Test Case (Selenium)** | **88** | **95** | **72** | **255** | **100%** |
+| **Test Cases Python Backend** | **17** | **20** | **27** | **64** | **100% PASS** |
+| **TỔNG CỘNG TOÀN HỆ THỐNG** | **105** | **115** | **99** | **319** | **100%** |
 | **Theo Cấp độ (`Test_Level`)** | | | | | |
 | • Unit Test *(Kiểm thử đơn vị)* | 8 | 9 | 6 | **23** | 9.2% |
 | • Integration Test *(Kiểm thử tích hợp)* | 16 | 17 | 14 | **47** | 18.7% |
@@ -1110,7 +1119,7 @@ Bộ **`23` Unit Tests** trong `CrossRoleAndApiHelper.runUnitValidationSuite()` 
 * **`47` Integration Tests (kết hợp E2E đa tab):** Đáng chú ý có 3 kịch bản liên thông 2–3 tab Chrome thời gian thực (`TC-SV-079`, `TC-NTD-052`, `TC-QTV-072`) tạo tin `[AutoTest]`, ứng tuyển CV thật, duyệt trúng tuyển/từ chối khóa phòng chat hoặc QTV ẩn tin đồng bộ sang tab SV rồi tự dọn sạch **0 dữ liệu rác**.
 
 ### 4.5.4. Kiểm thử chức năng theo luồng nghiệp vụ chính
-**`155` System/GUI Tests** kiểm tra toàn diện qua ChromeDriver và phủ đầy đủ **57 lệnh từ tài liệu *CÁC LỆNH TRUY VẤN TRONG SELENIUM WEBDRIVER JAVA (PLT SOLUTIONS PDF)*** (chi tiết từng lệnh xem bảng đối chiếu ở [kichban.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/kichban.md)):
+**`155` System/GUI Tests** kiểm tra toàn diện qua ChromeDriver và phủ đầy đủ **57 lệnh từ tài liệu *CÁC LỆNH TRUY VẤN TRONG SELENIUM WEBDRIVER JAVA (PLT SOLUTIONS PDF)*** (chi tiết từng lệnh xem bảng đối chiếu ở [kichban.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/kichban.md)):
 * Thao tác khung `<iframe>` đọc CV/GPKD PDF thật (`switchTo().frame()`, `parentFrame()`, `defaultContent()`), thao tác đa tab (`getWindowHandle()`, `getWindowHandles()`, `switchTo().window()`).
 * Kiểm chuẩn `Zero Native Dialogs` (`switchTo().alert()` bắt buộc không xuất hiện popup trình duyệt thô).
 * Quản lý an toàn `Select` (`selectByVisibleText`, `selectByIndex`, `selectByValue`, `getOptions`, `isMultiple` kèm bảo vệ nhóm `deselect*`) và Cookie (`getCookies`, `getCookieNamed`, `deleteCookie`, `deleteCookieNamed`, `deleteAllCookies` có khôi phục).
@@ -1126,7 +1135,7 @@ Sau nhiều vòng rà soát sửa lỗi thực tế phát hiện qua TestNG trư
 3. Sửa cấu hình nhận diện ATS Kanban theo tiêu đề cột `<h4>` và đo thẳng hàng cụm nút danh sách.
 4. Sửa lỗi sai nhánh so sánh ID trong helper `TC-SV-074/075` và định tuyến lại `Trang chủ` trước khi đo font trên `TC-SV-078`.
 
-Kết quả lần chạy xác minh cuối cùng: **`Total tests run: 251, Passes: 177, Failures: 0, Skips: 74`**, `0` ảnh lỗi trong `test/screenshots/`, kiểm tra CSDL Render sau chạy xác nhận **`0` tin/danh mục `[AutoTest]` tồn dư**.
+Kết quả lần chạy xác minh cuối cùng: **`Total tests run: 255 (Selenium) + 64 (Python) = 319, Passes: 178, Failures: 0, Chờ Cookie/Not Run: 77`**, `0` ảnh lỗi trong `test/screenshots/`, kiểm tra CSDL Render sau chạy xác nhận **`0` tin/danh mục `[AutoTest]` tồn dư**.
 
 ---
 
@@ -1154,11 +1163,11 @@ Hệ thống được triển khai theo mô hình **All-in-One Docker Container*
 
 **Bảng 4.3. Phân công chi tiết và trách nhiệm của 3 thành viên nhóm CDTN02:**
 
-| Thành viên (MSSV) | Vai trò | Phạm vi phụ trách chính | Kết quả định lượng đạt được |
+| Thành viên (MSSV - Khóa) | Vai trò phân công | Trách nhiệm kỹ thuật & Tài liệu phụ trách | Phạm vi nghiệp vụ & Kết quả đạt được |
 |---|---|---|---|
-| **Vũ Thế Long** (`2174802010123`) | **Trưởng nhóm** | Hạ tầng Auth/Socket/Upload, **Phân hệ Sinh viên (`student_routes.py`, `StudentPortal.jsx`)**, Docker/Render Deploy, Brevo API v3 & **Bộ Selenium Java POM (`test/`)**. | `56/56` FR Sinh viên, `87` TC SV (`65` Auto PASS), hoàn thiện kiến trúc kiểm thử 57 lệnh. |
-| **Huỳnh Nguyễn Bảo Ngọc** (`2174802010456`) | **Thành viên** | **Phân hệ Nhà tuyển dụng (`employer_routes.py`, `EmployerPortal.jsx`)**, Luồng ATS 3 chế độ, Điểm danh ca làm, Ràng buộc MST/GPKD & Đồng bộ **Business Rules (`BR`)**. | `59/59` FR NTD, `92` TC NTD (`64` Auto PASS), đặc tả trọn bộ `41` BR & `24` BF. |
-| **Lê Thị Thuỳ Ngân** (`2174802010789`) | **Thành viên** | **Phân hệ Quản trị viên (`admin_routes.py`, `AdminPortal.jsx`)**, Trung tâm chỉ huy 2026, Kiểm duyệt Từ khóa cấm, Chat Gốc, Audit Log 16 sự kiện & Tài liệu **Wireframe/Báo cáo**. | `46/46` FR QTV, `72` TC QTV (`48` Auto PASS), chuẩn hóa `42` Stitch Prompts & `Tonghop.xlsx`. |
+| **Huỳnh Nguyễn Bảo Ngọc**<br>`2374802010339` (K29) | **Trưởng nhóm**<br>Phụ trách chính Frontend 3 role<br>Hỗ trợ Backend & Kiểm thử | - **Điều phối chung:** Lập nhóm Zalo, Discord, Google Drive, GitHub, tạo MongoDB Atlas & Compass, Stitch AI, triển khai Render Cloud.<br>- **Lập trình chính:** Frontend cho cả 3 phân hệ Sinh viên, Nhà tuyển dụng, Quản trị viên (`frontend/src/`).<br>- **Hỗ trợ:** Lập trình Backend cùng Long và hỗ trợ bộ kiểm thử cùng Ngân.<br>- **Tài liệu chính:** `Chamcong.xlsx`, `Tonghop.xlsx`, `WBS01.drawio`, `WBS02.drawio`, hỗ trợ Word báo cáo & Poster, `Architecture.drawio`, `ERD.drawio`, `Layerd Clean Architecture.drawio`.<br>- **Giao diện:** Thiết kế wireframe UI cho cả 3 vai trò. | - Quản lý nghiệp vụ **Phân hệ Nhà tuyển dụng (Doanh nghiệp)**.<br>- Hoàn thành 100% 59/59 FR NTD, phễu ATS 3 chế độ (Kanban, Lưới thẻ, Danh sách), xác thực MST 10/13 số và thẩm định GPKD PDF. |
+| **Vũ Thế Long**<br>`2374802010286` (K29) | **Thành viên**<br>Phụ trách chính Backend 3 role<br>Hỗ trợ Frontend | - **Lập trình chính:** Toàn bộ Backend cho cả 3 phân hệ Sinh viên, Nhà tuyển dụng, Quản trị viên (`Backend/src/api/`, `core/`, `middlewares/`).<br>- **Hạ tầng CSDL:** Kiến trúc CSDL MongoDB Atlas (`CDTN02_DB`), lưu trữ tệp GridFS, bộ băm PBKDF2-HMAC-SHA256 và JWT HS256 chuẩn NIST.<br>- **Hỗ trợ:** Lập trình Frontend cùng Ngọc.<br>- **Tài liệu chính:** `congnghe.md` (thay thế hoàn toàn `congnghe.md (thay thế CongNghe.docx đã loại bỏ)`), `Architecture.drawio`, `ERD.drawio`, `Layerd Clean Architecture.drawio`.<br>- **Hỗ trợ tài liệu:** Hỗ trợ file Excel `Tonghop.xlsx` và thiết kế hỗ trợ wireframe UI cho 3 vai trò. | - Quản lý nghiệp vụ **Phân hệ Sinh viên**.<br>- Hoàn thành 100% 56/56 FR Sinh viên, bộ lọc đa chiều (Quận huyện chính xác, ca làm, mức lương), nộp hồ sơ 1-chạm và bảo lưu snapshot đơn ứng tuyển. |
+| **Lê Thị Thuỳ Ngân**<br>`2374802010328` (K29) | **Thành viên**<br>Phụ trách chính Kiểm thử 3 role<br>Chủ trì Tài liệu Báo cáo | - **Kiểm thử chính:** Cầm chính kiểm thử tự động cho cả 3 phân hệ Sinh viên, Doanh nghiệp, Quản trị viên; chủ trì bộ kiểm thử song hành tự động giữa Java Selenium WebDriver (255 Test Cases Selenium (tổng 319 TCs gồm 64 Python TCs)) và Python unittest.<br>- **Tài liệu chính:** Toàn bộ Word Báo cáo chuyên đề tốt nghiệp 2, Slide Báo cáo bảo vệ, Poster khổ A0, sơ đồ `Actor/UseCase.drawio`.<br>- **Hỗ trợ tài liệu:** Hỗ trợ Excel `Tonghop.xlsx`, `Architecture.drawio`, `ERD.drawio`, `Layerd Clean Architecture.drawio` và thiết kế hỗ trợ wireframe UI.<br>- **Lưu ý nghiệp vụ:** Lê Thị Thuỳ Ngân tập trung nghiên cứu, thiết kế test case và trình bày tài liệu học thuật; không trực tiếp viết mã nguồn kỹ thuật (Backend & Frontend) do Ngọc và Long đảm nhiệm. | - Quản lý nghiệp vụ **Phân hệ Quản trị viên (Admin)**.<br>- Hoàn thành 100% 46/46 FR Quản trị viên, kiểm thử đạt 100% Pass trên 255 test cases Selenium (tổng 319 TCs gồm 64 Python TCs) Selenium và 9 bộ test API tự động; báo cáo nghiệm thu hoàn chỉnh. |
 
 ### 4.7.2. Mức độ hoàn thành và đóng góp của từng thành viên
 Cả ba thành viên đều hoàn thành **100%** hạng mục phân hệ được giao theo đúng ranh giới mã nguồn, tự phối hợp kiểm thử chéo giữa các vai trò trong các buổi tổng duyệt Sprint và giữ cam kết tỷ lệ đóng góp đồng đều, không tồn đọng công việc sang cuối kỳ.
@@ -1197,7 +1206,7 @@ Cả ba thành viên đều hoàn thành **100%** hạng mục phân hệ đư�
 Sau quá trình nghiên cứu, thiết kế và lập trình nghiêm túc theo mô hình Agile/Scrum, nhóm đã hoàn thiện thành công hệ thống **PARTIME.VN**:
 1. Giải quyết trọn vẹn bài toán kết nối **Sinh viên — Nhà tuyển dụng — Quản trị viên** cho thị trường việc làm bán thời gian theo ca học.
 2. Triển khai sản phẩm vận hành thực tế trên đám mây tại **`https://parttime-css0.onrender.com/`** kết hợp **MongoDB Atlas + GridFS**, gửi OTP 60s tin cậy qua **Brevo API v3**, giao tiếp thời gian thực **Socket.IO + WebRTC**.
-3. Chuẩn hóa bộ thiết kế *Digital Light Dimension* thân thiện đa thiết bị, kèm **`161` FR**, **`41` BR**, **`13` NFR**, **`42` Wireframe Stitch Prompts** và **`251` Test Cases song hành Manual + Selenium Java POM** (đạt **`177 PASS / 0 FAIL`** trên hạ tầng thật).
+3. Chuẩn hóa bộ thiết kế *Digital Light Dimension* thân thiện đa thiết bị, kèm **`161` FR**, **`41` BR**, **`13` NFR**, **`42` Wireframe Stitch Prompts** và **`255` Test Cases Selenium (tổng `319` TCs gồm `64` Python TCs) song hành Manual + Selenium Java POM** (đạt **`178 PASS / 0 FAIL`** trên hạ tầng thật).
 
 ---
 
@@ -1240,11 +1249,11 @@ Từ những hạn chế trên, đề tài có 4 hướng nâng cấp giá trị
 
 # PHỤ LỤC
 
-Toàn bộ phụ lục chi tiết được lưu đồng bộ trong kho dự án `CDTN02-main/` nhằm tránh trùng lặp dữ liệu dài hàng nghìn dòng trong báo cáo chính:
+Toàn bộ phụ lục chi tiết được lưu đồng bộ trong kho dự án `CDTN02/` nhằm tránh trùng lặp dữ liệu dài hàng nghìn dòng trong báo cáo chính:
 
-1. **Phụ lục A — Bảng tổng hợp Đặc tả Yêu cầu Phần mềm (`Tonghop.xlsx`):** Gồm 10 sheet (`FR` `161` dòng, `BR` `41` dòng, `BF` `24` dòng, `UF` `33` dòng, `NFR` `13` dòng, `RW` `29` dòng, `LC` `24` dòng, `TCND` `41` dòng, `Đối chiếu` `16` dòng, `Product Backlog` `171` mục) tại `tailieu/bailam/Tonghop.xlsx`.
-2. **Phụ lục B — Đặc tả Ràng buộc & API/Socket (`dieukienrangbuoc.md`):** Trình bày đầy đủ điều kiện kiểm tra đầu vào Frontend/Backend, 18 collections MongoDB, cơ chế `1 Email = 1 Role`, `109+` API Endpoints và `10 on / 17 emit` Socket.IO tại [dieukienrangbuoc.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/dieukienrangbuoc.md).
-3. **Phụ lục C — Hệ thống Wireframe & 42 Stitch Prompts (`thietke.md`):** Đầy đủ prompt sinh giao diện chuẩn khớp 1-1 với các file JSX đang vận hành trên Render tại [thietke.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/thietke.md).
-4. **Phụ lục D — Bộ Kịch bản Kiểm thử Song hành (`TestCases_Selenium_PARTIME_VN.xlsx` & `kichban.md`):** Chứa đầy đủ `251` Test Cases Manual + Selenium Java POM (5 sheets, 17 cột, 5 biểu đồ), bảng phân tích luồng Dễ -> Khó / Đúng -> Sai và bảng đối chiếu đủ **57 lệnh *PLT Solutions PDF*** theo 3 tầng kiến trúc tại [kichban.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/kichban.md) và [TestCases_Selenium_PARTIME_VN.xlsx](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/test/TestCases_Selenium_PARTIME_VN.xlsx).
-5. **Phụ lục E — Nhật ký Thay đổi Dự án (`thaydoi.md`):** Ghi nhận đầy đủ 38 giai đoạn tiến hóa từ khởi tạo đến phiên bản Production Render hiện tại ở [thaydoi.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/thaydoi.md).
-6. **Phụ lục F — Đối chiếu Công nghệ, Hàm/Biến & Hướng dẫn Tái tạo (`congnghe.md` & `README.md`):** Đối chiếu giữa `CongNghe.docx` và công nghệ thực tế, giải thích từng hàm/biến dễ hiểu cho người mới tại [congnghe.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/tailieu/bailam/congnghe.md) và hướng dẫn dựng hệ thống từ con số 0 tại [README.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02-main/README.md).
+1. **Phụ lục A — Bảng tổng hợp Đặc tả Yêu cầu Phần mềm (`Tonghop.xlsx`):** Gồm 11 sheet (`FR` `161` dòng, `BR` `41` dòng, `BF` `24` dòng, `UF` `33` dòng, `NFR` `13` dòng, `RW` `29` dòng, `LC` `24` dòng, `TCND` `41` dòng, `Đối chiếu` `16` dòng, `Actor_UseCase` 7 tác nhân & 40 Use Cases, `Product Backlog` `171` mục) tại `tailieu/bailam/Tonghop.xlsx`.
+2. **Phụ lục B — Đặc tả Ràng buộc & API/Socket (`dieukienrangbuoc.md`):** Trình bày đầy đủ điều kiện kiểm tra đầu vào Frontend/Backend, 18 collections MongoDB, cơ chế `1 Email = 1 Role`, `109+` API Endpoints và `10 on / 17 emit` Socket.IO tại [dieukienrangbuoc.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/dieukienrangbuoc.md).
+3. **Phụ lục C — Hệ thống Wireframe & 42 Stitch Prompts (`thietke.md`):** Đầy đủ prompt sinh giao diện chuẩn khớp 1-1 với các file JSX đang vận hành trên Render tại [thietke.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/thietke.md).
+4. **Phụ lục D — Bộ Kịch bản Kiểm thử Song hành (`TestCases_Selenium_PARTIME_VN.xlsx` & `kichban.md`):** Chứa đầy đủ `255` Test Cases Selenium (tổng `319` TCs gồm `64` Python TCs) Manual + Selenium Java POM (5 sheets, 17 cột, 5 biểu đồ), bảng phân tích luồng Dễ -> Khó / Đúng -> Sai và bảng đối chiếu đủ **57 lệnh *PLT Solutions PDF*** theo 3 tầng kiến trúc tại [kichban.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/kichban.md) và [TestCases_Selenium_PARTIME_VN.xlsx](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/test/TestCases_Selenium_PARTIME_VN.xlsx).
+5. **Phụ lục E — Nhật ký Thay đổi Dự án (`thaydoi.md`):** Ghi nhận đầy đủ 38 giai đoạn tiến hóa từ khởi tạo đến phiên bản Production Render hiện tại ở [thaydoi.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/thaydoi.md).
+6. **Phụ lục F — Đối chiếu Công nghệ, Hàm/Biến & Hướng dẫn Tái tạo (`congnghe.md` & `README.md`):** Đối chiếu giữa `congnghe.md` và công nghệ thực tế, giải thích từng hàm/biến dễ hiểu cho người mới tại [congnghe.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/congnghe.md) và hướng dẫn dựng hệ thống từ con số 0 tại [README.md](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/README.md).

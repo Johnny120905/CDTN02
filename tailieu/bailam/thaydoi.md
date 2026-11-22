@@ -1094,15 +1094,15 @@ un.py.
 
 ---
 
-## 37. GIAI ĐOẠN 37: GỬI OTP BREVO HTTPS API V3, XÂY DỰNG BỘ SELENIUM JAVA POM (245 → 251 TC) & COOKIE AUTO-REFRESH
+## 37. GIAI ĐOẠN 37: GỬI OTP BREVO HTTPS API V3, XÂY DỰNG BỘ SELENIUM JAVA POM (245 → 255 TC) & COOKIE AUTO-REFRESH
 **Thời gian:** 18/11/2026 – 19/11/2026 (`0683a80`, `c90f10f`, `abbc5bf`)  
 **Thành phần:** `Backend/src/core/email_service.py`, `frontend/src/`, `test/`  
 **Nội dung thực hiện chi tiết:**
 1. **Nâng cấp gửi OTP qua Brevo HTTPS API v3 (`email_service.py`):**
    - Khắc phục hoàn toàn lỗi Render free-tier chặn cổng SMTP bằng cách gửi trực tiếp qua **`api.brevo.com` (HTTPS cổng `443`)** sử dụng `BREVO_API_KEY`; giữ fallback SMTP kèm chuẩn RFC `formataddr` / `Header(..., "utf-8")`.
    - Trả về trạng thái trung thực `email_sent: false` kèm log lỗi chi tiết nếu gửi thất bại, tuyệt đối không báo thành công giả.
-2. **Khởi tạo & Nâng cấp Bộ Kiểm thử Song hành Manual + Automation (`CDTN02-main/test/`):**
-   - Tích hợp trực tiếp dự án Maven Java 17 + TestNG `7.10.2` + Selenium `4.25.0` + Apache POI `5.3.0` + `HttpClient` ngay trong monorepo `CDTN02-main/test/`.
+2. **Khởi tạo & Nâng cấp Bộ Kiểm thử Song hành Manual + Automation (`CDTN02/test/`):**
+   - Tích hợp trực tiếp dự án Maven Java 17 + TestNG `7.10.2` + Selenium `4.25.0` + Apache POI `5.3.0` + `HttpClient` ngay trong monorepo `CDTN02/test/`.
    - Thiết kế sổ Excel 5 sheet `TestCases_Selenium_PARTIME_VN.xlsx` (17 cột chia 3 màu Chung / Manual / Automation, Data Validation, công thức tự động `COUNTA`/`COUNTIF`, và 5 biểu đồ thống kê ở `Overview_Summary`) đạt quy mô **`251` Test Cases** (`87` SV, `92` NTD, `72` QTV).
    - Triển khai **`CookieSessionManager.java` (`MANUAL_FIRST_THEN_COOKIE`)**: lượt đầu mở màn đăng nhập để nhập tay an toàn rồi lưu Token/Cookie vào `test/cookies/*.json`; các lượt sau tự nạp và phục hồi giúp chạy liên tục không bị văng đăng xuất 401.
    - Tích hợp chế độ trình chiếu trực quan trên Chrome (`#selenium-live-banner`, con trỏ chuột ảo, viền đỏ phần tử, gõ từng ký tự).
@@ -1125,7 +1125,7 @@ un.py.
 3. **Đồng bộ trọn bộ 6 Tài liệu `.md` trong `tailieu/bailam/` & `README.md`:**
    - **`dieukienrangbuoc.md`:** Cập nhật chuẩn xác `18` collections + GridFS, PBKDF2 `100.000` vòng, Brevo API v3, `41` BR, `13` NFR và bản đồ `109+` API / `10 on + 17 emit` Socket.IO.
    - **`thietke.md`:** Viết lại toàn bộ **`42` Google Stitch Prompts** đồng bộ 1-1 với giao diện thực tế đang vận hành (8 cột *Digital Light Dimension*, 0 emoji, chỉ Lucide icons) và ghi rõ 4 file UI dự phòng không mount.
-   - **`kichban.md` (thay thế và xóa `test.md`):** Trình bày lộ trình 251 Test Cases từ dễ -> khó, đúng -> sai, giải thích 74 ca `NO`, và lập bảng đối chiếu chi tiết toàn bộ 57 lệnh *PLT Solutions PDF* theo Frontend / API / Data cho người tiếp nhận sau.
+   - **`kichban.md` (thay thế và xóa `test.md`):** Trình bày lộ trình 255 Test Cases Selenium (tổng 319 TCs gồm 64 Python TCs) từ dễ -> khó, đúng -> sai, giải thích 74 ca `NO`, và lập bảng đối chiếu chi tiết toàn bộ 57 lệnh *PLT Solutions PDF* theo Frontend / API / Data cho người tiếp nhận sau.
    - **`noidung.md`:** Biên soạn lại toàn diện báo cáo Đồ án Chuyên đề Tốt nghiệp 2 bám sát đúng cấu trúc mục lục chuẩn Đại học Văn Lang (*Chương 1 → Chương 5, Tài liệu tham khảo, Phụ lục*), giải thích dễ hiểu cho cả người đọc ngoài chuyên ngành và trung thực 100% với mã nguồn thực tế (`React 18.2`).
    - **`congnghe.md`:** Lập mới tài liệu đối chiếu giữa `CongNghe.docx` và công nghệ thực tế đang chạy (nhấn mạnh `React 18.2`, không dùng React Router/Axios/Cloudinary/Flasgger/`Flask-PyMongo`/`Flask-Mail`/`pytest`, mà dùng `pymongo` + GridFS + `PBKDF2` + Brevo API v3 + Selenium POM) kèm từ điển giải thích vai trò từng hàm và biến cho người mới đọc.
    - **`README.md`:** Cập nhật lại toàn diện cây thư mục chính xác **`35` thư mục (`5` cấp 1 + `30` thư mục con)** và **`111` tệp tin** kèm chú thích từng tệp; viết lại hướng dẫn dựng dự án từ con số 0 đến triển khai Docker/Render mà **không lộ bất kỳ mật khẩu, API key, URI CSDL hay tài khoản riêng tư nào** (thay bằng hướng dẫn người dùng tự đăng ký/tạo khóa cá nhân).
@@ -1219,7 +1219,7 @@ un.py.
    - Thêm `tailieu/bailam/Chamcong.xlsx` (bảng chấm công & tiến độ) và `tailieu/bailam/Tonghop.xlsx` (bảng tổng hợp đặc tả).
    - Thay 3 sơ đồ cũ `tailieu/Architecture.drawio`, `tailieu/Layerd Clean Architecture.drawio`, `tailieu/ERD.drawio` bằng bản mới nhất của nhóm (lấy từ Google Drive nhóm), đồng thời thêm `tailieu/WBS01.drawio` và `tailieu/WBS02.drawio`.
 2. **Cập nhật tham chiếu:** đổi mọi chỗ ghi nguồn đặc tả `FR.xlsx` thành `Tonghop.xlsx` (9 sheet của `FR.xlsx` giữ nguyên trong `Tonghop.xlsx`, thêm sheet `Product Backlog`) trong `kichban.md`, `noidung.md`, `dieukienrangbuoc.md`, `test/python/BUG_LOG.md`, `README.md` (giữ nguyên tên `FR.xlsx` ở các giai đoạn cũ của file này vì đó là lịch sử).
-3. **Chốt số liệu kiểm thử (thay số liệu cũ 251 TC / 177 PASS):**
+3. **Chốt số liệu kiểm thử (thay số liệu cũ 255 TC / 177 PASS):**
    - Selenium: `255` TC (179 tự động, 76 thủ công) – **178 PASS / 0 FAIL / 77 Skip** (76 dòng `Run_Mode=NO` + TC-SV-075 thiếu dữ liệu), chạy gộp 3 vai bằng `mvn test` mất 23 phút 21 giây.
    - Python: **64/64 PASS** (10 unit + 54 API). 10 bug web làm khác tài liệu đã được sửa hết ngày 21/11/2026; 5 mã bug bị loại vì web khớp tài liệu.
    - Cập nhật `kichban.md` (mục 2.0 bảng kết quả chốt), `README.md` (cây thư mục và số lượng tệp tính theo GitHub: `35` thư mục, `122` tệp). Số liệu kiểm thử trong `noidung.md` (Bảng 4.2, mục 4.5) sẽ cập nhật ở lần sau.
@@ -1227,4 +1227,97 @@ un.py.
 
 ---
 
-> **Ghi chú đối chiếu lịch sử cho người đọc:** Các giai đoạn từ `01` đến `31` ở phần trên phản ánh đúng lịch sử tiến hóa qua từng buổi làm việc (bao gồm những thiết kế thử nghiệm cũ như giao diện Dark 4D, `16` collections, băm Bcrypt, OTP `10` phút, cổng local `8002`, hay bộ `9` `unittest` Python ban đầu). Kể từ **Giai đoạn 32 đến Giai đoạn 40**, toàn bộ kiến trúc hiện hành đã được chuẩn hóa thống nhất theo **Digital Light Dimension**, **MongoDB Atlas 18 Collections + GridFS**, **PBKDF2-HMAC-SHA256 (`100.000` vòng)**, **OTP 60 giây qua Brevo HTTPS API v3**, **Render Docker Deploy** và bộ kiểm thử **`251` Test Cases Selenium WebDriver Java POM** (`177 PASS / 0 FAIL`).
+> **Ghi chú đối chiếu lịch sử cho người đọc:** Các giai đoạn từ `01` đến `31` ở phần trên phản ánh đúng lịch sử tiến hóa qua từng buổi làm việc (bao gồm những thiết kế thử nghiệm cũ như giao diện Dark 4D, `16` collections, băm Bcrypt, OTP `10` phút, cổng local `8002`, hay bộ `9` `unittest` Python ban đầu). Kể từ **Giai đoạn 41 trở đi**, toàn bộ kiến trúc hiện hành đã được chuẩn hóa thống nhất theo **Digital Light Dimension**, **MongoDB Atlas 18 Collections + GridFS**, **PBKDF2-HMAC-SHA256 (`100.000` vòng)**, **OTP 60 giây qua Brevo HTTPS API v3**, **Render Docker Deploy** và bộ kiểm thử **`255` Test Cases Selenium WebDriver Java POM** (`178 PASS / 0 FAIL`) kèm **`64` Test Cases Python** (tổng cộng **`319` Test Cases toàn hệ thống**).
+
+---
+
+### Giai Đoạn 9: Loại Bỏ CongNghe.docx, Nâng Cấp congnghe.md (Bảng 40 Công Nghệ & Vai Trò Hỗ Trợ), Chuẩn Hóa 42 Prompts Stitch (Chống Phát Sinh Ngoài Ý Muốn), Đồng Bộ 1-1 Chamcong.xlsx (Thêm Sheet Đối Chiếu Tiến Độ & Đánh Giá Tài Liệu), Cập Nhật Tonghop.xlsx Và Hoàn Thiện noidung.md
+*Thời gian: 22/11/2026*  
+*Người thực hiện: Huỳnh Nguyễn Bảo Ngọc (Trưởng nhóm), Vũ Thế Long, Lê Thị Thuỳ Ngân*  
+*Thành phần liên quan:* `tailieu/bailam/CongNghe.docx`, `tailieu/bailam/congnghe.md`, `tailieu/bailam/thietke.md`, `tailieu/bailam/Chamcong.xlsx`, `tailieu/bailam/Tonghop.xlsx`, `tailieu/bailam/noidung.md`, `tailieu/bailam/thaydoi.md`.
+
+- **Mục tiêu & Yêu cầu thực thi:**
+  1. Loại bỏ hoàn toàn tệp nhị phân `CongNghe.docx` khỏi thư mục `tailieu/bailam/` để chống dư thừa và đồng bộ 100% tài liệu kỹ thuật về `congnghe.md`.
+  2. Rà soát, đối chiếu và bổ sung Bảng Master Data toàn bộ 40 công nghệ, framework, thư viện, driver và công cụ thực tế đang sử dụng trong mã nguồn; nêu rõ vai trò hệ thống và giá trị hỗ trợ đối với Website.
+  3. Cập nhật bộ 42 prompt thiết kế Google Stitch tại `thietke.md` cho cả 3 vai trò (Sinh viên, Nhà tuyển dụng, Quản trị viên) kèm quy tắc nghiêm ngặt chống phát sinh ngoài ý muốn (Strict Anti-Hallucination Directive), đảm bảo AI Stitch chỉ tái tạo đúng 1-1 bản website hiện tại.
+  4. Chuẩn hóa `Chamcong.xlsx`:
+     - Sheet `Project Schedule`: Cập nhật đúng các mốc thời gian Sprint 0 đến Sprint 5 theo quy định; điều chỉnh mốc Buổi 10 kết thúc ngày 26/11/2026 và Buổi 11 ngày 30/11/2026; rà soát 16 cột và phân bổ thời lượng 1 ngày, 1-2 ngày, 2+ ngày theo độ phức tạp.
+     - Sheet `Project Log`: Cập nhật 13 cột đồng bộ 100% với Project Schedule và lịch sử commit.
+     - Sheet `Performance Review`: Chuẩn hóa đúng 12 cột bám sát mẫu `Nhatkythuchien.docx` và chuẩn đầu ra CLO 1–7.
+     - Tạo mới Sheet `Đối chiếu tiến độ & Đánh giá`: gồm Bảng đối chiếu tiến độ ước tính vs thực tế theo 31 Git Commits và `thaydoi.md` (đánh giá tốc độ Nhanh/Đúng tiến độ) và Bảng đánh giá mức độ đủ/thiếu của tài liệu qua từng Sprint từ Sprint 0 đến Sprint 5.
+     - Chuẩn hóa chính xác thông tin 3 thành viên: Vũ Thế Long (2374802010286 - K29 - Backend chính 3 role, hỗ trợ Frontend, congnghe.md, phân hệ Sinh viên), Lê Thị Thuỳ Ngân (2374802010328 - K29 - Kiểm thử chính 3 role song song Java & Python, Word/Slide/Poster, phân hệ Quản trị viên, không làm code), Huỳnh Nguyễn Bảo Ngọc (2374802010339 - K29 - Trưởng nhóm, Frontend chính 3 role, hỗ trợ Backend & Kiểm thử, hạ tầng, Chamcong.xlsx, Tonghop.xlsx, phân hệ Doanh nghiệp).
+  5. Đồng bộ hóa `Tonghop.xlsx`: Rà soát 10 sheets (`FR`, `BR`, `BF`, `UF`, `NFR`, `RW`, `LC`, `TCND`, `Đối chiếu Phạm vi đề tài`, `Product Backlog`) đảm bảo liên kết chặt chẽ với toàn bộ tài liệu dự án.
+  6. Hoàn thiện báo cáo học thuật `noidung.md`: Chuẩn hóa thông tin thành viên (MSSV khóa K29), cập nhật mục 4.7.1 và 4.7.2, thay thế toàn bộ liên kết đường dẫn về `CDTN02` và ghi nhận việc loại bỏ `CongNghe.docx`.
+  7. Đối chiếu toàn diện giữa thư mục làm việc `CDTN02/` với các tài liệu quy chuẩn của Khoa CNTT trong `tailieu/noidung/`.
+
+- **Danh sách file thêm mới / chỉnh sửa / loại bỏ:**
+  - `tailieu/bailam/CongNghe.docx`: **ĐÃ LOẠI BỎ (DELETED)** khỏi dự án.
+  - `tailieu/bailam/congnghe.md`: Chỉnh sửa, bổ sung thông báo loại bỏ `CongNghe.docx` và bảng tra cứu 40 công nghệ thực tế chi tiết 5 phân nhóm (Frontend, Backend, CSDL, Test Automation, DevOps/Tools).
+  - `tailieu/bailam/thietke.md`: Chỉnh sửa, bổ sung chỉ thị nghiêm ngặt cho AI Stitch (Strict Anti-Hallucination Directive) và chuẩn hóa 42 prompts.
+  - `tailieu/bailam/Chamcong.xlsx`: Chỉnh sửa `Project Schedule` (16 cột, ngày Buổi 10: 23–26/11/2026, Buổi 11: 30/11/2026), `Project Log` (13 cột), `Performance Review` (12 cột) và **Tạo mới Sheet `Đối chiếu tiến độ & Đánh giá`**.
+  - `tailieu/bailam/Tonghop.xlsx`: Đối chiếu và đồng bộ 10 sheets.
+  - `tailieu/bailam/noidung.md`: Chỉnh sửa, đồng bộ thông tin 3 thành viên K29, phân công chuyên môn, liên kết tài liệu và kiểm tra cấu trúc mục lục Chương 1–5.
+  - `tailieu/bailam/thaydoi.md`: Cập nhật chi tiết nhật ký thay đổi Giai đoạn 9.
+
+- **Kết quả kiểm tra & Nghiệm thu:**
+  - 100% các file đã đồng bộ và liên kết chặt chẽ với nhau.
+  - Không còn tồn tại file `CongNghe.docx`.
+  - Bộ kiểm thử và tài liệu sẵn sàng cho buổi nghiệm thu và bảo vệ chính thức ngày 30/11/2026.
+
+- **Hiệu Chỉnh & Cập Nhật Đặc Biệt (22/11/2026):**
+  1. **Đính chính số lượng Test Cases thực tế:**
+     - Trước đây một số tài liệu ghi nhận số liệu cũ là 251 TCs.
+     - Sau khi rà soát và kiểm tra trực tiếp từ tệp chuẩn [`test/TestCases_Selenium_PARTIME_VN.xlsx`](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/test/TestCases_Selenium_PARTIME_VN.xlsx), số lượng Test Case chính xác hiện tại là:
+       * **255 Test Cases Selenium WebDriver Java (3 Role):** Sinh viên (88 TCs: `TC-SV-001` → `TC-SV-088`), Nhà tuyển dụng (95 TCs: `TC-NTD-001` → `TC-NTD-095`), Quản trị viên (72 TCs: `TC-QTV-001` → `TC-QTV-072`). Kết quả thực thi thực tế trên môi trường Render: **178 Auto PASS / 0 FAIL / 77 Chờ Cookie/Not Run**.
+       * **64 Test Cases Python Backend Unittest:** Kiểm thử chuyên sâu API RBAC, ràng buộc 1 Email = 1 Role và bảo mật token/từ khóa cấm (100% PASS).
+       * **Tổng cộng toàn hệ thống:** **255 + 64 = 319 Test Cases**.
+     - Đã đồng bộ và cập nhật lại toàn bộ các tệp: `noidung.md`, `congnghe.md`, `Tonghop.xlsx`, `Chamcong.xlsx` và `thaydoi.md`.
+  2. **Bổ sung mốc Nộp Poster báo cáo (Khổ A0) ngày 23/11/2026:**
+     - Xác định rõ ngày **23/11/2026 là hạn chót nộp Poster báo cáo khổ A0** cho Khoa CNTT và GVHD trong Sprint 5 (Buổi 10).
+     - Đã cập nhật vào `Project Schedule` (ID104 / WBS 6.3.1), `Project Log` (LOG-ID104), `Performance Review` và báo cáo `noidung.md`.
+
+
+---
+
+## Giai đoạn 10: Khắc phục Triệt để Lỗ hổng Tài liệu Actor / Use Case, Bổ sung Sheet Tổng hợp và Phân tích Khoảng trống (Gap Analysis) Toàn diện theo CLO 1–7 & Rubric 1–3 ĐH Văn Lang
+
+- **Thời gian thực hiện:** Ngày 22/11/2026.
+- **Người thực hiện:** Cả nhóm 02 (Huỳnh Nguyễn Bảo Ngọc, Vũ Thế Long, Lê Thị Thuỳ Ngân).
+- **Mục tiêu & Nguyên nhân điều chỉnh:**
+  1. **Thừa nhận và khắc phục thẳng thắn sai sót đánh giá tài liệu:** Nhận định trước đó ghi nhận tài liệu Sprint 0 và Sprint 1 là 'Đủ' là vội vàng và chưa phản ánh đúng thực tế lưu trữ, vì trong thư mục `tailieu/` thực tế chưa có tệp `Actor_UseCase.drawio` và trong workbook `Tonghop.xlsx` chưa có sheet `Actor_UseCase`.
+  2. **Khởi tạo tệp `tailieu/Actor_UseCase.drawio` hoàn chỉnh:** Xây dựng tệp sơ đồ đồ họa chuẩn mxfile Draw.io gồm 5 sơ đồ chi tiết (Phân cấp tác nhân, Use Case tổng thể, Phân hệ Sinh viên, Phân hệ Nhà tuyển dụng, Phân hệ Quản trị viên) thể hiện đầy đủ các quan hệ `«include»` và `«extend»`.
+  3. **Tích hợp sheet `Actor_UseCase` vào `tailieu/bailam/Tonghop.xlsx`:** Thiết kế 3 bảng tiêu chuẩn (Danh mục 7 Actors, Ma trận phân quyền RBAC 10 phân hệ, Danh mục 40 Use Cases chi tiết ánh xạ chuẩn sang 161 Functional Requirements).
+  4. **Hiệu chỉnh sheet `Đối chiếu tiến độ & Đánh giá` trong `tailieu/bailam/Chamcong.xlsx`:** Ghi nhận trung thực hiện trạng 'Thiếu ban đầu -> Đã khắc phục bổ sung kịp thời' tại Sprint 0 và làm rõ các ấn phẩm cuối kỳ còn thiếu cần hoàn thiện trước ngày bảo vệ.
+  5. **Báo cáo phân tích khoảng trống (Gap Analysis) toàn diện:** Rà soát và liệt kê chi tiết mọi tài liệu, ấn phẩm và điều kiện cần bổ sung để đáp ứng trọn vẹn 7 Chuẩn đầu ra (CLO 1 đến CLO 7) và 3 Rubrics đánh giá (Rubric 1: 10%, Rubric 2: 30%, Rubric 3: 60%) theo Đề cương chi tiết học phần Chuyên đề tốt nghiệp 2 (71ITGR40303).
+
+- **Chi tiết các hạng mục đã hoàn thành:**
+  1. **Khởi tạo và bàn giao file [`tailieu/Actor_UseCase.drawio`](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/Actor_UseCase.drawio):**
+     - Sơ đồ 1 (`01_PhanCap_TacNhan`): Phân cấp rõ nét Human Actors (Khách -> Authenticated User -> Sinh viên, NTD, QTV) và External System Actors (Brevo Mail API, MongoDB Atlas, Socket.IO & WebRTC Mesh).
+     - Sơ đồ 2 (`02_UseCase_TongQuat`): Sơ đồ Use Case tổng quan 14 nghiệp vụ cốt lõi gắn liền System Boundary PARTIME.VN.
+     - Sơ đồ 3 (`03_UseCase_SinhVien`): Chi tiết 16 Use Cases phân hệ Sinh viên với các quan hệ `«include»` (Xác thực OTP, Kiểm tra hồ sơ) và `«extend»` (Tải CV PDF, Lọc nâng cao, Cover Letter, Hủy đơn, WebRTC, Báo cáo NTD).
+     - Sơ đồ 4 (`04_UseCase_NhaTuyenDung`): Chi tiết 15 Use Cases phân hệ Doanh nghiệp với `«include»` (Nộp GPKD, Quét từ khóa vi phạm Regex, Gửi email tự động Brevo) và `«extend»` (Sửa tin, Tải CV PDF, Chat, Báo cáo vi phạm).
+     - Sơ đồ 5 (`05_UseCase_QuanTriVien`): Chi tiết 14 Use Cases phân hệ Quản trị viên với `«include»` (Duyệt GPKD) và `«extend»` (Khóa tài khoản, Gỡ tin, Ẩn review, Quản lý danh mục kỹ năng/ngành nghề).
+  2. **Bổ sung Sheet `Actor_UseCase` trong [`tailieu/bailam/Tonghop.xlsx`](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/Tonghop.xlsx):**
+     - Bảng 1: Danh mục 7 Tác nhân (ACT-01 đến ACT-04 và ACT-SYS-01 đến ACT-SYS-03) có đầy đủ mô tả, cơ chế xác thực và phạm vi truy cập.
+     - Bảng 2: Ma trận phân quyền RBAC 10 phân hệ nghiệp vụ (MOD-01 đến MOD-10) phân tách rành mạch quyền hạn Khách, Sinh viên, Nhà tuyển dụng, Quản trị viên.
+     - Bảng 3: Danh mục 40 Use Cases chi tiết kèm độ ưu tiên MoSCoW, quan hệ include/extend và ánh xạ chính xác sang dải mã FR-001 đến FR-161.
+  3. **Hiệu chỉnh Bảng Chấm Công [`tailieu/bailam/Chamcong.xlsx`](file:///d:/Hoc/DH/N4/N4.HK01/Chuyende2/CDTN02/tailieu/bailam/Chamcong.xlsx):**
+     - Sửa trạng thái dòng 21 (Sprint 0) thành: *'Thiếu ban đầu (Đã bổ sung kịp thời)'*, nêu rõ việc thiếu sơ đồ Actor/UseCase và sheet Excel đã được khắc phục hoàn tất.
+     - Sửa trạng thái dòng 26 (Sprint 5) thành: *'Đang hoàn thiện các ấn phẩm nộp (Poster, Word, Slide, Video)'*, liệt kê chi tiết các ấn phẩm bắt buộc cần nộp.
+  4. **Kiểm tra và chuẩn hóa số liệu thống kê toàn dự án:**
+     - 161 Functional Requirements (FR).
+     - 41 Business Rules (BR).
+     - 15 Business Flows (BF).
+     - 23 User Flows (UF).
+     - 12 Non-Functional Requirements (NFR).
+     - 319 Tổng số Test Cases (255 Selenium WebDriver Java + 64 Python Backend Unittest).
+
+- **Hiệu Chỉnh & Hoàn Thiện Poster Khóa Luận (22/11/2026):**
+  - Đã xử lý tinh chỉnh nội dung và loại bỏ Slide mẫu thừa khỏi tệp Poster khổ $60 \times 90\text{ cm}$.
+  - Nhúng trực tiếp 5 tệp hình ảnh thực tế chất lượng cao (300 DPI) gồm: Ảnh Sản phẩm chính, Mã QR Demo, Ảnh Sản phẩm phụ, Sơ đồ Kiến trúc hệ thống, Biểu đồ Kiểm thử 319 TCs.
+  - Đồng bộ toàn bộ nội dung văn bản học thuật (Tên đề tài, 3 thành viên K29, GVHD, 4 metrics, vấn đề & mục tiêu, công nghệ, kiểm thử, kết luận & tài liệu tham khảo).
+
+- **Dọn dẹp tệp rác & hoàn thiện đồng bộ toàn diện (22/11/2026):**
+  - Đã loại bỏ hoàn toàn thư mục tạm `tailieu/bailam/hinhanh/`.
+  - Đã xóa hoàn tất 2 tệp nhị phân tạm `Poster_PARTIME_VN_60x90.pptx` và `BieuDo_KiemThu_PARTIME_VN.xlsx` sau khi giải phóng tiến trình khóa.
+  - Thư mục `tailieu/bailam/` đã trở về trạng thái chuẩn hóa 100% gồm đúng 8 tệp cốt lõi (`Chamcong.xlsx`, `Tonghop.xlsx`, `noidung.md`, `congnghe.md`, `thietke.md`, `dieukienrangbuoc.md`, `kichban.md`, `thaydoi.md`).

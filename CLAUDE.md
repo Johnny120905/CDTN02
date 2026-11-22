@@ -26,9 +26,13 @@ python run.py                             # or run.bat; run_separate_roles.bat =
 docker compose up --build                 # health check: GET /api/health
 ```
 
-There is no linter and there are no backend unit tests. The only test suite is the Selenium end-to-end suite in `test/`. It needs the app running at the `BASE_URL` set in the Excel config sheet (default `http://localhost:8002`).
+The test suite consists of **319 Test Cases** across two tiers: **255 Selenium WebDriver Java POM E2E tests** (in `test/`, run via `run_selenium_tests.bat`) and **64 Python Backend Unit/Integration tests** (in `test/python/`, run via `run_python_tests.bat`). The Selenium suite needs the app running at the `BASE_URL` set in the Excel config sheet (default `http://localhost:8002` or Render).
 
 ```bash
+# Python Backend Test Suite (64 TCs - Unit & API RBAC/Flow, in-memory)
+cd test && run_python_tests.bat           # or python test\python\run_python_tests.py
+
+# Selenium E2E Test Suite (255 TCs - Headed/Headless Chrome POM + Excel)
 cd test && mvn test                       # or run_selenium_tests.bat (falls back to javac + resolve_cp.py when Maven is missing)
 mvn test -DroleFilter=SV                  # run one role only: SV | NTD | QTV (also STUDENT/EMPLOYER/ADMIN)
 mvn test -Dheadless=true -DdemoSpeedMs=0 -Dhighlight=false   # fast, no visible browser

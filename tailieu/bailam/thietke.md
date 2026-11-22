@@ -46,6 +46,11 @@ Design System & Aesthetic Rules for PARTIME.VN (Web Application):
 - Iconography: Crisp stroke-based Lucide icons ONLY. Strictly ZERO emojis anywhere in the UI.
 - Navigation Pattern: Top sticky glass Header (h-20) + Collapsible Left Sidebar (10 menu items with count badges) + Main Content Panel + 3-column White Footer. On mobile (<768px), sidebar becomes a left slide-in drawer toggled by Header Menu icon (no sticky bottom navigation bar).
 - Interactive Standards: Positive/Save/Approve buttons ALWAYS placed left of Cancel/Reject/Delete buttons. Native browser alerts forbidden; destructive confirmations use dark navy modal ConfirmDialog (#0b1329, blue rim light).
+- Strict Anti-Hallucination Directive (QUY TẮC BẮT BUỘC KHÔNG THÊM BỚT TÍNH NĂNG):
+  1. TUYỆT ĐỐI CHỈ thiết kế chính xác theo đúng các thành phần, nhãn, nút bấm, bảng dữ liệu và trường nhập liệu được đặc tả chi tiết trong từng prompt dưới đây.
+  2. TUYỆT ĐỐI KHÔNG tự ý thêm các tính năng bên ngoài chưa có trong mã nguồn như: cổng thanh toán trực tuyến/ví tiền ảo, giỏ hàng thương mại điện tử, bảng xếp hạng game hóa/huy hiệu kim cương, mạng xã hội chia sẻ công khai hay đa ngôn ngữ.
+  3. TUYỆT ĐỐI KHÔNG tự ý bớt các trường dữ liệu bắt buộc (như MST 10/13 số, tải GPKD PDF, bộ đếm ngược OTP 60 giây, kiểm tra magic bytes %PDF, chấm công ca tuần Thứ 2 - Chủ Nhật, phân trang 10/20/50/Tất cả, và thanh cảnh báo từ khóa cấm đỏ trực tiếp).
+  4. Đảm bảo mọi giao diện tái tạo khớp 100% bản website hiện tại đang vận hành trên mã nguồn JSX thực tế.
 ```
 
 ---

@@ -1,7 +1,7 @@
 # TÀI LIỆU ĐẶC TẢ ĐIỀU KIỆN RÀNG BUỘC & QUY TẮC NGHIỆP VỤ HỆ THỐNG (VERIFIED SPECIFICATION)
 
 > **Dự án:** Nền tảng Tuyển dụng Việc làm Part-time theo ca cho Sinh viên — **PARTIME.VN** (`CDTN02`)  
-> **Đối chiếu đồng bộ 100% từ:** Mã nguồn Backend (`Backend/src/**`), Giao diện Frontend (`frontend/src/**`), Đặc tả `tailieu/bailam/Tonghop.xlsx` (**161 FRs**, **41 Business Rules**, **13 NFRs**) và Bộ kiểm thử `test/TestCases_Selenium_PARTIME_VN.xlsx` (**251 Test Cases**).  
+> **Đối chiếu đồng bộ 100% từ:** Mã nguồn Backend (`Backend/src/**`), Giao diện Frontend (`frontend/src/**`), Đặc tả `tailieu/bailam/Tonghop.xlsx` (**161 FRs**, **41 Business Rules**, **13 NFRs**) và Bộ kiểm thử `test/TestCases_Selenium_PARTIME_VN.xlsx` (**255 Test Cases Selenium WebDriver Java POM, tổng 319 TCs toàn hệ thống kèm 64 Python API TCs**).  
 > **Triển khai thực tế (Production Render):** `https://parttime-css0.onrender.com/` (Sinh viên) | `/employer` (Nhà tuyển dụng) | `/admin` (Quản trị viên) | Local hợp nhất cổng `8002`.
 
 ---

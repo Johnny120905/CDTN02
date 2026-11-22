@@ -8,8 +8,8 @@
 
 ## 1. TỔNG QUAN KIẾN TRÚC KIỂM THỬ SONG HÀNH (DUAL-USE HYBRID)
 
-### 1.1. Mô hình Gộp Thư mục `test/` trong Monorepo `CDTN02-main`
-* Bộ kiểm thử tự động được tổ chức **gộp ngay trong thư mục `CDTN02-main/test/`** (cùng cấp với `Backend/` và `frontend/`), **không cần tách thành repository riêng biệt**, vì:
+### 1.1. Mô hình Gộp Thư mục `test/` trong Monorepo `CDTN02`
+* Bộ kiểm thử tự động được tổ chức **gộp ngay trong thư mục `CDTN02/test/`** (cùng cấp với `Backend/` và `frontend/`), **không cần tách thành repository riêng biệt**, vì:
   1. Độc lập công nghệ qua `test/pom.xml` (Maven + Java 17 + TestNG `7.10.2` + Selenium `4.25.0` + Apache POI `5.3.0` + Jackson), hoàn toàn không xung đột với Python Flask hay Node/Vite.
   2. Dùng chung tệp dữ liệu mẫu (`test/sample_assets/`), tệp cấu hình môi trường Deploy Render (`https://parttime-css0.onrender.com/`) và đồng bộ phiên bản trực tiếp với mỗi thay đổi của Website trên cùng lịch sử Git.
   3. Toàn bộ kịch bản viết tập trung trong **1 tệp Excel duy nhất** `test/TestCases_Selenium_PARTIME_VN.xlsx` để người test tay (Manual Tester) và người chạy Automation dùng chung một nguồn chân lý.
@@ -88,7 +88,7 @@ Kết quả thực thi trực tiếp trên hệ thống Deploy Render (`https://
 
 ## 3. LỘ TRÌNH KỊCH BẢN TỪ DỄ → KHÓ & LUỒNG ĐÚNG → LUỒNG SAI (ÁNH XẠ `TC_*` ↔ `Tonghop.xlsx`)
 
-Để người tiếp nhận dễ đọc, kiểm thử và bảo trì, 251 Test Cases được sắp xếp thành **4 bậc độ khó tăng dần**, trong đó mỗi phân hệ luôn có cặp **Luồng Đúng (Happy Path / Smoke)** đi trước và **Luồng Sai (Negative / Security Guard)** đi kèm đối xứng:
+Để người tiếp nhận dễ đọc, kiểm thử và bảo trì, 255 Test Cases Selenium (tổng 319 TCs toàn hệ thống) được sắp xếp thành **4 bậc độ khó tăng dần**, trong đó mỗi phân hệ luôn có cặp **Luồng Đúng (Happy Path / Smoke)** đi trước và **Luồng Sai (Negative / Security Guard)** đi kèm đối xứng:
 
 ### 3.1. Bậc 1 (Dễ): Smoke Public, Unit Validation Logic & Giao diện Thuần UI
 * **Đang test gì?** Mở trang Khách (`?guest=true`), kiểm tra Header/Footer/Cẩm nang an toàn, đếm đủ 10 danh mục Sidebar, Typography `Be Vietnam Pro`, không vỡ layout trên 4 kích thước (`1920px`, `1366px`, `820px`, `430px`) và 23 hàm Unit Test kiểm chứng quy tắc dữ liệu bằng Java thuần (`CrossRoleAndApiHelper.runUnitValidationSuite()`).
@@ -225,19 +225,19 @@ Trong dự án đang tận dụng chủ yếu `By.xpath(...)`, `By.cssSelector(.
 
 1. **Chạy trình chiếu trực quan đầy đủ (Headed Chrome — nhìn thấy rõ mọi thao tác trên Web):**
    ```powershell
-   cd d:\Hoc\DH\N4\N4.HK01\Chuyende2\CDTN02-main\test
+   cd d:\Hoc\DH\N4\N4.HK01\Chuyende2\CDTN02\test
    .\run_selenium_tests.bat
    ```
    * Đọc tham số `HEADLESS_MODE=FALSE` & `DEMO_SPEED_MS=450` trực tiếp từ sheet `Config_Environment`. Kết thúc tự đồng bộ lại `Auto_Status`, `Auto_Log_Error` và biểu đồ `Overview_Summary`.
 2. **Chạy kiểm tra nhanh không giao diện trước khi Push GitHub (Batch Headless ~3–5 phút):**
    ```powershell
-   cd d:\Hoc\DH\N4\N4.HK01\Chuyende2\CDTN02-main\test
+   cd d:\Hoc\DH\N4\N4.HK01\Chuyende2\CDTN02\test
    $cp = python resolve_cp.py
    java -Dfile.encoding=UTF-8 -Dheadless=true -DdemoSpeedMs=60 -cp "target/test-classes;$cp" org.testng.TestNG testng.xml
    ```
 3. **Cách Xóa Cookie để Nhập lại Tài khoản Thủ công ở Lần Chạy Đầu:**
    ```powershell
-   Remove-Item d:\Hoc\DH\N4\N4.HK01\Chuyende2\CDTN02-main\test\cookies\*_session.json
+   Remove-Item d:\Hoc\DH\N4\N4.HK01\Chuyende2\CDTN02\test\cookies\*_session.json
    ```
    Sau khi xóa, bật `run_selenium_tests.bat`: tại `TC-SV-007`, `TC-NTD-005`, `TC-QTV-002`, hệ thống sẽ mở trình duyệt dừng chờ tối đa `120` giây để bạn gõ tay Email/Mật khẩu mới, sau khi đăng nhập thành công sẽ tự động đóng gói Cookie mới dùng cho hàng chục lần chạy tiếp theo.
 4. **Thực hiện Manual Test Song hành trên cùng File Excel:**
