@@ -776,6 +776,32 @@ def update_applicant_status(app_id):
     else:
         timeline_note = note or f"Doanh nghiệp chuyển trạng thái sang {new_status}"
 
+    if new_status == "accepted":
+        # Ghi mốc duyệt theo giờ VN và chốt ngày ca làm không được trước ngày duyệt / ngày đăng tin
+        set_fields["accepted_at"] = now_str
+        from datetime import datetime as _dt
+        def _to_date(raw):
+            s = str(raw or "").strip()
+            for fmt, size in (("%Y-%m-%d", 10), ("%d/%m/%Y", 10), ("%d-%m-%Y", 10)):
+                try:
+                    return _dt.strptime(s[:size], fmt).date()
+                except ValueError:
+                    continue
+            return None
+        job_doc = db_manager.get_collection("jobs").find_one({"_id": app.get("job_id")}) or {}
+        shift_text = f"{app.get('work_time') or ''} {app.get('shift_registered') or ''} {job_doc.get('work_time') or ''}".lower()
+        # Ca lặp theo thứ (Thứ 2 - Thứ 6, Cuối tuần...) do frontend tự hiển thị theo tuần nhận ca nên không gán 1 ngày duy nhất
+        is_weekly_pattern = bool(re.search(r"thứ\s*[2-7]|\bt[2-7]\b|chủ\s*nhật|\bcn\b|cuối tuần|cả tuần|hàng ngày|tất cả các", shift_text))
+        if not is_weekly_pattern:
+            candidates = [
+                _to_date(now_str),
+                _to_date(job_doc.get("created_at")),
+                _to_date(job_doc.get("shift_date") or job_doc.get("work_date")),
+                _to_date(app.get("shift_date")),
+            ]
+            floor_date = max(d for d in candidates if d)
+            set_fields["shift_date"] = floor_date.strftime("%d/%m/%Y")
+
     history_item = {
         "status": new_status,
         "updated_at": now_str,

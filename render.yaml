@@ -25,6 +25,8 @@ services:
         value: 8002
       - key: DEBUG
         value: "False"
+      - key: TZ
+        value: Asia/Ho_Chi_Minh
       - key: DATABASE_NAME
         value: CDTN02_DB
       - key: JWT_SECRET_KEY

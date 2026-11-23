@@ -1357,7 +1357,11 @@ function _parseDateValue(rawDate) {
     const parsed = new Date(Number(dmy[3]), Number(dmy[2]) - 1, Number(dmy[1]));
     return isNaN(parsed.getTime()) ? null : parsed;
   }
-  const isoLike = s.includes(' ') && /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(s) ? s.replace(' ', 'T') : s;
+  let isoLike = s.includes(' ') && /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(s) ? s.replace(' ', 'T') : s;
+  // Chuỗi ngày giờ do Backend ghi không kèm múi giờ -> mặc định là giờ Việt Nam (GMT+7), tránh lệch ngày theo máy người xem
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(isoLike)) {
+    isoLike += '+07:00';
+  }
   const parsed = new Date(isoLike);
   return isNaN(parsed.getTime()) ? null : parsed;
 }
@@ -1386,6 +1390,21 @@ export function parseShiftAnchorDate(app, job = null) {
   const explicit = parseShiftExplicitDate(app, job);
   if (explicit) return explicit;
 
+  const inferred = _inferShiftAnchorDate(app);
+  if (!inferred) return null;
+
+  // Ngày ca làm không được rơi trước ngày Nhà tuyển dụng đăng tin
+  const postedRaw = job?.created_at || app?.job_created_at;
+  const posted = _parseDateValue(postedRaw);
+  if (posted) {
+    const postedDay = new Date(posted.getFullYear(), posted.getMonth(), posted.getDate());
+    const inferredDay = new Date(inferred.getFullYear(), inferred.getMonth(), inferred.getDate());
+    if (inferredDay.getTime() < postedDay.getTime()) return postedDay;
+  }
+  return inferred;
+}
+
+function _inferShiftAnchorDate(app) {
   if (app?.accepted_at) {
     const acc = _parseDateValue(app.accepted_at);
     if (acc) return acc;

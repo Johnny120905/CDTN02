@@ -1,5 +1,11 @@
 import os
 import sys
+import time
+
+# Ép múi giờ Việt Nam (GMT+7) cho mọi time.strftime / datetime.now(): Render chạy UTC nên ngày ghi vào DB bị lùi 7 tiếng
+os.environ.setdefault("TZ", "Asia/Ho_Chi_Minh")
+if hasattr(time, "tzset"):  # tzset chỉ có trên Linux/macOS (Render); Windows dùng sẵn giờ hệ thống
+    time.tzset()
 
 # Ensure backend root is on sys.path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

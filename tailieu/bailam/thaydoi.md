@@ -1322,6 +1322,7 @@ un.py.
   - Đã xóa hoàn tất 2 tệp nhị phân tạm `Poster_PARTIME_VN_60x90.pptx` và `BieuDo_KiemThu_PARTIME_VN.xlsx` sau khi giải phóng tiến trình khóa.
   - Thư mục `tailieu/bailam/` đã trở về trạng thái chuẩn hóa 100% gồm đúng 8 tệp cốt lõi (`Chamcong.xlsx`, `Tonghop.xlsx`, `noidung.md`, `congnghe.md`, `thietke.md`, `dieukienrangbuoc.md`, `kichban.md`, `thaydoi.md`).
 
+
 ---
 
 ## Giai đoạn 11: Thêm máy chủ TURN cho WebRTC gọi khác mạng
@@ -1335,3 +1336,27 @@ un.py.
   - `frontend/src/shared/webrtcSocketService.js`: Thêm cấu hình máy chủ TURN vào `RTC_CONFIG.iceServers` (giữ nguyên 5 dòng STUN của Google, không thay đổi giao diện hay logic Backend nên không ảnh hưởng các ca kiểm thử Selenium `TC-SV-076`, `TC-NTD-057`, `TC-NTD-078`, `TC-SV-079`).
   - `tailieu/bailam/thaydoi.md`: Ghi nhận nhật ký cập nhật Giai đoạn 11.
 
+---
+
+## Giai đoạn 12: Sửa lỗi ca làm của Sinh viên rơi vào ngày trước ngày Nhà tuyển dụng đăng tin (lệch múi giờ UTC / GMT+7)
+
+- **Thời gian thực hiện:** Ngày 23/11/2026.
+- **Người thực hiện:** Vũ Thế Long, Huỳnh Nguyễn Bảo Ngọc.
+- **Hiện tượng:** Nhà tuyển dụng đăng tin ngày 23/11/2026, Sinh viên được duyệt vào ca làm nhưng ca làm hiển thị ở ngày 22/11/2026 (trước ngày đăng tin).
+- **Nguyên nhân:**
+  1. **Backend:** Mọi mốc thời gian được ghi bằng `time.strftime(...)` theo giờ máy chủ. Render chạy UTC (GMT+0), chậm hơn Việt Nam 7 tiếng, nên trong khung 00:00–06:59 giờ VN ngày ghi vào CSDL bị lùi 1 ngày.
+  2. **Frontend:** Đơn ứng tuyển không có `shift_date` cụ thể nên hàm `parseShiftAnchorDate` tự suy ra ngày ca từ `accepted_at` / `status_history` / `applied_at` (mốc UTC bị lùi). Chuỗi ngày giờ không kèm múi giờ còn bị trình duyệt hiểu theo giờ máy người xem, và không có ràng buộc ca làm không được trước ngày đăng tin.
+- **Nội dung đã sửa:**
+  1. **Ghi giờ Việt Nam ở Backend:** đặt `TZ=Asia/Ho_Chi_Minh` kèm `time.tzset()` (bọc `hasattr` để chạy được trên Windows) trong `Backend/server.py`; thêm biến môi trường `TZ=Asia/Ho_Chi_Minh` cho service `partime-student` trong `render.yaml`.
+  2. **Gán ngày ca lúc duyệt:** trong `update_applicant_status` (`Backend/src/api/employer/employer_routes.py`), khi chuyển sang `accepted` thì ghi `accepted_at`. Nếu ca không lặp theo thứ, ghi thêm `shift_date` (định dạng `DD/MM/YYYY`) bằng ngày lớn nhất trong: ngày duyệt, ngày đăng tin, ngày ca của tin (nếu có), ngày ca của đơn (nếu có). Ca lặp theo thứ (Thứ 2 - Thứ 6, Cuối tuần, Cả tuần...) không gán `shift_date` để giao diện vẫn hiển thị theo tuần.
+  3. **Lớp bảo vệ ở Frontend:** trong `frontend/src/shared/searchAndFilterHelper.js`, `_parseDateValue` tự gắn `+07:00` cho chuỗi ngày giờ không có múi giờ; `parseShiftAnchorDate` không cho ngày neo nhỏ hơn ngày đăng tin `job.created_at`.
+- **Danh sách file chỉnh sửa:**
+  - `Backend/server.py`
+  - `render.yaml`
+  - `Backend/src/api/employer/employer_routes.py`
+  - `frontend/src/shared/searchAndFilterHelper.js`
+  - `tailieu/bailam/thaydoi.md`
+- **Lưu ý khi kiểm tra:**
+  - Phải deploy lại Render để Backend ghi đúng giờ Việt Nam.
+  - Duyệt mới trên tin cũ sẽ cho ngày ca đúng. Đơn đã duyệt trước khi sửa chỉ được cải thiện bởi lớp bảo vệ ở Frontend; dữ liệu cũ ghi theo UTC có thể còn lệch tối đa 7 tiếng.
+  - Chưa chạy lại bộ kiểm thử `mvn test` sau thay đổi này.
