@@ -1359,4 +1359,29 @@ un.py.
 - **Lưu ý khi kiểm tra:**
   - Phải deploy lại Render để Backend ghi đúng giờ Việt Nam.
   - Duyệt mới trên tin cũ sẽ cho ngày ca đúng. Đơn đã duyệt trước khi sửa chỉ được cải thiện bởi lớp bảo vệ ở Frontend; dữ liệu cũ ghi theo UTC có thể còn lệch tối đa 7 tiếng.
-  - Chưa chạy lại bộ kiểm thử `mvn test` sau thay đổi này.
+  - Đã chạy lại bộ kiểm thử `mvn test` sau khi deploy (23/11/2026, Lê Thị Thuỳ Ngân): kết quả chốt 255 run / 0 FAIL / 77 Skip (chi tiết ở Giai đoạn 13).
+
+---
+
+## Giai đoạn 13: Khôi phục dữ liệu danh mục Ngành nghề bị xóa & chạy lại toàn bộ kiểm thử sau Giai đoạn 11–12
+
+- **Thời gian thực hiện:** Ngày 23/11/2026.
+- **Người thực hiện:** Lê Thị Thuỳ Ngân (kiểm thử, khôi phục dữ liệu; có hỗ trợ AI).
+- **Hiện tượng:** Chạy lại `mvn test` sau khi deploy Giai đoạn 11–12 cho kết quả 255 run / 2 FAIL / 77 Skip. 2 ca FAIL là `TC-QTV-013` và `TC-QTV-071`: ô lọc "Tất cả nhóm ngành nghề" trên Trung tâm chỉ huy (Dashboard Admin) không có lựa chọn nào.
+- **Nguyên nhân:**
+  - Đây là lỗi dữ liệu, không phải lỗi code. Toàn bộ danh mục Ngành nghề trong Master Data đã bị xóa thủ công trên web Admin (Ngành Nghề = 0, chỉ còn mục rác `[AutoTest] Địa Điểm 3965`).
+  - Bộ test không gây ra việc này: ca test Master Data chỉ xóa dòng có chữ `[AutoTest]`.
+  - Khi xóa 1 danh mục, API `DELETE /api/admin/categories/<id>` đặt `category_id = ""` cho mọi tin thuộc ngành đó. Vì vậy cả 31 tin tuyển dụng bị chuyển thành "Ngành nghề khác".
+- **Cách khắc phục (không sửa code Backend/Frontend):**
+  - Dùng script tạm `khoi_phuc_nganh_nghe.py`, chạy thử trước rồi mới chạy `--apply`. Script không commit vào repo.
+  - Script đọc tên ngành còn lưu ở trường `category_name` của từng tin, tạo lại 7 danh mục Ngành nghề và gắn lại `category_id` cho 31/31 tin.
+  - 7 ngành được khôi phục: Nhân viên Barista / Pha chế (9 tin), Trợ giảng tiếng Anh trung tâm (6), Nhân viên Phục vụ bàn & Đón khách (4), Nhân viên rạp chiếu phim (CGV / Lotte) (4), Thu ngân kiêm Order POS (4), Nhân viên giao hàng / Shipper công nghệ (3), Nhân viên Lễ tân tối & Chăm sóc học viên (1).
+- **Kết quả kiểm thử sau khắc phục:**
+  - Chạy lại toàn bộ `mvn test` (một người chạy, không chạy song song): 255 run / 1 FAIL / 77 Skip.
+  - Ca FAIL duy nhất là `TC-SV-079` (E2E liên thông có gọi video): khung "Cuộc gọi phỏng vấn đến" phía NTD chưa kịp đóng nên che menu. Đây là lỗi thời gian chờ của test; ca này đã PASS ở lần chạy trước trên cùng phiên bản code.
+  - Chạy lại riêng `mvn test -DtcFilter=TC-SV-079`: PASS.
+  - **Kết quả chốt ngày 23/11/2026: 255 run / 178 PASS / 0 FAIL / 77 Skip.**
+- **Danh sách file chỉnh sửa:**
+  - `test/TestCases_Selenium_PARTIME_VN.xlsx`: cập nhật kết quả chạy tự động ngày 23/11/2026.
+  - `tailieu/bailam/thaydoi.md`: Ghi nhận Giai đoạn 13, cập nhật dòng "Lưu ý khi kiểm tra" của Giai đoạn 12.
+- **Lưu ý cho nhóm:** Không xóa danh mục thật trên web demo. Mỗi lần chỉ một người chạy `mvn test`.
