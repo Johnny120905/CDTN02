@@ -1385,3 +1385,26 @@ un.py.
   - `test/TestCases_Selenium_PARTIME_VN.xlsx`: cập nhật kết quả chạy tự động ngày 23/11/2026.
   - `tailieu/bailam/thaydoi.md`: Ghi nhận Giai đoạn 13, cập nhật dòng "Lưu ý khi kiểm tra" của Giai đoạn 12.
 - **Lưu ý cho nhóm:** Không xóa danh mục thật trên web demo. Mỗi lần chỉ một người chạy `mvn test`.
+
+---
+
+## Giai đoạn 14: Chuẩn hóa sheet Actor_UseCase (Tonghop.xlsx) theo 161 FR, BR, BF và đề tài
+
+- **Thời gian thực hiện:** Ngày 25/11/2026.
+- **Người thực hiện:** Lê Thị Thuỳ Ngân (BA/kiểm thử; có hỗ trợ AI).
+- **Nguyên nhân:** Sheet Actor_UseCase (thêm ngày 22/11/2026) chưa đối chiếu với bộ 161 FR đã chốt từ 18/11/2026:
+  - cột ánh xạ dùng mã FR không tồn tại (`FR-SV-001`…), thay vì mã thật `FR-SV-01.01`…;
+  - còn UC đã bỏ (Soạn thư giới thiệu) và UC "gửi email kết quả qua Brevo" (web chỉ gửi email OTP);
+  - thiếu UC cho Lịch ca, Kho CV, Chấm công, Lịch phỏng vấn, Từ khóa cấm, Đánh giá chéo, Audit Log, Thông báo hệ thống;
+  - một số số liệu sai so với tài liệu: lương tối thiểu 20.000 (đúng là 15.000–200.000, BR-NTD-04), băm SHA-256/Bcrypt (đúng là PBKDF2, NFR-03), 18 collections (đúng là 16), CV nhận DOCX (chỉ PDF), có "chia sẻ màn hình", "trừ điểm uy tín", danh mục "Kỹ năng";
+  - thiếu luồng nghiệp vụ đầu – cuối.
+- **Nội dung đã sửa (chỉ sheet Actor_UseCase, các sheet khác giữ nguyên):**
+  1. **Phần 1 – Tác nhân (7 → 6):** Khách, Sinh viên, Nhà tuyển dụng, Quản trị viên, Người dùng (tổng quát hóa), Dịch vụ Email OTP (Brevo). Bỏ MongoDB Atlas và Socket.IO/WebRTC vì là thành phần bên trong hệ thống.
+  2. **Phần 2 – Ma trận phân quyền:** 13 phân hệ theo mục FR; sửa quyền Sinh viên được gọi thoại/video; ràng buộc ghi kèm mã BR/NFR.
+  3. **Phần 3 – Use case (40 → 46):** Dùng chung 9, Sinh viên 14, Nhà tuyển dụng 13, Quản trị viên 10; ánh xạ mã FR thật, phủ đủ 161/161 FR.
+  4. **Phần 4 – Luồng đầu – cuối (mới):** "Đăng tin (Đang tuyển) → Tìm kiếm → Ứng tuyển kèm CV → Duyệt trúng tuyển (Đã nhận người) → Hoàn thành → Đánh giá 2 chiều", chi tiết 12 bước kèm UC, BF và mục đề tài đáp ứng (Mục 1–7, Mục 10).
+  5. **Phần 5 – Ánh xạ 24 Business Flow → Use Case (mới).**
+- **Danh sách file chỉnh sửa:**
+  - `tailieu/bailam/Tonghop.xlsx`: sheet Actor_UseCase.
+  - `tailieu/bailam/thaydoi.md`: Ghi nhận Giai đoạn 14.
+- **Việc còn lại:** `tailieu/Actor_UseCase.drawio` (5 trang) vẫn theo bản cũ, sẽ vẽ lại cho khớp sheet ở giai đoạn sau.
