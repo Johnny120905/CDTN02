@@ -108,7 +108,13 @@ export default function Header({
         try {
           const u = JSON.parse(e.newValue || '{}');
           const currentRole = isEmployer ? 'employer' : (isStudent ? 'student' : 'admin');
-          if (u.role === currentRole) {
+          const incomingId = u._id || u.id;
+          const incomingEmail = (u.email || '').toLowerCase();
+          const currentEmail = (currentUser?.email || '').toLowerCase();
+          const isSameUser =
+            (incomingId && currentUserId && String(incomingId) === String(currentUserId)) ||
+            (incomingEmail && currentEmail && incomingEmail === currentEmail);
+          if (u.role === currentRole && isSameUser) {
             const nextUrl = u.avatar_url || u.logo_url || u.profile?.avatar_url || u.profile?.logo_url || '';
             if (nextUrl) setProfileAvatar(nextUrl);
           }
@@ -121,7 +127,7 @@ export default function Header({
       window.removeEventListener('partime-avatar-updated', handleAvatarUpdateEvent);
       window.removeEventListener('storage', handleStorageEvent);
     };
-  }, [isEmployer, isStudent]);
+  }, [isEmployer, isStudent, currentUserId, currentUser?.email]);
 
   // 2. Tải avatar từ server để đảm bảo dữ liệu luôn tươi mới ngay khi tải trang
   useEffect(() => {

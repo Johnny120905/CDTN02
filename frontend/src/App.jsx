@@ -245,8 +245,21 @@ export default function App() {
     const isTabActive = sessionStorage.getItem(`partime_tab_active_${targetRole}`) === 'true';
 
     if (isTabActive) {
-      const roleUser = localStorage.getItem(`partime_${targetRole}_user`);
-      const roleToken = localStorage.getItem(`partime_${targetRole}_token`);
+      // Ưu tiên đọc phiên cô lập theo riêng từng Tab trong sessionStorage để 2 tab đăng nhập 2 email khác nhau (cùng role) không bao giờ ghi đè nhau
+      let roleUser = sessionStorage.getItem(`partime_tab_user_${targetRole}`);
+      let roleToken = sessionStorage.getItem(`partime_tab_token_${targetRole}`);
+
+      // Chỉ fallback 1 lần từ localStorage khi tab được nạp phiên từ ngoài (VD Selenium CookieSessionManager) rồi chốt vào sessionStorage riêng của tab
+      if (!roleUser) {
+        roleUser = localStorage.getItem(`partime_${targetRole}_user`);
+        roleToken = roleToken || localStorage.getItem(`partime_${targetRole}_token`);
+        if (roleUser) {
+          sessionStorage.setItem(`partime_tab_user_${targetRole}`, roleUser);
+        }
+        if (roleToken) {
+          sessionStorage.setItem(`partime_tab_token_${targetRole}`, roleToken);
+        }
+      }
 
       if (roleUser) {
         try {
@@ -257,6 +270,7 @@ export default function App() {
               if (
                 prev &&
                 (prev._id || prev.id) === (parsed._id || parsed.id) &&
+                prev.email === parsed.email &&
                 prev.role === parsed.role &&
                 prev.status === parsed.status &&
                 prev.approval_status === parsed.approval_status &&
@@ -266,9 +280,6 @@ export default function App() {
               }
               return parsed;
             });
-            if (roleToken) {
-              localStorage.setItem('partime_token', roleToken);
-            }
             return;
           }
         } catch (e) {}
@@ -287,23 +298,32 @@ export default function App() {
     };
   }, [currentPath]);
 
-  const handleAuthSuccess = (user) => {
+  const handleAuthSuccess = (user, authToken) => {
     const updatedUser = {
       ...user,
       status: 'active',
       profile: { ...(user.profile || {}), status: 'active' }
     };
     const role = updatedUser.role || (currentPath.startsWith('/admin') ? 'admin' : (currentPath.startsWith('/employer') ? 'employer' : 'student'));
+    const token =
+      authToken ||
+      sessionStorage.getItem(`partime_tab_token_${role}`) ||
+      localStorage.getItem(`partime_${role}_token`) ||
+      localStorage.getItem('partime_token');
     
-    // Kích hoạt phiên độc lập cho riêng tab hiện tại
+    // Kích hoạt và lưu phiên ĐỘC LẬP cho riêng tab hiện tại (không bị tab khác đăng nhập cùng role ghi đè)
     sessionStorage.setItem(`partime_tab_active_${role}`, 'true');
     sessionStorage.setItem('partime_tab_role', role);
+    sessionStorage.setItem(`partime_tab_user_${role}`, JSON.stringify(updatedUser));
+    if (token) {
+      sessionStorage.setItem(`partime_tab_token_${role}`, token);
+    }
 
-    // Lưu phiên độc lập theo vai trò để mở song song 3 role trên 3 tab không bị ghi đè lẫn nhau
+    // Lưu phiên mới nhất vào localStorage theo vai trò để tương thích Cookie/Selenium
     localStorage.setItem(`partime_${role}_user`, JSON.stringify(updatedUser));
-    const token = localStorage.getItem('partime_token');
     if (token) {
       localStorage.setItem(`partime_${role}_token`, token);
+      localStorage.setItem('partime_token', token);
     }
 
     localStorage.setItem('partime_user', JSON.stringify(updatedUser));
@@ -324,7 +344,12 @@ export default function App() {
 
   const handleLogout = async () => {
     const roleBeforeLogout = currentUser?.role || (currentPath.startsWith('/admin') ? 'admin' : (currentPath.startsWith('/employer') ? 'employer' : 'student'));
-    const token = localStorage.getItem(`partime_${roleBeforeLogout}_token`) || localStorage.getItem('partime_token');
+    const loggedOutId = currentUser?._id || currentUser?.id;
+    const loggedOutEmail = (currentUser?.email || '').toLowerCase();
+    const token =
+      sessionStorage.getItem(`partime_tab_token_${roleBeforeLogout}`) ||
+      localStorage.getItem(`partime_${roleBeforeLogout}_token`) ||
+      localStorage.getItem('partime_token');
 
     if (token && currentUser) {
       try {
@@ -343,26 +368,42 @@ export default function App() {
       }
     }
 
-    // Hủy kích hoạt phiên trên tab hiện tại
+    // Hủy kích hoạt và xóa phiên của RIÊNG tab hiện tại
     sessionStorage.removeItem(`partime_tab_active_${roleBeforeLogout}`);
+    sessionStorage.removeItem(`partime_tab_user_${roleBeforeLogout}`);
+    sessionStorage.removeItem(`partime_tab_token_${roleBeforeLogout}`);
+    if (sessionStorage.getItem('partime_tab_role') === roleBeforeLogout) {
+      sessionStorage.removeItem('partime_tab_role');
+    }
 
-    // Xóa phiên của riêng vai trò đó để không ảnh hưởng đến các vai trò khác đang mở ở tab khác
-    localStorage.removeItem(`partime_${roleBeforeLogout}_user`);
-    localStorage.removeItem(`partime_${roleBeforeLogout}_token`);
+    // Chỉ xóa localStorage nếu đúng là tài khoản của tab vừa đăng xuất (không đá văng tab khác đang đăng nhập email khác)
+    const isSameStoredUser = (rawJson) => {
+      if (!rawJson) return false;
+      try {
+        const parsed = JSON.parse(rawJson);
+        if (loggedOutId && (parsed._id || parsed.id)) {
+          return String(parsed._id || parsed.id) === String(loggedOutId);
+        }
+        if (loggedOutEmail && parsed.email) {
+          return String(parsed.email).toLowerCase() === loggedOutEmail;
+        }
+        return parsed.role === roleBeforeLogout;
+      } catch (e) {
+        return true;
+      }
+    };
+
+    if (isSameStoredUser(localStorage.getItem(`partime_${roleBeforeLogout}_user`))) {
+      localStorage.removeItem(`partime_${roleBeforeLogout}_user`);
+      localStorage.removeItem(`partime_${roleBeforeLogout}_token`);
+    }
     localStorage.removeItem(`partime_active_menu_${roleBeforeLogout}`);
 
-    // Xóa phiên chung nếu đang lưu vai trò này
+    // Xóa phiên chung nếu đang lưu đúng tài khoản này
     const generalUser = localStorage.getItem('partime_user');
-    if (generalUser) {
-      try {
-        if (JSON.parse(generalUser).role === roleBeforeLogout) {
-          localStorage.removeItem('partime_user');
-          localStorage.removeItem('partime_token');
-        }
-      } catch (e) {
-        localStorage.removeItem('partime_user');
-        localStorage.removeItem('partime_token');
-      }
+    if (generalUser && isSameStoredUser(generalUser)) {
+      localStorage.removeItem('partime_user');
+      localStorage.removeItem('partime_token');
     }
 
     setCurrentUser(null);
@@ -503,7 +544,12 @@ export default function App() {
             isOpen={isAccountModalOpen}
             onClose={() => setIsAccountModalOpen(false)}
             currentUser={currentUser}
-            onUpdateSuccess={(u) => setCurrentUser(u)}
+            onUpdateSuccess={(u) => {
+              if (u?.role) {
+                sessionStorage.setItem(`partime_tab_user_${u.role}`, JSON.stringify(u));
+              }
+              setCurrentUser(u);
+            }}
           />
 
           <Footer 
@@ -646,7 +692,12 @@ export default function App() {
             isOpen={isAccountModalOpen}
             onClose={() => setIsAccountModalOpen(false)}
             currentUser={currentUser}
-            onUpdateSuccess={(u) => setCurrentUser(u)}
+            onUpdateSuccess={(u) => {
+              if (u?.role) {
+                sessionStorage.setItem(`partime_tab_user_${u.role}`, JSON.stringify(u));
+              }
+              setCurrentUser(u);
+            }}
           />
 
           <Footer 
@@ -791,7 +842,12 @@ export default function App() {
           isOpen={isAccountModalOpen}
           onClose={() => setIsAccountModalOpen(false)}
           currentUser={currentUser}
-          onUpdateSuccess={(u) => setCurrentUser(u)}
+          onUpdateSuccess={(u) => {
+              if (u?.role) {
+                sessionStorage.setItem(`partime_tab_user_${u.role}`, JSON.stringify(u));
+              }
+              setCurrentUser(u);
+            }}
         />
 
         <Footer 

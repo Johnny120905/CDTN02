@@ -127,8 +127,20 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
         const updatedUser = { ...currentUser };
         updatedUser.status = userStatus;
         updatedUser.profile = { ...(updatedUser.profile || {}), ...bodyData };
-        localStorage.setItem(`partime_${currentUser.role}_user`, JSON.stringify(updatedUser));
-        localStorage.setItem('partime_user', JSON.stringify(updatedUser));
+        sessionStorage.setItem(`partime_tab_user_${currentUser.role}`, JSON.stringify(updatedUser));
+        try {
+          const storedRoleRaw = localStorage.getItem(`partime_${currentUser.role}_user`);
+          const storedRole = storedRoleRaw ? JSON.parse(storedRoleRaw) : null;
+          const curId = currentUser._id || currentUser.id;
+          if (!storedRole || (storedRole._id || storedRole.id) === curId) {
+            localStorage.setItem(`partime_${currentUser.role}_user`, JSON.stringify(updatedUser));
+          }
+          const storedGenRaw = localStorage.getItem('partime_user');
+          const storedGen = storedGenRaw ? JSON.parse(storedGenRaw) : null;
+          if (!storedGen || (storedGen._id || storedGen.id) === curId) {
+            localStorage.setItem('partime_user', JSON.stringify(updatedUser));
+          }
+        } catch (e) {}
         if (onUpdateSuccess) onUpdateSuccess(updatedUser);
         emitSync(SYNC_EVENTS.PROFILES, { role: currentUser.role, action: 'profile_modal_update' });
       } else {

@@ -66,11 +66,15 @@ export default function AdminLoginScreen({ onAuthSuccess, onNavigate }) {
 
       if (res.ok && data.success && data.token) {
         setSuccessMsg('Xác thực Quản trị viên thành công! Đang chuyển hướng vào Trung tâm chỉ huy...');
+        sessionStorage.setItem('partime_tab_token_admin', data.token);
+        sessionStorage.setItem('partime_tab_user_admin', JSON.stringify(data.user));
+        sessionStorage.setItem('partime_tab_active_admin', 'true');
+        sessionStorage.setItem('partime_tab_role', 'admin');
         localStorage.setItem('partime_admin_token', data.token);
         localStorage.setItem('partime_admin_user', JSON.stringify(data.user));
         localStorage.setItem('partime_token', data.token);
         localStorage.setItem('partime_user', JSON.stringify(data.user));
-        onAuthSuccess(data.user);
+        onAuthSuccess(data.user, data.token);
         return;
       }
 

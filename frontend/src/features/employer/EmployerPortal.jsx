@@ -747,15 +747,14 @@ export default function EmployerPortal({
             detail: { role: 'employer', logo_url: data.data.logo_url, avatar_url: data.data.logo_url }
           }));
           try {
-            const uStr = localStorage.getItem('partime_employer_user') || localStorage.getItem('partime_user');
+            const uStr = sessionStorage.getItem('partime_tab_user_employer') || localStorage.getItem('partime_employer_user') || localStorage.getItem('partime_user');
             if (uStr) {
               const u = JSON.parse(uStr);
               u.logo_url = data.data.logo_url;
               u.avatar_url = data.data.logo_url;
               if (!u.profile) u.profile = {};
               u.profile.logo_url = data.data.logo_url;
-              localStorage.setItem('partime_employer_user', JSON.stringify(u));
-              localStorage.setItem('partime_user', JSON.stringify(u));
+              sessionStorage.setItem('partime_tab_user_employer', JSON.stringify(u));
             }
           } catch (e) {}
         }
@@ -1060,15 +1059,14 @@ export default function EmployerPortal({
           detail: { role: 'employer', logo_url: dataUrl, avatar_url: dataUrl }
         }));
         try {
-          const uStr = localStorage.getItem('partime_employer_user') || localStorage.getItem('partime_user');
+          const uStr = sessionStorage.getItem('partime_tab_user_employer') || localStorage.getItem('partime_employer_user') || localStorage.getItem('partime_user');
           if (uStr) {
             const u = JSON.parse(uStr);
             u.logo_url = dataUrl;
             u.avatar_url = dataUrl;
             if (!u.profile) u.profile = {};
             u.profile.logo_url = dataUrl;
-            localStorage.setItem('partime_employer_user', JSON.stringify(u));
-            localStorage.setItem('partime_user', JSON.stringify(u));
+            sessionStorage.setItem('partime_tab_user_employer', JSON.stringify(u));
           }
         } catch (e) {}
       }
@@ -1114,15 +1112,14 @@ export default function EmployerPortal({
               detail: { role: 'employer', logo_url: sampleUrl, avatar_url: sampleUrl }
             }));
             try {
-              const uStr = localStorage.getItem('partime_employer_user') || localStorage.getItem('partime_user');
+              const uStr = sessionStorage.getItem('partime_tab_user_employer') || localStorage.getItem('partime_employer_user') || localStorage.getItem('partime_user');
               if (uStr) {
                 const u = JSON.parse(uStr);
                 u.logo_url = sampleUrl;
                 u.avatar_url = sampleUrl;
                 if (!u.profile) u.profile = {};
                 u.profile.logo_url = sampleUrl;
-                localStorage.setItem('partime_employer_user', JSON.stringify(u));
-                localStorage.setItem('partime_user', JSON.stringify(u));
+                sessionStorage.setItem('partime_tab_user_employer', JSON.stringify(u));
               }
             } catch (e) {}
           }
@@ -1152,15 +1149,14 @@ export default function EmployerPortal({
         detail: { role: 'employer', logo_url: placeholderUrl, avatar_url: placeholderUrl }
       }));
       try {
-        const uStr = localStorage.getItem('partime_employer_user') || localStorage.getItem('partime_user');
+        const uStr = sessionStorage.getItem('partime_tab_user_employer') || localStorage.getItem('partime_employer_user') || localStorage.getItem('partime_user');
         if (uStr) {
           const u = JSON.parse(uStr);
           u.logo_url = placeholderUrl;
           u.avatar_url = placeholderUrl;
           if (!u.profile) u.profile = {};
           u.profile.logo_url = placeholderUrl;
-          localStorage.setItem('partime_employer_user', JSON.stringify(u));
-          localStorage.setItem('partime_user', JSON.stringify(u));
+          sessionStorage.setItem('partime_tab_user_employer', JSON.stringify(u));
         }
       } catch (e) {}
     }

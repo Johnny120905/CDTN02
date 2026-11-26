@@ -999,10 +999,18 @@ export function normalizeJobStatus(job) {
 export function getRoleToken(role) {
   if (typeof window === 'undefined') return null;
   if (role) {
+    const tabRoleTok = sessionStorage.getItem(`partime_tab_token_${role}`);
+    if (tabRoleTok) return tabRoleTok;
+  }
+  const tabRole = sessionStorage.getItem('partime_tab_role');
+  if (tabRole && (!role || tabRole === role)) {
+    const tabTok = sessionStorage.getItem(`partime_tab_token_${tabRole}`);
+    if (tabTok) return tabTok;
+  }
+  if (role) {
     const roleTok = localStorage.getItem(`partime_${role}_token`);
     if (roleTok) return roleTok;
   }
-  const tabRole = sessionStorage.getItem('partime_tab_role');
   if (tabRole) {
     const tabTok = localStorage.getItem(`partime_${tabRole}_token`);
     if (tabTok) return tabTok;

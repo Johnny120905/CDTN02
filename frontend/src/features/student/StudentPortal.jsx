@@ -1300,14 +1300,13 @@ export default function StudentPortal({
               detail: { role: 'student', avatar_url: finalAvatar }
             }));
             try {
-              const uStr = localStorage.getItem('partime_student_user') || localStorage.getItem('partime_user');
+              const uStr = sessionStorage.getItem('partime_tab_user_student') || localStorage.getItem('partime_student_user') || localStorage.getItem('partime_user');
               if (uStr) {
                 const u = JSON.parse(uStr);
                 u.avatar_url = finalAvatar;
                 if (!u.profile) u.profile = {};
                 u.profile.avatar_url = finalAvatar;
-                localStorage.setItem('partime_student_user', JSON.stringify(u));
-                localStorage.setItem('partime_user', JSON.stringify(u));
+                sessionStorage.setItem('partime_tab_user_student', JSON.stringify(u));
               }
             } catch (e) {}
           }
@@ -1336,13 +1335,12 @@ export default function StudentPortal({
         detail: { role: 'student', avatar_url: '' }
       }));
       try {
-        const uStr = localStorage.getItem('partime_student_user') || localStorage.getItem('partime_user');
+        const uStr = sessionStorage.getItem('partime_tab_user_student') || localStorage.getItem('partime_student_user') || localStorage.getItem('partime_user');
         if (uStr) {
           const u = JSON.parse(uStr);
           u.avatar_url = '';
           if (u.profile) u.profile.avatar_url = '';
-          localStorage.setItem('partime_student_user', JSON.stringify(u));
-          localStorage.setItem('partime_user', JSON.stringify(u));
+          sessionStorage.setItem('partime_tab_user_student', JSON.stringify(u));
         }
       } catch (e) {}
     }
@@ -1379,14 +1377,13 @@ export default function StudentPortal({
             detail: { role: 'student', avatar_url: data.data.avatar_url }
           }));
           try {
-            const uStr = localStorage.getItem('partime_student_user') || localStorage.getItem('partime_user');
+            const uStr = sessionStorage.getItem('partime_tab_user_student') || localStorage.getItem('partime_student_user') || localStorage.getItem('partime_user');
             if (uStr) {
               const u = JSON.parse(uStr);
               u.avatar_url = data.data.avatar_url;
               if (!u.profile) u.profile = {};
               u.profile.avatar_url = data.data.avatar_url;
-              localStorage.setItem('partime_student_user', JSON.stringify(u));
-              localStorage.setItem('partime_user', JSON.stringify(u));
+              sessionStorage.setItem('partime_tab_user_student', JSON.stringify(u));
             }
           } catch (e) {}
         }

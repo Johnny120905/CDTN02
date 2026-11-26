@@ -109,11 +109,15 @@ export default function LoginScreen({ onAuthSuccess, onNavigate, initialRole, lo
       if (res.ok && data.success && data.token) {
         setSuccessMsg('Đăng nhập thành công! Đang chuyển hướng...');
         const uRole = data.user?.role || role || 'student';
+        sessionStorage.setItem(`partime_tab_token_${uRole}`, data.token);
+        sessionStorage.setItem(`partime_tab_user_${uRole}`, JSON.stringify(data.user));
+        sessionStorage.setItem(`partime_tab_active_${uRole}`, 'true');
+        sessionStorage.setItem('partime_tab_role', uRole);
         localStorage.setItem(`partime_${uRole}_token`, data.token);
         localStorage.setItem(`partime_${uRole}_user`, JSON.stringify(data.user));
         localStorage.setItem('partime_token', data.token);
         localStorage.setItem('partime_user', JSON.stringify(data.user));
-        onAuthSuccess(data.user);
+        onAuthSuccess(data.user, data.token);
         return;
       }
 
