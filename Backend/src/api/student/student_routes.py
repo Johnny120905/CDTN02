@@ -105,6 +105,8 @@ def update_profile():
     for extra_key in ["free_schedule", "skills", "address", "bio", "avatar_url", "cover_image_url"]:
         if extra_key in data:
             update_fields[extra_key] = data[extra_key]
+    if "address" in data:
+        update_fields["residence_address"] = data["address"]
 
     # Trạng thái tài khoản (active / paused) - đồng bộ cả hồ sơ lẫn bảng users khi đăng xuất / đăng nhập
     new_status = str(data.get("status", "")).strip().lower() if "status" in data else ""
@@ -153,6 +155,8 @@ def update_profile():
     user_sync = {}
     if "full_name" in data:
         user_sync["full_name"] = data["full_name"]
+    if "phone" in data:
+        user_sync["phone"] = data["phone"]
     if "avatar_url" in update_fields:
         user_sync["avatar_url"] = update_fields["avatar_url"]
     if "cover_image_url" in update_fields:

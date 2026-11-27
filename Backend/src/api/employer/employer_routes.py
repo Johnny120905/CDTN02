@@ -198,6 +198,23 @@ def update_company_profile():
             if not user.get("is_banned") and user.get("status") not in ("deactivated", "banned"):
                 db_manager.get_collection("users").update_one({"_id": user["_id"]}, {"$set": {"status": new_status}})
     comp_col.update_one({"employer_id": emp["_id"]}, {"$set": update_fields}, upsert=True)
+    # Đồng bộ tên doanh nghiệp, người đại diện và số điện thoại sang bảng employers & users
+    emp_sync = {}
+    if "company_name" in data:
+        emp_sync["company_name"] = update_fields["company_name"]
+    if "representative_name" in data:
+        emp_sync["representative_name"] = update_fields["representative_name"]
+    if "phone" in data:
+        emp_sync["phone"] = update_fields["phone"]
+    if emp_sync:
+        db_manager.get_collection("employers").update_one({"_id": emp["_id"]}, {"$set": emp_sync})
+    user_sync = {}
+    if "representative_name" in data:
+        user_sync["full_name"] = update_fields["representative_name"]
+    if "phone" in data:
+        user_sync["phone"] = update_fields["phone"]
+    if user_sync:
+        db_manager.get_collection("users").update_one({"_id": user["_id"]}, {"$set": user_sync})
     # Đồng bộ ảnh Logo & tên doanh nghiệp sang các tin tuyển dụng để Sinh viên luôn thấy ảnh mới nhất
     db_manager.get_collection("jobs").update_many(
         {"$or": [{"employer_id": emp["_id"]}, {"employer_id": user["_id"]}]},
@@ -218,10 +235,12 @@ def update_company_profile():
         msg = "Cập nhật hồ sơ thành công! Giấy phép kinh doanh mới đã được ghi nhận. Tài khoản của bạn đã được chuyển sang trạng thái 'Chờ duyệt' để Quản trị viên xem xét lại."
 
     updated_emp_record = db_manager.get_collection("employers").find_one({"_id": emp["_id"]})
+    saved_comp = dict(comp_col.find_one({"employer_id": emp["_id"]}) or update_fields)
+    saved_comp.setdefault("employer_id", emp["_id"])
     return jsonify({
         "success": True,
         "message": msg,
-        "data": update_fields,
+        "data": saved_comp,
         "approval_status": new_approval_status,
         "license_reuploaded": is_new_license,
         "employer_record": updated_emp_record

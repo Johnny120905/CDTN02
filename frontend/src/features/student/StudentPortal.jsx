@@ -85,7 +85,8 @@ export default function StudentPortal({
   onSectionChange,
   onShowBanner,
   isGuestMode = false,
-  onNavigateAuth
+  onNavigateAuth,
+  onUserUpdate
 }) {
   const notify = (msg, type = 'success') => {
     if (onShowBanner) {
@@ -154,10 +155,10 @@ export default function StudentPortal({
     rating_avg: currentUser?.profile?.rating_avg || 5.0
   });
 
-  // Sync profile when currentUser or isGuestMode changes
+  // Sync profile & profileForm when currentUser or isGuestMode changes
   useEffect(() => {
     if (isGuestMode || !currentUser) {
-      setProfile({
+      const emptyProfile = {
         full_name: '',
         phone: '',
         university: '',
@@ -165,18 +166,46 @@ export default function StudentPortal({
         avatar_url: '',
         cover_image_url: '',
         rating_avg: 5.0
+      };
+      setProfile(emptyProfile);
+      setProfileForm({
+        full_name: '',
+        phone: '',
+        university: '',
+        address: '',
+        avatar_url: '',
+        cover_image_url: ''
       });
     } else {
-      const stAvatar = currentUser?.profile?.avatar_url || currentUser?.avatar_url || '';
-      setProfile({
-        full_name: currentUser?.profile?.full_name || currentUser?.full_name || '',
-        phone: currentUser?.profile?.phone || '',
-        university: currentUser?.profile?.university || '',
-        address: currentUser?.profile?.address || currentUser?.profile?.residence_address || '',
-        avatar_url: stAvatar,
-        cover_image_url: currentUser?.profile?.cover_image_url || '',
-        rating_avg: currentUser?.profile?.rating_avg || 5.0
-      });
+      const p = currentUser?.profile || {};
+      const stAvatar = p.avatar_url || currentUser?.avatar_url || '';
+      const patch = {};
+      if (p.full_name !== undefined || currentUser?.full_name !== undefined) {
+        patch.full_name = p.full_name ?? currentUser?.full_name ?? '';
+      }
+      if (p.phone !== undefined || currentUser?.phone !== undefined) {
+        patch.phone = p.phone ?? currentUser?.phone ?? '';
+      }
+      if (p.university !== undefined) patch.university = p.university;
+      if (p.address !== undefined || p.residence_address !== undefined) {
+        const nextAddr = p.address ?? p.residence_address ?? '';
+        patch.address = nextAddr;
+        patch.residence_address = nextAddr;
+      }
+      if (stAvatar) patch.avatar_url = stAvatar;
+      if (p.cover_image_url !== undefined) patch.cover_image_url = p.cover_image_url;
+      if (p.rating_avg !== undefined) patch.rating_avg = p.rating_avg;
+
+      setProfile(prev => ({ ...prev, ...patch }));
+      setProfileForm(prev => ({
+        ...prev,
+        ...(patch.full_name !== undefined ? { full_name: patch.full_name } : {}),
+        ...(patch.phone !== undefined ? { phone: patch.phone } : {}),
+        ...(patch.university !== undefined ? { university: patch.university } : {}),
+        ...(patch.address !== undefined ? { address: patch.address } : {}),
+        ...(patch.avatar_url !== undefined ? { avatar_url: patch.avatar_url } : {}),
+        ...(patch.cover_image_url !== undefined ? { cover_image_url: patch.cover_image_url } : {})
+      }));
       if (stAvatar) {
         window.dispatchEvent(new CustomEvent('partime-avatar-updated', {
           detail: { role: 'student', avatar_url: stAvatar }
@@ -1360,7 +1389,7 @@ export default function StudentPortal({
 
   const fetchProfile = async () => {
     try {
-      const res = await fetch('/api/student/profile', { headers });
+      const res = await fetch('/api/student/profile', { headers, cache: 'no-store' });
       const data = await res.json();
       if (data.success && data.data) {
         setProfile(data.data);
@@ -1372,20 +1401,13 @@ export default function StudentPortal({
           avatar_url: data.data.avatar_url || '',
           cover_image_url: data.data.cover_image_url || ''
         });
+        if (onUserUpdate) {
+          onUserUpdate(data.data);
+        }
         if (data.data.avatar_url) {
           window.dispatchEvent(new CustomEvent('partime-avatar-updated', {
             detail: { role: 'student', avatar_url: data.data.avatar_url }
           }));
-          try {
-            const uStr = sessionStorage.getItem('partime_tab_user_student') || localStorage.getItem('partime_student_user') || localStorage.getItem('partime_user');
-            if (uStr) {
-              const u = JSON.parse(uStr);
-              u.avatar_url = data.data.avatar_url;
-              if (!u.profile) u.profile = {};
-              u.profile.avatar_url = data.data.avatar_url;
-              sessionStorage.setItem('partime_tab_user_student', JSON.stringify(u));
-            }
-          } catch (e) {}
         }
       }
     } catch (err) {
@@ -1454,8 +1476,23 @@ export default function StudentPortal({
     });
 
     // 5. PROFILES_SYNC: Hồ sơ cá nhân
-    const unsubProfiles = subscribeSync(SYNC_EVENTS.PROFILES, () => {
+    const unsubProfiles = subscribeSync(SYNC_EVENTS.PROFILES, (evt) => {
       if (!isGuestMode && token) {
+        const incoming = evt?.payload?.role === 'student' ? evt?.payload?.profile : null;
+        if (incoming && typeof incoming === 'object') {
+          setProfile(prev => ({ ...prev, ...incoming }));
+          setProfileForm(prev => ({
+            ...prev,
+            ...(incoming.full_name !== undefined ? { full_name: incoming.full_name } : {}),
+            ...(incoming.phone !== undefined ? { phone: incoming.phone } : {}),
+            ...(incoming.university !== undefined ? { university: incoming.university } : {}),
+            ...(incoming.address !== undefined || incoming.residence_address !== undefined
+              ? { address: incoming.address ?? incoming.residence_address ?? '' }
+              : {}),
+            ...(incoming.avatar_url !== undefined ? { avatar_url: incoming.avatar_url } : {}),
+            ...(incoming.cover_image_url !== undefined ? { cover_image_url: incoming.cover_image_url } : {})
+          }));
+        }
         fetchProfile();
       }
     });
@@ -1660,11 +1697,23 @@ export default function StudentPortal({
       });
       const data = await res.json();
       if (data.success) {
-        setProfile(data.data);
+        const savedProfile = data.data || profileForm;
+        setProfile(savedProfile);
+        setProfileForm({
+          full_name: savedProfile.full_name || '',
+          phone: savedProfile.phone || '',
+          university: savedProfile.university || '',
+          address: savedProfile.address || savedProfile.residence_address || '',
+          avatar_url: savedProfile.avatar_url || '',
+          cover_image_url: savedProfile.cover_image_url || ''
+        });
         setIsEditingProfile(false);
+        if (onUserUpdate) {
+          onUserUpdate(savedProfile);
+        }
         setProfileSaveMsg('Cập nhật thông tin cá nhân thành công!');
         notify('Đã cập nhật thông tin cá nhân thành công!', 'success');
-        emitSync(SYNC_EVENTS.PROFILES, { role: 'student', action: 'profile_save' });
+        emitSync(SYNC_EVENTS.PROFILES, { role: 'student', action: 'profile_save', profile: savedProfile });
         setTimeout(() => setProfileSaveMsg(''), 3000);
       } else {
         setPhoneError(data.message || 'Lỗi cập nhật hồ sơ.');
@@ -5054,6 +5103,14 @@ export default function StudentPortal({
                         <button
                           type="button"
                           onClick={() => {
+                            setProfileForm({
+                              full_name: profile.full_name || '',
+                              phone: profile.phone || '',
+                              university: profile.university || '',
+                              address: profile.address || profile.residence_address || '',
+                              avatar_url: profile.avatar_url || '',
+                              cover_image_url: profile.cover_image_url || ''
+                            });
                             setIsEditingProfile(true);
                             setPhoneError('');
                           }}

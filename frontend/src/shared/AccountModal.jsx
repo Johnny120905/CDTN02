@@ -46,24 +46,59 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
 
   useEffect(() => {
     if (isOpen && currentUser) {
+      const p = currentUser?.profile || {};
       setFullName(
-        currentUser?.profile?.representative_name ||
-        currentUser?.profile?.full_name ||
-        currentUser?.full_name || ''
+        currentUser.role === 'employer'
+          ? (p.representative_name || p.full_name || currentUser?.representative_name || currentUser?.full_name || '')
+          : (p.full_name || currentUser?.full_name || '')
       );
-      setCompanyName(currentUser?.profile?.company_name || '');
-      setBranchName(currentUser?.profile?.branch_name || '');
-      setPhone(currentUser?.profile?.phone || '');
+      setCompanyName(p.company_name || currentUser?.company_name || '');
+      setBranchName(p.branch_name || '');
+      setPhone(p.phone || currentUser?.phone || '');
       setExtraField(
         currentUser.role === 'student'
-          ? (currentUser?.profile?.university || '')
-          : (currentUser?.profile?.address || '')
+          ? (p.university || '')
+          : (p.address || '')
       );
-      setAddress(currentUser?.profile?.address || '');
-      setUserStatus(currentUser?.profile?.status || currentUser?.status || 'active');
+      setAddress(p.address || p.residence_address || '');
+      setUserStatus(p.status || currentUser?.status || 'active');
       setOldPassword('');
       setNewPassword('');
       setConfirmPassword('');
+
+      // Tải dữ liệu hồ sơ mới nhất từ máy chủ để đảm bảo luôn khớp với Hồ sơ cá nhân / Hồ sơ doanh nghiệp
+      const activeTok = getRoleToken(currentUser.role);
+      const profileEndpoint = currentUser.role === 'student'
+        ? '/api/student/profile'
+        : (currentUser.role === 'employer' ? '/api/employer/company' : null);
+      if (activeTok && profileEndpoint) {
+        let cancelled = false;
+        fetch(profileEndpoint, {
+          headers: { 'Authorization': `Bearer ${activeTok}` },
+          cache: 'no-store'
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (cancelled || !data?.success || !data?.data) return;
+            const live = data.data;
+            if (currentUser.role === 'employer') {
+              setCompanyName(live.company_name || '');
+              setBranchName(live.branch_name || '');
+              setFullName(live.representative_name || currentUser?.full_name || '');
+              setPhone(live.phone || '');
+              setExtraField(live.address || '');
+              setAddress(live.address || '');
+            } else if (currentUser.role === 'student') {
+              setFullName(live.full_name || '');
+              setPhone(live.phone || '');
+              setExtraField(live.university || '');
+              setAddress(live.address || live.residence_address || '');
+            }
+            if (live.status) setUserStatus(live.status);
+          })
+          .catch(() => {});
+        return () => { cancelled = true; };
+      }
     }
   }, [isOpen, currentUser]);
 
@@ -124,9 +159,23 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
       const data = await res.json();
       if (data.success) {
         setMsg({ text: 'Cập nhật thông tin thành công!', type: 'success' });
-        const updatedUser = { ...currentUser };
-        updatedUser.status = userStatus;
-        updatedUser.profile = { ...(updatedUser.profile || {}), ...bodyData };
+        const serverProfile = (data.data && typeof data.data === 'object') ? data.data : {};
+        const mergedProfile = { ...(currentUser.profile || {}), ...serverProfile, ...bodyData };
+        const updatedUser = {
+          ...currentUser,
+          status: userStatus,
+          ...(currentUser.role === 'student'
+            ? {
+                full_name: mergedProfile.full_name || currentUser.full_name,
+                phone: mergedProfile.phone ?? currentUser.phone
+              }
+            : {
+                company_name: mergedProfile.company_name || currentUser.company_name,
+                representative_name: mergedProfile.representative_name || currentUser.representative_name,
+                phone: mergedProfile.phone ?? currentUser.phone
+              }),
+          profile: mergedProfile
+        };
         sessionStorage.setItem(`partime_tab_user_${currentUser.role}`, JSON.stringify(updatedUser));
         try {
           const storedRoleRaw = localStorage.getItem(`partime_${currentUser.role}_user`);
@@ -142,7 +191,7 @@ export default function AccountModal({ isOpen, onClose, currentUser, onUpdateSuc
           }
         } catch (e) {}
         if (onUpdateSuccess) onUpdateSuccess(updatedUser);
-        emitSync(SYNC_EVENTS.PROFILES, { role: currentUser.role, action: 'profile_modal_update' });
+        emitSync(SYNC_EVENTS.PROFILES, { role: currentUser.role, action: 'profile_modal_update', profile: mergedProfile });
       } else {
         setMsg({ text: data.message || 'Cập nhật thất bại.', type: 'error' });
       }

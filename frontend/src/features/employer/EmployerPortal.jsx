@@ -139,7 +139,8 @@ export default function EmployerPortal({
   onSectionChange,
   onShowBanner,
   isGuestMode = false,
-  onNavigateAuth
+  onNavigateAuth,
+  onUserUpdate
 }) {
   const notify = (msg, type = 'success') => {
     if (onShowBanner) {
@@ -208,10 +209,10 @@ export default function EmployerPortal({
     cover_image_url: currentUser?.profile?.cover_image_url || DEFAULT_COVER_SVG
   });
 
-  // Sync companyInfo when currentUser or isGuestMode changes
+  // Sync companyInfo & companyForm when currentUser or isGuestMode changes
   useEffect(() => {
     if (isGuestMode || !currentUser) {
-      setCompanyInfo({
+      const emptyInfo = {
         company_name: '',
         representative_name: '',
         branch_name: '',
@@ -223,21 +224,37 @@ export default function EmployerPortal({
         business_license_url: '',
         logo_url: DEFAULT_LOGO_SVG,
         cover_image_url: DEFAULT_COVER_SVG
-      });
+      };
+      setCompanyInfo(emptyInfo);
+      setCompanyForm(emptyInfo);
     } else {
-      setCompanyInfo({
-        company_name: currentUser?.profile?.company_name || currentUser?.company_name || '',
-        representative_name: currentUser?.profile?.representative_name || currentUser?.representative_name || '',
-        branch_name: currentUser?.profile?.branch_name || '',
-        description: currentUser?.profile?.description || '',
-        scale: normalizeCompanyScale(currentUser?.profile?.scale),
-        address: currentUser?.profile?.address || '',
-        phone: currentUser?.profile?.phone || currentUser?.phone || '',
-        business_license: currentUser?.profile?.business_license || '',
-        business_license_url: currentUser?.profile?.business_license_url || '',
-        logo_url: currentUser?.profile?.logo_url || DEFAULT_LOGO_SVG,
-        cover_image_url: currentUser?.profile?.cover_image_url || DEFAULT_COVER_SVG
-      });
+      const p = currentUser?.profile || {};
+      const patch = {};
+      if (p.company_name !== undefined || currentUser?.company_name !== undefined) {
+        patch.company_name = p.company_name ?? currentUser?.company_name ?? '';
+      }
+      if (p.representative_name !== undefined || currentUser?.representative_name !== undefined) {
+        patch.representative_name = p.representative_name ?? currentUser?.representative_name ?? '';
+      }
+      if (p.branch_name !== undefined) patch.branch_name = p.branch_name;
+      if (p.description !== undefined) patch.description = p.description;
+      if (p.scale !== undefined) patch.scale = normalizeCompanyScale(p.scale);
+      if (p.address !== undefined) patch.address = p.address;
+      if (p.phone !== undefined || currentUser?.phone !== undefined) {
+        patch.phone = p.phone ?? currentUser?.phone ?? '';
+      }
+      if (p.business_license !== undefined) patch.business_license = p.business_license;
+      if (p.business_license_url !== undefined) patch.business_license_url = p.business_license_url;
+      if (p.business_license_name !== undefined) patch.business_license_name = p.business_license_name;
+      if (p.logo_url) patch.logo_url = p.logo_url;
+      if (p.cover_image_url) patch.cover_image_url = p.cover_image_url;
+
+      setCompanyInfo(prev => ({ ...prev, ...patch }));
+      setCompanyForm(prev => ({
+        ...prev,
+        ...patch,
+        scale: normalizeCompanyScale(patch.scale ?? prev.scale)
+      }));
     }
   }, [currentUser, isGuestMode]);
   const [isEditingCompany, setIsEditingCompany] = useState(false);
@@ -730,7 +747,7 @@ export default function EmployerPortal({
 
   const fetchCompanyProfile = async () => {
     try {
-      const res = await fetch('/api/employer/company', { headers });
+      const res = await fetch('/api/employer/company', { headers, cache: 'no-store' });
       const data = await res.json();
       if (data.success && data.data) {
         setCompanyInfo(data.data);
@@ -742,21 +759,13 @@ export default function EmployerPortal({
         if (empRec) {
           setEmployerRecord(empRec);
         }
+        if (onUserUpdate) {
+          onUserUpdate(data.data);
+        }
         if (data.data.logo_url) {
           window.dispatchEvent(new CustomEvent('partime-avatar-updated', {
             detail: { role: 'employer', logo_url: data.data.logo_url, avatar_url: data.data.logo_url }
           }));
-          try {
-            const uStr = sessionStorage.getItem('partime_tab_user_employer') || localStorage.getItem('partime_employer_user') || localStorage.getItem('partime_user');
-            if (uStr) {
-              const u = JSON.parse(uStr);
-              u.logo_url = data.data.logo_url;
-              u.avatar_url = data.data.logo_url;
-              if (!u.profile) u.profile = {};
-              u.profile.logo_url = data.data.logo_url;
-              sessionStorage.setItem('partime_tab_user_employer', JSON.stringify(u));
-            }
-          } catch (e) {}
         }
       }
     } catch (err) {
@@ -853,8 +862,17 @@ export default function EmployerPortal({
     });
 
     // 5. PROFILES_SYNC: Hồ sơ doanh nghiệp & GPKD
-    const unsubProfiles = subscribeSync(SYNC_EVENTS.PROFILES, () => {
+    const unsubProfiles = subscribeSync(SYNC_EVENTS.PROFILES, (evt) => {
       if (!isGuestMode && token) {
+        const incoming = evt?.payload?.role === 'employer' ? evt?.payload?.profile : null;
+        if (incoming && typeof incoming === 'object') {
+          setCompanyInfo(prev => ({ ...prev, ...incoming }));
+          setCompanyForm(prev => ({
+            ...prev,
+            ...incoming,
+            scale: normalizeCompanyScale(incoming.scale ?? prev.scale)
+          }));
+        }
         fetchCompanyProfile();
       }
     });
@@ -1014,9 +1032,19 @@ export default function EmployerPortal({
       });
       const data = await res.json();
       if (data.success) {
-        setCompanyInfo(data.data || companyForm);
-        setCompanyForm(prev => ({ ...(data.data || prev), new_gpkd_uploaded: false, new_gpkd_name: '' }));
+        const savedCompany = data.data || companyForm;
+        setCompanyInfo(savedCompany);
+        setCompanyForm(prev => ({
+          ...prev,
+          ...savedCompany,
+          scale: normalizeCompanyScale(savedCompany.scale ?? prev.scale),
+          new_gpkd_uploaded: false,
+          new_gpkd_name: ''
+        }));
         setIsEditingCompany(false);
+        if (onUserUpdate) {
+          onUserUpdate(savedCompany);
+        }
 
         // Nếu có tải lại Giấy phép kinh doanh mới: Chuyển tài khoản về "pending" (Chờ duyệt)
         if (data.approval_status === 'pending' || data.license_reuploaded || hasReuploadedGpkd) {
@@ -1032,7 +1060,7 @@ export default function EmployerPortal({
           setCompanyMsg('Cập nhật hồ sơ doanh nghiệp thành công!');
           if (onShowBanner) onShowBanner('Cập nhật hồ sơ doanh nghiệp thành công!', 'success');
         }
-        emitSync(SYNC_EVENTS.PROFILES, { role: 'employer', action: 'profile_update' });
+        emitSync(SYNC_EVENTS.PROFILES, { role: 'employer', action: 'profile_update', profile: savedCompany });
         setTimeout(() => setCompanyMsg(''), 6000);
       } else {
         notify(data.message || 'Lỗi cập nhật hồ sơ.', 'error');
@@ -3509,7 +3537,13 @@ export default function EmployerPortal({
                     {!isEditingCompany && (
                       <button
                         type="button"
-                        onClick={() => setIsEditingCompany(true)}
+                        onClick={() => {
+                          setCompanyForm({
+                            ...companyInfo,
+                            scale: normalizeCompanyScale(companyInfo.scale)
+                          });
+                          setIsEditingCompany(true);
+                        }}
                         className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs sm:text-sm font-bold border border-slate-300 transition-all cursor-pointer flex items-center gap-2 shadow-xs shrink-0"
                       >
                         <Edit className="w-4 h-4 text-blue-600" />
@@ -7624,7 +7658,9 @@ export default function EmployerPortal({
                      selectedJobDetail.status === 'closed' ? 'Tạm đóng' :
                      selectedJobDetail.status === 'filled' ? 'Đã nhận người' : 'Hoàn thành'}
                   </span>
-                  <span className="text-xs text-blue-700 font-semibold">{selectedJobDetail.category_name || selectedJobDetail.job_type || 'Dịch vụ & F&B'}</span>
+                  <span className="text-xs text-blue-700 font-semibold">
+                    {selectedJobDetail.category_name || categories.find(c => c._id === selectedJobDetail.category_id)?.name || selectedJobDetail.category_id || 'Chưa cập nhật ngành nghề'}
+                  </span>
                 </div>
                 <h3 className="text-[18px] leading-[26px] font-semibold text-slate-900">{selectedJobDetail.title}</h3>
                 <p className="text-xs text-slate-600 flex items-center gap-1.5 font-medium">
@@ -7659,33 +7695,37 @@ export default function EmployerPortal({
                   </div>
                 );
               })()}
-              {/* Quick Info Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {/* Thông tin khớp đúng các trường của Form Đăng tin tuyển dụng */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                  <span className="text-xs font-semibold text-slate-600 block">Mức lương</span>
-                  <p className="text-sm font-bold text-emerald-700 mt-0.5">
-                    {selectedJobDetail.salary_display || (selectedJobDetail.hourly_rate ? `${selectedJobDetail.hourly_rate.toLocaleString('vi-VN')} đ/h` : 'Lương thỏa thuận')}
-                  </p>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                  <span className="text-xs font-semibold text-slate-600 block">Số lượng tuyển</span>
+                  <span className="text-xs font-semibold text-slate-600 block">Ngành nghề tuyển dụng</span>
                   <p className="text-sm font-bold text-blue-700 mt-0.5">
-                    {selectedJobDetail.vacancies_count || 3} nhân sự
+                    {selectedJobDetail.category_name || categories.find(c => c._id === selectedJobDetail.category_id)?.name || selectedJobDetail.category_id || 'Chưa cập nhật'}
                   </p>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                  <span className="text-xs font-semibold text-slate-600 block">Hồ sơ hợp lệ</span>
-                  <p className="text-sm font-bold text-indigo-700 mt-0.5">
-                    {validApplicants.filter(a => a.job_id === selectedJobDetail._id || a.job_title === selectedJobDetail.title).length} ứng viên
+                  <span className="text-xs font-semibold text-slate-600 block">Địa điểm làm việc</span>
+                  <p className="text-sm font-bold text-slate-900 mt-0.5">
+                    {selectedJobDetail.location || 'Chưa cập nhật'}
                   </p>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
-                  <span className="text-xs font-semibold text-slate-600 block">Hình thức ca</span>
+                  <span className="text-xs font-semibold text-slate-600 block">Khoảng lương theo giờ</span>
+                  <p className="text-sm font-bold text-emerald-700 mt-0.5">
+                    {selectedJobDetail.is_negotiable
+                      ? 'Thỏa thuận'
+                      : (selectedJobDetail.salary_min != null || selectedJobDetail.salary_max != null
+                        ? `${Number(selectedJobDetail.salary_min || 0).toLocaleString('vi-VN')}đ - ${Number(selectedJobDetail.salary_max || selectedJobDetail.salary_min || 0).toLocaleString('vi-VN')}đ/giờ`
+                        : 'Chưa cập nhật')}
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200">
+                  <span className="text-xs font-semibold text-slate-600 block">Ca làm việc part-time theo ca</span>
                   <p className="text-sm font-bold text-amber-700 mt-0.5">
-                    {selectedJobDetail.working_time || 'Ca linh hoạt 4h-6h'}
+                    {selectedJobDetail.work_time || selectedJobDetail.working_time || 'Chưa cập nhật'}
                   </p>
                 </div>
               </div>

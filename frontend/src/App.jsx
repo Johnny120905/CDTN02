@@ -10,6 +10,7 @@ import AdminLoginScreen from './features/auth/AdminLoginScreen';
 import StudentPortal from './features/student/StudentPortal';
 import EmployerPortal from './features/employer/EmployerPortal';
 import AdminPortal from './features/admin/AdminPortal';
+import { subscribeSync, SYNC_EVENTS } from './shared/syncEventHub';
 
 // React Error Boundary để bảo vệ ứng dụng không bị trắng màn hình khi có ngoại lệ
 class ErrorBoundary extends React.Component {
@@ -274,7 +275,8 @@ export default function App() {
                 prev.role === parsed.role &&
                 prev.status === parsed.status &&
                 prev.approval_status === parsed.approval_status &&
-                prev.is_banned === parsed.is_banned
+                prev.is_banned === parsed.is_banned &&
+                JSON.stringify(prev.profile || {}) === JSON.stringify(parsed.profile || {})
               ) {
                 return prev;
               }
@@ -422,6 +424,106 @@ export default function App() {
       navigateTo('/student');
     }
   };
+
+  // Đồng bộ 2 chiều thông tin hồ sơ giữa Header / AccountModal và Hồ sơ Sinh viên / Hồ sơ Doanh nghiệp
+  const handleUserProfileUpdate = (userOrProfile) => {
+    if (!userOrProfile) return;
+    setCurrentUser(prev => {
+      if (!prev) return prev;
+      const isFullUser = Boolean(userOrProfile.role && (userOrProfile.email || userOrProfile._id || userOrProfile.id));
+      const incomingProfile = isFullUser ? (userOrProfile.profile || {}) : userOrProfile;
+      const nextProfile = { ...(prev.profile || {}), ...incomingProfile };
+      const nextUser = isFullUser
+        ? { ...prev, ...userOrProfile, profile: nextProfile }
+        : {
+            ...prev,
+            ...(prev.role === 'student'
+              ? {
+                  full_name: nextProfile.full_name ?? prev.full_name,
+                  phone: nextProfile.phone ?? prev.phone,
+                  avatar_url: nextProfile.avatar_url ?? prev.avatar_url
+                }
+              : prev.role === 'employer'
+              ? {
+                  company_name: nextProfile.company_name ?? prev.company_name,
+                  representative_name: nextProfile.representative_name ?? prev.representative_name,
+                  phone: nextProfile.phone ?? prev.phone,
+                  logo_url: nextProfile.logo_url ?? prev.logo_url,
+                  avatar_url: nextProfile.logo_url || nextProfile.avatar_url || prev.avatar_url
+                }
+              : {}),
+            profile: nextProfile
+          };
+
+      if (
+        prev.status === nextUser.status &&
+        prev.full_name === nextUser.full_name &&
+        prev.company_name === nextUser.company_name &&
+        prev.representative_name === nextUser.representative_name &&
+        prev.phone === nextUser.phone &&
+        prev.avatar_url === nextUser.avatar_url &&
+        JSON.stringify(prev.profile || {}) === JSON.stringify(nextUser.profile || {})
+      ) {
+        return prev;
+      }
+
+      const role = nextUser.role;
+      try {
+        if (role) {
+          sessionStorage.setItem(`partime_tab_user_${role}`, JSON.stringify(nextUser));
+          const curId = nextUser._id || nextUser.id;
+          const storedRoleRaw = localStorage.getItem(`partime_${role}_user`);
+          const storedRole = storedRoleRaw ? JSON.parse(storedRoleRaw) : null;
+          if (!storedRole || (storedRole._id || storedRole.id) === curId) {
+            localStorage.setItem(`partime_${role}_user`, JSON.stringify(nextUser));
+          }
+          const storedGenRaw = localStorage.getItem('partime_user');
+          const storedGen = storedGenRaw ? JSON.parse(storedGenRaw) : null;
+          if (!storedGen || (storedGen._id || storedGen.id) === curId) {
+            localStorage.setItem('partime_user', JSON.stringify(nextUser));
+          }
+        }
+      } catch (e) {}
+
+      return nextUser;
+    });
+  };
+
+  useEffect(() => {
+    const unsubProfiles = subscribeSync(SYNC_EVENTS.PROFILES, (evt) => {
+      const payload = evt?.payload;
+      if (!payload || !payload.profile) return;
+      setCurrentUser(prev => {
+        if (!prev || (payload.role && prev.role !== payload.role)) return prev;
+        const nextProfile = { ...(prev.profile || {}), ...payload.profile };
+        if (JSON.stringify(prev.profile || {}) === JSON.stringify(nextProfile)) return prev;
+        const nextUser = {
+          ...prev,
+          ...(prev.role === 'student'
+            ? {
+                full_name: nextProfile.full_name ?? prev.full_name,
+                phone: nextProfile.phone ?? prev.phone,
+                avatar_url: nextProfile.avatar_url ?? prev.avatar_url
+              }
+            : prev.role === 'employer'
+            ? {
+                company_name: nextProfile.company_name ?? prev.company_name,
+                representative_name: nextProfile.representative_name ?? prev.representative_name,
+                phone: nextProfile.phone ?? prev.phone,
+                logo_url: nextProfile.logo_url ?? prev.logo_url,
+                avatar_url: nextProfile.logo_url || nextProfile.avatar_url || prev.avatar_url
+              }
+            : {}),
+          profile: nextProfile
+        };
+        try {
+          sessionStorage.setItem(`partime_tab_user_${prev.role}`, JSON.stringify(nextUser));
+        } catch (e) {}
+        return nextUser;
+      });
+    });
+    return () => unsubProfiles();
+  }, []);
 
   const handleOpenAccountModal = () => {
     setIsAccountModalOpen(true);
@@ -685,6 +787,7 @@ export default function App() {
               onToggleMobileSidebar={handleToggleSidebar}
               onSectionChange={setActiveSectionTitle}
               onShowBanner={handleShowBanner}
+              onUserUpdate={handleUserProfileUpdate}
             />
           </main>
 
@@ -692,12 +795,7 @@ export default function App() {
             isOpen={isAccountModalOpen}
             onClose={() => setIsAccountModalOpen(false)}
             currentUser={currentUser}
-            onUpdateSuccess={(u) => {
-              if (u?.role) {
-                sessionStorage.setItem(`partime_tab_user_${u.role}`, JSON.stringify(u));
-              }
-              setCurrentUser(u);
-            }}
+            onUpdateSuccess={handleUserProfileUpdate}
           />
 
           <Footer 
@@ -835,6 +933,7 @@ export default function App() {
             headerSearchQuery={headerSearchKeyword}
             onSectionChange={setActiveSectionTitle}
             onShowBanner={handleShowBanner}
+            onUserUpdate={handleUserProfileUpdate}
           />
         </main>
 
@@ -842,12 +941,7 @@ export default function App() {
           isOpen={isAccountModalOpen}
           onClose={() => setIsAccountModalOpen(false)}
           currentUser={currentUser}
-          onUpdateSuccess={(u) => {
-              if (u?.role) {
-                sessionStorage.setItem(`partime_tab_user_${u.role}`, JSON.stringify(u));
-              }
-              setCurrentUser(u);
-            }}
+          onUpdateSuccess={handleUserProfileUpdate}
         />
 
         <Footer 
