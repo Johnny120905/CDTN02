@@ -206,13 +206,21 @@ def login():
     emp_record = None
     stu_record = None
     if user_role == "student":
-        stu_record = db_manager.get_collection("student_profiles").find_one({"user_id": user["_id"]})
+        stu_col = db_manager.get_collection("student_profiles")
+        stu_record = stu_col.find_one({"user_id": user["_id"]})
         if stu_record:
+            if stu_record.get("status") == "paused":
+                stu_col.update_one({"_id": stu_record["_id"]}, {"$set": {"status": "active"}})
+                stu_record["status"] = "active"
             profile_data = stu_record
     elif user_role == "employer":
         emp_record = db_manager.get_collection("employers").find_one({"user_id": user["_id"]})
         if emp_record:
-            comp = db_manager.get_collection("company_profiles").find_one({"employer_id": emp_record["_id"]})
+            comp_col = db_manager.get_collection("company_profiles")
+            comp = comp_col.find_one({"employer_id": emp_record["_id"]})
+            if comp and comp.get("status") == "paused":
+                comp_col.update_one({"_id": comp["_id"]}, {"$set": {"status": "active"}})
+                comp["status"] = "active"
             profile_data = comp or {}
 
     resolved_avatar = user.get("avatar_url") or profile_data.get("avatar_url") or profile_data.get("logo_url") or ""
